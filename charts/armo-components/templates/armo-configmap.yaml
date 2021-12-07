@@ -7,10 +7,16 @@ metadata:
     app: {{ .Values.global.beConfig }}
     tier: {{ .Values.global.namespaceTier }}
 data:
+{{- if eq .Values.environment "dev" }}
+  eventReceiverREST: "{{ .Values.devEventReceiverHttpUrl }}"
+  eventReceiverWS: "{{ .Values.devK8sReportUrl }}"
+  postman: "wss://{{ .Values.devPostmanUrl }}"
+{{- else }} 
   eventReceiverREST: "{{ .Values.eventReceiverHttpUrl }}"
   eventReceiverWS: "{{ .Values.k8sReportUrl }}"
-  maserNotificationServer: ""
   postman: "wss://{{ .Values.postmanUrl }}"
+{{- end }} 
+  maserNotificationServer: ""
   dashboard: ""
   portal: ""
   accountGuid: "{{ .Values.accountGuid }}"

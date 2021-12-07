@@ -1,0 +1,37 @@
+{{- if .Capabilities.APIVersions.Has "batch/v1/CronJob" }}
+apiVersion: batch/v1
+{{- else if .Capabilities.APIVersions.Has "batch/v1beta1/CronJob" }}
+apiVersion: batch/v1beta1
+{{- else }}
+apiVersion: batch/v1beta1
+{{- end }}
+kind: CronJob
+metadata:
+  name: {{ .Values.armoKubescape.name }}
+  namespace: {{ .Values.armoNameSpace }}
+  labels:
+    app: {{ .Values.armoKubescape.name }}
+    tier: {{ .Values.global.namespaceTier }}
+spec:
+  schedule: "{{ .Values.armoKubescape.scanSchedule }}"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: kubescape
+            image: quay.io/armosec/kubescape:latest
+            imagePullPolicy: IfNotPresent
+            command: ["/bin/sh","-c"]
+            args: 
+            - kubescape scan framework nsa --submit {{ if eq .Values.environment "dev" }}--environment=dev{{ end }}
+            volumeMounts:
+            - name: kubescape-config-volume
+              mountPath: /root/.kubescape/config.json
+              subPath: config.json
+          restartPolicy: OnFailure
+          serviceAccountName: {{ .Values.global.armoKubescapeServiceAccountName }}
+          volumes:
+          - name: kubescape-config-volume
+            configMap:
+              name: {{ .Values.armoKubescape.name }}-config
