@@ -1,0 +1,168 @@
+# Default values for armo operator.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+armoNameSpace: armo-system
+appLabel: armo-vuln-scanner
+registrySecretName: armoregcred
+loginSecretName: armo-login
+
+
+# ARMO BE URLs
+eventReceiverHttpUrl: "https://report.euprod1.cyberarmorsoft.com"
+k8sReportUrl: ""
+postmanUrl: "postman.euprod1.cyberarmorsoft.com"
+
+# Customer Specific Data
+accountGuid : "1e3a88bf-92ce-44f8-914e-cbe71830d566"
+clusterName: "kubescape-default-cluster-name"
+
+
+loginInfo:
+  username: ""
+  password: ""
+  customer: ""
+
+
+imagePullSecrets: caregcred
+nameOverride: ""
+fullnameOverride: ""
+
+global:
+  ## Use Docker Engine
+  useDocker: true
+  armoSystemMode: "SCAN"
+
+  namespaceTier: armo-system-control-plane
+#  armoLoginSecretName: armo-login
+  beConfig: armo-be-config
+  armoServiceAccountName: armo-scanner-service-account
+
+
+armoScanScheduler:
+
+  ## Schedule Scan using cron
+  ##
+  enabled: true
+
+  ## scan scheduler container name
+  ##
+  name: armo-scan-scheduler
+
+             # -- Frequency of running the scan
+           #       ┌───────────── minute (0 - 59)
+           #       │ ┌───────────── hour (0 - 23)
+           #       │ │ ┌───────────── day of the month (1 - 31)
+           #       │ │ │ ┌───────────── month (1 - 12)
+           #       │ │ │ │ ┌───────────── day of the week (0 - 6) (Sunday to Saturday;
+           #       │ │ │ │ │                         7 is also Sunday on some systems)
+           #       │ │ │ │ │
+           #       │ │ │ │ │
+           #       * * * * *
+  scanSchedule: "0 0 * * *"
+  
+  image:
+    repository: curlimages/curl
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  replicaCount: 1
+
+
+
+armoWebsocket:
+
+  ## Deploy WebSocket
+  ##
+  enabled: true
+
+  ## armo websocket container name
+  ##
+  name: armo-web-socket
+
+           # -- Frequency of running the scan
+           #       ┌───────────── minute (0 - 59)
+           #       │ ┌───────────── hour (0 - 23)
+           #       │ │ ┌───────────── day of the month (1 - 31)
+           #       │ │ │ ┌───────────── month (1 - 12)
+           #       │ │ │ │ ┌───────────── day of the week (0 - 6) (Sunday to Saturday;
+           #       │ │ │ │ │                         7 is also Sunday on some systems)
+           #       │ │ │ │ │
+           #       │ │ │ │ │
+           #       * * * * *
+  scanSchedule: "*/5 * * * *"
+
+  ## armo vulnerability scanner container image
+  ##
+  image:
+    repository: quay.io/armosec/k8s-ca-websocket-ubi
+    tag: latest
+    pullPolicy: Always
+
+  replicaCount: 1
+
+  service:
+    type: ClusterIP
+    port: 4002
+    targetPort: 4002
+    protocol: TCP
+
+  resources:
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    requests:
+       cpu: 50m
+       memory: 100Mi
+    limits:
+       cpu: 100m
+       memory: 300Mi
+
+
+  env: {}
+
+  labels: {}
+
+
+armoVulnScanner:
+
+  ## Deploy WebHook
+  ##
+  enabled: true
+
+  ## armo websocket container name
+  ##
+  name: armo-vuln-scan
+
+  ## armo webhook container image
+  ##
+  image:
+    repository: quay.io/armosec/k8s-ca-vuln-scan-ubi
+    tag: latest
+    pullPolicy: Always
+
+  replicaCount: 1
+
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+
+  resources:
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    requests:
+       cpu: 300m
+       memory: 200Mi
+    limits:
+       cpu: 1500m
+       memory: 1000Mi
+
+
+  env: {}
+
+  labels: {}

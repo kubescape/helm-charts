@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Values.armoScanScheduler.name }}
+  namespace: {{ .Values.armoNameSpace }}
+  labels:
+    app: {{ .Values.armoScanScheduler.name }}
+    tier: {{ .Values.global.namespaceTier}}
+spec:
+  schedule: "{{ .Values.armoScanScheduler.scanSchedule }}"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: {{ .Values.armoScanScheduler.name }}
+            image: "{{ .Values.armoScanScheduler.image.repository }}:{{ .Values.armoScanScheduler.image.tag }}"
+            imagePullPolicy: {{ .Values.armoScanScheduler.image.pullPolicy }}
+            command: ["/bin/sh", "-c"]
+            args: 
+              - echo Starting;
+                ls -ltr /home/curl_user/;
+                /bin/sh -x ./home/curl_user/trigger-script.sh;
+                sleep 30;
+                echo Done;
+            volumeMounts:
+              - name: {{ .Values.armoScanScheduler.name }}-volume
+                mountPath: /home/curl_user/trigger-script.sh
+                subPath: trigger-script.sh
+                readOnly: true
+          restartPolicy: Never
+          volumes:
+          - name: {{ .Values.armoScanScheduler.name }}-volume
+            configMap:
+              defaultMode: 0777
+              name: {{ .Values.armoScanScheduler.name }}-config
