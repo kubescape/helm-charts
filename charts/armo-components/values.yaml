@@ -11,11 +11,11 @@ loginSecretName: armo-login
 # ARMO BE URLs
 environment: "prod"
 eventReceiverHttpUrl: "https://report.armo.cloud"
-k8sReportUrl: ""
+k8sReportUrl: "wss://report.armo.cloud"
 postmanUrl: "postman.euprod1.cyberarmorsoft.com"
 devEventReceiverHttpUrl: "https://report.eudev3.cyberarmorsoft.com"
 devPostmanUrl: "postman.eudev3.cyberarmorsoft.com"
-devK8sReportUrl: ""
+devK8sReportUrl: "wss://report.eudev3.cyberarmorsoft.com"
 
 # Customer Specific Data
 accountGuid : "1e3a88bf-92ce-44f8-914e-000000000000"
@@ -185,5 +185,38 @@ armoVulnScanner:
 
 
   env: {}
+
+  labels: {}
+
+armoCollector:
+  enabled: true
+
+  ## armo collector container name
+  name: armo-collector
+
+  ##
+  image:
+    repository: quay.io/armosec/k8s-ca-dashboard-aggregator-ubi
+    tag: latest
+    pullPolicy: Always
+
+  replicaCount: 1
+  resources:
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    requests:
+       cpu: 10m
+       memory: 40Mi
+    limits:
+       cpu: 500m
+       memory: 500Mi
+
+
+  env:
+    - name: PRINT_REPORT
+      value: "false"
+
 
   labels: {}
