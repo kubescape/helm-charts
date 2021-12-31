@@ -48,8 +48,6 @@ spec:
           env:
             - name: CA_NAMESPACE
               value: "{{ .Values.armoNameSpace }}"
-            - name: CA_USE_DOCKER  
-              value: "{{ .Values.global.useDocker}}"
             - name: CA_VULN_SCAN_SCHEDULE
               value: "{{ .Values.armoWebsocket.scanSchedule}}"
             - name: CA_POSTURE_SCAN_SCHEDULE
@@ -65,25 +63,10 @@ spec:
             - -v=4
             - 2>&1
           volumeMounts:
-            {{- if .Values.global.useDocker }}
-            - mountPath: /var/run/docker.sock
-              name: docker-socket-volume
-            {{- end }}
-#            - name: {{ .Values.global.armoLoginSecretName }}
-#              mountPath: /etc/credentials
-#              readOnly: true
             - name: {{ .Values.global.beConfig }}
               mountPath: /etc/config
               readOnly: true
       volumes:
-        {{- if .Values.global.useDocker }}
-        - hostPath:
-            path: /var/run/docker.sock
-          name: docker-socket-volume
-        {{- end }}
-#        - name: {{ .Values.global.armoLoginSecretName }}
-#          secret:
-#            secretName: {{ .Values.global.armoLoginSecretName }}
         - name: {{ .Values.global.beConfig }}
           configMap:
             name: {{ .Values.global.beConfig }}
