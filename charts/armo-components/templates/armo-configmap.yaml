@@ -12,12 +12,13 @@ data:
   eventReceiverREST: "{{ .Values.devEventReceiverHttpUrl }}"
   eventReceiverWS: "{{ .Values.devK8sReportUrl }}"
   postman: "wss://{{ .Values.devPostmanUrl }}"
+  masterNotificationServer: "wss://{{ .Values.devMasterNotificationService }}/v1/waitfornotification"
 {{- else }} 
   eventReceiverREST: "{{ .Values.eventReceiverHttpUrl }}"
   eventReceiverWS: "{{ .Values.k8sReportUrl }}"
   postman: "wss://{{ .Values.postmanUrl }}"
+  masterNotificationServer: "wss://{{ .Values.masterNotificationService }}/v1/waitfornotification"
 {{- end }} 
-  maserNotificationServer: ""
   dashboard: ""
   portal: ""
   accountGuid: "{{ .Values.accountGuid }}"
@@ -26,20 +27,21 @@ data:
   clusterData: |
     {
       "ociImageURL": "",
-      "notificationWSURL": "",
-      "notificationRestURL": "",
+      "notificationWSURL": "{{ .Values.armoNotificationService.name }}:{{ .Values.armoNotificationService.websocketService.port }}",
+      "notificationRestURL": "{{ .Values.armoNotificationService.name }}:{{ .Values.armoNotificationService.httpService.port }}",
       "vulnScanURL": "{{ .Values.armoVulnScanner.name }}:{{ .Values.armoVulnScanner.service.port }}",
       "oracleURL": "",
 {{- if eq .Values.environment "dev" }}      
       "eventReceiverREST": "{{ .Values.devEventReceiverHttpUrl }}",
       "postman": "wss://{{ .Values.devPostmanUrl }}",
       "eventReceiverWS": "{{ .Values.devK8sReportUrl }}",
+      "masterNotificationServer": "wss://{{ .Values.devMasterNotificationService }}/v1/waitfornotification",
 {{- else }} 
       "eventReceiverREST": "{{ .Values.eventReceiverHttpUrl }}",
       "postman": "wss://{{ .Values.postmanUrl }}",
       "eventReceiverWS": "{{ .Values.k8sReportUrl }}",
+      "masterNotificationServer": "wss://{{ .Values.masterNotificationService }}/v1/waitfornotification",
 {{- end }}       
-      "maserNotificationServer": "",
       "dashboard": "",
       "portal": "",
       "customerGUID": "{{ .Values.accountGuid }}",

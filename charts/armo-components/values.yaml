@@ -8,18 +8,23 @@ registrySecretName: armoregcred
 loginSecretName: armo-login
 createKubescapeServiceAccount: true
 
+
 # ARMO BE URLs
 environment: "prod"
 eventReceiverHttpUrl: "https://report.armo.cloud"
 k8sReportUrl: "wss://report.armo.cloud"
 postmanUrl: "postman.euprod1.cyberarmorsoft.com"
+masterNotificationService: "ens.euprod1.cyberarmorsoft.com"
+# ARMO DEV BE URLs
 devEventReceiverHttpUrl: "https://report.eudev3.cyberarmorsoft.com"
 devPostmanUrl: "postman.eudev3.cyberarmorsoft.com"
 devK8sReportUrl: "wss://report.eudev3.cyberarmorsoft.com"
+devMasterNotificationService: "ens.eudev3.cyberarmorsoft.com"
 
 # Customer Specific Data
 # accountGuid is deliberatly not defined here and it should be defined by the user
 clusterName: "kubescape-default-cluster-name"
+
 
 # Cloud support
 cloud_provider_engine:
@@ -232,6 +237,51 @@ armoCollector:
   env:
     - name: PRINT_REPORT
       value: "false"
+
+
+  labels: {}
+
+
+armoNotificationService:
+  enabled: true
+
+  ## armo notification-service container name
+  name: armo-notification-service
+
+  websocketService:
+    type: ClusterIP
+    port: 8001
+    targetPort: 8001
+    protocol: TCP
+
+  httpService:
+    type: ClusterIP
+    port: 8002
+    targetPort: 8002
+    protocol: TCP
+  
+  ##
+  image:
+    repository: quay.io/armosec/notification-server-ubi
+    tag: latest
+    pullPolicy: Always
+
+  replicaCount: 1
+  resources:
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    requests:
+       cpu: 10m
+       memory: 10Mi
+    limits:
+       cpu: 100m
+       memory: 50Mi
+
+
+  env: {}
+    
 
 
   labels: {}
