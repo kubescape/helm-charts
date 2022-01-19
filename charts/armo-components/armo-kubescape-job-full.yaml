@@ -1,0 +1,41 @@
+apiVersion: batch/v1
+    kind: Job
+    metadata:
+      name: {{ .Values.armoKubescape.name }}-on-demand
+      namespace: {{ .Values.armoNameSpace }}
+      labels:
+        app: {{ .Values.armoKubescape.name }}-on-demand
+        tier: {{ .Values.global.namespaceTier }}
+    spec:
+      backoffLimit: 1
+      template:
+        spec:
+          containers:
+          - name: kubescape
+            image: "{{ .Values.armoKubescape.image.repository }}:{{ .Values.armoKubescape.image.tag }}"
+            imagePullPolicy: {{ .Values.armoKubescape.image.pullPolicy }}
+            command:
+              - kubescape
+            env:
+            - name: KS_DEFAULT_CONFIGMAP_NAME
+              value: "{{ .Values.armoKubescape.name }}-config"
+            - name: KS_DEFAULT_CONFIGMAP_NAMESPACE
+              value: "{{ .Values.armoNameSpace }}"
+            args: 
+            - --submit
+            {{ if eq .Values.environment "dev" }}
+            - --environment=dev
+            {{ end }}
+            resources:
+{{ toYaml .Values.armoKubescape.resources | indent 14 }}
+            volumeMounts:
+            - name: kubescape-config-volume
+              mountPath: /root/.kubescape/config.json
+              subPath: config.json
+          restartPolicy: Never
+          serviceAccountName: {{ .Values.global.armoKubescapeServiceAccountName }}
+          automountServiceAccountToken: true
+          volumes:
+          - name: kubescape-config-volume
+            configMap:
+              name: {{ .Values.armoKubescape.name }}-config
