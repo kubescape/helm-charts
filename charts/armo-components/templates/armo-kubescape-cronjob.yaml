@@ -23,7 +23,7 @@ spec:
           - name: kubescape
             image: "{{ .Values.armoKubescape.image.repository }}:{{ .Values.armoKubescape.image.tag }}"
             imagePullPolicy: {{ .Values.armoKubescape.image.pullPolicy }}
-            command: ["/bin/sh","-c"]
+           
             env:
             - name: KS_DEFAULT_CONFIGMAP_NAME
               value: "{{ .Values.armoKubescape.name }}-config"
@@ -41,8 +41,16 @@ spec:
               value: "{{ .Values.gkeProject }}"
             {{- end -}}
             {{- end }}
-            args: 
-            - kubescape scan --submit {{ if eq .Values.environment "dev" }}--environment=dev{{ end }}
+            command:
+            - kubescape
+            args:  
+            - --submit
+            {{ if .Values.armoKubescape.enableHostScan }}
+            - --enable-host-scan
+            {{ end }}
+            {{ if eq .Values.environment "dev" }}
+            - --environment=dev
+            {{ end }}
             resources:
 {{ toYaml .Values.armoKubescape.resources | indent 14 }}            
             volumeMounts:
