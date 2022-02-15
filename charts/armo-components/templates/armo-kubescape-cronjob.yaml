@@ -13,17 +13,24 @@ metadata:
   labels:
     app: {{ .Values.armoKubescape.name }}
     tier: {{ .Values.global.namespaceTier }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
 spec:
   schedule: "{{ .Values.armoKubescape.scanSchedule }}"
   jobTemplate:
     spec:
       template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: {{ .Values.armoKubescape.name }}
+            app.kubernetes.io/instance: {{ .Release.Name }}
+            helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+            tier: {{ .Values.global.namespaceTier}}
+            app: {{ .Values.armoKubescape.name }}
         spec:
           containers:
           - name: kubescape
             image: "{{ .Values.armoKubescape.image.repository }}:{{ .Values.armoKubescape.image.tag }}"
-            imagePullPolicy: {{ .Values.armoKubescape.image.pullPolicy }}
-            command: ["/bin/sh","-c"]
+            imagePullPolicy: {{ .Values.armoKubescape.image.pullPolicy }}           
             env:
             - name: KS_DEFAULT_CONFIGMAP_NAME
               value: "{{ .Values.armoKubescape.name }}-config"
@@ -41,8 +48,19 @@ spec:
               value: "{{ .Values.gkeProject }}"
             {{- end -}}
             {{- end }}
-            args: 
-            - kubescape scan --submit {{ if eq .Values.environment "dev" }}--environment=dev{{ end }}
+            command:
+            - kubescape
+            args:  
+            - scan
+            - --submit
+            - --logger
+            - debug
+            {{ if .Values.armoKubescape.enableHostScan }}
+            - --enable-host-scan
+            {{ end }}
+            {{ if eq .Values.environment "dev" }}
+            - --environment=dev
+            {{ end }}
             resources:
 {{ toYaml .Values.armoKubescape.resources | indent 14 }}            
             volumeMounts:
