@@ -20,7 +20,12 @@ devEventReceiverHttpUrl: "https://report.eudev3.cyberarmorsoft.com"
 devPostmanUrl: "postman.eudev3.cyberarmorsoft.com"
 devK8sReportUrl: "wss://report.eudev3.cyberarmorsoft.com"
 devMasterNotificationService: "ens.eudev3.cyberarmorsoft.com"
-
+# ARMO STAGING BE URLs
+stagingEventReceiverHttpUrl: "https://report.eustage2.cyberarmorsoft.com"
+stagingPostmanUrl: "postman.eustage2.cyberarmorsoft.com"
+stagingK8sReportUrl: "wss://report.eustage2.cyberarmorsoft.com"
+stagingMasterNotificationService: "ens.eustage2.cyberarmorsoft.com"
+ 
 # Customer Specific Data
 # accountGuid is deliberatly not defined here and it should be defined by the user
 clusterName: "kubescape-default-cluster-name"
@@ -137,7 +142,7 @@ armoWebsocket:
   ##
   image:
     repository: quay.io/armosec/k8s-ca-websocket-ubi
-    tag: 446
+    tag: 448
     pullPolicy: Always
 
   replicaCount: 1
@@ -192,17 +197,17 @@ armoVulnScanner:
     protocol: TCP
 
   resources:
-    # We usually recommend not to specify default resources and to leave this as a conscious
-    # choice for the user. This also increases chances charts run on environments with little
-    # resources, such as Minikube. If you do want to specify resources, uncomment the following
-    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
     requests:
        cpu: 300m
        memory: 200Mi
+       # Consider to increase ephemeral-storage requests in order to avoid pod eviction due to huge images
+       # More details: https://hub.armo.cloud/docs/limitations
+       #               https://github.com/armosec/kubescape/issues/389
+       ephemeral-storage: 2Gi
     limits:
        cpu: 1500m
        memory: 1000Mi
-
+       ephemeral-storage: 8Gi
 
   env:
   - name: CA_MAX_VULN_SCAN_ROUTINS
