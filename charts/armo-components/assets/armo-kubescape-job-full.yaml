@@ -24,7 +24,9 @@ apiVersion: batch/v1
             args: 
             - --submit
             - --logger
-            - debug
+            - debug  
+            - --host-scan-yaml
+            - /root/.kubescape/host-sensor.yaml
             {{ if .Values.armoKubescape.enableHostScan }}
             - --enable-host-scan
             {{ end }}
@@ -37,6 +39,9 @@ apiVersion: batch/v1
             - name: kubescape-config-volume
               mountPath: /root/.kubescape/config.json
               subPath: config.json
+            - name: host-sensor-definition
+              mountPath: /root/.kubescape/host-sensor.yaml
+              subPath: host-sensor-yaml
           restartPolicy: Never
           serviceAccountName: {{ .Values.global.armoKubescapeServiceAccountName }}
           automountServiceAccountToken: true
@@ -44,3 +49,6 @@ apiVersion: batch/v1
           - name: kubescape-config-volume
             configMap:
               name: {{ .Values.armoKubescape.name }}-config
+          - name: host-sensor-definition
+            configMap:
+              name: host-sensor-definition
