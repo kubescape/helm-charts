@@ -20,6 +20,8 @@ spec:
       labels:
         app.kubernetes.io/name: {{ .Values.armoVulnScanner.name }}
         app.kubernetes.io/instance: {{ .Release.Name }}
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        helm.sh/revision: "{{ .Release.Revision }}"
         tier: {{ .Values.global.namespaceTier}}
         app: {{ .Values.armoVulnScanner.name }}
     spec:
@@ -49,11 +51,11 @@ spec:
             - name: CA_EVENT_RECEIVER_HTTP
 {{- if eq .Values.environment "dev" }}
               value: "{{ .Values.devEventReceiverHttpUrl }}"
+{{- else if eq .Values.environment "staging" }}
+              value: "{{ .Values.stagingEventReceiverHttpUrl }}"
 {{- else }} 
               value: "{{ .Values.eventReceiverHttpUrl }}"
-{{- end }}      
-            - name: CA_MAX_VULN_SCAN_ROUTINS
-              value: "2"
+{{- end }}  
             {{- range .Values.armoVulnScanner.env }}
             - name: {{ .name  }}
               value: "{{ .value }}"
