@@ -1,5 +1,6 @@
 {{- if .Values.armoVulnScanner.enabled  }}
 {{ template "account_guid" . }}
+{{ template "cluster_name" . }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -34,9 +35,16 @@ spec:
           image: "{{ .Values.armoVulnScanner.image.repository }}:{{ .Values.armoVulnScanner.image.tag }}"
           imagePullPolicy: {{ .Values.armoVulnScanner.image.pullPolicy }}
           ports:
-            - name: "vuln-scan-port"
-              containerPort: 8080
-              protocol: TCP
+          - name: "vuln-scan-port"
+            containerPort: 8080
+            protocol: TCP
+          - name: "readiness-port"
+            containerPort: 8000
+            protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /v1/readiness
+              port: readiness-port
           resources:
 {{ toYaml .Values.armoVulnScanner.resources | indent 12 }}
           env:

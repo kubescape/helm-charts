@@ -1,60 +1,43 @@
 apiVersion: batch/v1
     kind: CronJob
     metadata:
-      name: {{ .Values.armoKubescape.name }}-recurring
+      name: {{ .Values.armoKubescapeScanScheduler.name }}
       namespace: {{ .Values.armoNameSpace }}
       labels:
-        app: {{ .Values.armoKubescape.name }}-recurring
+        app: {{ .Values.armoKubescapeScanScheduler.name }}
         tier: {{ .Values.global.namespaceTier}}
+        armo.tier: "kubescape-scan"
     spec:
       schedule: "{{ .Values.armoScanScheduler.scanSchedule }}"
       jobTemplate:
-        backoffLimit: 1
         spec:
           template:
+            metadata:
+              labels:
+                armo.tier: "kubescape-scan"
             spec:
               containers:
-              - name: kubescape
-                image: "{{ .Values.armoKubescape.image.repository }}:{{ .Values.armoKubescape.image.tag }}"
-                imagePullPolicy: {{ .Values.armoKubescape.image.pullPolicy }}
-                command:
-                  - kubescape
-                env:
-                - name: KS_DEFAULT_CONFIGMAP_NAME
-                  value: "{{ .Values.armoKubescape.name }}-config"
-                - name: KS_DEFAULT_CONFIGMAP_NAMESPACE
-                  value: "{{ .Values.armoNameSpace }}"
+              - name: {{ .Values.armoKubescapeScanScheduler.name }}
+                image: "{{ .Values.armoKubescapeScanScheduler.image.repository }}:{{ .Values.armoKubescapeScanScheduler.image.tag }}"
+                imagePullPolicy: {{ .Values.armoKubescapeScanScheduler.image.pullPolicy }}
                 args: 
-                - --submit
-                - --logger
-                - debug
-                - --host-scan-yaml
-                - /root/.kubescape/host-sensor.yaml
-                {{ if .Values.armoKubescape.enableHostScan }}
-                - --enable-host-scan
-                {{ end }}
-                {{ if eq .Values.environment "dev" }}
-                - --environment=dev
-                {{ end }}
-                {{ if eq .Values.environment "staging" }}
-                - --environment=staging
-                {{ end }}
-                resources:
-{{ toYaml .Values.armoKubescape.resources | indent 18 }}             
+                  - -method=post
+                  - -scheme=http
+                  - -host={{ .Values.armoWebsocket.name }}:{{ .Values.armoWebsocket.service.port }}
+                  - -path=v1/triggerAction
+                  - -headers="Content-Type:application/json"
+                  - -path-body=/home/armo/request-body.json
                 volumeMounts:
-                - name: kubescape-config-volume
-                  mountPath: /root/.kubescape/config.json
-                  subPath: config.json
-                - name: host-sensor-definition
-                  mountPath: /root/.kubescape/host-sensor.yaml
-                  subPath: host-sensor-yaml
-              restartPolicy: OnFailure
-              serviceAccountName: {{ .Values.global.armoKubescapeServiceAccountName }}
-              automountServiceAccountToken: true
+                  - name: "request-body-volume"
+                    mountPath: /home/armo/request-body.json
+                    subPath: request-body.json
+                    readOnly: true
+              restartPolicy: Never
+              automountServiceAccountToken: false
               volumes:
-              - name: kubescape-config-volume
-                configMap:
-                  name: {{ .Values.armoKubescape.name }}-config
-              - name: host-sensor-definition
-                configMap:
-                  name: host-sensor-definition
+                - name: "request-body-volume" # placeholder
+                  configMap:
+                    name: {{ .Values.armoKubescapeScanScheduler.name }}
+ 
+
+          

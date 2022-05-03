@@ -1,5 +1,6 @@
 {{- if .Values.armoCollector.enabled  }}
 {{ template "account_guid" . }}
+{{ template "cluster_name" . }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -46,21 +47,6 @@ spec:
           resources:
 {{ toYaml .Values.armoCollector.resources | indent 12 }}
           env:
-            - name: CA_K8S_REPORT_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ .Values.global.beConfig }}
-                  key: eventReceiverWS
-            - name: CA_CUSTOMER_GUID
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ .Values.global.beConfig }}
-                  key: accountGuid
-            - name: CA_CLUSTER_NAME
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ .Values.global.beConfig }}
-                  key: clusterName
             {{- range .Values.armoCollector.env }}
             - name: {{ .name  }}
               value: "{{ .value }}"

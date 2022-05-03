@@ -19,7 +19,3 @@ kubescape config local get customerGUID
 ```
 helm upgrade --install armo  armo/armo-cluster-components -n armo-system --create-namespace --set accountGuid=<my_account_guid> --set clusterName=`kubectl config current-context`
 ```
-or in Dev environment
-```
-helm upgrade --install armo  armo/armo-cluster-components -n armo-system --create-namespace --set accountGuid=<my_account_guid> --set clusterName=`kubectl config current-context` --set environment=dev
-```

@@ -43,21 +43,6 @@ spec:
           resources:
 {{ toYaml .Values.armoNotificationService.resources | indent 12 }}
           env:  
-            - name: CA_CUSTOMER_GUID
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ .Values.global.beConfig }}
-                  key: accountGuid
-            - name: CA_CLUSTER_NAME
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ .Values.global.beConfig }}
-                  key: clusterName
-            - name: MASTER_NOTIFICATION_SERVER_HOST
-              valueFrom:
-                configMapKeyRef:
-                  key: masterNotificationServer
-                  name: {{ .Values.global.beConfig }}
             - name: MASTER_NOTIFICATION_SERVER_ATTRIBUTES
               value: customerGUID
             - name: CA_NOTIFICATION_SERVER_WS_PORT
@@ -72,6 +57,10 @@ spec:
             - -alsologtostderr
             - -v=4
             - 2>&1
+          volumeMounts:
+          - name: {{ .Values.global.beConfig }}
+            mountPath: /etc/config
+            readOnly: true
       volumes:
         - name: {{ .Values.global.beConfig }}
           configMap:
