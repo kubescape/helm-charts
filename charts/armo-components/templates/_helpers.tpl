@@ -17,3 +17,10 @@ gke
   {{- end -}}
 {{- end }}
 
+{{- define "cluster_name" -}}
+  {{- if .Values.clusterName -}}
+  {{- else -}}
+    {{- fail "value for clusterName is not defined: re-run with  --set clusterName=<your cluster name>" }}
+  {{- end -}}
+{{- end }}
+
