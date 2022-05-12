@@ -16,7 +16,7 @@ helm repo update
 
 3. Install the Helm Chart, use your account ID and give your cluster a name 
 ```
-helm upgrade --install armo  armo/armo-cluster-components -n armo-system --create-namespace --set accountGuid=<account_guid> --set clusterName=`kubectl config current-context`
+helm upgrade --install armo  armo/armo-cluster-components -n armo-system --create-namespace --set accountGuid=<my_account_guid> --set clusterName=`kubectl config current-context` --set clientID=<generated client id> --set secretKey=<generated secret key>
 ```
 
  
