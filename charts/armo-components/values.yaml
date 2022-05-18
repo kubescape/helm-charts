@@ -15,20 +15,25 @@ eventReceiverHttpUrl: "https://report.armo.cloud"
 k8sReportUrl: "wss://report.armo.cloud"
 postmanUrl: "postman.euprod1.cyberarmorsoft.com"
 masterNotificationService: "ens.euprod1.cyberarmorsoft.com"
+backendOpenAPI: "https://api.armo.cloud/api"
 # ARMO DEV BE URLs
 devEventReceiverHttpUrl: "https://report.eudev3.cyberarmorsoft.com"
 devPostmanUrl: "postman.eudev3.cyberarmorsoft.com"
 devK8sReportUrl: "wss://report.eudev3.cyberarmorsoft.com"
 devMasterNotificationService: "ens.eudev3.cyberarmorsoft.com"
+devBackendOpenAPI: "https://api-dev.armo.cloud/api"
 # ARMO STAGING BE URLs
 stagingEventReceiverHttpUrl: "https://report.eustage2.cyberarmorsoft.com"
 stagingPostmanUrl: "postman.eustage2.cyberarmorsoft.com"
 stagingK8sReportUrl: "wss://report.eustage2.cyberarmorsoft.com"
 stagingMasterNotificationService: "ens.eustage2.cyberarmorsoft.com"
+stagingBackendOpenAPI: "https://api-stage.armo.cloud/api"
  
 # Customer Specific Data
-# accountGuid is deliberatly not defined here and it should be defined by the user
-clusterName: "kubescape-default-cluster-name"
+# accountGuid is deliberately not defined here and it should be defined by the user
+# clusterName: "" // cluster name must be defined by the user
+clientID: ""
+secretKey: ""
 
 
 # Cloud support
@@ -46,6 +51,8 @@ loginInfo:
 
 nameOverride: ""
 fullnameOverride: ""
+
+triggerNameImageScan: "disable" # enable
 
 global:
   armoSystemMode: "SCAN"
@@ -84,22 +91,43 @@ armoScanScheduler:
 
   replicaCount: 1
 
+armoKubescapeScanScheduler:
+
+  ## Schedule Scan using cron
+  ##
+  enabled: true
+
+  ## scan scheduler container name
+  ##
+  name: armo-kubescape-scheduler
+
+           # -- Frequency of running the scan
+           #     ┌───────────── minute (0 - 59)
+           #     │ ┌───────────── hour (0 - 23)
+           #     │ │ ┌───────────── day of the month (1 - 31)
+           #     │ │ │ ┌───────────── month (1 - 12)
+           #     │ │ │ │ ┌───────────── day of the week (0 - 6) (Sunday to Saturday;
+           #     │ │ │ │ │                         7 is also Sunday on some systems)
+           #     │ │ │ │ │
+           #     │ │ │ │ │
+           #     * * * * *
+  scanSchedule: "0 0 * * *"
+  
+  image:
+    # source code - https://github.com/armosec/http-request
+    repository: quay.io/armosec/http_request
+    tag: 	v0.0.5
+    pullPolicy: IfNotPresent
+
+  replicaCount: 1
+
 armoKubescape:
   name: armo-kubescape
-    #      ┌────────────────── timezone (optional)
-    #      |      ┌───────────── minute (0 - 59)
-    #      |      │ ┌───────────── hour (0 - 23)
-    #      |      │ │ ┌───────────── day of the month (1 - 31)
-    #      |      │ │ │ ┌───────────── month (1 - 12)
-    #      |      │ │ │ │ ┌───────────── day of the week (0 - 6) (Sunday to Saturday;
-    #      |      │ │ │ │ │                         7 is also Sunday on some systems)
-    #      |      │ │ │ │ │
-    #      |      │ │ │ │ │
-    # CRON_TZ=UTC * * * * *
-  scanSchedule:  "0 8 * * *"
+
+  # source code: https://github.com/armosec/kubescape/tree/master/httphandler
   image:
     repository: quay.io/armosec/kubescape
-    tag: v2.0.149
+    tag: ev-v2.0.298
     pullPolicy: Always
 
   resources:
@@ -113,37 +141,39 @@ armoKubescape:
     limits:
        cpu: 500m
        memory: 500Mi
-  enableHostScan: true
 
+  enableHostScan: true
+  downloadArtifacts: true
+  skipUpdateCheck: false
+  submit: true
+  replicaCount: 1
+
+  service:
+    type: ClusterIP
+    port: 8080
+
+  # Deploy a service monitor for prometheus (operator) integreation
+  serviceMonitor:
+    enabled: false
+    # If needed the servicemonitor can be deployed to a different namespace than the one armoKubescape is in
+    #namespace: my-namespace
 
 armoWebsocket:
 
   ## Deploy WebSocket
   ##
   enabled: true
+  replicaCount: 1
 
   ## armo websocket container name
   ##
   name: armo-web-socket
 
-           # -- Frequency of running the scan
-           #       ┌───────────── minute (0 - 59)
-           #       │ ┌───────────── hour (0 - 23)
-           #       │ │ ┌───────────── day of the month (1 - 31)
-           #       │ │ │ ┌───────────── month (1 - 12)
-           #       │ │ │ │ ┌───────────── day of the week (0 - 6) (Sunday to Saturday;
-           #       │ │ │ │ │                         7 is also Sunday on some systems)
-           #       │ │ │ │ │
-           #       │ │ │ │ │
-           #       * * * * *
-  scanSchedule: "*/5 * * * *"
-
+  # source code: https://github.com/armosec/k8s-ca-websocket
   image:
-    repository: quay.io/armosec/k8s-ca-websocket-ubi
-    tag: 458
+    repository: quay.io/armosec/action-trigger
+    tag: v0.0.8
     pullPolicy: Always
-
-  replicaCount: 1
 
   service:
     type: ClusterIP
@@ -180,10 +210,10 @@ armoVulnScanner:
   name: armo-vuln-scan
 
   ## armo webhook container image
-  ##
+  ## source code: https://github.com/armosec/ca-vuln-scan
   image:
-    repository: quay.io/armosec/k8s-ca-vuln-scan-ubi
-    tag: perm-correction
+    repository: quay.io/armosec/images-vulnerabilities-scan
+    tag: v0.0.9
     pullPolicy: Always
 
   replicaCount: 1
@@ -219,13 +249,14 @@ armoCollector:
   ## armo collector container name
   name: armo-collector
 
-  ##
+  # source code: https://github.com/armosec/k8s-armo-collector
   image:
-    repository: quay.io/armosec/k8s-ca-dashboard-aggregator-ubi
-    tag: 185
+    repository: quay.io/armosec/cluster-collector
+    tag: v0.0.10
     pullPolicy: Always
 
   replicaCount: 1
+
   resources:
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
@@ -240,13 +271,13 @@ armoCollector:
 
 
   env:
-    - name: PRINT_REPORT
-      value: "false"
+  - name: PRINT_REPORT
+    value: "false"
 
 
   labels: {}
 
-
+# 
 armoNotificationService:
   enabled: true
 
@@ -265,10 +296,10 @@ armoNotificationService:
     targetPort: 8002
     protocol: TCP
   
-  ##
+  # source code: https://github.com/armosec/capostman
   image:
-    repository: quay.io/armosec/notification-server-ubi
-    tag: 89
+    repository: quay.io/armosec/notification-server
+    tag: v0.0.3
     pullPolicy: Always
 
   replicaCount: 1

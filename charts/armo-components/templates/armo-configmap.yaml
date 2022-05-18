@@ -1,4 +1,5 @@
 {{ template "account_guid" . }}
+{{ template "cluster_name" . }}
 kind: ConfigMap 
 apiVersion: v1 
 metadata:
@@ -8,51 +9,36 @@ metadata:
     app: {{ .Values.global.beConfig }}
     tier: {{ .Values.global.namespaceTier }}
 data:
-{{- if eq .Values.environment "dev" }}
-  eventReceiverREST: "{{ .Values.devEventReceiverHttpUrl }}"
-  eventReceiverWS: "{{ .Values.devK8sReportUrl }}"
-  postman: "wss://{{ .Values.devPostmanUrl }}"
-  masterNotificationServer: "wss://{{ .Values.devMasterNotificationService }}/v1/waitfornotification"
-{{- else if eq .Values.environment "staging" }}
-  eventReceiverREST: "{{ .Values.stagingEventReceiverHttpUrl }}"
-  eventReceiverWS: "{{ .Values.stagingK8sReportUrl }}"
-  postman: "wss://{{ .Values.stagingPostmanUrl }}"
-  masterNotificationServer: "wss://{{ .Values.stagingMasterNotificationService }}/v1/waitfornotification"
-{{- else }} 
-  eventReceiverREST: "{{ .Values.eventReceiverHttpUrl }}"
-  eventReceiverWS: "{{ .Values.k8sReportUrl }}"
-  postman: "wss://{{ .Values.postmanUrl }}"
-  masterNotificationServer: "wss://{{ .Values.masterNotificationService }}/v1/waitfornotification"
-{{- end }} 
-  dashboard: ""
-  portal: ""
-  accountGuid: "{{ .Values.accountGuid }}"
-  clusterGUID: ""
-  clusterName: "{{ regexReplaceAll "\\W+" .Values.clusterName "-" | lower }}"
   clusterData: |
     {
       "ociImageURL": "",
       "notificationWSURL": "{{ .Values.armoNotificationService.name }}:{{ .Values.armoNotificationService.websocketService.port }}",
       "notificationRestURL": "{{ .Values.armoNotificationService.name }}:{{ .Values.armoNotificationService.httpService.port }}",
       "vulnScanURL": "{{ .Values.armoVulnScanner.name }}:{{ .Values.armoVulnScanner.service.port }}",
+      "kubescapeURL": "{{ .Values.armoKubescape.name }}:{{ .Values.armoKubescape.service.port }}",
       "oracleURL": "",
-{{- if eq .Values.environment "dev" }}      
+{{- if eq .Values.environment "dev" }} 
+      "backendOpenAPI": "{{ .Values.devBackendOpenAPI }}",
+      "dashboard": "{{ .Values.devBackendOpenAPI }}",
       "eventReceiverREST": "{{ .Values.devEventReceiverHttpUrl }}",
       "postman": "wss://{{ .Values.devPostmanUrl }}",
       "eventReceiverWS": "{{ .Values.devK8sReportUrl }}",
       "masterNotificationServer": "wss://{{ .Values.devMasterNotificationService }}/v1/waitfornotification",
 {{- else if eq .Values.environment "staging" }}
+      "dashboard": "{{ .Values.stagingBackendOpenAPI }}",
+      "backendOpenAPI": "{{ .Values.stagingBackendOpenAPI }}",
       "eventReceiverREST": "{{ .Values.stagingEventReceiverHttpUrl }}",
       "postman": "wss://{{ .Values.stagingPostmanUrl }}",
       "eventReceiverWS": "{{ .Values.stagingK8sReportUrl }}",
       "masterNotificationServer": "wss://{{ .Values.stagingMasterNotificationService }}/v1/waitfornotification",
 {{- else }} 
+      "dashboard": "{{ .Values.backendOpenAPI }}",
       "eventReceiverREST": "{{ .Values.eventReceiverHttpUrl }}",
+      "backendOpenAPI": "{{ .Values.backendOpenAPI }}",
       "postman": "wss://{{ .Values.postmanUrl }}",
       "eventReceiverWS": "{{ .Values.k8sReportUrl }}",
       "masterNotificationServer": "wss://{{ .Values.masterNotificationService }}/v1/waitfornotification",
 {{- end }}       
-      "dashboard": "",
       "portal": "",
       "customerGUID": "{{ .Values.accountGuid }}",
       "clusterGUID": "",
