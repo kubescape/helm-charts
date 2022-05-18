@@ -19,6 +19,7 @@ helm repo update
 helm upgrade --install armo  armo/armo-cluster-components -n armo-system --create-namespace --set accountGuid=<my_account_guid> --set clusterName=`kubectl config current-context` --set clientID=<generated client id> --set secretKey=<generated secret key>
 ```
 
+> Add `--set serviceMonitor.enabled=true` for installing the Prometheus service monitor
  
 ## Values
 * `accountGuid` - account ID [required]
