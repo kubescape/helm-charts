@@ -3,7 +3,9 @@ ARMO Vulnerability Scanning
 
 ![Version: 1.7.7](https://img.shields.io/badge/Version-1.7.7-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.7.7](https://img.shields.io/badge/AppVersion-v1.7.7-informational?style=flat-square)
 
-# Installing ARMO cluster components in a Kubernetes cluster Using Helm:
+## [Docs](https://hub.armo.cloud/docs/installation-of-armo-in-cluster)
+
+## Installing ARMO cluster components in a Kubernetes cluster Using Helm:
 
 1. Add the Vulnerability Scanning Helm Repo
 ```
@@ -17,14 +19,16 @@ helm repo update
 
 3. Install the Helm Chart, use your account ID and give your cluster a name 
 ```
-helm upgrade --install armo  armo/armo-cluster-components -n armo-system --create-namespace --set accountGuid=<my_account_guid> --set clusterName=`kubectl config current-context` --set clientID=<generated client id> --set secretKey=<generated secret key>
+helm upgrade --install armo  armo/armo-cluster-components -n armo-system --create-namespace --set accountGuid=<my_account_guid> --set clusterName=`kubectl config current-context` 
 ```
+
+> Add `--set clientID=<generated client id> --set secretKey=<generated secret key>` if you have [generated an auth key](https://hub.armo.cloud/docs/authentication)
 
 > Add `--set serviceMonitor.enabled=true` for installing the Prometheus service monitor
  
-# Chart support
+## Chart support
 
-## Values
+### Values
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
