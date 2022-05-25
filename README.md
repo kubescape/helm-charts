@@ -18,13 +18,21 @@ helm repo update
 ```
 
 3. Install the Helm Chart, use your account ID and give your cluster a name 
+
+if you ran kubescape cli tool and submitted, you cam get your Account ID from the local cache: 
+```
+kubescape config view | grep -i accountID
+```
+Otherwise, get the account ID from the [kubescape SaaS](https://hub.armo.cloud/docs/installation-of-armo-in-cluster#install-a-pre-registered-cluster)
+
+Run the install command:
 ```
 helm upgrade --install armo  armo/armo-cluster-components -n armo-system --create-namespace --set accountGuid=<my_account_guid> --set clusterName=`kubectl config current-context` 
 ```
 
 > Add `--set clientID=<generated client id> --set secretKey=<generated secret key>` if you have [generated an auth key](https://hub.armo.cloud/docs/authentication)
 
-> Add `--set serviceMonitor.enabled=true` for installing the Prometheus service monitor
+> Add `--set armoKubescape.serviceMonitor.enabled=true` for installing the Prometheus service monitor, [read more about Prometheus integration](https://hub.armo.cloud/docs/prometheus-exporter)
  
 ## Chart support
 
