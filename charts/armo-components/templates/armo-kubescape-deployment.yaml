@@ -1,3 +1,4 @@
+{{- if .Values.armoKubescape.enabled  }}
 {{- $cloud_provider := (include "cloud_provider" .) -}}
 apiVersion: apps/v1
 kind: Deployment
@@ -28,6 +29,10 @@ spec:
       - name: kubescape
         image: "{{ .Values.armoKubescape.image.repository }}:{{ .Values.armoKubescape.image.tag }}"
         imagePullPolicy: "{{ .Values.armoKubescape.image.pullPolicy }}"
+        ports:
+          - name: http
+            containerPort: 8080
+            protocol: TCP
         livenessProbe:
           httpGet:
             path: /livez
@@ -93,3 +98,4 @@ spec:
       - name: host-scanner-definition
         configMap:
           name: host-scanner-definition
+{{- end }}

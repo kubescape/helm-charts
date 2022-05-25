@@ -11,16 +11,20 @@ gke
 {{- end }}
 
 {{- define "account_guid" -}}
-  {{- if .Values.accountGuid -}}
-  {{- else -}}
-    {{- fail "value for accountGuid is not defined: please register at https://portal.armo.cloud to get yours and re-run with  --set accountGuid=<your Guid>" }}
-  {{- end -}}
+  {{- if .Values.armoKubescape.submit }}
+    {{- if .Values.accountGuid -}}
+    {{- else -}}
+      {{- fail "submitting is enabled but value for accountGuid is not defined: please register at https://portal.armo.cloud to get yours and re-run with  --set accountGuid=<your Guid>" }}
+    {{- end -}}
+  {{- end }}
 {{- end }}
 
 {{- define "cluster_name" -}}
-  {{- if .Values.clusterName -}}
-  {{- else -}}
-    {{- fail "value for clusterName is not defined: re-run with  --set clusterName=<your cluster name>" }}
-  {{- end -}}
+  {{- if .Values.armoKubescape.submit }}
+    {{- if .Values.clusterName -}}
+    {{- else -}}
+      {{- fail "value for clusterName is not defined: re-run with  --set clusterName=<your cluster name>" }}
+    {{- end -}}
+  {{- end }}
 {{- end }}
 
