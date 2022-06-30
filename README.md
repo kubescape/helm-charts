@@ -1,7 +1,7 @@
 # ARMO cluster components
 ARMO Vulnerability Scanning
 
-![Version: 1.7.10](https://img.shields.io/badge/Version-1.7.10-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.7.10](https://img.shields.io/badge/AppVersion-v1.7.10-informational?style=flat-square)
+![Version: 1.7.12](https://img.shields.io/badge/Version-1.7.12-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.7.12](https://img.shields.io/badge/AppVersion-v1.7.12-informational?style=flat-square)
 
 ## [Docs](https://hub.armo.cloud/docs/installation-of-armo-in-cluster)
 
