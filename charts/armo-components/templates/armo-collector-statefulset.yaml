@@ -2,7 +2,9 @@
 {{ template "account_guid" . }}
 {{ template "cluster_name" . }}
 apiVersion: apps/v1
-kind: Deployment
+# statefulset is needed in order to avoid to pods reporting from the same cluster in parallel.
+# parallel reporting will cause Kubescape SaaS to miss identify the cluster liveness status
+kind: StatefulSet
 metadata:
   name: {{ .Values.armoCollector.name }}
   namespace: {{ .Values.armoNameSpace }}
@@ -10,6 +12,7 @@ metadata:
     app: {{ .Values.armoCollector.name }}
     tier: {{ .Values.global.namespaceTier}}
 spec:
+  serviceName: ""
   replicas: {{ .Values.armoCollector.replicaCount }}
   selector:
     matchLabels:
