@@ -19,7 +19,7 @@ helm repo update
 
 3. Install the Helm Chart, use your account ID and give your cluster a name 
 
-if you ran kubescape cli tool and submitted, you cam get your Account ID from the local cache: 
+if you ran kubescape cli tool and submitted, you can get your Account ID from the local cache: 
 ```
 kubescape config view | grep -i accountID
 ```
