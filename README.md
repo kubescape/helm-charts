@@ -19,7 +19,7 @@ helm repo update
 
 3. Install the Helm Chart, use your account ID and give your cluster a name 
 
-if you ran kubescape cli tool and submitted, you cam get your Account ID from the local cache: 
+if you ran kubescape cli tool and submitted, you can get your Account ID from the local cache: 
 ```
 kubescape config view | grep -i accountID
 ```
@@ -40,15 +40,19 @@ helm upgrade --install armo  armo/armo-cluster-components -n armo-system --creat
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
+| armoCollector.affinity | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the StatefulSet |
 | armoCollector.enabled | bool | `true` | enable/disable the armoCollector |
 | armoCollector.env[0] | object | `{"name":"PRINT_REPORT","value":"false"}` | print in verbose mode (print all reported data) |
 | armoCollector.image.repository | string | `"quay.io/armosec/cluster-collector"` | [source code](https://github.com/armosec/k8s-armo-collector) (private repo) |
+| armoCollector.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | armoCollector.volumes | object | `[]` | Additional volumes for the collector |
 | armoCollector.volumeMounts | object | `[]` | Additional volumeMounts for the collector |
+| armoKubescape.affinity | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the deployment |
 | armoKubescape.downloadArtifacts | bool | `true` | download policies every scan, we recommend it should remain true, you should change to 'false' when running in an air-gapped environment or when scanning with high frequency (when running with Prometheus) |
 | armoKubescape.enableHostScan | bool | `true` | enable [host scanner feature](https://hub.armo.cloud/docs/host-sensor) |
 | armoKubescape.enabled | bool | `true` | enable/disable kubescape scanning |
 | armoKubescape.image.repository | string | `"quay.io/armosec/kubescape"` | [source code](https://github.com/armosec/kubescape/tree/master/httphandler) (public repo) |
+| armoKubescape.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | armoKubescape.serviceMonitor.enabled | bool | `false` | enable/disable service monitor for prometheus (operator) integration |
 | armoKubescape.skipUpdateCheck | bool | `false` | skip check for a newer version  |
 | armoKubescape.submit | bool | `true` | submit results to ARMO SaaS: https://portal.armo.cloud/ |
@@ -59,8 +63,10 @@ helm upgrade --install armo  armo/armo-cluster-components -n armo-system --creat
 | armoKubescapeScanScheduler.scanSchedule | string | `"0 0 * * *"` | scan schedule frequency |
 | armoKubescapeScanScheduler.volumes | object | `[]` | Additional volumes for scan scheduler |
 | armoKubescapeScanScheduler.volumeMounts | object | `[]` | Additional volumeMounts for scan scheduler |
+| armoNotificationService.affinity | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the deployment |
 | armoNotificationService.enabled | bool | `true` | enable/disable passing notifications from ARMO SaaS to the armo-web-socket microservice. The notifications are the onDemand scanning and the scanning schedule settings |
 | armoNotificationService.image.repository | string | `"quay.io/armosec/notification-server"` | [source code](https://github.com/armosec/capostman) (private repo) |
+| armoNotificationService.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | armoNotificationService.volumes | object | `[]` | Additional volumes for the notification service |
 | armoNotificationService.volumeMounts | object | `[]` | Additional volumeMounts for the notification service |
 | armoScanScheduler.enabled | bool | `true` | enable/disable image vulnerability a schedule scan using a CronJob |
@@ -68,12 +74,16 @@ helm upgrade --install armo  armo/armo-cluster-components -n armo-system --creat
 | armoScanScheduler.scanSchedule | string | `"0 0 * * *"` | scan schedule frequency |
 | armoKubescapeScanScheduler.volumes | object | `[]` | Additional volumes for scan scheduler |
 | armoKubescapeScanScheduler.volumeMounts | object | `[]` | Additional volumeMounts for scan scheduler |
+| armoVulnScanner.affinity | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the deployment |
 | armoVulnScanner.enabled | bool | `true` | enable/disable image vulnerability scanning |
 | armoVulnScanner.image.repository | string | `"quay.io/armosec/images-vulnerabilities-scan"` | [source code](https://github.com/armosec/ca-vuln-scan) (private repo) |
+| armoVulnScanner.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | armoVulnScanner.volumes | object | `[]` | Additional volumes for the image vulnerability scanning |
 | armoVulnScanner.volumeMounts | object | `[]` | Additional volumeMounts for the image vulnerability scanning |
+| armoWebsocket.affinity | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the deployment |
 | armoWebsocket.enabled | bool | `true` | enable/disable kubescape and image vulnerability scanning |
 | armoWebsocket.image.repository | string | `"quay.io/armosec/action-trigger"` | [source code](https://github.com/armosec/k8s-ca-websocket) (private repo) |
+| armoWebsocket.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | armoWebsocket.volumes | object | `[]` | Additional volumes for the web socket |
 | armoWebsocket.volumeMounts | object | `[]` | Additional volumeMounts for the web socket |
 | armoKubescapeHostScanner.volumes | object | `[]` | Additional volumes for the host scanner |

@@ -11,6 +11,12 @@ metadata:
     tier: {{ .Values.global.namespaceTier}}
 spec:
   replicas: {{ .Values.armoVulnScanner.replicaCount }}
+  revisionHistoryLimit: 2
+  strategy:
+    rollingUpdate:
+      maxSurge: 0%
+      maxUnavailable: 100%
+    type: RollingUpdate
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ .Values.armoVulnScanner.name }}
@@ -99,14 +105,14 @@ spec:
 {{- end }}
       serviceAccountName: {{ .Values.global.armoServiceAccountName }}
       automountServiceAccountToken: true
-      {{- with .Values.nodeSelector }}
+      {{- with .Values.armoVulnScanner.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-    {{- with .Values.affinity }}
+      {{- with .Values.armoVulnScanner.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
-    {{- end }}
+      {{- end }}
     {{- with .Values.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
