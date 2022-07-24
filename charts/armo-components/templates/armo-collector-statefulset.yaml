@@ -2,7 +2,9 @@
 {{ template "account_guid" . }}
 {{ template "cluster_name" . }}
 apiVersion: apps/v1
-kind: Deployment
+# statefulset is needed in order to avoid to pods reporting from the same cluster in parallel.
+# parallel reporting will cause Kubescape SaaS to miss identify the cluster liveness status
+kind: StatefulSet
 metadata:
   name: {{ .Values.armoCollector.name }}
   namespace: {{ .Values.armoNameSpace }}
@@ -10,6 +12,7 @@ metadata:
     app: {{ .Values.armoCollector.name }}
     tier: {{ .Values.global.namespaceTier}}
 spec:
+  serviceName: ""
   replicas: {{ .Values.armoCollector.replicaCount }}
   selector:
     matchLabels:
@@ -48,7 +51,7 @@ spec:
 {{ toYaml .Values.armoCollector.resources | indent 12 }}
           env:
             - name: ACTIVATE_CVE_SCAN_ON_NEW_IMAGE_FEATURE
-              value: {{ .Values.triggerNewImageScan }}
+              value: "{{ .Values.triggerNewImageScan }}"
             {{- range .Values.armoCollector.env }}
             - name: {{ .name  }}
               value: "{{ .value }}"
@@ -81,14 +84,14 @@ spec:
 {{- end }}
       serviceAccountName: {{ .Values.global.armoServiceAccountName }}
       automountServiceAccountToken: true
-      {{- with .Values.nodeSelector }}
+      {{- with .Values.armoCollector.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-    {{- with .Values.affinity }}
+      {{- with .Values.armoCollector.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
-    {{- end }}
+      {{- end }}
     {{- with .Values.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}

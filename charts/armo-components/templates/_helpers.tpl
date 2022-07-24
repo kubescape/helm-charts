@@ -14,7 +14,7 @@ gke
   {{- if .Values.armoKubescape.submit }}
     {{- if .Values.accountGuid -}}
     {{- else -}}
-      {{- fail "submitting is enabled but value for accountGuid is not defined: please register at https://portal.armo.cloud to get yours and re-run with  --set accountGuid=<your Guid>" }}
+      {{- fail "submitting is enabled but value for accountGuid is not defined: please register at https://cloud.armosec.io to get yours and re-run with  --set accountGuid=<your Guid>" }}
     {{- end -}}
   {{- end }}
 {{- end }}
