@@ -1,25 +1,25 @@
 apiVersion: batch/v1
     kind: CronJob
     metadata:
-      name: {{ .Values.armoKubescapeScanScheduler.name }}
+      name: {{ .Values.armoRegistryScanScheduler.name }}
       namespace: {{ .Values.armoNameSpace }}
       labels:
-        app: {{ .Values.armoKubescapeScanScheduler.name }}
+        app: {{ .Values.armoRegistryScanScheduler.name }}
         tier: {{ .Values.global.namespaceTier}}
-        armo.tier: "kubescape-scan"
+        armo.tier: "registry-scan"
     spec:
-      schedule: "{{ .Values.armoScanScheduler.scanSchedule }}"
+      schedule: "{{ .Values.armoRegistryScanScheduler.scanSchedule }}"
       jobTemplate:
         spec:
           template:
             metadata:
               labels:
-                armo.tier: "kubescape-scan"
+                armo.tier: "registry-scan"
             spec:
               containers:
-              - name: {{ .Values.armoKubescapeScanScheduler.name }}
-                image: "{{ .Values.armoKubescapeScanScheduler.image.repository }}:{{ .Values.armoKubescapeScanScheduler.image.tag }}"
-                imagePullPolicy: {{ .Values.armoKubescapeScanScheduler.image.pullPolicy }}
+              - name: {{ .Values.armoRegistryScanScheduler.name }}
+                image: "{{ .Values.armoRegistryScanScheduler.image.repository }}:{{ .Values.armoRegistryScanScheduler.image.tag }}"
+                imagePullPolicy: {{ .Values.armoRegistryScanScheduler.image.pullPolicy }}
                 args: 
                   - -method=post
                   - -scheme=http
@@ -35,19 +35,19 @@ apiVersion: batch/v1
 {{- if .Values.volumeMounts }}
 {{ toYaml .Values.volumeMounts | indent 18 }}
 {{- end }}
-{{- if .Values.armoKubescapeScanScheduler.volumeMounts }}
-{{ toYaml .Values.armoKubescapeScanScheduler.volumeMounts | indent 18 }}
+{{- if .Values.armoRegistryScanScheduler.volumeMounts }}
+{{ toYaml .Values.armoRegistryScanScheduler.volumeMounts | indent 18 }}
 {{- end }}
               restartPolicy: Never
               automountServiceAccountToken: false
               volumes:
                 - name: "request-body-volume" # placeholder
                   configMap:
-                    name: {{ .Values.armoKubescapeScanScheduler.name }}
+                    name: {{ .Values.armoRegistryScanScheduler.name }}
 {{- if .Values.volumes }}
 {{ toYaml .Values.volumes | indent 16 }}
 {{- end }}
-{{- if .Values.armoKubescapeScanScheduler.volumes }}
-{{ toYaml .Values.armoKubescapeScanScheduler.volumes | indent 16 }}
+{{- if .Values.armoRegistryScanScheduler.volumes }}
+{{ toYaml .Values.armoRegistryScanScheduler.volumes | indent 16 }}
 {{- end }}
           
