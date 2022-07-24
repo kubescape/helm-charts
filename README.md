@@ -95,7 +95,7 @@ helm upgrade --install armo  armo/armo-cluster-components -n armo-system --creat
 | gkeProject | string | `nil` | GKE project |
 | gke_service_account | string | `nil` | GKE service account |
 | secretKey | string | `""` | secret key, [read more](https://hub.armo.cloud/docs/authentication) |
-| triggerNewImageScan | string | `"disable"` | enable/disable trigger image scan for new images |
+| triggerNewImageScan | bool | `false` | enable/disable trigger image scan for new images |
 | volumes | object | `[]` | Additional volumes for all containers |
 | volumeMounts | object | `[]` | Additional volumeMounts for all containers |
 
