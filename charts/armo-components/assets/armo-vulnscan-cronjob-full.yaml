@@ -1,0 +1,43 @@
+apiVersion: batch/v1
+    kind: CronJob
+    metadata:
+      name: {{ .Values.armoVulnScanScheduler.name }}
+      namespace: {{ .Values.armoNameSpace }}
+      labels:
+        app: {{ .Values.armoVulnScanScheduler.name }}
+        tier: {{ .Values.global.namespaceTier}}
+        armo.tier: "vuln-scan"
+    spec:
+      schedule: "{{ .Values.armoScanScheduler.scanSchedule }}"
+      jobTemplate:
+        spec:
+          template:
+            metadata:
+              labels:
+                armo.tier: "vuln-scan"
+            spec:
+              containers:
+              - name: {{ .Values.armoVulnScanScheduler.name }}
+                image: "{{ .Values.armoVulnScanScheduler.image.repository }}:{{ .Values.armoVulnScanScheduler.image.tag }}"
+                imagePullPolicy: {{ .Values.armoVulnScanScheduler.image.pullPolicy }}
+                args: 
+                  - -method=post
+                  - -scheme=http
+                  - -host={{ .Values.armoWebsocket.name }}:{{ .Values.armoWebsocket.service.port }}
+                  - -path=v1/triggerAction
+                  - -headers="Content-Type:application/json"
+                  - -path-body=/home/armo/request-body.json
+                volumeMounts:
+                  - name: "request-body-volume"
+                    mountPath: /home/armo/request-body.json
+                    subPath: request-body.json
+                    readOnly: true
+              restartPolicy: Never
+              automountServiceAccountToken: false
+              volumes:
+                - name: "request-body-volume" # placeholder
+                  configMap:
+                    name: {{ .Values.armoVulnScanScheduler.name }}
+ 
+
+          
