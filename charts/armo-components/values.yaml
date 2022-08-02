@@ -216,7 +216,7 @@ armoWebsocket:
   image:
     # -- source code: https://github.com/armosec/k8s-ca-websocket (private repo)
     repository: quay.io/armosec/action-trigger
-    tag: v0.0.40
+    tag: v0.0.45
     pullPolicy: Always
 
   service:
@@ -240,6 +240,36 @@ armoWebsocket:
 
   # Additional volumeMounts to be mounted on the websocket
   volumeMounts: []
+
+armoVulnScanScheduler:
+
+  ## Schedule Scan using cron
+  ##
+  enabled: true
+
+  ## scan scheduler container name
+  ##
+  name: armo-vulnscan-scheduler
+
+           # -- Frequency of running the scan
+           #     ┌───────────── minute (0 - 59)
+           #     │ ┌───────────── hour (0 - 23)
+           #     │ │ ┌───────────── day of the month (1 - 31)
+           #     │ │ │ ┌───────────── month (1 - 12)
+           #     │ │ │ │ ┌───────────── day of the week (0 - 6) (Sunday to Saturday;
+           #     │ │ │ │ │                         7 is also Sunday on some systems)
+           #     │ │ │ │ │
+           #     │ │ │ │ │
+           #     * * * * *
+  scanSchedule: "0 0 * * *"
+  
+  image:
+    # source code - https://github.com/armosec/http-request
+    repository: quay.io/armosec/http_request
+    tag: 	v0.0.5
+    pullPolicy: IfNotPresent
+
+  replicaCount: 1
 
 # image vulnerability scanning microservice
 armoVulnScanner:
@@ -304,7 +334,7 @@ armoCollector:
   image:
     # -- source code: https://github.com/armosec/k8s-armo-collector (private repo)
     repository: quay.io/armosec/cluster-collector
-    tag: v0.0.15
+    tag: v0.0.16
     pullPolicy: Always
 
   replicaCount: 1
