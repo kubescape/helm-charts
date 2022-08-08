@@ -90,6 +90,7 @@ helm upgrade --install armo  armo/armo-cluster-components -n armo-system --creat
 | armoKubescapeHostScanner.volumeMounts | object | `[]` | Additional volumeMounts for the host scanner |
 | aws_iam_role_arn | string | `nil` | AWS IAM arn role |
 | clientID | string | `""` | client ID, [read more](https://hub.armosec.io/docs/authentication) |
+| addRevisionLabel | bool | `true` | Add revision label to the components. This will insure the components will restart when updating the helm |
 | cloudRegion | string | `nil` | cloud region |
 | cloud_provider_engine | string | `nil` | cloud provider engine |
 | gkeProject | string | `nil` | GKE project |
