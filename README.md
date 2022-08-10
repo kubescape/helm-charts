@@ -69,11 +69,6 @@ helm upgrade --install armo  armo/armo-cluster-components -n armo-system --creat
 | armoNotificationService.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | armoNotificationService.volumes | object | `[]` | Additional volumes for the notification service |
 | armoNotificationService.volumeMounts | object | `[]` | Additional volumeMounts for the notification service |
-| armoScanScheduler.enabled | bool | `true` | enable/disable image vulnerability a schedule scan using a CronJob |
-| armoScanScheduler.image.repository | string | `"curlimages/curl"` | image: curlimages/curl |
-| armoScanScheduler.scanSchedule | string | `"0 0 * * *"` | scan schedule frequency |
-| armoScanScheduler.volumes | object | `[]` | Additional volumes for scan scheduler |
-| armoScanScheduler.volumeMounts | object | `[]` | Additional volumeMounts for scan scheduler |
 | armoVulnScanner.affinity | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the deployment |
 | armoVulnScanner.enabled | bool | `true` | enable/disable image vulnerability scanning |
 | armoVulnScanner.image.repository | string | `"quay.io/armosec/images-vulnerabilities-scan"` | [source code](https://github.com/armosec/ca-vuln-scan) (private repo) |
