@@ -80,6 +80,8 @@ helm upgrade --install armo  armo/armo-cluster-components -n armo-system --creat
 | armoVulnScanner.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | armoVulnScanner.volumes | object | `[]` | Additional volumes for the image vulnerability scanning |
 | armoVulnScanner.volumeMounts | object | `[]` | Additional volumeMounts for the image vulnerability scanning |
+| armoVulnScanScheduler.volumes | object | `[]` | Additional volumes for scan scheduler |
+| armoVulnScanScheduler.volumeMounts | object | `[]` | Additional volumeMounts for scan scheduler |
 | armoWebsocket.affinity | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the deployment |
 | armoWebsocket.enabled | bool | `true` | enable/disable kubescape and image vulnerability scanning |
 | armoWebsocket.image.repository | string | `"quay.io/kubescape/kontroller"` | [source code](https://github.com/kubescape/kontroller) |
