@@ -43,7 +43,7 @@ helm upgrade --install armo  armo/armo-cluster-components -n armo-system --creat
 | armoCollector.affinity | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the StatefulSet |
 | armoCollector.enabled | bool | `true` | enable/disable the armoCollector |
 | armoCollector.env[0] | object | `{"name":"PRINT_REPORT","value":"false"}` | print in verbose mode (print all reported data) |
-| armoCollector.image.repository | string | `"quay.io/armosec/cluster-collector"` | [source code](https://github.com/armosec/k8s-armo-collector) (private repo) |
+| armoCollector.image.repository | string | `"quay.io/kubescape/kollector"` | [source code](https://github.com/kubescape/kollector) |
 | armoCollector.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | armoCollector.volumes | object | `[]` | Additional volumes for the collector |
 | armoCollector.volumeMounts | object | `[]` | Additional volumeMounts for the collector |
@@ -65,19 +65,21 @@ helm upgrade --install armo  armo/armo-cluster-components -n armo-system --creat
 | armoKubescapeScanScheduler.volumeMounts | object | `[]` | Additional volumeMounts for scan scheduler |
 | armoNotificationService.affinity | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the deployment |
 | armoNotificationService.enabled | bool | `true` | enable/disable passing notifications from ARMO SaaS to the armo-web-socket microservice. The notifications are the onDemand scanning and the scanning schedule settings |
-| armoNotificationService.image.repository | string | `"quay.io/armosec/notification-server"` | [source code](https://github.com/armosec/capostman) (private repo) |
+| armoNotificationService.image.repository | string | `"quay.io/kubescape/gateway"` | [source code](https://github.com/kubescape/gateway) |
 | armoNotificationService.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | armoNotificationService.volumes | object | `[]` | Additional volumes for the notification service |
 | armoNotificationService.volumeMounts | object | `[]` | Additional volumeMounts for the notification service |
 | armoVulnScanner.affinity | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the deployment |
 | armoVulnScanner.enabled | bool | `true` | enable/disable image vulnerability scanning |
-| armoVulnScanner.image.repository | string | `"quay.io/armosec/images-vulnerabilities-scan"` | [source code](https://github.com/armosec/ca-vuln-scan) (private repo) |
+| armoVulnScanner.image.repository | string | `"quay.io/kubescape/kubevuln"` | [source code](https://github.com/kubescape/kubevuln) |
 | armoVulnScanner.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | armoVulnScanner.volumes | object | `[]` | Additional volumes for the image vulnerability scanning |
 | armoVulnScanner.volumeMounts | object | `[]` | Additional volumeMounts for the image vulnerability scanning |
+| armoVulnScanScheduler.volumes | object | `[]` | Additional volumes for scan scheduler |
+| armoVulnScanScheduler.volumeMounts | object | `[]` | Additional volumeMounts for scan scheduler |
 | armoWebsocket.affinity | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the deployment |
 | armoWebsocket.enabled | bool | `true` | enable/disable kubescape and image vulnerability scanning |
-| armoWebsocket.image.repository | string | `"quay.io/armosec/action-trigger"` | [source code](https://github.com/armosec/k8s-ca-websocket) (private repo) |
+| armoWebsocket.image.repository | string | `"quay.io/kubescape/kontroller"` | [source code](https://github.com/kubescape/kontroller) |
 | armoWebsocket.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | armoWebsocket.volumes | object | `[]` | Additional volumes for the web socket |
 | armoWebsocket.volumeMounts | object | `[]` | Additional volumeMounts for the web socket |
