@@ -36,8 +36,8 @@ spec:
       - name: {{ toYaml .Values.imagePullSecrets }}
       {{- end }}
       initContainers:
-      - image: quay.io/armosec/kubectl
-        name: disconnect-handle
+      - image: quay.io/armosec/kubectl:1.24 # https://github.com/armosec/bitnami-docker-kubectl
+        name: remove-old-deployments
         command: 
         - bash
         args:
@@ -45,8 +45,8 @@ spec:
         - set -xv; kubectl delete deployment armo-collector -n armo-system; dep_exist=$?; echo $dep_exist; while [ $dep_exist -eq 0 ]; do kubectl get deployment armo-collector -n armo-system; dep_exist=$?; echo $dep_exist; done 
         resources:
           limits:
-            cpu: 10m
-            memory: 40Mi
+            cpu: 20m
+            memory: 100Mi
           requests:
             cpu: 10m
             memory: 40Mi
