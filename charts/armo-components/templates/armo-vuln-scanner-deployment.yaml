@@ -56,24 +56,8 @@ spec:
           resources:
 {{ toYaml .Values.armoVulnScanner.resources | indent 12 }}
           env:
-            - name: CA_CLUSTER_NAME
-              value: "{{ regexReplaceAll "\\W+" .Values.clusterName "-" | lower }}"
-            - name: CA_CUSTOMER_GUID
-              value: "{{ .Values.accountGuid }}"
-            - name: OCIMAGE_URL
-              value: ""
-            - name: EVENT_RECEIVER_URL
-              value: "{{ .Values.k8sReportUrl }}"
             - name: PRINT_POST_JSON
               value: "{{ .Values.armoVulnScanner.verbose }}"
-            - name: CA_EVENT_RECEIVER_HTTP
-{{- if eq .Values.environment "dev" }}
-              value: "{{ .Values.devEventReceiverHttpUrl }}"
-{{- else if eq .Values.environment "staging" }}
-              value: "{{ .Values.stagingEventReceiverHttpUrl }}"
-{{- else }} 
-              value: "{{ .Values.eventReceiverHttpUrl }}"
-{{- end }}  
             {{- range .Values.armoVulnScanner.env }}
             - name: {{ .name  }}
               value: "{{ .value }}"

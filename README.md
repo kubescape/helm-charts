@@ -75,6 +75,9 @@ helm upgrade --install armo  armo/armo-cluster-components -n armo-system --creat
 | armoVulnScanner.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | armoVulnScanner.volumes | object | `[]` | Additional volumes for the image vulnerability scanning |
 | armoVulnScanner.volumeMounts | object | `[]` | Additional volumeMounts for the image vulnerability scanning |
+| armoVulnScanScheduler.enabled | bool | `true` | enable/disable a image vulnerability scheduled scan using a CronJob |
+| armoVulnScanScheduler.image.repository | string | `"quay.io/armosec/http_request"` | [source code](https://github.com/armosec/http-request) (public repo) |
+| armoVulnScanScheduler.scanSchedule | string | `"0 0 * * *"` | scan schedule frequency |
 | armoVulnScanScheduler.volumes | object | `[]` | Additional volumes for scan scheduler |
 | armoVulnScanScheduler.volumeMounts | object | `[]` | Additional volumeMounts for scan scheduler |
 | armoWebsocket.affinity | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the deployment |
