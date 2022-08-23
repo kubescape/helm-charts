@@ -1,0 +1,20 @@
+{{- if .Values.kubescape.enabled  }}
+{{ template "account_guid" . }}
+{{ template "cluster_name" . }}
+kind: ConfigMap 
+apiVersion: v1 
+metadata:
+  name: {{ .Values.kubescape.name }}-config
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    app: {{ .Values.kubescape.name }}-config
+    tier: {{ .Values.global.namespaceTier }}  
+data:
+  config.json: |
+    {
+      "accountID": "{{ .Values.account }}",
+      "clusterName": "{{ regexReplaceAll "\\W+" .Values.clusterName "-" | lower  }}",
+      "clientID": "{{ .Values.clientID }}",
+      "secretKey": "{{ .Values.secretKey }}"
+    }
+{{- end }}

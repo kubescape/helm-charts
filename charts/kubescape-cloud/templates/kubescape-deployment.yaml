@@ -1,0 +1,140 @@
+{{- if .Values.kubescape.enabled  }}
+{{- $cloud_provider := (include "cloud_provider" .) -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.kubescape.name }}
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    app: {{ .Values.kubescape.name }}
+    tier: {{ .Values.global.namespaceTier }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+spec:
+  replicas: {{ .Values.kubescape.replicaCount }}
+  revisionHistoryLimit: 2
+  strategy:
+    rollingUpdate:
+      maxSurge: 0%
+      maxUnavailable: 100%
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.kubescape.name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      tier: {{ .Values.global.namespaceTier}}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Values.kubescape.name }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        tier: {{ .Values.global.namespaceTier}}
+        app: {{ .Values.kubescape.name }}
+      {{- if .Values.addRevisionLabel }}
+        helm.sh/revision: "{{ .Release.Revision }}"
+      {{- end }}
+    spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+      - name: {{ toYaml .Values.imagePullSecrets }}
+      {{- end }}
+      containers:
+      - name: kubescape
+        image: "{{ .Values.kubescape.image.repository }}:{{ .Values.kubescape.image.tag }}"
+        imagePullPolicy: "{{ .Values.kubescape.image.pullPolicy }}"
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 100
+        ports:
+          - name: http
+            containerPort: 8080
+            protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /livez
+            port: 8080
+          initialDelaySeconds: 3
+          periodSeconds: 3
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8080
+          initialDelaySeconds: 3
+          periodSeconds: 3
+        env:
+        - name: KS_DOWNLOAD_ARTIFACTS  # When set to true the artifacts will be downloaded every scan execution
+          value: "{{ .Values.kubescape.downloadArtifacts }}" 
+        - name: KS_DEFAULT_CONFIGMAP_NAME
+          value: "{{ .Values.kubescape.name }}-config"
+        - name: KS_DEFAULT_CONFIGMAP_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: KS_ENABLE_HOST_SCANNER
+          value: "{{ .Values.kubescape.enableHostScan }}"
+        - name: KS_SUBMIT
+          value: "{{ .Values.kubescape.submit }}"
+        - name: KS_SKIP_UPDATE_CHECK
+          value: "{{ .Values.kubescape.skipUpdateCheck }}"
+        - name: KS_SAAS_ENV
+        {{ if eq .Values.environment "dev" }}
+          value: "dev"
+        {{- else if eq .Values.environment "staging" }}
+          value: "staging"
+        {{- else }}
+          value: ""
+        {{- end }}
+        {{- if $cloud_provider }}
+        - name: KS_CLOUD_PROVIDER
+          value: "{{ $cloud_provider }}"
+        - name: KS_CLOUD_REGION
+          value: "{{ .Values.cloudProviderMetadata.cloudRegion }}"
+        - name: KS_KUBE_CLUSTER
+          value: "{{ .Values.clusterName }}"
+        {{- if eq "gke" $cloud_provider }}
+        - name: KS_GKE_PROJECT
+          value: "{{ .Values.cloudProviderMetadata.gkeProject }}"
+        {{- end -}}
+        {{- end }}
+        command:
+        - ksserver
+        resources:
+{{ toYaml .Values.kubescape.resources | indent 14 }}            
+        volumeMounts:
+        - name: kubescape-config-volume
+          mountPath: /home/ks/.kubescape/config.json
+          subPath: config.json
+        - name: host-scanner-definition
+          mountPath: /home/ks/.kubescape/host-scanner.yaml
+          subPath: host-scanner-yaml
+{{- if .Values.volumeMounts }}
+{{ toYaml .Values.volumeMounts | indent 8 }}
+{{- end }}
+{{- if .Values.kubescape.volumeMounts }}
+{{ toYaml .Values.kubescape.volumeMounts | indent 8 }}
+{{- end }}
+      serviceAccountName: {{ .Values.global.kubescapeServiceAccountName }}
+      automountServiceAccountToken: true
+      volumes:
+      - name: kubescape-config-volume
+        configMap:
+          name: {{ .Values.kubescape.name }}-config
+      - name: host-scanner-definition
+        configMap:
+          name: host-scanner-definition
+{{- if .Values.volumes }}
+{{ toYaml .Values.volumes | indent 6 }}
+{{- end }}
+{{- if .Values.kubescape.volumes }}
+{{ toYaml .Values.kubescape.volumes | indent 6 }}
+{{- end }}
+      {{- with .Values.kubescape.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8}}
+      {{- end }}
+      {{- with .Values.kubescape.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8}}
+      {{- end }}
+{{- end }}

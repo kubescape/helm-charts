@@ -1,0 +1,38 @@
+{{ template "account_guid" . }}
+{{ template "cluster_name" . }}
+kind: ConfigMap 
+apiVersion: v1 
+metadata:
+  name: {{ .Values.global.cloudConfig }}
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    app: {{ .Values.global.cloudConfig }}
+    tier: {{ .Values.global.namespaceTier }}
+data:
+  clusterData: |
+    {
+      "gatewayWebsocketURL": "{{ .Values.gateway.name }}:{{ .Values.gateway.websocketService.port }}",
+      "gatewayRestURL": "{{ .Values.gateway.name }}:{{ .Values.gateway.httpService.port }}",
+      "vulnScanURL": "{{ .Values.kubevuln.name }}:{{ .Values.kubevuln.service.port }}",
+      "kubevulnURL": "{{ .Values.kubevuln.name }}:{{ .Values.kubevuln.service.port }}",
+      "kubescapeURL": "{{ .Values.kubescape.name }}:{{ .Values.kubescape.service.port }}",
+      "triggerNewImageScan": "{{ .Values.triggerNewImageScan }}",
+      "accountID": "{{ .Values.account }}",
+      "clusterName": "{{ regexReplaceAll "\\W+" .Values.clusterName "-" | lower }}",
+{{- if eq .Values.environment "dev" }} 
+      "backendOpenAPI": "{{ .Values.devBackendOpenAPI }}",
+      "eventReceiverRestURL": "{{ .Values.devEventReceiverHttpUrl }}",
+      "eventReceiverWebsocketURL": "{{ .Values.devK8sReportUrl }}",
+      "rootGatewayURL": "wss://{{ .Values.devGatewayUrl }}/v1/waitfornotification"
+{{- else if eq .Values.environment "staging" }}
+      "backendOpenAPI": "{{ .Values.stagingBackendOpenAPI }}",
+      "eventReceiverRestURL": "{{ .Values.stagingEventReceiverHttpUrl }}",
+      "eventReceiverWebsocketURL": "{{ .Values.stagingK8sReportUrl }}",
+      "rootGatewayURL": "wss://{{ .Values.stagingGatewayUrl }}/v1/waitfornotification"
+{{- else }} 
+      "backendOpenAPI": "{{ .Values.backendOpenAPI }}",
+      "eventReceiverRestURL": "{{ .Values.eventReceiverHttpUrl }}",
+      "eventReceiverWebsocketURL": "{{ .Values.k8sReportUrl }}",
+      "rootGatewayURL": "wss://{{ .Values.gatewayUrl }}/v1/waitfornotification"
+{{- end }}       
+    }

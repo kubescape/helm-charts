@@ -1,0 +1,22 @@
+{{ if and .Values.kubescape.serviceMonitor.enabled .Values.kubescape.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ .Values.kubescape.name }}-monitor
+  namespace: {{ .Values.kubescape.serviceMonitor.namespace | default .Values.ksNamespace }}
+  labels:
+    app: {{ .Values.kubescape.name }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+spec:
+  namespaceSelector:
+    matchNames:
+      -  {{ .Values.ksNamespace }}
+  selector:
+    matchLabels:
+      app: {{ .Values.kubescape.name }}
+  endpoints:
+    - port: http
+      path: /v1/metrics
+      interval: 120s
+      scrapeTimeout: 100s
+{{ end }}

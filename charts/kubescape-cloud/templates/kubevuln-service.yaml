@@ -1,0 +1,22 @@
+{{- if and .Values.kubevuln.enabled .Values.kubescape.submit }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.kubevuln.name }}
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    app: {{ .Values.kubevuln.name }}
+spec:
+  type: {{ .Values.kubevuln.service.type }}
+  ports:
+    - port: {{ .Values.kubevuln.service.port }}
+      targetPort: {{ .Values.kubevuln.service.targetPort }}
+      protocol: {{ .Values.kubevuln.service.protocol }}
+      name: "vuln-scan-port"
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP
+      name: "readiness-port"
+  selector:
+    app: {{ .Values.kubevuln.name }}
+{{- end }}
