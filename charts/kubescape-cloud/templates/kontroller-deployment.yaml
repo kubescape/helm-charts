@@ -1,14 +1,14 @@
-{{- if and .Values.kontroller.enabled .Values.kubescape.submit }}
+{{- if and .Values.operator.enabled .Values.kubescape.submit }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Values.kontroller.name }}
+  name: {{ .Values.operator.name }}
   namespace: {{ .Values.ksNamespace }}
   labels:
-    app: {{ .Values.kontroller.name }}
+    app: {{ .Values.operator.name }}
     tier: {{ .Values.global.namespaceTier}}
 spec:
-  replicas: {{ .Values.kontroller.replicaCount }}
+  replicas: {{ .Values.operator.replicaCount }}
   revisionHistoryLimit: 2
   strategy:
     rollingUpdate:
@@ -17,17 +17,17 @@ spec:
     type: RollingUpdate
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ .Values.kontroller.name }}
+      app.kubernetes.io/name: {{ .Values.operator.name }}
       app.kubernetes.io/instance: {{ .Release.Name }}
       tier: {{ .Values.global.namespaceTier}}
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: {{ .Values.kontroller.name }}
+        app.kubernetes.io/name: {{ .Values.operator.name }}
         app.kubernetes.io/instance: {{ .Release.Name }}
         helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
         tier: {{ .Values.global.namespaceTier}}
-        app: {{ .Values.kontroller.name }}
+        app: {{ .Values.operator.name }}
       {{- if .Values.addRevisionLabel }}
         helm.sh/revision: "{{ .Release.Revision }}"
       {{- end }}
@@ -37,9 +37,9 @@ spec:
       - name: {{ toYaml .Values.imagePullSecrets }}
       {{- end }}
       containers:
-        - name: {{ .Values.kontroller.name }}
-          image: "{{ .Values.kontroller.image.repository }}:{{ .Values.kontroller.image.tag }}"
-          imagePullPolicy: {{ .Values.kontroller.image.pullPolicy }}
+        - name: {{ .Values.operator.name }}
+          image: "{{ .Values.operator.image.repository }}:{{ .Values.operator.image.tag }}"
+          imagePullPolicy: {{ .Values.operator.image.pullPolicy }}
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true
@@ -64,13 +64,13 @@ spec:
             initialDelaySeconds: 10
             periodSeconds: 5
           resources:
-{{ toYaml .Values.kontroller.resources | indent 12 }}
+{{ toYaml .Values.operator.resources | indent 12 }}
           env:
             - name: NAMESPACE
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-            {{- range .Values.kontroller.env }}
+            {{- range .Values.operator.env }}
             - name: {{ .name  }}
               value: "{{ .value }}"
             {{- end }}
@@ -85,8 +85,8 @@ spec:
 {{- if .Values.volumeMounts }}
 {{ toYaml .Values.volumeMounts | indent 12 }}
 {{- end }}
-{{- if .Values.kontroller.volumeMounts }}
-{{ toYaml .Values.kontroller.volumeMounts | indent 12 }}
+{{- if .Values.operator.volumeMounts }}
+{{ toYaml .Values.operator.volumeMounts | indent 12 }}
 {{- end }}
       volumes:
         - name: {{ .Values.global.cloudConfig }}
@@ -98,16 +98,16 @@ spec:
 {{- if .Values.volumes }}
 {{ toYaml .Values.volumes | indent 8 }}
 {{- end }}
-{{- if .Values.kontroller.volumes }}
-{{ toYaml .Values.kontroller.volumes | indent 8 }}
+{{- if .Values.operator.volumes }}
+{{ toYaml .Values.operator.volumes | indent 8 }}
 {{- end }}
-      serviceAccountName: {{ .Values.global.kontrollerServiceAccountName }}
+      serviceAccountName: {{ .Values.global.operatorServiceAccountName }}
       automountServiceAccountToken: true
-      {{- with .Values.kontroller.nodeSelector }}
+      {{- with .Values.operator.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.kontroller.affinity }}
+      {{- with .Values.operator.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}

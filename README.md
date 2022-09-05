@@ -80,12 +80,12 @@ helm upgrade --install armo  armo/armo-cluster-components -n armo-system --creat
 | kubevulnScheduler.scanSchedule | string | `"0 0 * * *"` | scan schedule frequency |
 | kubevulnScheduler.volumes | object | `[]` | Additional volumes for scan scheduler |
 | kubevulnScheduler.volumeMounts | object | `[]` | Additional volumeMounts for scan scheduler |
-| kontroller.affinity | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the deployment |
-| kontroller.enabled | bool | `true` | enable/disable kubescape and image vulnerability scanning |
-| kontroller.image.repository | string | `"quay.io/kubescape/kontroller"` | [source code](https://github.com/kubescape/kontroller) |
-| kontroller.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
-| kontroller.volumes | object | `[]` | Additional volumes for the web socket |
-| kontroller.volumeMounts | object | `[]` | Additional volumeMounts for the web socket |
+| operator.affinity | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the deployment |
+| operator.enabled | bool | `true` | enable/disable kubescape and image vulnerability scanning |
+| operator.image.repository | string | `"quay.io/kubescape/operator"` | [source code](https://github.com/kubescape/operator) |
+| operator.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
+| operator.volumes | object | `[]` | Additional volumes for the web socket |
+| operator.volumeMounts | object | `[]` | Additional volumeMounts for the web socket |
 | kubescapeHostScanner.volumes | object | `[]` | Additional volumes for the host scanner |
 | kubescapeHostScanner.volumeMounts | object | `[]` | Additional volumeMounts for the host scanner |
 | awsIamRoleArn | string | `nil` | AWS IAM arn role |
@@ -118,14 +118,14 @@ graph TB
 
   subgraph Cluster
     gw(Gateway)
-    kontroller(Kontroller)
+    operator(Operator)
     k8sApi(Kubernetes API);
     kubevuln(Kubevuln)
     ks(Kubescape)
-    gw --- kontroller
-    kontroller -->|scan cluster| ks
-    kontroller -->|scan images| kubevuln
-    kontroller --> k8sApi
+    gw --- operator
+    operator -->|scan cluster| ks
+    operator -->|scan images| kubevuln
+    operator --> k8sApi
     ks --> k8sApi
   end;
   
@@ -139,7 +139,7 @@ subgraph Backend
   classDef k8s fill:#326ce5,stroke:#fff,stroke-width:1px,color:#fff;
   classDef plain fill:#ddd,stroke:#fff,stroke-width:1px,color:#000;
   class k8sApi k8s
-  class ks,kontroller,gw,masterGw,kollector,kubevuln,er,dashboard plain
+  class ks,operator,gw,masterGw,kollector,kubevuln,er,dashboard plain
 ```
 
 ---
@@ -166,41 +166,41 @@ graph TB
   end
    subgraph Cluster N
     gw3("Gateway (In-cluster)")
-    kontroller3(Kontroller)
+    operator3(Operator)
   end;
   subgraph Cluster 2
     gw2("Gateway (In-cluster)")
-    kontroller2(Kontroller)
+    operator2(Operator)
   end;
    
 subgraph Cluster 1
     gw1("Gateway (In-cluster)")
-    kontroller1(Kontroller)
+    operator1(Operator)
   end;
   dashboard --> masterGw
    masterGw .- gw2
    masterGw .- gw3
-       gw1 .- kontroller1
-    gw2 .- kontroller2
-    gw3 .- kontroller3
+       gw1 .- operator1
+    gw2 .- operator2
+    gw3 .- operator3
    masterGw .- gw1
 
     
   classDef k8s fill:#326ce5,stroke:#fff,stroke-width:1px,color:#fff;
   classDef plain fill:#ddd,stroke:#fff,stroke-width:1px,color:#000;
   class k8sApi k8s
-  class ks,kontroller1,dashboard,kontroller2,kontroller3 plain
+  class ks,operator1,dashboard,operator2,operator3 plain
 ```
 
 </details>
 
 ---
 
-## [Kontroller](https://github.com/kubescape/kontroller)
+## [Operator](https://github.com/kubescape/operator)
 
 * __Resource Kind:__ `Deployment`
 * __Communication:__ REST API, Websocket
-* __Responsibility:__ The Kontroller component is at the heart of the solution as it is the triggering engine for the different actions in the cluster; It responds to REST API requests and messages received over websocket connection, and triggers the relevant action in the cluster. Such actions could be triggering a configuration scan, image vulnerability scan, defining a recurring scan (by creating CronJobs), etc.
+* __Responsibility:__ The Operator component is at the heart of the solution as it is the triggering engine for the different actions in the cluster; It responds to REST API requests and messages received over websocket connection, and triggers the relevant action in the cluster. Such actions could be triggering a configuration scan, image vulnerability scan, defining a recurring scan (by creating CronJobs), etc.
 
 <details><summary>Component Diagram</summary>
 
@@ -208,7 +208,7 @@ subgraph Cluster 1
 graph TB
   subgraph Cluster
     gw(Gateway)
-    kontroller(Kontroller)
+    operator(Operator)
     k8sApi(Kubernetes API);
     kubevuln(Kubevuln)
     ks(Kubescape)
@@ -217,14 +217,14 @@ graph TB
     recurringScanCj{{CronJob<br>Recurring Scan}}
   end;
    masterGw(Master Gateway) .- gw
-    gw ---> kontroller
-    recurringScanCj ---> kontroller
+    gw ---> operator
+    recurringScanCj ---> operator
     recurringScanCj --> recurringScanCj
-    kontroller -->|scan cluster| ks
-    kontroller -->|scan images| kubevuln
-    kontroller --> k8sApi
-    kontroller --- urlCm
-    kontroller --- recurringTempCm
+    operator -->|scan cluster| ks
+    operator -->|scan images| kubevuln
+    operator --> k8sApi
+    operator --- urlCm
+    operator --- recurringTempCm
   
   classDef k8s fill:#326ce5,stroke:#fff,stroke-width:1px,color:#fff;
   classDef plain fill:#ddd,stroke:#fff,stroke-width:1px,color:#000;
@@ -250,7 +250,7 @@ graph TB
 subgraph Cluster
     kubevuln(Kubevuln)  
     k8sApi(Kubernetes API)
-    kontroller(Kontroller)
+    operator(Operator)
     gateway(Gateway)
     urlCm{{ConfigMap<br>URLs}}
     recurringScanCj{{CronJob<br>Recurring Scan}}
@@ -260,14 +260,14 @@ subgraph Cluster
 end
 
 masterGateway  .- gateway
-gateway .-|Scan Notification| kontroller 
-kontroller -->|Collect NS, Images|k8sApi
-kontroller -->|Start Scan| kubevuln
-kontroller --- urlCm
+gateway .-|Scan Notification| operator 
+operator -->|Collect NS, Images|k8sApi
+operator -->|Start Scan| kubevuln
+operator --- urlCm
 urlCm --- kubevuln 
-recurringTempCm --- kontroller
+recurringTempCm --- operator
 recurringScanCj -->|Periodic Run| recurringScanCj
-recurringScanCj -->|Scan Notification| kontroller
+recurringScanCj -->|Scan Notification| operator
 recurringScanCm --- recurringScanCj
 
 subgraph Backend
@@ -280,7 +280,7 @@ classDef k8s fill:#326ce5,stroke:#fff,stroke-width:1px,color:#fff;
 classDef plain fill:#ddd,stroke:#fff,stroke-width:1px,color:#000
 
 class k8sApi k8s
-class urlCm,recurringScanCm,kontroller,er,gateway,masterGateway,recurringScanCj,recurringTempCm plain
+class urlCm,recurringScanCm,operator,er,gateway,masterGateway,recurringScanCj,recurringTempCm plain
 
 
 ```
@@ -302,7 +302,7 @@ graph TB
 subgraph Cluster
     ks(Kubescape)  
     k8sApi(Kubernetes API)
-    kontroller(Kontroller)
+    operator(Operator)
     gateway(Gateway)
     ksCm{{ConfigMap<br>Kubescape}}
     recurringScanCj{{CronJob<br>Recurring Scan}}
@@ -311,13 +311,13 @@ subgraph Cluster
 end
 
 masterGateway  .- gateway
-gateway .-|Scan Notification| kontroller 
-kontroller -->|Start Scan| ks
+gateway .-|Scan Notification| operator 
+operator -->|Start Scan| ks
 ks-->|Collect Cluster Info|k8sApi
 ksCm --- ks 
-recurringTempCm --- kontroller
+recurringTempCm --- operator
 recurringScanCj -->|Periodic Run| recurringScanCj
-recurringScanCj -->|Scan Notification| kontroller
+recurringScanCj -->|Scan Notification| operator
 recurringScanCm --- recurringScanCj
 subgraph Backend
     er(EventReceiver)
@@ -329,7 +329,7 @@ classDef k8s fill:#326ce5,stroke:#fff,stroke-width:1px,color:#fff;
 classDef plain fill:#ddd,stroke:#fff,stroke-width:1px,color:#000
 
 class k8sApi k8s
-class ksCm,recurringScanCm,kontroller,er,gateway,masterGateway,recurringScanCj,recurringTempCm plain
+class ksCm,recurringScanCm,operator,er,gateway,masterGateway,recurringScanCj,recurringTempCm plain
 
 
 ```
@@ -377,7 +377,7 @@ class er,gw,masterGw plain
 
 Holds a list of communication URLs. Used by the following components:
 
-* Kontroller
+* Operator
 * Kubevuln
 * Gateway
 
@@ -406,7 +406,7 @@ Some in-cluster components communicate with the Kubernetes API server for differ
 
   Watches for changes in namespace, workloads, nodes. Reports information to the EventReceiver. Identifies image-related changes and triggers an image scanning on the new images accordingly (scanning new images functionality is optional).
 
-* Kontroller
+* Operator
 
   Creates/updates/deletes resources for recurring scan purposes (CronJobs, ConfigMaps). Collects required information (NS, image names/tags) for Kubevuln's image scanning.
 
@@ -449,9 +449,9 @@ An action which creates sub-action(s), will be created with a different `jobId` 
   2. Vulnerability scanning for container images (Kubevuln)
   3. Container registry scanning (Kubevuln)
 
-When creating a recurring scan, the Kontroller component will create a `ConfigMap` and a `CronJob` from a recurring template ConfigMap. Each scan type comes with a template.
+When creating a recurring scan, the Operator component will create a `ConfigMap` and a `CronJob` from a recurring template ConfigMap. Each scan type comes with a template.
 
-The CronJob itself does not run the scan directly. When a CronJob is ready to run, it will send a REST API request to the Kontroller component, which will then trigger the relevant scan (similarly to a request coming from the Gateway).
+The CronJob itself does not run the scan directly. When a CronJob is ready to run, it will send a REST API request to the Operator component, which will then trigger the relevant scan (similarly to a request coming from the Gateway).
 
 The scan results are then sent by each relevant component to the EventReceiver.
 
@@ -466,16 +466,16 @@ sequenceDiagram
     participant dashboard as Backend<br><br>Dashboard
     participant masterGw as Backend<br><br>Master Gateway
     participant clusterGw as Cluster<br><br>In-Cluster Gateway
-    participant kontroller as Cluster<br><br>Kontroller
+    participant operator as Cluster<br><br>Operator
     participant k8sApi as Cluster<br><br>Kubernetes API
     
     user->>dashboard: 1. create scan schedule
     dashboard->>masterGw: 2. build schedule notification
     masterGw->>clusterGw: 3. broadcast notification
-    clusterGw->>kontroller: 4. create recurring scan
-    kontroller->>k8sApi: 5. get namespaces, workloads
-    k8sApi-->>kontroller: 
-    kontroller->>k8sApi: 6. Create cronjob & ConfigMap
+    clusterGw->>operator: 4. create recurring scan
+    operator->>k8sApi: 5. get namespaces, workloads
+    k8sApi-->>operator: 
+    operator->>k8sApi: 6. Create cronjob & ConfigMap
 ```
 </details>
 
@@ -484,16 +484,16 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
    participant cronJob as Cluster<br><br>CronJob
-   participant kontroller as Cluster<br><br>Kontroller
+   participant operator as Cluster<br><br>Operator
    participant k8sApi as Cluster<br><br>Kubernetes API
    participant kubeVuln as Cluster<br><br>Kubevuln
    participant er as Backend<br><br>EventReceiver
    loop
-      cronJob->>kontroller: 1. run image scan
+      cronJob->>operator: 1. run image scan
    end
-   kontroller->>k8sApi: 2. list NS, container images
-   k8sApi-->>kontroller: 
-   kontroller->>kubeVuln: 3. scan images
+   operator->>k8sApi: 2. list NS, container images
+   k8sApi-->>operator: 
+   operator->>kubeVuln: 3. scan images
    kubeVuln ->> er: 4. send scan results
 ```
 
@@ -504,14 +504,14 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
   participant cronJob as Cluster<br><br>CronJob
-  participant kontroller as Cluster<br><br>Kontroller
+  participant operator as Cluster<br><br>Operator
   participant ks as Cluster<br><br>Kubescape
   participant k8sApi as Cluster<br><br>Kubernetes API
   participant er as Backend<br><br>EventReceiver
   loop
-      cronJob->>kontroller: 1. run configuration scan
+      cronJob->>operator: 1. run configuration scan
   end
-  kontroller->>ks: 2. kubescape scan 
+  operator->>ks: 2. kubescape scan 
   ks->>k8sApi: 3. list NS, workloads, RBAC 
   k8sApi->>ks: 
   ks ->> er: 4. send scan results
