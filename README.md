@@ -1,15 +1,14 @@
-# ARMO cluster components
-ARMO Vulnerability Scanning
+# Kubescape Operator
 
 ![Version: 1.7.18](https://img.shields.io/badge/Version-1.7.18-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.7.18](https://img.shields.io/badge/AppVersion-v1.7.18-informational?style=flat-square)
 
 ## [Docs](https://hub.armosec.io/docs/installation-of-armo-in-cluster)
 
-## Installing ARMO cluster components in a Kubernetes cluster Using Helm:
+## Installing Kubescape Operator in a Kubernetes cluster using Helm:
 
-1. Add the Vulnerability Scanning Helm Repo
+1. Add the Kubescape Helm Repo
 ```
-helm repo add armo https://armosec.github.io/armo-helm/
+helm repo add kubescape https://kubescape.github.io/helm-charts/
 ```
 
 2. Update helm repo
@@ -27,7 +26,7 @@ Otherwise, get the account ID from the [kubescape SaaS](https://hub.armosec.io/d
 
 Run the install command:
 ```
-helm upgrade --install armo  armo/armo-cluster-components -n armo-system --create-namespace --set account=<my_account_ID> --set clusterName=`kubectl config current-context` 
+helm upgrade --install kubescape  kubescape/kubescape-cloud -n kubescape --create-namespace --set account=<my_account_ID> --set clusterName=`kubectl config current-context` 
 ```
 
 > Add `--set clientID=<generated client id> --set secretKey=<generated secret key>` if you have [generated an auth key](https://hub.armosec.io/docs/authentication)
@@ -51,20 +50,20 @@ helm upgrade --install armo  armo/armo-cluster-components -n armo-system --creat
 | kubescape.downloadArtifacts | bool | `true` | download policies every scan, we recommend it should remain true, you should change to 'false' when running in an air-gapped environment or when scanning with high frequency (when running with Prometheus) |
 | kubescape.enableHostScan | bool | `true` | enable [host scanner feature](https://hub.armosec.io/docs/host-sensor) |
 | kubescape.enabled | bool | `true` | enable/disable kubescape scanning |
-| kubescape.image.repository | string | `"quay.io/armosec/kubescape"` | [source code](https://github.com/armosec/kubescape/tree/master/httphandler) (public repo) |
+| kubescape.image.repository | string | `"quay.io/kubescape/kubescape"` | [source code](https://github.com/kubescape/kubescape/tree/master/httphandler) (public repo) |
 | kubescape.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | kubescape.serviceMonitor.enabled | bool | `false` | enable/disable service monitor for prometheus (operator) integration |
 | kubescape.skipUpdateCheck | bool | `false` | skip check for a newer version  |
-| kubescape.submit | bool | `true` | submit results to ARMO SaaS: https://cloud.armosec.io/ |
+| kubescape.submit | bool | `true` | submit results to Kubescape SaaS: https://cloud.armosec.io/ |
 | kubescape.volumes | object | `[]` | Additional volumes for Kubescape |
 | kubescape.volumeMounts | object | `[]` | Additional volumeMounts for Kubescape |
 | kubescapeScheduler.enabled | bool | `true` | enable/disable a kubescape scheduled scan using a CronJob |
-| kubescapeScheduler.image.repository | string | `"quay.io/armosec/http_request"` | [source code](https://github.com/armosec/http-request) (public repo) |
+| kubescapeScheduler.image.repository | string | `"quay.io/kubescape/http_request"` | [source code](https://github.com/kubescape/http-request) (public repo) |
 | kubescapeScheduler.scanSchedule | string | `"0 0 * * *"` | scan schedule frequency |
 | kubescapeScheduler.volumes | object | `[]` | Additional volumes for scan scheduler |
 | kubescapeScheduler.volumeMounts | object | `[]` | Additional volumeMounts for scan scheduler |
 | gateway.affinity | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the deployment |
-| gateway.enabled | bool | `true` | enable/disable passing notifications from ARMO SaaS to the armo-web-socket microservice. The notifications are the onDemand scanning and the scanning schedule settings |
+| gateway.enabled | bool | `true` | enable/disable passing notifications from Kubescape SaaS to the Operator microservice. The notifications are the onDemand scanning and the scanning schedule settings |
 | gateway.image.repository | string | `"quay.io/kubescape/gateway"` | [source code](https://github.com/kubescape/gateway) |
 | gateway.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | gateway.volumes | object | `[]` | Additional volumes for the notification service |
@@ -76,7 +75,7 @@ helm upgrade --install armo  armo/armo-cluster-components -n armo-system --creat
 | kubevuln.volumes | object | `[]` | Additional volumes for the image vulnerability scanning |
 | kubevuln.volumeMounts | object | `[]` | Additional volumeMounts for the image vulnerability scanning |
 | kubevulnScheduler.enabled | bool | `true` | enable/disable a image vulnerability scheduled scan using a CronJob |
-| kubevulnScheduler.image.repository | string | `"quay.io/armosec/http_request"` | [source code](https://github.com/armosec/http-request) (public repo) |
+| kubevulnScheduler.image.repository | string | `"quay.io/kubescape/http_request"` | [source code](https://github.com/kubescape/http-request) (public repo) |
 | kubevulnScheduler.scanSchedule | string | `"0 0 * * *"` | scan schedule frequency |
 | kubevulnScheduler.volumes | object | `[]` | Additional volumes for scan scheduler |
 | kubevulnScheduler.volumeMounts | object | `[]` | Additional volumeMounts for scan scheduler |
@@ -288,11 +287,11 @@ class urlCm,recurringScanCm,operator,er,gateway,masterGateway,recurringScanCj,re
 
 ---
 
-## [Kubescape](https://github.com/armosec/kubescape/tree/master/httphandler)
+## [Kubescape](https://github.com/kubescape/kubescape/tree/master/httphandler)
 
 * __Resource Kind:__ `Deployment`
 * __Communication:__ REST API
-* __Responsibility:__ Runs [Kubescape](https://github.com/armosec/kubescape) for detecting misconfigurations in the cluster; This is microservice uses the same engine as the Kubescape CLI tool.
+* __Responsibility:__ Runs [Kubescape](https://github.com/kubescape/kubescape) for detecting misconfigurations in the cluster; This is microservice uses the same engine as the Kubescape CLI tool.
 
 <details><summary>Component Diagram</summary>
 
@@ -373,7 +372,7 @@ class er,gw,masterGw plain
 
 ---
 
-## [URLs ConfigMap](https://github.com/armosec/armo-helm/blob/master/charts/armo-components/templates/armo-configmap.yaml)
+## [URLs ConfigMap](https://github.com/kubescape/helm-charts/blob/master/charts/kubescape-cloud/templates/cloudapi-configmap.yaml)
 
 Holds a list of communication URLs. Used by the following components:
 
