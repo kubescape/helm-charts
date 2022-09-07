@@ -26,7 +26,7 @@ Otherwise, get the account ID from the [kubescape SaaS](https://hub.armosec.io/d
 
 Run the install command:
 ```
-helm upgrade --install kubescape  kubescape/kubescape-cloud -n kubescape --create-namespace --set account=<my_account_ID> --set clusterName=`kubectl config current-context` 
+helm upgrade --install kubescape kubescape/kubescape-cloud -n kubescape --create-namespace --set account=<my_account_ID> --set clusterName=`kubectl config current-context` 
 ```
 
 > Add `--set clientID=<generated client id> --set secretKey=<generated secret key>` if you have [generated an auth key](https://hub.armosec.io/docs/authentication)
@@ -87,7 +87,7 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | kubescape.image.repository | string | `"quay.io/kubescape/kubescape"` | [source code](https://github.com/kubescape/kubescape/tree/master/httphandler) (public repo) |
 | kubescape.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | kubescape.serviceMonitor.enabled | bool | `false` | enable/disable service monitor for prometheus (operator) integration |
-| kubescape.skipUpdateCheck | bool | `false` | skip check for a newer version  |
+| kubescape.skipUpdateCheck | bool | `false` | skip check for a newer version |
 | kubescape.submit | bool | `true` | submit results to Kubescape SaaS: https://cloud.armosec.io/ |
 | kubescape.volumes | object | `[]` | Additional volumes for Kubescape |
 | kubescape.volumeMounts | object | `[]` | Additional volumeMounts for Kubescape |
@@ -292,7 +292,7 @@ subgraph Cluster
 
 end
 
-masterGateway  .- gateway
+masterGateway .- gateway
 gateway .-|Scan Notification| operator 
 operator -->|Collect NS, Images|k8sApi
 operator -->|Start Scan| kubevuln
@@ -333,7 +333,7 @@ class urlCm,recurringScanCm,operator,er,gateway,masterGateway,recurringScanCj,re
 graph TB
 
 subgraph Cluster
-    ks(Kubescape)  
+    ks(Kubescape)
     k8sApi(Kubernetes API)
     operator(Operator)
     gateway(Gateway)
@@ -343,7 +343,7 @@ subgraph Cluster
     recurringTempCm{{ConfigMap<br>Recurring Scan Template}}
 end
 
-masterGateway  .- gateway
+masterGateway .- gateway
 gateway .-|Scan Notification| operator 
 operator -->|Start Scan| ks
 ks-->|Collect Cluster Info|k8sApi
@@ -392,7 +392,7 @@ subgraph Cluster
 end;
 
 kollector .->|Scan new image| gw
-masterGw  .- gw
+masterGw .- gw
 kollector --> er
 kollector --> k8sApi
 
