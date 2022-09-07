@@ -1,6 +1,6 @@
 # Kubescape Operator
 
-![Version: 1.7.18](https://img.shields.io/badge/Version-1.7.18-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.7.18](https://img.shields.io/badge/AppVersion-v1.7.18-informational?style=flat-square)
+![Version: 1.8.0](https://img.shields.io/badge/Version-1.8.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.8.0](https://img.shields.io/badge/AppVersion-v1.8.0-informational?style=flat-square)
 
 ## [Docs](https://hub.armosec.io/docs/installation-of-armo-in-cluster)
 
@@ -26,13 +26,47 @@ Otherwise, get the account ID from the [kubescape SaaS](https://hub.armosec.io/d
 
 Run the install command:
 ```
-helm upgrade --install kubescape  kubescape/kubescape-cloud -n kubescape --create-namespace --set account=<my_account_ID> --set clusterName=`kubectl config current-context` 
+helm upgrade --install kubescape kubescape/kubescape-cloud -n kubescape --create-namespace --set account=<my_account_ID> --set clusterName=`kubectl config current-context` 
 ```
 
 > Add `--set clientID=<generated client id> --set secretKey=<generated secret key>` if you have [generated an auth key](https://hub.armosec.io/docs/authentication)
 
 > Add `--set kubescape.serviceMonitor.enabled=true` for installing the Prometheus service monitor, [read more about Prometheus integration](https://hub.armosec.io/docs/prometheus-exporter)
+
+
+### Adjusting Resource Usage for Your Cluster
+
+By default, Kubescape is configured for small- to medium-sized clusters.
+If you have a larger cluster and you experience slowdowns or see Kubernetes evicting components, please revise the amount of resources allocated for the troubled component.
+
+Taking Kubescape for example, we found that our defaults of 500 MiB of memory and 500m CPU work well for clusters up to 1250 total resources.
+If you have more total resources or experience resource pressure already, first check out how many resources are in your cluster by running the following command:
+
+```
+kubectl get all -A --no-headers | wc -l
+```
+
+The command should print an approximate count of resources in your cluster.
+Then, based on the number you see, allocate 100 MiB of memory for every 200 resources in your cluster over the count of 1250, but no less than 128 MiB total.
+The formula for memory is as follows:
+```
+MemoryLimit := max(128, 0.4 * YOUR_AMOUNT_OF_RESOURCES)
+```
+
+For example, if your your cluster has 500 resources, a sensible memory limit would be:
+```
+kubescape:
+  resources:
+    limits:
+      memory: 200Mi  # max(128, 0.4 * 500) == 200
+```
+If your cluster has 50 resources, we still recommend allocating at least 128 MiB of memory.
+
+When it comes to CPU, the more you allocate, the faster Kubescape will scan your cluster.
+This is especially true for clusters that have a large amount of resources.
+However, we recommend that you give Kubescape no less than 500m CPU no matter the size of your cluster so it can scan a relatively large amount of resources fast ;)
  
+
 ## Chart support
 
 ### Values
@@ -53,7 +87,7 @@ helm upgrade --install kubescape  kubescape/kubescape-cloud -n kubescape --creat
 | kubescape.image.repository | string | `"quay.io/kubescape/kubescape"` | [source code](https://github.com/kubescape/kubescape/tree/master/httphandler) (public repo) |
 | kubescape.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | kubescape.serviceMonitor.enabled | bool | `false` | enable/disable service monitor for prometheus (operator) integration |
-| kubescape.skipUpdateCheck | bool | `false` | skip check for a newer version  |
+| kubescape.skipUpdateCheck | bool | `false` | skip check for a newer version |
 | kubescape.submit | bool | `true` | submit results to Kubescape SaaS: https://cloud.armosec.io/ |
 | kubescape.volumes | object | `[]` | Additional volumes for Kubescape |
 | kubescape.volumeMounts | object | `[]` | Additional volumeMounts for Kubescape |
@@ -102,7 +136,7 @@ helm upgrade --install kubescape  kubescape/kubescape-cloud -n kubescape --creat
 
 # In-cluster components overview
 
-An overview of each in-cluster component which is part of the Kubescpae platform helm chart.
+An overview of each in-cluster component which is part of the Kubescape platform helm chart.
 Follow the repository link for in-depth information on a specific component.
 
 ---
@@ -258,7 +292,7 @@ subgraph Cluster
 
 end
 
-masterGateway  .- gateway
+masterGateway .- gateway
 gateway .-|Scan Notification| operator 
 operator -->|Collect NS, Images|k8sApi
 operator -->|Start Scan| kubevuln
@@ -299,7 +333,7 @@ class urlCm,recurringScanCm,operator,er,gateway,masterGateway,recurringScanCj,re
 graph TB
 
 subgraph Cluster
-    ks(Kubescape)  
+    ks(Kubescape)
     k8sApi(Kubernetes API)
     operator(Operator)
     gateway(Gateway)
@@ -309,7 +343,7 @@ subgraph Cluster
     recurringTempCm{{ConfigMap<br>Recurring Scan Template}}
 end
 
-masterGateway  .- gateway
+masterGateway .- gateway
 gateway .-|Scan Notification| operator 
 operator -->|Start Scan| ks
 ks-->|Collect Cluster Info|k8sApi
@@ -358,7 +392,7 @@ subgraph Cluster
 end;
 
 kollector .->|Scan new image| gw
-masterGw  .- gw
+masterGw .- gw
 kollector --> er
 kollector --> k8sApi
 
@@ -387,8 +421,8 @@ gatewayWebsocketURL: 127.0.0.1:8001                             # component: in-
 gatewayRestURL: 127.0.0.1:8002                                  # component: in-cluster gateway
 kubevulnURL: 127.0.0.1:8081                                     # component: kubevuln
 kubescapeURL: 127.0.0.1:8080                                    # component: kubescape
-eventReceiverRestURL: https://report.cloud.com                  # component: eventreceiver
-eventReceiverWebsocketURL: wss://report.cloud.com               # component: eventreceiver
+eventReceiverRestURL: https://report.cloud.com                  # component: eventReceiver
+eventReceiverWebsocketURL: wss://report.cloud.com               # component: eventReceiver
 rootGatewayURL: wss://masterns.cloud.com/v1/waitfornotification # component: master gateway
 accountID: 1111-aaaaa-4444-555
 clusterName: minikube
