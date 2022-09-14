@@ -53,7 +53,7 @@ The formula for memory is as follows:
 MemoryLimit := max(128, 0.4 * YOUR_AMOUNT_OF_RESOURCES)
 ```
 
-For example, if your your cluster has 500 resources, a sensible memory limit would be:
+For example, if your cluster has 500 resources, a sensible memory limit would be:
 ```
 kubescape:
   resources:
