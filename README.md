@@ -1,6 +1,6 @@
 # Kubescape Operator
 
-![Version: 1.8.1](https://img.shields.io/badge/Version-1.8.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.8.1](https://img.shields.io/badge/AppVersion-v1.8.1-informational?style=flat-square)
+![Version: 1.8.2](https://img.shields.io/badge/Version-1.8.2-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.8.2](https://img.shields.io/badge/AppVersion-v1.8.2-informational?style=flat-square)
 
 ## [Docs](https://hub.armosec.io/docs/installation-of-armo-in-cluster)
 
