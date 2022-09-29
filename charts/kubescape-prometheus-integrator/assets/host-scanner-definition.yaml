@@ -1,0 +1,88 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    app: kubescape-host-scanner
+    k8s-app: kubescape-host-scanner
+    kubernetes.io/metadata.name: kubescape-host-scanner
+    tier: kubescape-host-scanner-control-plane
+  name: kubescape-host-scanner
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: host-scanner
+  namespace: kubescape-host-scanner
+  labels:
+    app: host-scanner
+    k8s-app: kubescape-host-scanner
+spec:
+  selector:
+    matchLabels:
+      name: host-scanner
+  template:
+    metadata:
+      labels:
+        name: host-scanner
+    spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+      - name: {{ toYaml .Values.imagePullSecrets }}
+      {{- end }}
+      tolerations:
+      # this toleration is to have the DaemonDet runnable on master nodes
+      # remove it if your masters can't run pods
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: host-sensor
+        image: quay.io/armosec/kube-host-sensor:latest
+        securityContext:
+          privileged: true
+          readOnlyRootFilesystem: true
+          procMount: Unmasked
+        ports:
+          - name: scanner # Do not change port name
+            hostPort: 7888
+            containerPort: 7888
+            protocol: TCP
+        resources:
+          limits:
+            cpu: 0.1m
+            memory: 200Mi
+          requests:
+            cpu: 0.1m
+            memory: 200Mi
+        volumeMounts:
+        - mountPath: /host_fs
+          name: host-filesystem
+{{- if .Values.volumeMounts }}
+{{ toYaml .Values.volumeMounts | indent 8 }}
+{{- end }}
+{{- if .Values.kubescapeHostScanner.volumeMounts }}
+{{ toYaml .Values.kubescapeHostScanner.volumeMounts | indent 8 }}
+{{- end }}
+        readinessProbe:
+          httpGet:
+            path: /kernelVersion
+            port: 7888
+            initialDelaySeconds: 1
+            periodSeconds: 1
+      terminationGracePeriodSeconds: 120
+      dnsPolicy: ClusterFirstWithHostNet
+      automountServiceAccountToken: false
+      volumes:
+      - hostPath:
+          path: /
+          type: Directory
+        name: host-filesystem
+{{- if .Values.volumeMounts }}
+{{ toYaml .Values.volumes | indent 6 }}
+{{- end }}
+{{- if .Values.kubescapeHostScanner.volumes }}
+{{ toYaml .Values.kubescapeHostScanner.volumes | indent 6 }}
+{{- end }}
+      hostNetwork: true
+      hostPID: true
+      hostIPC: true
