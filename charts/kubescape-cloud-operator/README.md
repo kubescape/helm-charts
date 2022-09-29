@@ -31,6 +31,8 @@ helm upgrade --install kubescape kubescape/kubescape-cloud-operator -n kubescape
 
 > Add `--set clientID=<generated client id> --set secretKey=<generated secret key>` if you have [generated an auth key](https://hub.armosec.io/docs/authentication)
 
+> Add `--set kubescape.serviceMonitor.enabled=true` for installing the Prometheus service monitor, [read more about Prometheus integration](https://hub.armosec.io/docs/prometheus-exporter)
+
 ### Adjusting Resource Usage for Your Cluster
 
 By default, Kubescape is configured for small- to medium-sized clusters.
