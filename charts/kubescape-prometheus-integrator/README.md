@@ -1,10 +1,10 @@
-# Kubescape Operator
+# Kubescape-Prometheus Integration
 
 ![Version: 0.0.0](https://img.shields.io/badge/Version-0.0.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.0.0](https://img.shields.io/badge/AppVersion-v0.0.0-informational?style=flat-square)
 
 ## [Docs](https://hub.armosec.io/docs/prometheus-exporter)
 
-## Installing Kubescape Operator in a Kubernetes cluster using Helm:
+## Installing Kubescape-Prometheus integration Helm chart:
 
 1. Install the `kube-prometheus-stack` Helm Chart
 ```
