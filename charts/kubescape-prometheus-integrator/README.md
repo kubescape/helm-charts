@@ -21,6 +21,37 @@ helm repo add kubescape https://kubescape.github.io/helm-charts/
 helm repo update
 helm upgrade --install kubescape-prometheus kubescape/kubescape-prometheus-integrator -n kubescape-prometheus --create-namespace
 ``` 
+---
+
+## [Kubescape](https://github.com/kubescape/kubescape/tree/master/httphandler)
+
+* __Resource Kind:__ `Deployment`
+* __Communication:__ REST API
+* __Responsibility:__ Runs [Kubescape](https://github.com/kubescape/kubescape) for detecting misconfigurations in the cluster; This is microservice uses the same engine as the Kubescape CLI tool.
+
+### Component Diagram
+
+```mermaid
+graph TB
+
+subgraph Cluster
+    pr(Prometheus)
+    ks(Kubescape)
+    k8sApi(Kubernetes API)
+end
+
+pr -->|Start Scan| ks
+ks -->|Collect Cluster Info|k8sApi
+ks -->|Scan results| pr
+
+classDef k8s fill:#326ce5,stroke:#fff,stroke-width:1px,color:#fff;
+classDef plain fill:#ddd,stroke:#fff,stroke-width:1px,color:#000
+
+class k8sApi k8s
+class pr plain
+
+```
+---
 
 ### Adjusting Resource Usage for Your Cluster
 
@@ -70,7 +101,6 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | kubescape.serviceMonitor.enabled | bool | `true` | enable/disable service monitor for prometheus (operator) integration |
 | kubescape.volumes | object | `[]` | Additional volumes for Kubescape |
 | kubescape.volumeMounts | object | `[]` | Additional volumeMounts for Kubescape |
-
 | kubescapeHostScanner.volumes | object | `[]` | Additional volumes for the host scanner |
 | kubescapeHostScanner.volumeMounts | object | `[]` | Additional volumeMounts for the host scanner |
 | awsIamRoleArn | string | `nil` | AWS IAM arn role |
@@ -81,34 +111,3 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | volumes | object | `[]` | Additional volumes for all containers |
 | volumeMounts | object | `[]` | Additional volumeMounts for all containers |
  
----
-
-
-## [Kubescape](https://github.com/kubescape/kubescape/tree/master/httphandler)
-
-* __Resource Kind:__ `Deployment`
-* __Communication:__ REST API
-* __Responsibility:__ Runs [Kubescape](https://github.com/kubescape/kubescape) for detecting misconfigurations in the cluster; This is microservice uses the same engine as the Kubescape CLI tool.
-
-### Component Diagram
-
-```mermaid
-graph TB
-
-subgraph Cluster
-    pr(Prometheus)
-    ks(Kubescape)
-    k8sApi(Kubernetes API)
-end
-
-pr -->|Start Scan| ks
-ks -->|Collect Cluster Info|k8sApi
-ks -->|Scan results| pr
-
-classDef k8s fill:#326ce5,stroke:#fff,stroke-width:1px,color:#fff;
-classDef plain fill:#ddd,stroke:#fff,stroke-width:1px,color:#000
-
-class k8sApi k8s
-class pr plain
-
-```
