@@ -26,12 +26,15 @@ Otherwise, get the account ID from the [kubescape SaaS](https://hub.armosec.io/d
 
 Run the install command:
 ```
-helm upgrade --install kubescape kubescape/kubescape-cloud-operator -n kubescape --create-namespace --set account=<my_account_ID> --set cluster-name=`kubectl config current-context` 
+helm upgrade --install kubescape kubescape/kubescape-cloud-operator -n kubescape --create-namespace --set account=<my_account_ID> --set clusterName=`kubectl config current-context` 
 ```
 
 > Add `--set clientID=<generated client id> --set secretKey=<generated secret key>` if you have [generated an auth key](https://hub.armosec.io/docs/authentication)
 
 > Add `--set kubescape.serviceMonitor.enabled=true` for installing the Prometheus service monitor, [read more about Prometheus integration](https://hub.armosec.io/docs/prometheus-exporter)
+
+### Removing old version of Kubescape helm chart
+To avoid collisions, if are running an older versions (>=`1.7.18`), you should run the following command: `helm uninstall armo -n armo-system`
 
 ### Adjusting Resource Usage for Your Cluster
 
