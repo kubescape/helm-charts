@@ -33,6 +33,11 @@ helm upgrade --install kubescape kubescape/kubescape-cloud-operator -n kubescape
 
 > Add `--set kubescape.serviceMonitor.enabled=true` for installing the Prometheus service monitor, [read more about Prometheus integration](https://hub.armosec.io/docs/prometheus-exporter)
 
+### Removing old version of Kubescape helm chart
+To avoid collisions, if you installed older versions of Kubescape helm chart, you should run the following command:
+
+`helm uninstall armo -n armo-system`
+
 ### Adjusting Resource Usage for Your Cluster
 
 By default, Kubescape is configured for small- to medium-sized clusters.
