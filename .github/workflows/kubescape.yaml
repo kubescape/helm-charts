@@ -1,0 +1,27 @@
+name: Kubescape scanning for misconfigurations
+on:
+  push:
+    paths:
+      - 'charts/**.yaml'
+      - 'charts/**.tpl'
+jobs:
+  kubescape:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: kubescape/github-action@main
+      continue-on-error: true
+      with:
+        severityThreshold: critical
+        account: ${{secrets.KUBESCAPE_ACCOUNT}}
+    - name: Archive kubescape scan results
+      uses: actions/upload-artifact@v2
+      with:
+        name: kubescape
+        path: results.xml
+    - name: Publish Unit Test Results
+      continue-on-error: true
+      uses: mikepenz/action-junit-report@v3
+      if: always()
+      with:
+        report_paths: "*.xml" 
