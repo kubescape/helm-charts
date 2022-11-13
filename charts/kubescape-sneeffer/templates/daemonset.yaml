@@ -1,0 +1,82 @@
+{{- if .Values.enabled }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ .Values.daemonset.name }}
+  namespace: {{ .Values.sneefferNamespace }}
+  labels: 
+      app: {{ .Values.daemonset.name }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.daemonset.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.daemonset.name }}
+        alt-name: {{ .Values.daemonset.name }}
+    spec:
+      serviceAccountName: {{ .Values.sneefferServiceAccount }}
+      automountServiceAccountToken: {{ .Values.daemonset.automountServiceAccountToken }}
+      volumes:
+        {{- range .Values.daemonset.volumes }}
+        - name: {{ .name }}
+        {{- if .configMap}}
+          configMap: 
+            name: {{ .configMap.name }}
+        {{ else if .emptyDir }}
+          emptyDir: {}
+        {{ else if .hostPath }}
+          hostPath:
+            path: {{ .hostPath.path }}
+            type: {{ .hostPath.type }}
+        {{- end }}      
+        {{- end }}      
+      initContainers:
+      - env:
+        {{- range .Values.daemonset.initContainer.env }}
+        - name: {{ .name  }}
+        {{- if .value }}
+          value: "{{ .value }}"
+        {{- end }}
+        {{- end }}
+        image: "{{ .Values.daemonset.initContainer.image.repository }}:{{ .Values.daemonset.initContainer.image.tag }}"
+        imagePullPolicy: {{ .Values.daemonset.initContainer.image.pullPolicy }}
+        name: {{ .Values.daemonset.initContainer.name }}
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        {{- range .Values.daemonset.initContainer.volumeMounts }}
+        - mountPath: {{ .mountPath }}
+          name: {{ .name }}
+          readOnly: {{ .readOnly }}
+        {{- end }}
+      containers:
+        - name: {{ .Values.daemonset.containers.sneeffer.name }}
+          image: "{{ .Values.daemonset.containers.sneeffer.image.repository }}:{{ .Values.daemonset.containers.sneeffer.image.tag }}"
+          imagePullPolicy: {{ .Values.daemonset.containers.sneeffer.image.pullPolicy }}
+          env:
+            - name: myNode
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            {{- range .Values.daemonset.containers.sneeffer.env }}
+            - name: {{ .name  }}
+            {{- if .value }}
+              value: "{{ .value }}"
+            {{- end }}
+            {{- end }}
+          securityContext:
+            runAsUser: {{ .Values.daemonset.containers.sneeffer.securityContext.user }}
+            capabilities:
+              add: 
+                {{- range .Values.daemonset.containers.sneeffer.securityContext.capabilities.add }}
+                - {{ .name }}
+                {{- end }}
+          volumeMounts:
+          {{- range .Values.daemonset.containers.sneeffer.volumeMounts }}
+          - mountPath: {{ .mountPath }}
+            name: {{ .name }}
+          {{- end }}
+{{- end}}
