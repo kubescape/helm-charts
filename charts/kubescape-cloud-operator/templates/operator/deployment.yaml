@@ -44,6 +44,7 @@ spec:
           imagePullPolicy: {{ .Values.operator.image.pullPolicy }}
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 100
           ports:
@@ -81,6 +82,8 @@ spec:
             - -v=4
             - 2>&1
           volumeMounts:
+            - name: tmp-dir
+              mountPath: /tmp
             - name: {{ .Values.global.cloudConfig }}
               mountPath: /etc/config
               readOnly: true
@@ -91,6 +94,8 @@ spec:
 {{ toYaml .Values.operator.volumeMounts | indent 12 }}
 {{- end }}
       volumes:
+        - name: tmp-dir
+          emptyDir: {}
         - name: {{ .Values.global.cloudConfig }}
           configMap:
             name: {{ .Values.global.cloudConfig }}
