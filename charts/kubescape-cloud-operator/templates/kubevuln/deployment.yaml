@@ -49,6 +49,7 @@ spec:
           imagePullPolicy: {{ .Values.kubevuln.image.pullPolicy }}
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 100
           ports:
@@ -92,6 +93,10 @@ spec:
             - -v=4
             - 2>&1
           volumeMounts:
+            - name: tmp-dir
+              mountPath: /tmp
+            - name: grype-db-cache
+              mountPath: /home/ks/anchore-resources/db
             - name: {{ .Values.global.cloudConfig }}
               mountPath: /etc/config
               readOnly: true
@@ -102,6 +107,10 @@ spec:
 {{ toYaml .Values.kubevuln.volumeMounts | indent 12 }}
 {{- end }}
       volumes:
+        - name: tmp-dir
+          emptyDir: {}
+        - name: grype-db-cache
+          emptyDir: {}
         - name: {{ .Values.global.cloudConfig }}
           configMap:
             name: {{ .Values.global.cloudConfig }}
