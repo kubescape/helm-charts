@@ -75,6 +75,8 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
+| global.networkPolicy.enabled | bool | `false` | Create NetworkPolicies for all components |
+| global.networkPolicy.createEgressRules | bool | `false` | Create common Egress rules for NetworkPolicies |
 | kollector.affinity | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the StatefulSet |
 | kollector.enabled | bool | `true` | enable/disable the kollector |
 | kollector.env[0] | object | `{"name":"PRINT_REPORT","value":"false"}` | print in verbose mode (print all reported data) |
