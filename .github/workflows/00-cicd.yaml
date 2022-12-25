@@ -1,0 +1,57 @@
+name: 00-CICD-helm-chart
+
+on:
+  workflow_dispatch:
+    inputs:
+      IMAGE_TAG:
+        required: true
+        type: string
+      COMPONENT_NAME:
+        required: true
+        type: string
+      HELM_E2E_TEST:
+        required: true
+        default: true
+        type: boolean
+    # secrets: inherit
+
+jobs:
+  helm-values-update:
+    uses: ./.github/workflows/01-update_tag.yaml
+    with:
+      IMAGE_TAG: ${{ inputs.IMAGE_TAG }}
+      COMPONENT_NAME: ${{ inputs.COMPONENT_NAME }}
+      MODE: patch
+      CHART_FILE: charts/kubescape-cloud-operator/Chart.yaml
+    secrets: inherit
+
+  e2e-test:
+    needs: helm-values-update
+    if: ${{ inputs.HELM_E2E_TEST == true }}
+    uses: ./.github/workflows/02-e2e-test.yaml
+    with:
+      HELM_E2E_TEST: ${{ inputs.HELM_E2E_TEST }}
+    secrets: inherit
+
+  merge-to-master:
+    needs: e2e-test
+    if: ${{ (always() && (contains(needs.*.result, 'success') || contains(needs.*.result, 'skipped')) && !(contains(needs.*.result, 'failure')) && !(contains(needs.*.result, 'cancelled'))) }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: merge-to-master
+        uses: "pascalgn/automerge-action@v0.15.5"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          MERGE_COMMIT_MESSAGE: "Merge to master - PR number: {pullRequest.number}"
+          MERGE_ERROR_FAIL: true
+          MERGE_METHOD: merge
+          MERGE_LABELS: ""
+          UPDATE_LABELS: ""
+
+  helm-release: 
+    needs: [helm-values-update, merge-to-master]
+    if: ${{ (always() && (contains(needs.*.result, 'success') || contains(needs.*.result, 'skipped')) && !(contains(needs.*.result, 'failure')) && !(contains(needs.*.result, 'cancelled'))) }}
+    with:
+      COMMIT_REF: ${{ needs.helm-values-update.outputs.COMMIT_REF }}
+    uses: ./.github/workflows/03-helm-release.yaml
+    secrets: inherit

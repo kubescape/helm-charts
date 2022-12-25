@@ -1,0 +1,84 @@
+name: 01-Update image tag
+
+on:
+  # workflow_dispatch:
+  #   inputs:
+  #     IMAGE_TAG:
+  #       required: true
+  #       type: string
+
+  workflow_call:
+    inputs:
+      IMAGE_TAG:
+        required: true
+        type: string
+      COMPONENT_NAME:
+        required: true
+        type: string
+      MODE:
+        required: true
+        type: string
+        default: patch
+      CHART_FILE:
+        required: true
+        type: string
+        default: charts/kubescape-cloud-operator/Chart.yaml
+    outputs:
+      COMMIT_REF:
+        description: "latest commit sha"
+        value: ${{ jobs.update-helm-values.outputs.COMMIT_REF}}
+
+
+jobs:
+  update-helm-values:
+    outputs:
+      COMMIT_REF: ${{ steps.commit-ref.outputs.COMMIT_REF }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: echo-input-parameters
+        run:  |
+          echo "IMAGE_TAG = ${{ inputs.IMAGE_TAG }}"
+          echo "COMPONENT_NAME = ${{ inputs.COMPONENT_NAME }}"
+          echo "MODE = ${{ inputs.MODE }}"
+          echo "CHART_FILE = ${{ inputs.CHART_FILE }}"
+        
+      - uses: actions/checkout@v3
+        name: Checkout
+
+      - name: change tag
+        uses: matanshk/yaml-tag-changer@main
+        with:
+          filename: charts/kubescape-cloud-operator/values.yaml
+          component_name: ${{ inputs.COMPONENT_NAME }}
+          tag: ${{ inputs.IMAGE_TAG }}
+
+      - name: cat-file-values-file
+        run: cat charts/kubescape-cloud-operator/values.yaml
+
+      - name: Bump helm chart version
+        id: bumper
+        uses: matanshk/helm-chart-version-bumper@main
+        with:
+          mode: ${{ inputs.MODE }}
+          chart_file: ${{ inputs.CHART_FILE }}
+
+      - name: cat Chart.yaml
+        run: cat charts/kubescape-cloud-operator/Chart.yaml
+
+      - name: Commit and create PR
+        uses: peter-evans/create-pull-request@v4.2.3
+        with:
+          token: ${{ secrets.PR_PERSONAL_ACCESS_TOKEN }} # needs to be a PAT with "repo" scoped permissions
+          commit-message: "Automated commit - update ${{ inputs.COMPONENT_NAME }} image tag with: ${{ inputs.IMAGE_TAG }}"
+          branch: dev
+          base: master
+          delete-branch: false
+          title: "Pulling ${{ github.ref }} into master - ${{ inputs.COMPONENT_NAME }}:${{ inputs.IMAGE_TAG }}"
+          draft: false
+
+      - name: get latest commit sha
+        id: commit-ref
+        run: echo "COMMIT_REF=$(git log --oneline | head -n1 | awk {'print $1}')" >> $GITHUB_OUTPUT
+
+      - name: echo commit ref
+        run: echo ${{ steps.commit-ref.outputs.COMMIT_REF }}

@@ -1,0 +1,48 @@
+name: 03-Helm chart release
+
+on:
+  # workflow_dispatch:
+  #   inputs:
+  #     IMAGE_TAG:
+  #       required: true
+  #       type: string
+  #     COMPONENT_NAME:
+  #       required: true
+  #       type: string
+  #     HELM_E2E_TEST:
+  #       required: true
+  #       default: true
+  #       type: boolean
+
+  workflow_call:
+    inputs:
+      COMMIT_REF:
+        required: true
+        type: string
+
+jobs:
+  helm-chart-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+          
+      - name: git checkout to new commit
+        run: git checkout ${{ inputs.COMMIT_REF }}
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        # with:
+        #   version: v3.4.0
+
+      - name: Run chart-releaser
+        uses: helm/chart-releaser-action@v1.4.1
+        env:
+          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
