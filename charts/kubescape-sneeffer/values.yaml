@@ -1,0 +1,118 @@
+enabled: false
+sneefferNamespace: kubescape
+sneefferServiceAccount: kubescape-sneeffer-service-account
+sneefferClusterRole: kubescape-sneeffer-cluster-role
+sneefferClusterRoleBinding: kubescape-sneeffer-cluster-role-binding
+sneefferConfigMap: kubescape-sneeffer-config-map
+
+daemonset: 
+  name: kubescape-sneeffer
+  automountServiceAccountToken: true
+
+  volumes:
+    - name: configmap-volume
+      configMap:
+        name: kubescape-sneeffer-config-map
+    - emptyDir: {}
+      name: root-falco-fs
+    - hostPath:
+        path: /boot
+        type: ""
+      name: boot-fs
+    - hostPath:
+        path: /lib/modules
+        type: ""
+      name: lib-modules
+    - hostPath:
+        path: /usr
+        type: ""
+      name: usr-fs
+    - hostPath:
+        path: /etc
+        type: ""
+      name: etc-fs
+    - hostPath:
+        path: /dev
+        type: ""
+      name: dev-fs
+    - hostPath:
+        path: /var/run/docker.sock
+        type: ""
+      name: docker-socket
+    - hostPath:
+        path: /run/containerd/containerd.sock
+        type: ""
+      name: containerd-socket
+    - hostPath:
+        path: /run/crio/crio.sock
+        type: ""
+      name: crio-socket
+    - hostPath:
+        path: /proc
+        type: ""
+      name: proc-fs
+    - hostPath:
+        path: /sys/kernel/debug
+        type: ""
+      name: debugfs
+
+  initContainer:
+    name: falco-driver-loader
+    image:
+      repository: docker.io/falcosecurity/falco-driver-loader
+      tag: 0.32.2
+      pullPolicy: IfNotPresent
+    env:
+      - name: FALCO_BPF_PROBE
+    volumeMounts:
+      - mountPath: /root/.falco
+        name: root-falco-fs
+        readOnly: false
+      - mountPath: /host/proc
+        name: proc-fs
+        readOnly: true
+      - mountPath: /host/boot
+        name: boot-fs
+        readOnly: true
+      - mountPath: /host/lib/modules
+        name: lib-modules
+      - mountPath: /host/usr
+        name: usr-fs
+        readOnly: true
+      - mountPath: /host/etc
+        name: etc-fs
+        readOnly: true
+    
+  containers:  
+    sneeffer:
+      name: kubescape-sneeffer
+      image: 
+        repository: quay.io/kubescape/sneeffer
+        tag: v0.0.19
+        pullPolicy: IfNotPresent
+      env:  
+        - name: SNEEFFER_CONF_FILE_PATH
+          value: "/etc/sneeffer/configuration/SneefferConfigurationFile.txt"
+      securityContext:
+        user: 0
+        capabilities:
+          add:
+            - name: SYS_RESOURCE
+            - name: SYS_ADMIN
+      volumeMounts:
+        - mountPath: /etc/sneeffer/configuration
+          name: configmap-volume
+        - mountPath: /root/.falco
+          name: root-falco-fs
+        - mountPath: /host/proc
+          name: proc-fs
+        - mountPath: /sys/kernel/debug
+          name: debugfs
+        - mountPath: /host/var/run/docker.sock
+          name: docker-socket
+        - mountPath: /host/run/containerd/containerd.sock
+          name: containerd-socket
+        - mountPath: /host/run/crio/crio.sock
+          name: crio-socket
+
+    
