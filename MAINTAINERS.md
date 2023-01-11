@@ -8,3 +8,5 @@ The following table lists Kubescape project maintainers
 | [Rotem Refael](https://www.linkedin.com/in/rotem-refael) | [@rotemamsa](https://github.com/rotemamsa) | rrefael@armosec.io | [ARMO](https://www.armosec.io/) | Team Leader | 2021-10-11 |
 | [David Wertenteil](https://www.linkedin.com/in/david-wertenteil-0ba277b9) | [@dwertent](https://github.com/dwertent) | dwertent@armosec.io | [ARMO](https://www.armosec.io/) | Kubescape CLI Developer | 2021-09-01 |
 | [Bezalel Brandwine](https://www.linkedin.com/in/bezalel-brandwine) | [@Bezbran](https://github.com/Bezbran) | bbrandwine@armosec.io | [ARMO](https://www.armosec.io/) | Kubescape SaaS Developer | 2021-09-01 |
+| [Matan Shkalim](https://www.linkedin.com/in/matan-shkalim/) | [@matanshk](https://github.com/matanshk) | mshkalim@armosec.io | [ARMO](https://www.armosec.io/) | DevOps Engineer | 2021-12-28 |
+

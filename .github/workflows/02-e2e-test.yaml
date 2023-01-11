@@ -1,0 +1,103 @@
+name: 02-E2E Test helm chart
+on:
+  # workflow_dispatch:
+  #   inputs:
+  #     HELM_E2E_TEST:
+  #       required: true
+  #       default: true
+  #       type: boolean
+
+  workflow_call:
+    inputs:
+      HELM_E2E_TEST:
+        required: true
+        default: true
+        type: boolean
+
+
+jobs:
+  e2e-test:
+    strategy:
+      fail-fast: false    
+      matrix:
+        test: [ 
+              vulnerability_scanning, 
+              vulnerability_scanning_trigger_scan_on_new_image, 
+              vulnerability_scanning_trigger_scan_public_registry, 
+              vulnerability_scanning_trigger_scan_public_registry_excluded, 
+              vulnerability_scanning_trigger_scan_private_quay_registry, 
+              vulnerability_scanning_triggering_with_cron_job, 
+              registry_scanning_triggering_with_cron_job, 
+              ks_microservice_ns_creation,
+              ks_microservice_on_demand, 
+              ks_microservice_mitre_framework_on_demand, 
+              ks_microservice_nsa_and_mitre_framework_demand, 
+              ks_microservice_triggering_with_cron_job, 
+              ks_microservice_update_cronjob_schedule, 
+              ks_microservice_delete_cronjob, 
+              ks_microservice_create_2_cronjob_mitre_and_nsa
+              ]
+              
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: echo GitHub var - dev
+        id: github_context_step
+        run: echo '${{ toJSON(github) }}'
+
+      - name: Checkout systests repo
+        uses: actions/checkout@v3
+        with:
+          repository: armosec/system-tests
+          path: .
+
+      - uses: actions/setup-python@v4
+        name: installing python 3.8.13
+        with:
+          python-version: '3.8.13'
+          cache: 'pip'
+
+      - name: create env
+        run: ./create_env.sh
+
+
+      - name: Generate uuid
+        id: uuid
+        run: |
+          echo "RANDOM_UUID=systests-$(uuidgen)" >> $GITHUB_OUTPUT
+
+      - name: Create k8s Kind Cluster
+        id: kind-cluster-install
+        uses: helm/kind-action@v1.3.0
+        with:
+          cluster_name: ${{ steps.uuid.outputs.RANDOM_UUID }}
+
+      - name: run-tests
+        env:
+          CUSTOMER: ${{ secrets.CUSTOMER }}
+          USERNAME: ${{ secrets.USERNAME }}
+          PASSWORD: ${{ secrets.PASSWORD }}
+          CLIENT_ID: ${{ secrets.CLIENT_ID_PROD }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY_PROD }}
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+        run: |
+          echo "Test history:"
+          echo " ${{ matrix.test }} " >/tmp/testhistory
+          cat /tmp/testhistory
+          source systests_python_env/bin/activate
+
+          python3 systest-cli.py  \
+          -t ${{ matrix.test }}   \
+          -b production           \
+          -c CyberArmorTests      \
+          --logger DEBUG          \
+          --kwargs helm_branch=dev
+
+          deactivate
+
+      - name: Test Report
+        uses: mikepenz/action-junit-report@v3
+        if: always() # always run even if the previous step fails
+        with:
+          report_paths: '**/results_xml_format/**.xml' 
