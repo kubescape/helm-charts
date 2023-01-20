@@ -32,6 +32,7 @@ spec:
         helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
         tier: {{ .Values.global.namespaceTier}}
         app: {{ .Values.kubescape.name }}
+        otel: {{ .Values.otelCollector.enabled }}
       {{- if .Values.addRevisionLabel }}
         helm.sh/revision: "{{ .Release.Revision }}"
       {{- end }}
@@ -98,6 +99,12 @@ spec:
         - name: KS_GKE_PROJECT
           value: "{{ .Values.cloudProviderMetadata.gkeProject }}"
         {{- end -}}
+        {{- end }}
+        {{- if .Values.otelCollector.enabled }}
+        - name: ACCOUNT_ID
+          value: "{{ .Values.account }}"
+        - name: OTEL_COLLECTOR_SVC
+          value: "otel-collector:4317"
         {{- end }}
         command:
         - ksserver

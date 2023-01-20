@@ -24,6 +24,7 @@ spec:
     metadata:
       labels:
         name: host-scanner
+        otel: {{ .Values.otelCollector.enabled }}
     spec:
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -45,6 +46,13 @@ spec:
           privileged: true
           readOnlyRootFilesystem: true
           procMount: Unmasked
+        env:
+        {{- if .Values.otelCollector.enabled }}
+        - name: ACCOUNT_ID
+          value: "{{ .Values.account }}"
+        - name: OTEL_COLLECTOR_SVC
+          value: "otel-collector:4317"
+        {{- end }}
         ports:
           - name: scanner # Do not change port name
             hostPort: 7888

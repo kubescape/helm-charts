@@ -67,7 +67,23 @@ If your cluster has 50 resources, we still recommend allocating at least 128 MiB
 When it comes to CPU, the more you allocate, the faster Kubescape will scan your cluster.
 This is especially true for clusters that have a large amount of resources.
 However, we recommend that you give Kubescape no less than 500m CPU no matter the size of your cluster so it can scan a relatively large amount of resources fast ;)
- 
+
+### Setting up Telemetry
+Several or our in-cluster components implement telemetry data using [OpenTelemetry](https://opentelemetry.io/) (otel).
+You can optionally install an otel [collector](https://opentelemetry.io/docs/collector/) to your cluster to aggregate all metrics and send them to your own tracing tool.
+
+You simply have to complete these information:
+```
+otelCollector:
+  enabled: true
+  endpoint:
+    host: <ip or dns for your gRPC otel endpoint>
+    port: 4317
+    insecure: <whether your otel endpoint requires ssl>
+```
+
+If you don't have an otel distribution, we suggest you try either [Uptrace](https://github.com/uptrace/uptrace/tree/master/example/docker) or [SigNoz](https://signoz.io/docs/install/docker/)
+as they are free, opensource and can be quickly deployed using docker-compose.
 
 ## Chart support
 
