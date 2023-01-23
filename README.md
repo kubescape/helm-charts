@@ -54,3 +54,6 @@ This process will run only the release step from the CICD and will create a new 
 4. Click on the ```Run workflow``` green button.
 
 **Note that running only the release process will not run any E2E tests**
+
+### A diagram of the full CICD pipeline:
+![Workflow](https://raw.githubusercontent.com/kubescape/workflows/main/assets/incluster_component_flow.jpeg)
