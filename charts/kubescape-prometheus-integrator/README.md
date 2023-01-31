@@ -101,6 +101,8 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | kubescape.serviceMonitor.enabled | bool | `true` | enable/disable service monitor for prometheus (operator) integration |
 | kubescape.volumes | object | `[]` | Additional volumes for Kubescape |
 | kubescape.volumeMounts | object | `[]` | Additional volumeMounts for Kubescape |
+| kubescape.includeNamespaces | object | `[]` | List of namespaces to include, rest of the namespaces will be ignored. |
+| kubescape.excludeNamespaces | object | `[]` | List of namespaces to exclude |
 | kubescapeHostScanner.volumes | object | `[]` | Additional volumes for the host scanner |
 | kubescapeHostScanner.volumeMounts | object | `[]` | Additional volumeMounts for the host scanner |
 | awsIamRoleArn | string | `nil` | AWS IAM arn role |
