@@ -67,7 +67,76 @@ If your cluster has 50 resources, we still recommend allocating at least 128 MiB
 When it comes to CPU, the more you allocate, the faster Kubescape will scan your cluster.
 This is especially true for clusters that have a large amount of resources.
 However, we recommend that you give Kubescape no less than 500m CPU no matter the size of your cluster so it can scan a relatively large amount of resources fast ;)
- 
+
+### Setting up Telemetry
+Several or our in-cluster components implement telemetry data using [OpenTelemetry](https://opentelemetry.io/) (otel).
+You can optionally install an otel [collector](https://opentelemetry.io/docs/collector/) to your cluster to aggregate all metrics and send them to your own tracing tool.
+
+You simply have to fill in these information before [installing kubescape operator](#installing-kubescape-operator-in-a-kubernetes-cluster-using-helm):
+```
+otelCollector:
+  enabled: true
+  endpoint:
+    host: <ip or dns for your gRPC otel endpoint>
+    port: 4317
+    insecure: <whether your otel endpoint requires ssl>
+    headers: <optional - map of headers required by tracing tool>
+```
+
+If you don't have an otel distribution, we suggest you try either [Uptrace](https://github.com/uptrace/uptrace/tree/master/example/docker) or [SigNoz](https://signoz.io/docs/install/docker/)
+as they are free, opensource and can be quickly deployed using docker-compose.
+
+#### Example: exporting to uptrace running inside docker-compose
+
+```mermaid
+flowchart LR
+    subgraph kubernetes
+    A(kubescape) --> B(otel collector)
+    D(operator) --> B
+    E(host-scanner) --> B
+    F(kubevuln) --> B
+    end
+    subgraph docker-compose
+    B --> C(uptrace)
+    end
+```
+
+1. Download the example using Git:
+
+```shell
+git clone https://github.com/uptrace/uptrace.git
+cd uptrace/example/docker
+```
+
+2. Start the services using Docker:
+
+```shell
+docker-compose pull
+docker-compose up -d
+```
+
+3. Make sure Uptrace is running:
+
+```shell
+docker-compose logs uptrace
+```
+
+4. Configure values.yaml
+
+```
+otelCollector:
+  enabled: true
+  endpoint:
+    host: <docker-compose host>
+    port: 14317
+    insecure: false
+    headers:
+      uptrace-dsn: 'http://project2_secret_token@<docker-compose host>:14317/2'
+```
+
+5. Follow the [instructions above](#installing-kubescape-operator-in-a-kubernetes-cluster-using-helm)
+
+6. Open Uptrace UI at [http://localhost:14318/overview/2](http://localhost:14318/overview/2)
 
 ## Chart support
 
