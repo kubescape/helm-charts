@@ -32,6 +32,9 @@ spec:
         helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
         tier: {{ .Values.global.namespaceTier}}
         app: {{ .Values.kubevuln.name }}
+      {{- if .Values.otelCollector.enabled }}
+        otel: enabled
+      {{- end }}
       {{- if .Values.addRevisionLabel }}
         helm.sh/revision: "{{ .Release.Revision }}"
       {{- end }}
@@ -73,6 +76,12 @@ spec:
             {{- range .Values.kubevuln.env }}
             - name: {{ .name  }}
               value: "{{ .value }}"
+            {{- end }}
+            {{- if .Values.otelCollector.enabled }}
+            - name: ACCOUNT_ID
+              value: "{{ .Values.account }}"
+            - name: OTEL_COLLECTOR_SVC
+              value: "otel-collector:4317"
             {{- end }}
           args:
             - -alsologtostderr

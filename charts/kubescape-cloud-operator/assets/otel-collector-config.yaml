@@ -1,0 +1,42 @@
+# receivers configure how data gets into the Collector.
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+
+# processors specify what happens with the received data.
+processors:
+  batch:
+    send_batch_size: 10000
+    timeout: 10s
+
+# exporters configure how to send processed data to one or more backends.
+exporters:
+  otlp:
+    endpoint: "{{ .Values.otelCollector.endpoint.host }}:{{ .Values.otelCollector.endpoint.port }}"
+    tls:
+      insecure: {{ .Values.otelCollector.endpoint.insecure }}
+    {{- if .Values.otelCollector.endpoint.headers }}
+    headers:
+    {{- range $k, $v := .Values.otelCollector.endpoint.headers }}
+      {{ $k }}: {{ $v }}
+    {{- end }}
+    {{- end }}
+
+# service pulls the configured receivers, processors, and exporters together into
+# processing pipelines. Unused receivers/processors/exporters are ignored.
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp]
