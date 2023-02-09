@@ -90,24 +90,26 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 
 ### Values
 
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| kubescape.affinity | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the deployment |
-| kubescape.downloadArtifacts | bool | `false` | download policies every scan, we recommend it should remain true, you should change to 'false' when running in an air-gapped environment or when scanning with high frequency (when running with Prometheus) |
-| kubescape.enableHostScan | bool | `false` | enable [host scanner feature](https://hub.armosec.io/docs/host-sensor) |
-| kubescape.enabled | bool | `true` | enable/disable kubescape scanning |
-| kubescape.image.repository | string | `"quay.io/kubescape/kubescape"` | [source code](https://github.com/kubescape/kubescape/tree/master/httphandler) (public repo) |
-| kubescape.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
-| kubescape.serviceMonitor.enabled | bool | `true` | enable/disable service monitor for prometheus (operator) integration |
-| kubescape.volumes | object | `[]` | Additional volumes for Kubescape |
-| kubescape.volumeMounts | object | `[]` | Additional volumeMounts for Kubescape |
-| kubescapeHostScanner.volumes | object | `[]` | Additional volumes for the host scanner |
-| kubescapeHostScanner.volumeMounts | object | `[]` | Additional volumeMounts for the host scanner |
-| awsIamRoleArn | string | `nil` | AWS IAM arn role |
-| cloudRegion | string | `nil` | cloud region |
-| cloudProviderEngine | string | `nil` | cloud provider engine |
-| gkeProject | string | `nil` | GKE project |
-| gkeServiceAccount | string | `nil` | GKE service account |
-| volumes | object | `[]` | Additional volumes for all containers |
-| volumeMounts | object | `[]` | Additional volumeMounts for all containers |
+| Key                               | Type | Default | Description                                                                                                                                                                                                  |
+|-----------------------------------|------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| kubescape.affinity                | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the deployment                                                                                   |
+| kubescape.downloadArtifacts       | bool | `false` | download policies every scan, we recommend it should remain true, you should change to 'false' when running in an air-gapped environment or when scanning with high frequency (when running with Prometheus) |
+| kubescape.enableHostScan          | bool | `false` | enable [host scanner feature](https://hub.armosec.io/docs/host-sensor)                                                                                                                                       |
+| kubescape.enabled                 | bool | `true` | enable/disable kubescape scanning                                                                                                                                                                            |
+| kubescape.image.repository        | string | `"quay.io/kubescape/kubescape"` | [source code](https://github.com/kubescape/kubescape/tree/master/httphandler) (public repo)                                                                                                                  |
+| kubescape.nodeSelector            | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/)                                                                                                                    |
+| kubescape.serviceMonitor.enabled  | bool | `true` | enable/disable service monitor for prometheus (operator) integration                                                                                                                                         |
+| kubescape.serviceMonitor.interval | string | `20m` | Scrape interval                                                                                                                                                                                              |
+| kubescape.serviceMonitor.scrapeTimeout         | string | `100s` | Adjust avoid timeoutscrapeTimeout                                                                                                                                                                            |
+| kubescape.volumes                 | object | `[]` | Additional volumes for Kubescape                                                                                                                                                                             |
+| kubescape.volumeMounts            | object | `[]` | Additional volumeMounts for Kubescape                                                                                                                                                                        |
+| kubescapeHostScanner.volumes      | object | `[]` | Additional volumes for the host scanner                                                                                                                                                                      |
+| kubescapeHostScanner.volumeMounts | object | `[]` | Additional volumeMounts for the host scanner                                                                                                                                                                 |
+| awsIamRoleArn                     | string | `nil` | AWS IAM arn role                                                                                                                                                                                             |
+| cloudRegion                       | string | `nil` | cloud region                                                                                                                                                                                                 |
+| cloudProviderEngine               | string | `nil` | cloud provider engine                                                                                                                                                                                        |
+| gkeProject                        | string | `nil` | GKE project                                                                                                                                                                                                  |
+| gkeServiceAccount                 | string | `nil` | GKE service account                                                                                                                                                                                          |
+| volumes                           | object | `[]` | Additional volumes for all containers                                                                                                                                                                        |
+| volumeMounts                      | object | `[]` | Additional volumeMounts for all containers                                                                                                                                                                   |
  
