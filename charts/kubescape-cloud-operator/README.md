@@ -129,6 +129,7 @@ docker-compose logs uptrace
 
 5. Open Uptrace UI at [http://localhost:14318/overview/2](http://localhost:14318/overview/2)
 
+
 ## Chart support
 
 ### Values
