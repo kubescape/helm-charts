@@ -99,6 +99,8 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | kubescape.image.repository | string | `"quay.io/kubescape/kubescape"` | [source code](https://github.com/kubescape/kubescape/tree/master/httphandler) (public repo) |
 | kubescape.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | kubescape.serviceMonitor.enabled | bool | `true` | enable/disable service monitor for prometheus (operator) integration |
+| kubescape.serviceMonitor.interval | string | `20m` | Scrape interval |
+| kubescape.serviceMonitor.scrapeTimeout | string | `100s` | Adjust to avoid timeout |
 | kubescape.volumes | object | `[]` | Additional volumes for Kubescape |
 | kubescape.volumeMounts | object | `[]` | Additional volumeMounts for Kubescape |
 | kubescapeHostScanner.volumes | object | `[]` | Additional volumes for the host scanner |
