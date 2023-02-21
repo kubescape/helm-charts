@@ -56,4 +56,8 @@ This process will run only the release step from the CICD and will create a new 
 **Note that running only the release process will not run any E2E tests**
 
 ### A diagram of the full CICD pipeline:
-![Workflow](https://raw.githubusercontent.com/kubescape/workflows/main/assets/incluster_component_flow.jpeg)
+![Workflow](https://raw.githubusercontent.com/kubescape/workflows/main/assets/incluster_component_flow.jpeg)[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fkubescape%2Fhelm-charts.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fkubescape%2Fhelm-charts?ref=badge_shield)
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fkubescape%2Fhelm-charts.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fkubescape%2Fhelm-charts?ref=badge_large)
