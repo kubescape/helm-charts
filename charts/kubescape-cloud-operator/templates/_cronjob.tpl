@@ -9,8 +9,7 @@
 
 {{- define "kubescape_daily_scan_cron_tab" -}}
   {{- if eq .Values.kubescapeScheduler.scanSchedule "0 8 * * *" -}}
-    {{- $apiVersion := ternary "batch/v1" "batch/v1beta1" (.Capabilities.APIVersions.Has "batch/v1/CronJob") -}}
-    {{- $existingSchedule := (lookup $apiVersion "CronJob" .Values.ksNamespace .Values.kubescapeScheduler.name) -}}
+    {{- $existingSchedule := (lookup "batch/v1" "CronJob" .Values.ksNamespace .Values.kubescapeScheduler.name) -}}
     {{- if $existingSchedule -}}
       {{ $existingSchedule.spec.schedule }}
     {{- else -}}
@@ -39,8 +38,7 @@
 
 {{- define "kubevuln_daily_scan_cron_tab" -}}
   {{- if eq .Values.kubevulnScheduler.scanSchedule "0 0 * * *" -}}
-    {{- $apiVersion := ternary "batch/v1" "batch/v1beta1" (.Capabilities.APIVersions.Has "batch/v1/CronJob") -}}
-    {{- $existingSchedule := (lookup $apiVersion "CronJob" .Values.ksNamespace .Values.kubevulnScheduler.name) -}}
+    {{- $existingSchedule := (lookup "batch/v1" "CronJob" .Values.ksNamespace .Values.kubevulnScheduler.name) -}}
     {{- if $existingSchedule -}}
       {{ $existingSchedule.spec.schedule }}
     {{- else -}}
