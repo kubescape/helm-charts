@@ -32,6 +32,12 @@ spec:
         helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
         tier: {{ .Values.global.namespaceTier}}
         app: {{ .Values.kubescape.name }}
+      {{- if .Values.kubescape.prometheusAnnotation.enabled }}
+      annotations:
+        prometheus.io/path: /v1/metrics
+        prometheus.io/port: "8080"
+        prometheus.io/scrape: "true"
+      {{- end }}
     spec:
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -76,6 +82,14 @@ spec:
           value: "{{ .Values.kubescape.submit }}"
         - name: KS_SKIP_UPDATE_CHECK
           value: "{{ .Values.kubescape.skipUpdateCheck }}"
+        {{- with .Values.kubescape.excludeNamespaces }}
+        - name: KS_EXCLUDE_NAMESPACES
+          value: {{ join "," . }}
+        {{- end }}
+        {{- with .Values.kubescape.includeNamespaces }}
+        - name: KS_INCLUDE_NAMESPACES
+          value: {{ join "," . }}
+        {{- end }}
         - name: KS_SAAS_ENV
         {{ if eq .Values.environment "dev" }}
           value: "dev"
