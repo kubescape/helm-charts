@@ -13,6 +13,17 @@ processors:
 
 # exporters configure how to send processed data to one or more backends.
 exporters:
+  otlp/ksCloud:
+    {{- if eq .Values.environment "prod" }}
+    endpoint: "{{ .Values.ksCloudOtelCollector }}"
+    {{- else if or (eq .Values.environment "dev") (eq .Values.environment "staging") }}
+    endpoint: "{{ .Values.devKsCloudOtelCollector }}"
+    {{- else }}
+    endpoint: ""
+    {{- end }}
+    tls:
+      insecure: false
+  {{- if ne .Values.otelCollector.endpoint.host "" }}
   otlp:
     endpoint: "{{ .Values.otelCollector.endpoint.host }}:{{ .Values.otelCollector.endpoint.port }}"
     tls:
@@ -23,6 +34,7 @@ exporters:
       {{ $k }}: {{ $v }}
     {{- end }}
     {{- end }}
+  {{- end }}
 
 # service pulls the configured receivers, processors, and exporters together into
 # processing pipelines. Unused receivers/processors/exporters are ignored.
@@ -31,12 +43,24 @@ service:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlp]
+      exporters: 
+      {{- if ne .Values.otelCollector.endpoint.host "" }}
+        - otlp
+      {{- end }}
+        - otlp/ksCloud
     metrics:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlp]
+      exporters: 
+      {{- if ne .Values.otelCollector.endpoint.host "" }}
+        - otlp
+      {{- end }}
+        - otlp/ksCloud
     logs:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlp]
+      exporters: 
+      {{- if ne .Values.otelCollector.endpoint.host "" }}
+        - otlp
+      {{- end }}
+        - otlp/ksCloud

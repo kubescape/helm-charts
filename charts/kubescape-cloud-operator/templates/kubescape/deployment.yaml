@@ -1,5 +1,6 @@
 {{- if .Values.kubescape.enabled  }}
 {{- $cloud_provider := (include "cloud_provider" .) -}}
+{{ template "cluster_name" . }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -68,6 +69,8 @@ spec:
           initialDelaySeconds: 3
           periodSeconds: 3
         env:
+        - name: CLUSTER_NAME
+          value: "{{ regexReplaceAll "\\W+" .Values.clusterName "-" }}"
         - name: KS_LOGGER_LEVEL
           value: "{{ .Values.logger.level }}"
         - name: KS_LOGGER_NAME
