@@ -1,0 +1,11 @@
+{{- if .Values.kubescapeStorage.enabled }}
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  name: {{ .Values.kubescapeStorage.k8sApiserver.apiservice.name | quote}}
+spec:
+  {{- /* Ensure the namespace is set on the APIServer object and then use it. */ -}}
+  {{- /* Mutates the original key! */ -}}
+  {{- $_ := set (required "Service spec is required" .Values.kubescapeStorage.k8sApiserver.apiservice.spec.service ) "namespace" .Values.ksNamespace }}
+  {{- .Values.kubescapeStorage.k8sApiserver.apiservice.spec | toYaml | nindent 2 }}
+{{- end }}

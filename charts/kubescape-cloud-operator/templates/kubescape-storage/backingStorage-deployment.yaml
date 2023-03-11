@@ -1,0 +1,26 @@
+{{- if .Values.kubescapeStorage.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubescape-aa-storage-etcd
+  namespace: {{ .Values.ksNamespace | quote }}
+  labels:
+    {{ .Values.kubescapeStorage.backingStorage.deployment.labels | toYaml | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{ .Values.kubescapeStorage.backingStorage.deployment.labels | toYaml | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{ .Values.kubescapeStorage.backingStorage.deployment.labels | toYaml | nindent 8 }}
+    spec:
+      containers:
+      - name: etcd
+        image: gcr.io/etcd-development/etcd:v3.5.7
+        args:
+          {{- .Values.kubescapeStorage.backingStorage.deployment.args | toYaml | nindent 10 }}
+        ports:
+          {{ .Values.kubescapeStorage.backingStorage.deployment.ports | toYaml | nindent 10 }}
+{{- end }}

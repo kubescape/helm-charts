@@ -445,3 +445,71 @@ otelCollector:
     limits:
        cpu: 1
        memory: 2Gi
+
+# Values for the Kubescape Storage service that Kubescape uses for its internal
+# purposes like storage
+kubescapeStorage:
+  enabled: false
+
+  # Values or the Aggregated APIServer
+  k8sApiserver:
+    name: "kubescape-aggregated-apiserver"
+
+    # The APIService provided by this AA
+    apiservice:
+      name: "v1beta1.spdx.softwarecomposition.kubescape.io"
+
+      spec:
+        insecureSkipTLSVerify: true
+        group: "spdx.softwarecomposition.kubescape.io"
+        groupPriorityMinimum: 1000
+        versionPriority: 15
+        version: "v1beta1"
+
+        service:
+          name: "api"
+
+    deployment:
+      labels:
+        app.kubernetes.io/name: "aggregated-apiserver"
+        app.kubernetes.io/component: "apiserver"
+        app.kubernetes.io/part-of: "kubescape-storage"
+
+      replicaCount: 1
+      image:
+        pullPolicy: "IfNotPresent"
+        repository: "vklokun/kube-sample-apiserver"
+        tag: "0.1.38"
+
+
+  # Values for the storage that backs the Aggregated APIServer
+  backingStorage:
+    deployment: 
+      replicaCount: 1
+
+      labels:
+        app.kubernetes.io/name: "etcd"
+        app.kubernetes.io/component: "database"
+        app.kubernetes.io/part-of: "kubescape-aa-storage"
+
+      image:
+        pullPolicy: "IfNotPresent"
+        repository: "gcr.io/etcd-development/etcd"
+        tag: "v3.5.7"
+
+      ports:
+        - name: "etcd-port"
+          protocol: "TCP"
+          containerPort: 2379
+
+      args:
+        - "etcd"
+        - "--listen-client-urls=http://0.0.0.0:2379"
+        - "--advertise-client-urls=http://0.0.0.0:2379"
+        - "--max-request-bytes=25165824"
+
+    service:
+      name: "kubescape-aa-storage-etcd"
+
+      type: "ClusterIP"
+      port: 2379
