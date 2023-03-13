@@ -91,3 +91,10 @@ Create the name of the Kubescape Storage APIServer to use
 {{- define "kubescapeStorage.apiServer.deploymentName" -}}
   {{- .Values.kubescapeStorage.k8sApiserver.name | printf "%s-apiserver" }}
 {{- end }}
+
+{{/*
+Name of the Kubescape Storage APIServer Service
+*/}}
+{{- define "kubescapeStorage.apiServer.service.name" -}}
+  {{- .Values.kubescapeStorage.k8sApiserver.name | printf "%s-api" }}
+{{- end }}
