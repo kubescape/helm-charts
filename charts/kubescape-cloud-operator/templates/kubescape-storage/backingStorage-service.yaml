@@ -2,17 +2,14 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Values.kubescapeStorage.backingStorage.service.name | quote }}
+  name: {{ include "kubescapeStorage.backingStorage.service.name" . | quote }}
   namespace: {{ .Values.ksNamespace | quote }}
   labels:
     {{ .Values.kubescapeStorage.backingStorage.deployment.labels | toYaml | nindent 4 }}
 spec:
-  type: {{ .Values.kubescapeStorage.backingStorage.service.type | quote }}
+  type: "ClusterIP"
   selector:
     {{ .Values.kubescapeStorage.backingStorage.deployment.labels | toYaml | nindent 4 }}
   ports:
-  - name: "etcd-port"
-    protocol: "TCP"
-    port: {{ .Values.kubescapeStorage.backingStorage.service.port }}
-    targetPort: {{ (index .Values.kubescapeStorage.backingStorage.deployment.ports 0).name }}
+    {{- include "kubescapeStorage.backingStorage.service.port" . | nindent 4 }}
 {{- end }}
