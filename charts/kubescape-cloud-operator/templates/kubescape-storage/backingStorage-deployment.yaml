@@ -21,7 +21,10 @@ spec:
         image: {{ printf "%s:%s" .Values.kubescapeStorage.backingStorage.deployment.image.repository .Values.kubescapeStorage.backingStorage.deployment.image.tag | quote }}
         imagePullPolicy: {{ .Values.kubescapeStorage.backingStorage.deployment.image.pullPolicy | quote }}
         args:
-          {{- .Values.kubescapeStorage.backingStorage.deployment.args | toYaml | nindent 10 }}
+          - "etcd"
+          - "--listen-client-urls=http://0.0.0.0:2379"
+          - "--advertise-client-urls=http://0.0.0.0:2379"
+          - "--max-request-bytes=25165824"
         ports:
           {{ .Values.kubescapeStorage.backingStorage.deployment.ports | toYaml | nindent 10 }}
 {{- end }}
