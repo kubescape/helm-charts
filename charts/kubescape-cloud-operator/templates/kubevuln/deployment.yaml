@@ -52,22 +52,18 @@ spec:
             runAsNonRoot: true
             runAsUser: 100
           ports:
-          - name: "vuln-scan-port"
-            containerPort: 8080
-            protocol: TCP
-          - name: "readiness-port"
-            containerPort: 8080
+          - containerPort: {{ .Values.kubevuln.service.port }}
             protocol: TCP
           livenessProbe:
             httpGet:
               path: /v1/liveness
-              port: readiness-port
+              port: {{ .Values.kubevuln.service.port }}
             initialDelaySeconds: 3
             periodSeconds: 3
           readinessProbe:
             httpGet:
               path: /v1/readiness
-              port: readiness-port
+              port: {{ .Values.kubevuln.service.port }}
           resources:
 {{ toYaml .Values.kubevuln.resources | indent 12 }}
           env:
