@@ -1,3 +1,4 @@
+{{ template "cluster_name" . }}
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -43,7 +44,7 @@ spec:
         effect: NoSchedule
       containers:
       - name: host-sensor
-        image: quay.io/kubescape/host-scanner:v1.0.48
+        image: quay.io/kubescape/host-scanner:v1.0.51
         securityContext:
           privileged: true
           readOnlyRootFilesystem: true
@@ -56,6 +57,8 @@ spec:
         {{- if .Values.otelCollector.enabled }}
         - name: ACCOUNT_ID
           value: "{{ .Values.account }}"
+        - name: CLUSTER_NAME
+          value: "{{ regexReplaceAll "\\W+" .Values.clusterName "-" }}"
         - name: OTEL_COLLECTOR_SVC
           value: "otel-collector:4317"
         {{- end }}
