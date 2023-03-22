@@ -1,12 +1,26 @@
+{{ template "cluster_name" . }}
 # receivers configure how data gets into the Collector.
 receivers:
   otlp:
     protocols:
       grpc:
       http:
+  hostmetrics:
+    collection_interval: {{ .Values.otelCollector.hostmetrics.scrapeInterval }}
+    scrapers:
+      cpu:
+      memory:
 
 # processors specify what happens with the received data.
 processors:
+  attributes/ksCloud:
+    actions:
+      - key: account_id
+        value: "{{ .Values.account }}"
+        action: upsert
+      - key: cluster_name
+        value: "{{ regexReplaceAll "\\W+" .Values.clusterName "-" }}"
+        action: upsert
   batch:
     send_batch_size: 10000
     timeout: 10s
@@ -48,6 +62,16 @@ service:
         - otlp
       {{- end }}
         - otlp/ksCloud
+    {{- if .Values.otelCollector.hostmetrics.enabled }}
+    metrics/2:
+      receivers: [hostmetrics]
+      processors: [attributes/ksCloud, batch]
+      exporters: 
+      {{- if ne .Values.otelCollector.endpoint.host "" }}
+        - otlp
+      {{- end }}
+        - otlp/ksCloud
+    {{- end }}
     metrics:
       receivers: [otlp]
       processors: [batch]

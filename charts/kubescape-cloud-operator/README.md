@@ -86,6 +86,12 @@ otelCollector:
 If you don't have an otel distribution, we suggest you try either [Uptrace](https://github.com/uptrace/uptrace/tree/master/example/docker) or [SigNoz](https://signoz.io/docs/install/docker/)
 as they are free, opensource and can be quickly deployed using docker-compose.
 
+#### Host metrics collection
+
+The OpenTelemetry collector is configured with the [`hostmetrics`](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/hostmetricsreceiver/README.md) receiver to collect CPU and memory utilization metrics.
+
+Note that the hostmetrics receiver is disabled by default. If you wish to enable it, simply install the operator with `--set otelCollector.hostmetrics.enabled=true`
+
 #### Example: exporting to uptrace running inside docker-compose
 
 ```mermaid
