@@ -451,7 +451,7 @@ otelCollector:
 # Values for the Kubescape Storage service that Kubescape uses for its internal
 # purposes like storage
 kubescapeStorage:
-  enabled: false
+  enabled: true
 
   # Values or the Aggregated APIServer
   k8sApiserver:
@@ -485,15 +485,15 @@ kubescapeStorage:
         tag: "v3.5.7"
   
 nodeAgent:
-  enabled: false
+  enabled: true
   Namespace: kubescape
   ServiceAccount: node-agent-service-account
   ClusterRole: node-agent-cluster-role
   ClusterRoleBinding: node-agent-cluster-role-binding
   ConfigMap: 
     name: node-agent-config-map
-    maxSniffingTime: 360 #in minutes
-    updateDataPeriod: 60 #in seconds
+    maxSniffingTime: 360 
+    updateDataPeriod: 60 
 
   daemonset: 
     name: node-agent
@@ -578,11 +578,11 @@ nodeAgent:
       name: node-agent
       image: 
         repository: quay.io/kubescape/sniffer
-        tag: v0.1.18
+        tag: v0.1.20
         pullPolicy: IfNotPresent
       env:  
-        - name: SNEEFFER_CONF_FILE_PATH
-          value: "/etc/nodeAgent/configuration/"
+        - name: CONFIG_ENV_VAR
+          value: "/etc/node-agent/configuration/ConfigurationFile.json"
         - name: NodeName
           valueFrom:
             fieldRef:
@@ -594,7 +594,7 @@ nodeAgent:
             - name: SYS_RESOURCE
             - name: SYS_ADMIN
       volumeMounts:
-        - mountPath: /etc/nodeAgent/configuration
+        - mountPath: /etc/node-agent/configuration
           name: configmap-volume
         - mountPath: /root/.falco
           name: root-falco-fs
