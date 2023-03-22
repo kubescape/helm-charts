@@ -1,0 +1,30 @@
+{{- if and .Values.nodeAgent.enabled .Values.kubescapeStorage.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.nodeAgent.ConfigMap.name }}
+  namespace: {{ .Values.nodeAgent.Namespace }}
+data:
+  ConfigurationFile.json: |
+    {
+        "sniffer": {
+            "services": [
+                {
+                    "Name": "relevantCVEs"
+                }
+            ],
+            "maxSniffingTimePerContainer": 360
+        },
+        "falcoEbpfEngine": {
+            "kernelObjPath": "/root/.falco/falco-bpf.o",
+            "ebpfEngineLoaderPath": "/etc/node-agent/resources/ebpf/falco/userspace_app"
+        },
+        "node": {
+            "name": "minikube"
+        },
+        "db": {
+            "updateDataPeriod": 30
+        },
+        "clusterName": "{{ .Values.clusterName }}"
+    }
+{{- end}}
