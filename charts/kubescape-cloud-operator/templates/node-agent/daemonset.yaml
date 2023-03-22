@@ -3,18 +3,33 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: {{ .Values.nodeAgent.daemonset.name }}
-  namespace: {{ .Values.nodeAgentNamespace }}
-  labels: 
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+      app.kubernetes.io/name: {{ .Values.nodeAgent.daemonset.name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
       app: {{ .Values.nodeAgent.daemonset.name }}
+      tier: {{ .Values.global.namespaceTier}}
 spec:
   selector:
     matchLabels:
-      app: {{ .Values.nodeAgent.daemonset.name }}
+      app.kubernetes.io/name: {{ .Values.nodeAgent.daemonset.name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      tier: {{ .Values.global.namespaceTier}}
   template:
     metadata:
       labels:
+        app.kubernetes.io/name: {{ .Values.nodeAgent.daemonset.name }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        tier: {{ .Values.global.namespaceTier}}
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
         app: {{ .Values.nodeAgent.daemonset.name }}
-        alt-name: {{ .Values.nodeAgent.daemonset.name }}
+        alt-name: {{ .Values.nodeAgent.daemonset.name }} # Why?
+      {{- if .Values.otelCollector.enabled }}
+        otel: enabled
+      {{- end }}
+      {{- if .Values.addRevisionLabel }}
+        helm.sh/revision: "{{ .Release.Revision }}"
+      {{- end }}
     spec:
       serviceAccountName: {{ .Values.nodeAgent.ServiceAccount }}
       automountServiceAccountToken: {{ .Values.nodeAgent.daemonset.automountServiceAccountToken }}
@@ -57,7 +72,11 @@ spec:
           image: "{{ .Values.nodeAgent.containers.nodeAgent.image.repository }}:{{ .Values.nodeAgent.containers.nodeAgent.image.tag }}"
           imagePullPolicy: {{ .Values.nodeAgent.containers.nodeAgent.image.pullPolicy }}
           env:
-            - name: myNode
+            - name: KS_LOGGER_LEVEL
+              value: "{{ .Values.logger.level }}"
+            - name: KS_LOGGER_NAME
+              value: "{{ .Values.logger.name }}"
+            - name: NODE_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
