@@ -32,7 +32,7 @@ spec:
       {{- end }}
     spec:
       serviceAccountName: {{ .Values.nodeAgent.ServiceAccount }}
-      automountServiceAccountToken: {{ .Values.nodeAgent.daemonset.automountServiceAccountToken }}
+      automountServiceAccountToken: true
       volumes:
         {{- range .Values.nodeAgent.volumes }}
         - name: {{ .name }}
@@ -93,12 +93,11 @@ spec:
             {{- end }}
             {{- end }}
           securityContext:
-            runAsUser: {{ .Values.nodeAgent.containers.nodeAgent.securityContext.user }}
+            runAsUser: 0
             capabilities:
-              add: 
-                {{- range .Values.nodeAgent.containers.nodeAgent.securityContext.capabilities.add }}
-                - {{ .name }}
-                {{- end }}
+              add:
+                - SYS_RESOURCE
+                - SYS_ADMIN
           volumeMounts:
           {{- range .Values.nodeAgent.containers.nodeAgent.volumeMounts }}
           - mountPath: {{ .mountPath }}
