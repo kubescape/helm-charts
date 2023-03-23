@@ -32,7 +32,7 @@ spec:
       {{- end }}
     spec:
       serviceAccountName: {{ .Values.nodeAgent.ServiceAccount }}
-      automountServiceAccountToken: {{ .Values.nodeAgent.daemonset.automountServiceAccountToken }}
+      automountServiceAccountToken: true
       volumes:
         {{- range .Values.nodeAgent.volumes }}
         - name: {{ .name }}
@@ -76,6 +76,12 @@ spec:
               value: "{{ .Values.logger.level }}"
             - name: KS_LOGGER_NAME
               value: "{{ .Values.logger.name }}"
+            {{- if .Values.otelCollector.enabled }}
+            - name: ACCOUNT_ID
+              value: "{{ .Values.account }}"
+            - name: OTEL_COLLECTOR_SVC
+              value: "otel-collector:4317"
+            {{- end }}
             - name: NODE_NAME
               valueFrom:
                 fieldRef:
@@ -87,12 +93,11 @@ spec:
             {{- end }}
             {{- end }}
           securityContext:
-            runAsUser: {{ .Values.nodeAgent.containers.nodeAgent.securityContext.user }}
+            runAsUser: 0
             capabilities:
-              add: 
-                {{- range .Values.nodeAgent.containers.nodeAgent.securityContext.capabilities.add }}
-                - {{ .name }}
-                {{- end }}
+              add:
+                - SYS_RESOURCE
+                - SYS_ADMIN
           volumeMounts:
           {{- range .Values.nodeAgent.containers.nodeAgent.volumeMounts }}
           - mountPath: {{ .mountPath }}
