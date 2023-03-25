@@ -31,6 +31,24 @@ spec:
         helm.sh/revision: "{{ .Release.Revision }}"
       {{- end }}
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                - amd64
+                # - ppc64le
+                # - s390x
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/os
+                operator: In
+                values:
+                - linux
       serviceAccountName: {{ .Values.nodeAgent.ServiceAccount }}
       automountServiceAccountToken: true
       volumes:
