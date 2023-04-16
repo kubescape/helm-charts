@@ -134,6 +134,8 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | cloudProviderEngine | string | `nil` | cloud provider engine |
 | gkeProject | string | `nil` | GKE project |
 | gkeServiceAccount | string | `nil` | GKE service account |
+| aksSubscriptionID | string | `nil` | AKS subscription ID |
+| aksResourceGroup | string | `nil` | AKS resource group |
 | volumes | object | `[]` | Additional volumes for all containers |
 | volumeMounts | object | `[]` | Additional volumeMounts for all containers |
  

@@ -199,6 +199,8 @@ docker-compose logs uptrace
 | cloudProviderEngine | string | `nil` | cloud provider engine |
 | gkeProject | string | `nil` | GKE project |
 | gkeServiceAccount | string | `nil` | GKE service account |
+| aksSubscriptionID | string | `nil` | AKS subscription ID |
+| aksResourceGroup | string | `nil` | AKS resource group |
 | secretKey | string | `""` | secret key, [read more](https://hub.armosec.io/docs/authentication) |
 | triggerNewImageScan | bool | `false` | enable/disable trigger image scan for new images |
 | volumes | object | `[]` | Additional volumes for all containers |
