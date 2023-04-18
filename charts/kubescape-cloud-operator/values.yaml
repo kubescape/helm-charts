@@ -6,9 +6,6 @@ ksNamespace: kubescape
 ksLabel: kubescape
 createKubescapeServiceAccount: true # TODO: move to kubescape
 
-# -- enable/disable revision label
-addRevisionLabel: true
-
 # KS cloud BE URLs
 environment: "prod"
 eventReceiverHttpUrl: "https://report.armo.cloud"
@@ -79,6 +76,12 @@ global:
   networkPolicy:
     enabled: false
     createEgressRules: false
+
+  # -- enable/disable revision label
+  addRevisionLabel: true
+
+  # -- submit results to the ARMO portal. Default is true
+  keepLocal: false
 
 # kubescape scheduled scan using a CronJob
 kubescapeScheduler: 
@@ -256,7 +259,7 @@ kubevuln:
   image:
     # -- source code: https://github.com/kubescape/kubevuln
     repository: quay.io/kubescape/kubevuln
-    tag: 	v0.2.66-relevancy
+    tag: 	v0.2.70-relevancy
     pullPolicy: Always
 
   replicaCount: 1
@@ -278,6 +281,10 @@ kubevuln:
     limits:
        cpu: 500m
        memory: 5000Mi
+       ephemeral-storage: 6Gi
+  
+  config:
+    maxImageSize: 5*1024*1024*1024 # set max image size for scanning, It is recommended to use the same as the requested ephemeral-storage
 
   env:
   - name: CA_MAX_VULN_SCAN_ROUTINES # TODO update the kubevuln

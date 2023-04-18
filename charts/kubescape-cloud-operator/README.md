@@ -194,7 +194,7 @@ docker-compose logs uptrace
 | kubescapeHostScanner.volumeMounts | object | `[]` | Additional volumeMounts for the host scanner |
 | awsIamRoleArn | string | `nil` | AWS IAM arn role |
 | clientID | string | `""` | client ID, [read more](https://hub.armosec.io/docs/authentication) |
-| addRevisionLabel | bool | `true` | Add revision label to the components. This will insure the components will restart when updating the helm |
+| global.addRevisionLabel | bool | `true` | Add revision label to the components. This will insure the components will restart when updating the helm |
 | cloudRegion | string | `nil` | cloud region |
 | cloudProviderEngine | string | `nil` | cloud provider engine |
 | gkeProject | string | `nil` | GKE project |
