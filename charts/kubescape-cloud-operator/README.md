@@ -194,11 +194,13 @@ docker-compose logs uptrace
 | kubescapeHostScanner.volumeMounts | object | `[]` | Additional volumeMounts for the host scanner |
 | awsIamRoleArn | string | `nil` | AWS IAM arn role |
 | clientID | string | `""` | client ID, [read more](https://hub.armosec.io/docs/authentication) |
-| global.addRevisionLabel | bool | `true` | Add revision label to the components. This will insure the components will restart when updating the helm |
-| cloudRegion | string | `nil` | cloud region |
-| cloudProviderEngine | string | `nil` | cloud provider engine |
-| gkeProject | string | `nil` | GKE project |
-| gkeServiceAccount | string | `nil` | GKE service account |
+| addRevisionLabel | bool | `true` | Add revision label to the components. This will insure the components will restart when updating the helm |
+| cloudProviderMetadata.cloudRegion | string | `nil` | cloud region |
+| cloudProviderMetadata.cloudProviderEngine | string | `nil` | cloud provider engine |
+| cloudProviderMetadata.gkeProject | string | `nil` | GKE project |
+| cloudProviderMetadata.gkeServiceAccount | string | `nil` | GKE service account |
+| cloudProviderMetadata.aksSubscriptionID | string | `nil` | AKS subscription ID |
+| cloudProviderMetadata.aksResourceGroup | string | `nil` | AKS resource group |
 | secretKey | string | `""` | secret key, [read more](https://hub.armosec.io/docs/authentication) |
 | triggerNewImageScan | bool | `false` | enable/disable trigger image scan for new images |
 | volumes | object | `[]` | Additional volumes for all containers |

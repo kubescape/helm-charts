@@ -1,0 +1,62 @@
+apiVersion: batch/v1
+    kind: CronJob
+    metadata:
+      name: {{ .Values.kubevulnScheduler.name }}
+      namespace: {{ .Values.ksNamespace }}
+      labels:
+        app: {{ .Values.kubevulnScheduler.name }}
+        tier: {{ .Values.global.namespaceTier}}
+        armo.tier: "vuln-scan"
+    spec:
+      schedule: "{{ .Values.kubevulnScheduler.scanSchedule }}" 
+      jobTemplate:
+        spec:
+          template:
+            metadata:
+              labels:
+                armo.tier: "vuln-scan"
+            spec:
+              {{- if .Values.imagePullSecrets }}
+              imagePullSecrets:
+              - name: {{ toYaml .Values.imagePullSecrets }}
+              {{- end }}
+              containers:
+              - name: {{ .Values.kubevulnScheduler.name }}
+                image: "{{ .Values.kubevulnScheduler.image.repository }}:{{ .Values.kubevulnScheduler.image.tag }}"
+                imagePullPolicy: {{ .Values.kubevulnScheduler.image.pullPolicy }}
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  readOnlyRootFilesystem: true
+                  runAsNonRoot: true
+                  runAsUser: 100
+                args: 
+                  - -method=post
+                  - -scheme=http
+                  - -host={{ .Values.operator.name }}:{{ .Values.operator.service.port }}
+                  - -path=v1/triggerAction
+                  - -headers="Content-Type:application/json"
+                  - -path-body=/home/ks/request-body.json
+                volumeMounts:
+                  - name: "request-body-volume"
+                    mountPath: /home/ks/request-body.json
+                    subPath: request-body.json
+                    readOnly: true
+{{- if .Values.volumeMounts }}
+{{ toYaml .Values.volumeMounts | indent 18 }}
+{{- end }}
+{{- if .Values.kubevulnScheduler.volumeMounts }}
+{{ toYaml .Values.kubevulnScheduler.volumeMounts | indent 18 }}
+{{- end }}
+              restartPolicy: Never
+              automountServiceAccountToken: false
+              volumes:
+                - name: "request-body-volume" # placeholder
+                  configMap:
+                    name: {{ .Values.kubevulnScheduler.name }}
+{{- if .Values.volumes }}
+{{ toYaml .Values.volumes | indent 16 }}
+{{- end }}
+{{- if .Values.kubevulnScheduler.volumes }}
+{{ toYaml .Values.kubevulnScheduler.volumes | indent 16 }}
+{{- end }}
+          

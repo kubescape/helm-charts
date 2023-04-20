@@ -36,7 +36,7 @@ spec:
       {{- if .Values.otelCollector.enabled }}
         otel: enabled
       {{- end }}
-      {{- if .Values.global.addRevisionLabel }}
+      {{- if .Values.addRevisionLabel }}
         helm.sh/revision: "{{ .Release.Revision }}"
       {{- end }}
     spec:
@@ -111,6 +111,12 @@ spec:
         {{- if eq "gke" $cloud_provider }}
         - name: KS_GKE_PROJECT
           value: "{{ .Values.cloudProviderMetadata.gkeProject }}"
+        {{- end -}}
+        {{- if eq "aks" $cloud_provider }}
+        - name: AZURE_SUBSCRIPTION_ID
+          value: "{{ .Values.cloudProviderMetadata.aksSubscriptionID }}"
+        - name: AZURE_RESOURCE_GROUP
+          value: "{{ .Values.cloudProviderMetadata.aksResourceGroup }}"
         {{- end -}}
         {{- end }}
         {{- if .Values.otelCollector.enabled }}

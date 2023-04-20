@@ -35,7 +35,7 @@ spec:
       {{- if .Values.otelCollector.enabled }}
         otel: enabled
       {{- end }}
-      {{- if .Values.global.addRevisionLabel }}
+      {{- if .Values.addRevisionLabel }}
         helm.sh/revision: "{{ .Release.Revision }}"
       {{- end }}
     spec:
@@ -52,18 +52,22 @@ spec:
             runAsNonRoot: true
             runAsUser: 100
           ports:
-          - containerPort: {{ .Values.kubevuln.service.port }}
+          - name: "vuln-scan-port"
+            containerPort: 8080
+            protocol: TCP
+          - name: "readiness-port"
+            containerPort: 8000
             protocol: TCP
           livenessProbe:
             httpGet:
               path: /v1/liveness
-              port: {{ .Values.kubevuln.service.port }}
+              port: readiness-port
             initialDelaySeconds: 3
             periodSeconds: 3
           readinessProbe:
             httpGet:
               path: /v1/readiness
-              port: {{ .Values.kubevuln.service.port }}
+              port: readiness-port
           resources:
 {{ toYaml .Values.kubevuln.resources | indent 12 }}
           env:

@@ -6,6 +6,9 @@ ksNamespace: kubescape
 ksLabel: kubescape
 createKubescapeServiceAccount: true # TODO: move to kubescape
 
+# -- enable/disable revision label
+addRevisionLabel: true
+
 # KS cloud BE URLs
 environment: "prod"
 eventReceiverHttpUrl: "https://report.armo.cloud"
@@ -59,6 +62,12 @@ cloudProviderMetadata:
   # -- GKE project
   gkeProject:
 
+  # -- AKS subscription ID
+  aksSubscriptionID:
+
+  # -- AKS resource group
+  aksResourceGroup:
+
 # -- enable/disable trigger image scan for new images
 triggerNewImageScan: false  
 
@@ -76,12 +85,6 @@ global:
   networkPolicy:
     enabled: false
     createEgressRules: false
-
-  # -- enable/disable revision label
-  addRevisionLabel: true
-
-  # -- submit results to the ARMO portal. Default is true
-  keepLocal: false
 
 # kubescape scheduled scan using a CronJob
 kubescapeScheduler: 
@@ -128,8 +131,8 @@ kubescape:
 
   image:
     # -- source code: https://github.com/kubescape/kubescape/tree/master/httphandler (public repo)
-    repository: quay.io/dwertent/kubescape
-    tag: v3.1.9
+    repository: quay.io/kubescape/kubescape
+    tag: v2.2.5
     pullPolicy: Always
 
   resources:
@@ -186,7 +189,7 @@ operator:
   image:
     # -- source code: https://github.com/kubescape/operator
     repository: quay.io/kubescape/operator
-    tag: 	v0.2.44-relevancy
+    tag: v0.1.18
     pullPolicy: Always
 
   service:
@@ -259,7 +262,7 @@ kubevuln:
   image:
     # -- source code: https://github.com/kubescape/kubevuln
     repository: quay.io/kubescape/kubevuln
-    tag: 	v0.2.72-relevancy
+    tag: v0.1.19
     pullPolicy: Always
 
   replicaCount: 1
@@ -281,10 +284,6 @@ kubevuln:
     limits:
        cpu: 500m
        memory: 5000Mi
-       ephemeral-storage: 6Gi
-  
-  config:
-    maxImageSize: 5368709120 # set max image size for scanning, It is recommended to use the same as the requested ephemeral-storage
 
   env:
   - name: CA_MAX_VULN_SCAN_ROUTINES # TODO update the kubevuln
@@ -442,7 +441,7 @@ otelCollector:
 
   # -- enable/disable hostmetrics collection  
   hostmetrics:
-    enabled: true
+    enabled: false
     scrapeInterval: 30s
 
   image:
@@ -459,156 +458,3 @@ otelCollector:
     limits:
        cpu: 1
        memory: 2Gi
-
-# Values for the Kubescape Storage service that Kubescape uses for its internal
-# purposes like storage
-kubescapeStorage:
-  enabled: true
-
-  # Values or the Aggregated APIServer
-  k8sApiserver:
-    name: "storage-aggregated-apiserver"
-
-    deployment:
-      labels:
-        app.kubernetes.io/name: "aggregated-apiserver"
-        app.kubernetes.io/component: "apiserver"
-        app.kubernetes.io/part-of: "kubescape-storage"
-
-      replicaCount: 1
-      image:
-        pullPolicy: "IfNotPresent"
-        repository: "vklokun/kube-sample-apiserver"
-        tag: "0.1.40"
-
-
-  # Values for the storage that backs the Aggregated APIServer
-  backingStorage:
-    deployment: 
-
-      labels:
-        app.kubernetes.io/name: "etcd"
-        app.kubernetes.io/component: "database"
-        app.kubernetes.io/part-of: "kubescape-aa-storage"
-
-      image:
-        pullPolicy: "IfNotPresent"
-        repository: "gcr.io/etcd-development/etcd"
-        tag: "v3.5.7"
-  
-nodeAgent:
-  enabled: true
-  ServiceAccount: node-agent-service-account
-  ClusterRole: node-agent-cluster-role
-  ClusterRoleBinding: node-agent-cluster-role-binding
-  config: 
-    name: node-agent-config-map
-    maxSniffingTime: 360 # minutes
-    updateDataPeriod: 60 # seconds
-
-  daemonset: 
-    name: node-agent
-
-  volumes:
-    - name: configmap-volume
-      configMap:
-        name: node-agent-config-map
-    - emptyDir: {}
-      name: root-falco-fs
-    - hostPath:
-        path: /boot
-        type: ""
-      name: boot-fs
-    - hostPath:
-        path: /lib/modules
-        type: ""
-      name: lib-modules
-    - hostPath:
-        path: /usr
-        type: ""
-      name: usr-fs
-    - hostPath:
-        path: /etc
-        type: ""
-      name: etc-fs
-    - hostPath:
-        path: /dev
-        type: ""
-      name: dev-fs
-    - hostPath:
-        path: /var/run/docker.sock
-        type: ""
-      name: docker-socket
-    - hostPath:
-        path: /run/containerd/containerd.sock
-        type: ""
-      name: containerd-socket
-    - hostPath:
-        path: /run/crio/crio.sock
-        type: ""
-      name: crio-socket
-    - hostPath:
-        path: /proc
-        type: ""
-      name: proc-fs
-    - hostPath:
-        path: /sys/kernel/debug
-        type: ""
-      name: debugfs
-
-  initContainer:
-    name: falco-driver-loader
-    image:
-      repository: docker.io/falcosecurity/falco-driver-loader
-      tag: 0.32.2
-      pullPolicy: IfNotPresent
-    env:
-      - name: FALCO_BPF_PROBE
-    volumeMounts:
-      - mountPath: /root/.falco
-        name: root-falco-fs
-        readOnly: false
-      - mountPath: /host/proc
-        name: proc-fs
-        readOnly: true
-      - mountPath: /host/boot
-        name: boot-fs
-        readOnly: true
-      - mountPath: /host/lib/modules
-        name: lib-modules
-      - mountPath: /host/usr
-        name: usr-fs
-        readOnly: true
-      - mountPath: /host/etc
-        name: etc-fs
-        readOnly: true
-    
-  containers:  
-    nodeAgent:
-      name: node-agent
-      image: 
-        repository: quay.io/kubescape/sniffer
-        tag: v0.1.39-relevancy
-        pullPolicy: IfNotPresent
-      env:  
-        - name: CONFIG_ENV_VAR
-          value: "/etc/node-agent/configuration/ConfigurationFile.json"
-        - name: NodeName
-          valueFrom:
-            fieldRef:
-              fieldPath: spec.nodeName
-      volumeMounts:
-        - mountPath: /etc/node-agent/configuration
-          name: configmap-volume
-        - mountPath: /root/.falco
-          name: root-falco-fs
-        - mountPath: /host/proc
-          name: proc-fs
-        - mountPath: /sys/kernel/debug
-          name: debugfs
-        - mountPath: /host/var/run/docker.sock
-          name: docker-socket
-        - mountPath: /host/run/containerd/containerd.sock
-          name: containerd-socket
-        - mountPath: /host/run/crio/crio.sock
-          name: crio-socket
