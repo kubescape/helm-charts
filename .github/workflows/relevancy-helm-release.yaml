@@ -2,23 +2,13 @@ name: relevancy-helm-release
 
 on:
   push:
-    paths:
-      - 'charts/kubescape-labs/Chart.yaml'
+    # paths:
+    #   - 'charts/kubescape-labs/Chart.yaml'
     branches: [ relevancy ]
-
-  workflow_dispatch:
-
-  workflow_call:
-    inputs:
-      COMMIT_REF:
-        required: true
-        type: string
-      CHARTS_DIR:
-        required: true
-        type: string
-        default: charts/kubescape-labs
    
 jobs:
+   
+
   helm-chart-release:
     runs-on: ubuntu-latest
     steps:
@@ -27,13 +17,20 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: get latest commit sha
+        id: commit-ref
+        run: echo "COMMIT_REF=$(git log --oneline | head -n1 | awk {'print $1}')" >> $GITHUB_OUTPUT
+      
+      - name: echo commit ref
+        run: echo ${{ steps.commit-ref.outputs.COMMIT_REF }}
+
       - name: Configure Git
         run: |
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
           
       - name: git checkout to new commit
-        run: git checkout ${{ inputs.COMMIT_REF }}
+        run: git checkout ${{ steps.commit-ref.outputs.COMMIT_REF }}
 
       - name: Install Helm
         uses: azure/setup-helm@v3.5
@@ -41,5 +38,5 @@ jobs:
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.4.1
         env:
-          charts_dir: "${{ inputs.CHARTS_DIR }}"
+          charts_dir: "charts/kubescape-labs"
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
