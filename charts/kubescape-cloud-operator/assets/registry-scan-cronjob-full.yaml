@@ -29,6 +29,8 @@ apiVersion: batch/v1
                   readOnlyRootFilesystem: true
                   runAsNonRoot: true
                   runAsUser: 100
+                resources:
+                {{ toYaml .Values.registryScanScheduler.resources | indent 12 }}
                 args: 
                   - -method=post
                   - -scheme=http
@@ -41,22 +43,22 @@ apiVersion: batch/v1
                     mountPath: /home/ks/request-body.json
                     subPath: request-body.json
                     readOnly: true
-{{- if .Values.volumeMounts }}
-{{ toYaml .Values.volumeMounts | indent 18 }}
-{{- end }}
-{{- if .Values.registryScanScheduler.volumeMounts }}
-{{ toYaml .Values.registryScanScheduler.volumeMounts | indent 18 }}
-{{- end }}
+              {{- if .Values.volumeMounts }}
+              {{ toYaml .Values.volumeMounts | indent 18 }}
+              {{- end }}
+              {{- if .Values.registryScanScheduler.volumeMounts }}
+              {{ toYaml .Values.registryScanScheduler.volumeMounts | indent 18 }}
+              {{- end }}
               restartPolicy: Never
               automountServiceAccountToken: false
               volumes:
                 - name: "request-body-volume" # placeholder
                   configMap:
                     name: {{ .Values.registryScanScheduler.name }}
-{{- if .Values.volumes }}
-{{ toYaml .Values.volumes | indent 16 }}
-{{- end }}
-{{- if .Values.registryScanScheduler.volumes }}
-{{ toYaml .Values.registryScanScheduler.volumes | indent 16 }}
-{{- end }}
+              {{- if .Values.volumes }}
+              {{ toYaml .Values.volumes | indent 16 }}
+              {{- end }}
+              {{- if .Values.registryScanScheduler.volumes }}
+              {{ toYaml .Values.registryScanScheduler.volumes | indent 16 }}
+              {{- end }}
           
