@@ -6,6 +6,9 @@ ksNamespace: kubescape
 ksLabel: kubescape
 createKubescapeServiceAccount: true # TODO: move to kubescape
 
+# -- enable/disable revision label
+addRevisionLabel: true
+
 # KS cloud BE URLs
 environment: "prod"
 eventReceiverHttpUrl: "https://report.armo.cloud"
@@ -68,6 +71,25 @@ volumes: []
 # Additional volumeMounts applied to all containers
 volumeMounts: []
 
+# Enable persistence using Persistent Volume Claims
+persistence:
+  # -- enable/disable persistence
+  enabled: true
+
+  # -- persistence storage class
+  #    ref: https://kubernetes.io/docs/concepts/storage/storage-classes/
+  #    note: set to "-" (dash) for default storage class
+  storageClass: "-"
+
+  # -- persistence access mode
+  #    ref: https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes
+  accessMode: ReadWriteOnce
+
+  # -- persistence size
+  size:
+    backingStorage: 5Gi
+    kubevuln: 1Gi
+
 global:
   namespaceTier: ks-control-plane
   cloudConfig: ks-cloud-config
@@ -76,9 +98,6 @@ global:
   networkPolicy:
     enabled: false
     createEgressRules: false
-
-  # -- enable/disable revision label
-  addRevisionLabel: true
 
   # -- submit results to the ARMO portal. Default is true
   keepLocal: false
@@ -194,7 +213,7 @@ operator:
   image:
     # -- source code: https://github.com/kubescape/operator
     repository: quay.io/kubescape/operator
-    tag: 	v0.2.46-relevancy
+    tag: v0.2.46-relevancy
     pullPolicy: Always
 
   service:
@@ -275,7 +294,7 @@ kubevuln:
   image:
     # -- source code: https://github.com/kubescape/kubevuln
     repository: quay.io/kubescape/kubevuln
-    tag: 	v0.2.73-relevancy
+    tag: v0.2.73-relevancy
     pullPolicy: Always
 
   replicaCount: 1
