@@ -27,4 +27,16 @@ spec:
           - "--max-request-bytes=25165824"
         ports:
           {{- include "kubescapeStorage.backingStorage.deployment.port" . | nindent 10 }}
+        {{- if .Values.persistence.enabled }}
+        volumeMounts:
+          - name: "etcd-data"
+            mountPath: "/etcd-data"
+            readOnly: false
+        {{- end }}
+      {{- if .Values.persistence.enabled }}
+      volumes:
+        - name: "etcd-data"
+          persistentVolumeClaim:
+            claimName: "kubescape-aa-storage-etcd"
+      {{- end }}
 {{- end }}
