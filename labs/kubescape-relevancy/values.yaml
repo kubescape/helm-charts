@@ -74,7 +74,7 @@ volumeMounts: []
 # Enable persistence using Persistent Volume Claims
 persistence:
   # -- enable/disable persistence
-  enabled: true
+  enabled: false
 
   # -- persistence storage class
   #    ref: https://kubernetes.io/docs/concepts/storage/storage-classes/
@@ -156,7 +156,7 @@ kubescape:
   image:
     # -- source code: https://github.com/kubescape/kubescape/tree/master/httphandler (public repo)
     repository: quay.io/kubescape/kubescape
-    tag: v2.3.0
+    tag: v2.3.3
     pullPolicy: Always
 
   resources:
@@ -166,6 +166,9 @@ kubescape:
     limits:
        cpu: 600m
        memory: 800Mi
+
+  # -- set the number of concurrent goroutines to process OPA rules
+  ruleProcessingConcurrency: 1
 
   # -- enable host scanner feature: https://hub.armosec.io/docs/host-sensor
   enableHostScan: true
@@ -213,7 +216,7 @@ operator:
   image:
     # -- source code: https://github.com/kubescape/operator
     repository: quay.io/kubescape/operator
-    tag: 	v0.2.47-relevancy
+    tag: 	v0.2.48-relevancy
     pullPolicy: Always
 
   service:
@@ -294,7 +297,7 @@ kubevuln:
   image:
     # -- source code: https://github.com/kubescape/kubevuln
     repository: quay.io/kubescape/kubevuln
-    tag: v0.2.75-relevancy
+    tag: v0.2.79-relevancy
     pullPolicy: Always
 
   replicaCount: 1
@@ -320,6 +323,7 @@ kubevuln:
   
   config:
     maxImageSize: 5368709120 # set max image size for scanning, It is recommended to use the same as the requested ephemeral-storage
+    scanTimeout: 5m # set timeout for scanning an image
 
   env:
   - name: CA_MAX_VULN_SCAN_ROUTINES # TODO update the kubevuln
@@ -631,7 +635,7 @@ nodeAgent:
       name: node-agent
       image: 
         repository: quay.io/kubescape/sniffer
-        tag: v0.1.50-relevancy
+        tag: v0.1.58-relevancy
         pullPolicy: IfNotPresent
       env:  
         - name: CONFIG_ENV_VAR
