@@ -36,7 +36,7 @@ spec:
       {{- if .Values.otelCollector.enabled }}
         otel: enabled
       {{- end }}
-      {{- if .Values.addRevisionLabel }}
+      {{- if .Values.global.addRevisionLabel }}
         helm.sh/revision: "{{ .Release.Revision }}"
       {{- end }}
     spec:
@@ -71,6 +71,8 @@ spec:
         env:
         - name: CLUSTER_NAME
           value: "{{ regexReplaceAll "\\W+" .Values.clusterName "-" }}"
+        - name: RULE_PROCESSING_GOMAXPROCS
+          value: "{{ .Values.kubescape.ruleProcessingConcurrency }}"
         - name: KS_LOGGER_LEVEL
           value: "{{ .Values.logger.level }}"
         - name: KS_LOGGER_NAME
@@ -111,12 +113,6 @@ spec:
         {{- if eq "gke" $cloud_provider }}
         - name: KS_GKE_PROJECT
           value: "{{ .Values.cloudProviderMetadata.gkeProject }}"
-        {{- end -}}
-        {{- if eq "aks" $cloud_provider }}
-        - name: AZURE_SUBSCRIPTION_ID
-          value: "{{ .Values.cloudProviderMetadata.aksSubscriptionID }}"
-        - name: AZURE_RESOURCE_GROUP
-          value: "{{ .Values.cloudProviderMetadata.aksResourceGroup }}"
         {{- end -}}
         {{- end }}
         {{- if .Values.otelCollector.enabled }}
