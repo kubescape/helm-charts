@@ -44,7 +44,7 @@ spec:
         effect: NoSchedule
       containers:
       - name: host-sensor
-        image: quay.io/kubescape/host-scanner:v1.0.54
+        image: quay.io/kubescape/host-scanner:v1.0.59
         securityContext:
           privileged: true
           readOnlyRootFilesystem: true
@@ -82,12 +82,17 @@ spec:
 {{- if .Values.kubescapeHostScanner.volumeMounts }}
 {{ toYaml .Values.kubescapeHostScanner.volumeMounts | indent 8 }}
 {{- end }}
-        readinessProbe:
+        startupProbe:
           httpGet:
-            path: /kernelVersion
+            path: /readyz
             port: 7888
-            initialDelaySeconds: 1
-            periodSeconds: 1
+          failureThreshold: 30
+          periodSeconds: 1
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 7888
+          periodSeconds: 10
       terminationGracePeriodSeconds: 120
       dnsPolicy: ClusterFirstWithHostNet
       automountServiceAccountToken: false
