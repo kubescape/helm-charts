@@ -1,4 +1,5 @@
 {{- if and .Values.operator.enabled .Values.kubescape.submit }}
+{{- $no_proxy_envar_list := (include "no_proxy_envar_list" .) -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -88,6 +89,12 @@ spec:
               value: "{{ .Values.account }}"
             - name: OTEL_COLLECTOR_SVC
               value: "otel-collector:4317"
+            {{- end }}
+            {{- if ne .Values.global.httpsProxy ""}}
+            - name: HTTPS_PROXY
+              value: "{{ .Values.global.httpsProxy }}"
+            - name : no_proxy
+              value: "{{ $no_proxy_envar_list }}"
             {{- end }}
           args:
             - -alsologtostderr

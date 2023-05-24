@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-proxy
+  template:
+    metadata:
+      labels:
+        app: nginx-proxy
+    spec:
+      containers:
+      - name: nginx-proxy
+        image: nginx:1.19.0
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+        - name: tls-volume
+          mountPath: /etc/nginx/tls
+      volumes:
+      - name: config-volume
+        configMap:
+          name: nginx-proxy-config
+      - name: tls-volume
+        secret:
+          secretName: nginx-proxy-tls
