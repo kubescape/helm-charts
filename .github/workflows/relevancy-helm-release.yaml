@@ -4,12 +4,18 @@ on:
   push:
     paths:
       - 'labs/kubescape-relevancy/Chart.yaml'
-    branches: [ relevancy, main, master ]
+    branches: [ relevancy ]
    
 jobs:
-   
+  e2e-test:
+    uses: ./.github/workflows/relevancy-e2e-test.yaml
+    with:
+      BRANCH: relevancy
+    secrets: inherit
 
   helm-chart-release:
+    needs: e2e-test
+    if: ${{ (always() && (contains(needs.*.result, 'success') || contains(needs.*.result, 'skipped')) && !(contains(needs.*.result, 'failure')) && !(contains(needs.*.result, 'cancelled'))) }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
