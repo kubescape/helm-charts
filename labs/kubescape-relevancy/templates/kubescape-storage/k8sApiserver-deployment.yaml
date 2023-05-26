@@ -17,10 +17,16 @@ spec:
         {{ .Values.kubescapeStorage.k8sApiserver.deployment.labels | toYaml | nindent 8}}
     spec:
       serviceAccountName: {{ include "kubescapeStorage.serviceAccountName" . | quote }}
+      securityContext:
+        runAsUser: 100
+        fsGroup: 101
       containers:
       - name: apiserver
         image: {{ printf "%s:%s" .Values.kubescapeStorage.k8sApiserver.deployment.image.repository .Values.kubescapeStorage.k8sApiserver.deployment.image.tag  | quote }}
         imagePullPolicy: {{ .Values.kubescapeStorage.k8sApiserver.deployment.image.pullPolicy | quote }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
         {{- if .Values.persistence.enabled }}
         volumeMounts:
           - name: "data"
