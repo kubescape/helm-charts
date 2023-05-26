@@ -21,5 +21,16 @@ spec:
       - name: apiserver
         image: {{ printf "%s:%s" .Values.kubescapeStorage.k8sApiserver.deployment.image.repository .Values.kubescapeStorage.k8sApiserver.deployment.image.tag  | quote }}
         imagePullPolicy: {{ .Values.kubescapeStorage.k8sApiserver.deployment.image.pullPolicy | quote }}
-        args: [ "--etcd-servers=http://{{ include "kubescapeStorage.backingStorage.service.name" . }}:{{ include "kubescapeStorage.backingStorage.containerPort" . }}" ]
+        {{- if .Values.persistence.enabled }}
+        volumeMounts:
+          - name: "data"
+            mountPath: "/data"
+            readOnly: false
+        {{- end }}
+      {{- if .Values.persistence.enabled }}
+      volumes:
+        - name: "data"
+          persistentVolumeClaim:
+            claimName: {{ include "kubescapeStorage.apiServer.deploymentName" . | quote }}
+      {{- end }}
 {{- end }}

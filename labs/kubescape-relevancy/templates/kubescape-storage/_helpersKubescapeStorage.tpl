@@ -98,36 +98,3 @@ Name of the Kubescape Storage APIServer Service
 {{- define "kubescapeStorage.apiServer.service.name" -}}
   {{- .Values.kubescapeStorage.k8sApiserver.name | printf "%s-api" }}
 {{- end }}
-
-{{/*
-Kubescape Storage: value of the backing storage's container port serving the payload
-*/}}
-{{- define "kubescapeStorage.backingStorage.containerPort" -}}
-2379
-{{- end }}
-
-{{/*
-Kubescape Storage: value of the backing storage deployment port
-*/}}
-{{- define "kubescapeStorage.backingStorage.deployment.port" -}}
-- name: "etcd-port"
-  protocol: "TCP"
-  containerPort: {{ include "kubescapeStorage.backingStorage.containerPort" . }}
-{{- end }}
-
-{{/*
-Kubescape Storage: value of the backing storage service port
-*/}}
-{{- define "kubescapeStorage.backingStorage.service.port" -}}
-- name: "etcd-port"
-  protocol: "TCP"
-  targetPort: {{ include "kubescapeStorage.backingStorage.containerPort" . }}
-  port: {{ include "kubescapeStorage.backingStorage.containerPort" . }}
-{{- end }}
-
-{{/*
-Kubescape Storage: value of the backing storage service name
-*/}}
-{{- define "kubescapeStorage.backingStorage.service.name" -}}
-{{- printf "%s-backing-storage-svc" .Values.kubescapeStorage.k8sApiserver.name -}}
-{{- end }}
