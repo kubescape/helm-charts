@@ -37,7 +37,7 @@ spec:
       {{- if .Values.otelCollector.enabled }}
         otel: enabled
       {{- end }}
-      {{- if .Values.addRevisionLabel }}
+      {{- if .Values.global.addRevisionLabel }}
         helm.sh/revision: "{{ .Release.Revision }}"
       {{- end }}
     spec:
@@ -120,7 +120,7 @@ spec:
           value: "{{ .Values.cloudProviderMetadata.aksSubscriptionID }}"
         - name: AZURE_RESOURCE_GROUP
           value: "{{ .Values.cloudProviderMetadata.aksResourceGroup }}"
-        {{- end -}}
+        {{- end }}
         {{- end }}
         {{- if .Values.otelCollector.enabled }}
         - name: ACCOUNT_ID
@@ -145,6 +145,10 @@ spec:
         - name: host-scanner-definition
           mountPath: /home/ks/.kubescape/host-scanner.yaml
           subPath: host-scanner-yaml
+        - name: results
+          mountPath: /home/ks/results
+        - name: failed
+          mountPath: /home/ks/failed
 {{- if .Values.volumeMounts }}
 {{ toYaml .Values.volumeMounts | indent 8 }}
 {{- end }}
@@ -160,6 +164,10 @@ spec:
       - name: host-scanner-definition
         configMap:
           name: host-scanner-definition
+      - name: results
+        emptyDir: {}
+      - name: failed
+        emptyDir: {}
 {{- if .Values.volumes }}
 {{ toYaml .Values.volumes | indent 6 }}
 {{- end }}

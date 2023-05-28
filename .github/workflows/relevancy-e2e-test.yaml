@@ -1,19 +1,12 @@
-name: 02-E2E Test helm chart
-on:
-  # workflow_dispatch:
-  #   inputs:
-  #     HELM_E2E_TEST:
-  #       required: true
-  #       default: true
-  #       type: boolean
+name: relevancy-tests branch E2E tests
 
+
+on:
   workflow_call:
     inputs:
-      HELM_E2E_TEST:
+      BRANCH:
         required: true
-        default: true
-        type: boolean
-
+        type: string
 
 jobs:
   e2e-test:
@@ -37,7 +30,9 @@ jobs:
               ks_microservice_delete_cronjob, 
               ks_microservice_create_2_cronjob_mitre_and_nsa,
               scan_compliance_score,
-              vulnerability_scanning_cve_exceptions
+              vulnerability_scanning_cve_exceptions,
+              vulnerability_scanning_test_public_registry_connectivity_by_backend,
+              vulnerability_scanning_test_public_registry_connectivity_excluded_by_backend
               ]
               
     runs-on: ubuntu-latest
@@ -94,7 +89,7 @@ jobs:
           -b production           \
           -c CyberArmorTests      \
           --logger DEBUG          \
-          --kwargs helm_branch=dev
+          --kwargs helm_branch=${{ inputs.BRANCH }}
 
           deactivate
 

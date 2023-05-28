@@ -6,9 +6,6 @@ ksNamespace: kubescape
 ksLabel: kubescape
 createKubescapeServiceAccount: true # TODO: move to kubescape
 
-# -- enable/disable revision label
-addRevisionLabel: true
-
 # KS cloud BE URLs
 environment: "prod"
 eventReceiverHttpUrl: "https://report.armo.cloud"
@@ -62,12 +59,6 @@ cloudProviderMetadata:
   # -- GKE project
   gkeProject:
 
-  # -- AKS subscription ID
-  aksSubscriptionID:
-
-  # -- AKS resource group
-  aksResourceGroup:
-
 # -- enable/disable trigger image scan for new images
 triggerNewImageScan: false  
 
@@ -76,6 +67,25 @@ volumes: []
 
 # Additional volumeMounts applied to all containers
 volumeMounts: []
+
+# Enable persistence using Persistent Volume Claims
+persistence:
+  # -- enable/disable persistence
+  enabled: false
+
+  # -- persistence storage class
+  #    ref: https://kubernetes.io/docs/concepts/storage/storage-classes/
+  #    note: set to "-" (dash) for default storage class
+  storageClass: "-"
+
+  # -- persistence access mode
+  #    ref: https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes
+  accessMode: ReadWriteOnce
+
+  # -- persistence size
+  size:
+    backingStorage: 5Gi
+    kubevuln: 1Gi
 
 global:
   httpsProxy: ""
@@ -89,6 +99,9 @@ global:
   networkPolicy:
     enabled: false
     createEgressRules: false
+
+  # -- submit results to the ARMO portal. Default is true
+  keepLocal: false
 
 # kubescape scheduled scan using a CronJob
 kubescapeScheduler: 
@@ -133,7 +146,6 @@ kubescapeScheduler:
        cpu: 10m
        memory: 20Mi
 
-
 # kubescape scanner - https://github.com/kubescape/kubescape
 kubescape:
 
@@ -145,7 +157,7 @@ kubescape:
   image:
     # -- source code: https://github.com/kubescape/kubescape/tree/master/httphandler (public repo)
     repository: quay.io/kubescape/kubescape
-    tag: v2.3.3
+    tag: v2.3.4
     pullPolicy: Always
 
   resources:
@@ -205,7 +217,7 @@ operator:
   image:
     # -- source code: https://github.com/kubescape/operator
     repository: quay.io/kubescape/operator
-    tag: v0.1.18
+    tag: v0.2.49-relevancy
     pullPolicy: Always
 
   service:
@@ -286,7 +298,7 @@ kubevuln:
   image:
     # -- source code: https://github.com/kubescape/kubevuln
     repository: quay.io/kubescape/kubevuln
-    tag: v0.1.19
+    tag: v0.2.83-relevancy
     pullPolicy: Always
 
   replicaCount: 1
@@ -308,6 +320,11 @@ kubevuln:
     limits:
        cpu: 500m
        memory: 5000Mi
+       ephemeral-storage: 6Gi
+  
+  config:
+    maxImageSize: 5368709120 # set max image size for scanning, It is recommended to use the same as the requested ephemeral-storage
+    scanTimeout: 5m # set timeout for scanning an image
 
   env:
   - name: CA_MAX_VULN_SCAN_ROUTINES # TODO update the kubevuln
@@ -388,7 +405,7 @@ gateway:
     # -- source code: https://github.com/kubescape/gateway
     repository: quay.io/kubescape/gateway
     tag: v0.1.11
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
 
   replicaCount: 1
   resources:
@@ -473,7 +490,7 @@ otelCollector:
 
   # -- enable/disable hostmetrics collection  
   hostmetrics:
-    enabled: false
+    enabled: true
     scrapeInterval: 30s
 
   image:
