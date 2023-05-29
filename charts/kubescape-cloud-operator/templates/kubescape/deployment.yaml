@@ -1,6 +1,7 @@
 {{- if .Values.kubescape.enabled  }}
 {{- $cloud_provider := (include "cloud_provider" .) -}}
 {{ template "cluster_name" . }}
+{{- $no_proxy_envar_list := (include "no_proxy_envar_list" .) -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -127,6 +128,12 @@ spec:
         - name: OTEL_COLLECTOR_SVC
           value: "otel-collector:4317"
         {{- end }}
+        {{- if ne .Values.global.httpsProxy ""}}
+        - name: HTTPS_PROXY
+          value: "{{ .Values.global.httpsProxy }}"
+        - name : no_proxy
+          value: "{{ $no_proxy_envar_list }}"
+        {{- end }}
         command:
         - ksserver
         resources:
@@ -148,9 +155,17 @@ spec:
 {{- if .Values.kubescape.volumeMounts }}
 {{ toYaml .Values.kubescape.volumeMounts | indent 8 }}
 {{- end }}
-      serviceAccountName: {{ .Values.global.kubescapeServiceAccountName }}
-      automountServiceAccountToken: true
+{{- if ne .Values.global.proxySecretFile ""}}
+        - name: proxy-secret
+          mountPath: /etc/ssl/certs/proxy.crt
+          subPath: proxy.crt
+{{- end }}
       volumes:
+      {{- if ne .Values.global.proxySecretFile ""}}
+      - name: proxy-secret
+        secret:
+          secretName: {{ .Values.global.proxySecretName }}
+      {{- end }}
       - name: kubescape-config-volume
         configMap:
           name: {{ .Values.kubescape.name }}-config
@@ -167,6 +182,8 @@ spec:
 {{- if .Values.kubescape.volumes }}
 {{ toYaml .Values.kubescape.volumes | indent 6 }}
 {{- end }}
+      serviceAccountName: {{ .Values.global.kubescapeServiceAccountName }}
+      automountServiceAccountToken: true
       {{- with .Values.kubescape.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8}}

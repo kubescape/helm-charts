@@ -145,6 +145,8 @@ docker-compose logs uptrace
 | global.networkPolicy.enabled | bool | `false` | Create NetworkPolicies for all components |
 | global.networkPolicy.createEgressRules | bool | `false` | Create common Egress rules for NetworkPolicies |
 | global.kubescapePsp.enabled | bool | `false` | Enable all privileges in Pod Security Policies for Kubescape namespace |
+| global.httpsProxy | string | `""` | Set https egress proxy for all components.  |
+| global.proxySecretFile | string | `""` | Set proxy certificate / RootCA for all components to be used for proxy configured in global.httpsProxy |
 | kollector.affinity | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the StatefulSet |
 | kollector.enabled | bool | `true` | enable/disable the kollector |
 | kollector.env[0] | object | `{"name":"PRINT_REPORT","value":"false"}` | print in verbose mode (print all reported data) |
@@ -161,6 +163,10 @@ docker-compose logs uptrace
 | kubescape.serviceMonitor.enabled | bool | `false` | enable/disable service monitor for prometheus (operator) integration |
 | kubescape.skipUpdateCheck | bool | `false` | skip check for a newer version |
 | kubescape.submit | bool | `true` | submit results to Kubescape SaaS: https://cloud.armosec.io/ |
+| kubescape.urls.report | string | `""` | override the default cloud report URL |
+| kubescape.urls.api | string | `""` | override the default cloud API URL |
+| kubescape.urls.ui | string | `""` | override the default cloud UI URL |
+| kubescape.urls.auth | string | `""` | override the default cloud authentication URL |
 | kubescape.volumes | object | `[]` | Additional volumes for Kubescape |
 | kubescape.volumeMounts | object | `[]` | Additional volumeMounts for Kubescape |
 | kubescapeScheduler.enabled | bool | `true` | enable/disable a kubescape scheduled scan using a CronJob |
