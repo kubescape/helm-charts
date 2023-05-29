@@ -1,10 +1,6 @@
 {{- if and .Values.kubescapeScheduler.enabled .Values.kubescape.enabled .Values.kubescape.submit }}
 {{- $kubescape_daily_scan_cron_tab := (include "kubescape_daily_scan_cron_tab" .) -}}
-{{- if .Capabilities.APIVersions.Has "batch/v1/CronJob" }}
 apiVersion: batch/v1
-{{- else }}
-apiVersion: batch/v1beta1
-{{- end }}
 kind: CronJob
 metadata:
   name: {{ .Values.kubescapeScheduler.name }}
@@ -33,6 +29,13 @@ spec:
           - name: {{ .Values.kubescapeScheduler.name }}
             image: "{{ .Values.kubescapeScheduler.image.repository }}:{{ .Values.kubescapeScheduler.image.tag }}"
             imagePullPolicy: {{ .Values.kubescapeScheduler.image.pullPolicy }}
+            resources:
+{{ toYaml .Values.kubescapeScheduler.resources | indent 14 }}
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              runAsNonRoot: true
+              runAsUser: 100
             args: 
               - -method=post
               - -scheme=http

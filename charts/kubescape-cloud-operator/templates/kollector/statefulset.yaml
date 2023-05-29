@@ -13,6 +13,10 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app: {{ .Values.kollector.name }}
     tier: {{ .Values.global.namespaceTier}}
+  # annotations:
+  #   helm.sh/hook: pre-install,pre-upgrade # hook should apply when installing and upgrading
+  #   helm.sh/hook-weight: "-1" # run before all other hooks
+  #   helm.sh/hook-delete-policy: before-hook-creation #,hook-succeeded
 spec:
   serviceName: ""
   replicas: {{ .Values.kollector.replicaCount }}
@@ -29,7 +33,7 @@ spec:
         tier: {{ .Values.global.namespaceTier}}
         app: {{ .Values.kollector.name }}
         helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
-      {{- if .Values.addRevisionLabel }}
+      {{- if .Values.global.addRevisionLabel }}
         helm.sh/revision: "{{ .Release.Revision }}"
       {{- end }}
     spec:
@@ -43,6 +47,7 @@ spec:
           imagePullPolicy: {{ .Values.kollector.image.pullPolicy }}
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 100
           ports:
@@ -64,12 +69,20 @@ spec:
           resources:
 {{ toYaml .Values.kollector.resources | indent 12 }}
           env:
-            - name: ACTIVATE_CVE_SCAN_ON_NEW_IMAGE_FEATURE
-              value: "{{ .Values.triggerNewImageScan }}"
+            - name: KS_LOGGER_LEVEL
+              value: "{{ .Values.logger.level }}"
+            - name: KS_LOGGER_NAME
+              value: "{{ .Values.logger.name }}"
             - name: NAMESPACE
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+            {{- if .Values.otelCollector.enabled }}
+            - name: ACCOUNT_ID
+              value: "{{ .Values.account }}"
+            - name: OTEL_COLLECTOR_SVC
+              value: "otel-collector:4317"
+            {{- end }}
             {{- range .Values.kollector.env }}
             - name: {{ .name  }}
               value: "{{ .value }}"
@@ -79,6 +92,8 @@ spec:
           - -v=4
           - 2>&1
           volumeMounts:
+            - name: tmp-dir
+              mountPath: /tmp
             - name: {{ .Values.global.cloudConfig }}
               mountPath: /etc/config
               readOnly: true
@@ -89,6 +104,8 @@ spec:
 {{ toYaml .Values.kollector.volumeMounts | indent 12 }}
 {{- end }}
       volumes:
+        - name: tmp-dir
+          emptyDir: {}
         - name: {{ .Values.global.cloudConfig }}
           configMap:
             name: {{ .Values.global.cloudConfig }}

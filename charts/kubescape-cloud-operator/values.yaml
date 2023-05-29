@@ -6,20 +6,19 @@ ksNamespace: kubescape
 ksLabel: kubescape
 createKubescapeServiceAccount: true # TODO: move to kubescape
 
-# -- enable/disable revision label
-addRevisionLabel: true
-
 # KS cloud BE URLs
 environment: "prod"
 eventReceiverHttpUrl: "https://report.armo.cloud"
 k8sReportUrl: "wss://report.armo.cloud"
 gatewayUrl: "ens.euprod1.cyberarmorsoft.com"
 backendOpenAPI: "https://api.armosec.io/api"
+ksCloudOtelCollector: "otelcol.armosec.io:443"
 # KS cloud DEV BE URLs
 devEventReceiverHttpUrl: "https://report.eudev3.cyberarmorsoft.com"
 devK8sReportUrl: "wss://report.eudev3.cyberarmorsoft.com"
 devGatewayUrl: "ens.eudev3.cyberarmorsoft.com"
 devBackendOpenAPI: "https://api-dev.armosec.io/api"
+devKsCloudOtelCollector: "otelcol-dev.armosec.io:443"
 # KS cloud STAGING BE URLs
 stagingEventReceiverHttpUrl: "https://report-ks.eustage2.cyberarmorsoft.com"
 stagingK8sReportUrl: "wss://report.eustage2.cyberarmorsoft.com"
@@ -37,6 +36,10 @@ secretKey: ""
 
 # -- set the image pull secrets for private registry support 
 imagePullSecrets: ""
+
+logger:
+  level: info
+  name: zap
 
 # cloud support
 cloudProviderMetadata:
@@ -65,14 +68,40 @@ volumes: []
 # Additional volumeMounts applied to all containers
 volumeMounts: []
 
+# Enable persistence using Persistent Volume Claims
+persistence:
+  # -- enable/disable persistence
+  enabled: false
+
+  # -- persistence storage class
+  #    ref: https://kubernetes.io/docs/concepts/storage/storage-classes/
+  #    note: set to "-" (dash) for default storage class
+  storageClass: "-"
+
+  # -- persistence access mode
+  #    ref: https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes
+  accessMode: ReadWriteOnce
+
+  # -- persistence size
+  size:
+    backingStorage: 5Gi
+    kubevuln: 1Gi
+
 global:
+  addRevisionLabel: true
   namespaceTier: ks-control-plane
   cloudConfig: ks-cloud-config
   operatorServiceAccountName: ks-sa # TODO - split service account to the different components
   kubescapeServiceAccountName: kubescape-sa # TODO - split service account to the different components
+  kubescapePsp:
+    name: ks-allow-privileged
+    enabled: false
   networkPolicy:
     enabled: false
     createEgressRules: false
+
+  # -- submit results to the ARMO portal. Default is true
+  keepLocal: false
 
 # kubescape scheduled scan using a CronJob
 kubescapeScheduler: 
@@ -109,6 +138,14 @@ kubescapeScheduler:
   # Additional volumeMounts to be mounted on the scan scheduler
   volumeMounts: []
 
+  resources:
+    requests:
+       cpu: 1m
+       memory: 10Mi
+    limits:
+       cpu: 10m
+       memory: 20Mi
+
 # kubescape scanner - https://github.com/kubescape/kubescape
 kubescape:
 
@@ -120,16 +157,16 @@ kubescape:
   image:
     # -- source code: https://github.com/kubescape/kubescape/tree/master/httphandler (public repo)
     repository: quay.io/kubescape/kubescape
-    tag: v2.0.181
+    tag: v2.3.4
     pullPolicy: Always
 
   resources:
     requests:
        cpu: 250m
-       memory: 256Mi
+       memory: 400Mi
     limits:
-       cpu: 500m
-       memory: 500Mi
+       cpu: 600m
+       memory: 800Mi
 
   # -- enable host scanner feature: https://hub.armosec.io/docs/host-sensor
   enableHostScan: true
@@ -139,6 +176,9 @@ kubescape:
 
   # -- skip check for a newer version 
   skipUpdateCheck: false
+
+  # -- set the number of concurrent goroutines to process OPA rules
+  ruleProcessingConcurrency: 1
 
   # -- submit results to the Kubescape cloud: https://cloud.armosec.io/
   submit: true
@@ -177,7 +217,7 @@ operator:
   image:
     # -- source code: https://github.com/kubescape/operator
     repository: quay.io/kubescape/operator
-    tag: v0.0.64
+    tag: v0.2.49-relevancy
     pullPolicy: Always
 
   service:
@@ -235,6 +275,14 @@ kubevulnScheduler:
   # Additional volumeMounts to be mounted on the vuln scan scheduler
   volumeMounts: []
 
+  resources:
+    requests:
+       cpu: 1m
+       memory: 10Mi
+    limits:
+       cpu: 10m
+       memory: 20Mi
+
 # kubevuln - image vulnerability scanning microservice
 kubevuln:
 
@@ -250,7 +298,7 @@ kubevuln:
   image:
     # -- source code: https://github.com/kubescape/kubevuln
     repository: quay.io/kubescape/kubevuln
-    tag: v0.0.45
+    tag: v0.2.83-relevancy
     pullPolicy: Always
 
   replicaCount: 1
@@ -264,14 +312,19 @@ kubevuln:
   resources:
     requests:
        cpu: 300m
-       memory: 2500Mi
+       memory: 1000Mi
        # Consider to increase ephemeral-storage requests in order to avoid pod eviction due to huge images
        # More details: https://hub.armosec.io/docs/limitations
        #               https://github.com/kubescape/kubescape/issues/389
        ephemeral-storage: 5Gi
     limits:
-       cpu: 1500m
+       cpu: 500m
        memory: 5000Mi
+       ephemeral-storage: 6Gi
+  
+  config:
+    maxImageSize: 5368709120 # set max image size for scanning, It is recommended to use the same as the requested ephemeral-storage
+    scanTimeout: 5m # set timeout for scanning an image
 
   env:
   - name: CA_MAX_VULN_SCAN_ROUTINES # TODO update the kubevuln
@@ -297,7 +350,7 @@ kollector:
   image:
     # -- source code: https://github.com/kubescape/kollector
     repository: quay.io/kubescape/kollector
-    tag: v0.0.28
+    tag: v0.1.16
     pullPolicy: Always
 
   replicaCount: 1
@@ -318,7 +371,7 @@ kollector:
 
   # -- wait before first report
   - name: WAIT_BEFORE_REPORT
-    value: "15"
+    value: "0"
 
   labels: {}
 
@@ -351,7 +404,7 @@ gateway:
   image:
     # -- source code: https://github.com/kubescape/gateway
     repository: quay.io/kubescape/gateway
-    tag: v0.1.2
+    tag: v0.1.11
     pullPolicy: Always
 
   replicaCount: 1
@@ -413,3 +466,44 @@ registryScanScheduler:
 
   # Additional volumeMounts to be mounted on the scan scheduler
   volumeMounts: []
+
+  resources:
+    requests:
+       cpu: 1m
+       memory: 10Mi
+    limits:
+       cpu: 10m
+       memory: 20Mi
+
+# opentelemetry collector
+otelCollector:
+
+  # -- enable/disable metrics and traces collection
+
+  enabled: true
+  endpoint:
+    host: ""
+    port: 4317
+    insecure: true
+    headers:
+      uptrace-dsn: ""
+
+  # -- enable/disable hostmetrics collection  
+  hostmetrics:
+    enabled: true
+    scrapeInterval: 30s
+
+  image:
+    repository: otel/opentelemetry-collector
+    tag: 0.70.0
+    pullPolicy: Always
+
+  replicaCount: 1
+
+  resources:
+    requests:
+       cpu: 100m
+       memory: 200Mi
+    limits:
+       cpu: 1
+       memory: 1Gi

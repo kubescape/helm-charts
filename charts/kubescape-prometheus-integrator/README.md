@@ -1,10 +1,12 @@
 # Kubescape-Prometheus Integration
 
-![Version: 0.0.3](https://img.shields.io/badge/Version-0.0.3-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.0.3](https://img.shields.io/badge/AppVersion-v0.0.3-informational?style=flat-square)
+![Version: 0.0.12](https://img.shields.io/badge/Version-0.0.12-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.0.12](https://img.shields.io/badge/AppVersion-v0.0.12-informational?style=flat-square)
 
 ## [Docs](https://hub.armosec.io/docs/prometheus-exporter)
 
-## Installing Kubescape-Prometheus integration Helm chart:
+Most of the end users either use [`kube-prometheus-stack`](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) prometheus operator else [`prometheus helm chart`](https://github.com/prometheus-community/helm-charts/tree/main/charts/prometheus) to install prometheus for monitoring. Based on your choice of prometheus, you can follow either of the below method to enable kubescape monitoring with Prometheus.  
+
+## Kubescape integration with Kube-Prometheus-stack (Prometheus operator):
 
 1. Install the `kube-prometheus-stack` Helm Chart
 ```
@@ -20,6 +22,25 @@ helm install -n prometheus kube-prometheus-stack prometheus-community/kube-prome
 helm repo add kubescape https://kubescape.github.io/helm-charts/
 helm repo update
 helm upgrade --install kubescape-prometheus kubescape/kubescape-prometheus-integrator -n kubescape-prometheus --create-namespace
+``` 
+---
+
+## Kubescape integration with Prometheus community helm chart:
+
+1. Install the `prometheus-community` Helm Chart
+```
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+kubectl create namespace prometheus
+helm install -n prometheus prometheus prometheus-community/prometheus
+```
+
+2. Install the `kubescape-prometheus-integrator` Helm Chart with podAnnotations enabled
+
+```
+helm repo add kubescape https://kubescape.github.io/helm-charts/
+helm repo update
+helm upgrade --install kubescape-prometheus kubescape/kubescape-prometheus-integrator -n kubescape-prometheus --set kubescape.prometheusAnnotation.enabled=True --create-namespace 
 ``` 
 ---
 
@@ -99,15 +120,22 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | kubescape.image.repository | string | `"quay.io/kubescape/kubescape"` | [source code](https://github.com/kubescape/kubescape/tree/master/httphandler) (public repo) |
 | kubescape.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | kubescape.serviceMonitor.enabled | bool | `true` | enable/disable service monitor for prometheus (operator) integration |
+| kubescape.serviceMonitor.interval | string | `20m` | Scrape interval |
+| kubescape.serviceMonitor.scrapeTimeout | string | `100s` | Adjust to avoid timeout |
+| kubescape.prometheusAnnotation.enabled | bool | `false` | add/remove pod annotation for prometheus (non-operator) integration |
 | kubescape.volumes | object | `[]` | Additional volumes for Kubescape |
 | kubescape.volumeMounts | object | `[]` | Additional volumeMounts for Kubescape |
+| kubescape.includeNamespaces | object | `[]` | List of namespaces to include, rest of the namespaces will be ignored. |
+| kubescape.excludeNamespaces | object | `[]` | List of namespaces to exclude |
 | kubescapeHostScanner.volumes | object | `[]` | Additional volumes for the host scanner |
 | kubescapeHostScanner.volumeMounts | object | `[]` | Additional volumeMounts for the host scanner |
 | awsIamRoleArn | string | `nil` | AWS IAM arn role |
-| cloudRegion | string | `nil` | cloud region |
-| cloudProviderEngine | string | `nil` | cloud provider engine |
-| gkeProject | string | `nil` | GKE project |
-| gkeServiceAccount | string | `nil` | GKE service account |
+| cloudProviderMetadata.cloudRegion | string | `nil` | cloud region |
+| cloudProviderMetadata.cloudProviderEngine | string | `nil` | cloud provider engine |
+| cloudProviderMetadata.gkeProject | string | `nil` | GKE project |
+| cloudProviderMetadata.gkeServiceAccount | string | `nil` | GKE service account |
+| cloudProviderMetadata.aksSubscriptionID | string | `nil` | AKS subscription ID |
+| cloudProviderMetadata.aksResourceGroup | string | `nil` | AKS resource group |
 | volumes | object | `[]` | Additional volumes for all containers |
 | volumeMounts | object | `[]` | Additional volumeMounts for all containers |
  

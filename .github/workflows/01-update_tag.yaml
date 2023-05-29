@@ -9,6 +9,9 @@ on:
 
   workflow_call:
     inputs:
+      CHANGE_TAG:
+        required: true
+        type: boolean
       IMAGE_TAG:
         required: true
         type: string
@@ -26,17 +29,18 @@ on:
     outputs:
       COMMIT_REF:
         description: "latest commit sha"
-        value: ${{ jobs.update-helm-values.outputs.COMMIT_REF}}
+        value: ${{ jobs.update-helm-chart.outputs.COMMIT_REF }}
 
 
 jobs:
-  update-helm-values:
+  update-helm-chart:
     outputs:
       COMMIT_REF: ${{ steps.commit-ref.outputs.COMMIT_REF }}
     runs-on: ubuntu-latest
     steps:
       - name: echo-input-parameters
         run:  |
+          echo "CHANGE_TAG = ${{ inputs.CHANGE_TAG }}"
           echo "IMAGE_TAG = ${{ inputs.IMAGE_TAG }}"
           echo "COMPONENT_NAME = ${{ inputs.COMPONENT_NAME }}"
           echo "MODE = ${{ inputs.MODE }}"
@@ -46,6 +50,7 @@ jobs:
         name: Checkout
 
       - name: change tag
+        if: ${{ inputs.CHANGE_TAG }}
         uses: matanshk/yaml-tag-changer@main
         with:
           filename: charts/kubescape-cloud-operator/values.yaml
@@ -53,6 +58,7 @@ jobs:
           tag: ${{ inputs.IMAGE_TAG }}
 
       - name: cat-file-values-file
+        if: ${{ inputs.CHANGE_TAG }}
         run: cat charts/kubescape-cloud-operator/values.yaml
 
       - name: Bump helm chart version
@@ -65,17 +71,19 @@ jobs:
       - name: cat Chart.yaml
         run: cat charts/kubescape-cloud-operator/Chart.yaml
 
-      - name: Commit and create PR
-        uses: peter-evans/create-pull-request@v4.2.3
+      - uses: stefanzweifel/git-auto-commit-action@v4.16.0
+        name: commit changes and push
         with:
-          token: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }} # needs to be a PAT with "repo" scoped permissions
-          commit-message: "Automated commit - update ${{ inputs.COMPONENT_NAME }} image tag with: ${{ inputs.IMAGE_TAG }}"
-          branch: dev
-          base: master
-          delete-branch: false
-          title: "Pulling ${{ github.ref }} into master - ${{ inputs.COMPONENT_NAME }}:${{ inputs.IMAGE_TAG }}"
-          draft: false
-
+          commit_message: "Automated commit - update ${{ inputs.COMPONENT_NAME }} image tag with: ${{ inputs.IMAGE_TAG }}"
+          commit_options: '--signoff'
+          
+      - uses: repo-sync/pull-request@v2.11
+        name: create a new PR
+        with:
+          destination_branch: "master"
+          pr_title: "Pulling ${{ github.ref_name }} branch into master - Automated PR by CICD"
+          github_token: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
+          
       - name: get latest commit sha
         id: commit-ref
         run: echo "COMMIT_REF=$(git log --oneline | head -n1 | awk {'print $1}')" >> $GITHUB_OUTPUT

@@ -1,6 +1,6 @@
 # Kubescape Operator
 
-![Version: 1.8.12](https://img.shields.io/badge/Version-1.8.12-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.8.12](https://img.shields.io/badge/AppVersion-v1.8.12-informational?style=flat-square)
+![Version: 1.11.0](https://img.shields.io/badge/Version-1.11.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.11.0](https://img.shields.io/badge/AppVersion-v1.11.0-informational?style=flat-square)
 
 ## [Docs](https://hub.armosec.io/docs/installation-of-armo-in-cluster)
 
@@ -67,7 +67,74 @@ If your cluster has 50 resources, we still recommend allocating at least 128 MiB
 When it comes to CPU, the more you allocate, the faster Kubescape will scan your cluster.
 This is especially true for clusters that have a large amount of resources.
 However, we recommend that you give Kubescape no less than 500m CPU no matter the size of your cluster so it can scan a relatively large amount of resources fast ;)
- 
+
+### Setting up Telemetry
+Several or our in-cluster components implement telemetry data using [OpenTelemetry](https://opentelemetry.io/) (otel).
+You can optionally install an otel [collector](https://opentelemetry.io/docs/collector/) to your cluster to aggregate all metrics and send them to your own tracing tool.
+
+You simply have to fill in these information before [installing kubescape operator](#installing-kubescape-operator-in-a-kubernetes-cluster-using-helm):
+```
+otelCollector:
+  enabled: true
+  endpoint:
+    host: <ip or dns for your gRPC otel endpoint>
+    port: 4317
+    insecure: <whether your otel endpoint requires ssl>
+    headers: <optional - map of headers required by tracing tool>
+```
+
+If you don't have an otel distribution, we suggest you try either [Uptrace](https://github.com/uptrace/uptrace/tree/master/example/docker) or [SigNoz](https://signoz.io/docs/install/docker/)
+as they are free, opensource and can be quickly deployed using docker-compose.
+
+#### Host metrics collection
+
+The OpenTelemetry collector is configured with the [`hostmetrics`](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/hostmetricsreceiver/README.md) receiver to collect CPU and memory utilization metrics.
+
+Note that the hostmetrics receiver is disabled by default. If you wish to enable it, simply install the operator with `--set otelCollector.hostmetrics.enabled=true`
+
+#### Example: exporting to uptrace running inside docker-compose
+
+```mermaid
+flowchart LR
+    subgraph kubernetes
+    A(kubescape) --> B(otel collector)
+    D(operator) --> B
+    E(host-scanner) --> B
+    F(kubevuln) --> B
+    end
+    subgraph docker-compose
+    B --> C(uptrace)
+    end
+```
+
+1. Download the example using Git:
+
+```shell
+git clone https://github.com/uptrace/uptrace.git
+cd uptrace/example/docker
+```
+
+2. Start the services using Docker:
+
+```shell
+docker-compose pull
+docker-compose up -d
+```
+
+3. Make sure Uptrace is running:
+
+```shell
+docker-compose logs uptrace
+```
+
+4. Follow the [instructions above](#installing-kubescape-operator-in-a-kubernetes-cluster-using-helm), add the OTEL collector configuration and install the operator as follows:
+  
+  ```
+  --set otelCollector.enabled=true --set otelCollector.endpoint.host=<collector host> --set otelCollector.endpoint.port=14317 --set otelCollector.endpoint.insecure=false
+  ```
+
+5. Open Uptrace UI at [http://localhost:14318/overview/2](http://localhost:14318/overview/2)
+
 
 ## Chart support
 
@@ -77,6 +144,7 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 |-----|------|---------|-------------|
 | global.networkPolicy.enabled | bool | `false` | Create NetworkPolicies for all components |
 | global.networkPolicy.createEgressRules | bool | `false` | Create common Egress rules for NetworkPolicies |
+| global.kubescapePsp.enabled | bool | `false` | Enable all privileges in Pod Security Policies for Kubescape namespace |
 | kollector.affinity | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the StatefulSet |
 | kollector.enabled | bool | `true` | enable/disable the kollector |
 | kollector.env[0] | object | `{"name":"PRINT_REPORT","value":"false"}` | print in verbose mode (print all reported data) |
@@ -128,10 +196,12 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | awsIamRoleArn | string | `nil` | AWS IAM arn role |
 | clientID | string | `""` | client ID, [read more](https://hub.armosec.io/docs/authentication) |
 | addRevisionLabel | bool | `true` | Add revision label to the components. This will insure the components will restart when updating the helm |
-| cloudRegion | string | `nil` | cloud region |
-| cloudProviderEngine | string | `nil` | cloud provider engine |
-| gkeProject | string | `nil` | GKE project |
-| gkeServiceAccount | string | `nil` | GKE service account |
+| cloudProviderMetadata.cloudRegion | string | `nil` | cloud region |
+| cloudProviderMetadata.cloudProviderEngine | string | `nil` | cloud provider engine |
+| cloudProviderMetadata.gkeProject | string | `nil` | GKE project |
+| cloudProviderMetadata.gkeServiceAccount | string | `nil` | GKE service account |
+| cloudProviderMetadata.aksSubscriptionID | string | `nil` | AKS subscription ID |
+| cloudProviderMetadata.aksResourceGroup | string | `nil` | AKS resource group |
 | secretKey | string | `""` | secret key, [read more](https://hub.armosec.io/docs/authentication) |
 | triggerNewImageScan | bool | `false` | enable/disable trigger image scan for new images |
 | volumes | object | `[]` | Additional volumes for all containers |

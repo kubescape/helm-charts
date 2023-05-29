@@ -1,3 +1,4 @@
+{{ template "cluster_name" . }}
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -6,13 +7,13 @@ metadata:
     k8s-app: kubescape-host-scanner
     kubernetes.io/metadata.name: kubescape-host-scanner
     tier: kubescape-host-scanner-control-plane
-  name: kubescape-host-scanner
+  name: kubescape
 ---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: host-scanner
-  namespace: kubescape-host-scanner
+  namespace: kubescape
   labels:
     app: host-scanner
     k8s-app: kubescape-host-scanner
@@ -24,6 +25,9 @@ spec:
     metadata:
       labels:
         name: host-scanner
+        {{- if .Values.otelCollector.enabled }}
+        otel: enabled
+        {{- end }}
     spec:
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -40,20 +44,33 @@ spec:
         effect: NoSchedule
       containers:
       - name: host-sensor
-        image: quay.io/armosec/kube-host-sensor:latest
+        image: quay.io/kubescape/host-scanner:v1.0.59
         securityContext:
+          allowPrivilegeEscalation: true
           privileged: true
           readOnlyRootFilesystem: true
           procMount: Unmasked
+        env:
+        - name: KS_LOGGER_LEVEL
+          value: "{{ .Values.logger.level }}"
+        - name: KS_LOGGER_NAME
+          value: "{{ .Values.logger.name }}" 
+        {{- if .Values.otelCollector.enabled }}
+        - name: ACCOUNT_ID
+          value: "{{ .Values.account }}"
+        - name: CLUSTER_NAME
+          value: "{{ regexReplaceAll "\\W+" .Values.clusterName "-" }}"
+        - name: OTEL_COLLECTOR_SVC
+          value: "otel-collector.kubescape.svc:4317"
+        {{- end }}
         ports:
           - name: scanner # Do not change port name
-            hostPort: 7888
             containerPort: 7888
             protocol: TCP
         resources:
           limits:
-            cpu: 0.1m
-            memory: 200Mi
+            cpu: 0.4m
+            memory: 400Mi
           requests:
             cpu: 0.1m
             memory: 200Mi
@@ -66,12 +83,17 @@ spec:
 {{- if .Values.kubescapeHostScanner.volumeMounts }}
 {{ toYaml .Values.kubescapeHostScanner.volumeMounts | indent 8 }}
 {{- end }}
-        readinessProbe:
+        startupProbe:
           httpGet:
-            path: /kernelVersion
+            path: /readyz
             port: 7888
-            initialDelaySeconds: 1
-            periodSeconds: 1
+          failureThreshold: 30
+          periodSeconds: 1
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 7888
+          periodSeconds: 10
       terminationGracePeriodSeconds: 120
       dnsPolicy: ClusterFirstWithHostNet
       automountServiceAccountToken: false
@@ -86,6 +108,5 @@ spec:
 {{- if .Values.kubescapeHostScanner.volumes }}
 {{ toYaml .Values.kubescapeHostScanner.volumes | indent 6 }}
 {{- end }}
-      hostNetwork: true
       hostPID: true
       hostIPC: true

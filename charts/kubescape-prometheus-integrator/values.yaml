@@ -24,6 +24,12 @@ cloudProviderMetadata:
 
   # -- GKE project
   gkeProject:
+
+  # -- AKS subscription ID
+  aksSubscriptionID:
+
+  # -- AKS resource group
+  aksResourceGroup:
  
 # Additional volumes applied to all containers
 volumes: []
@@ -46,7 +52,7 @@ kubescape:
   image:
     # -- source code: https://github.com/kubescape/kubescape/tree/master/httphandler (public repo)
     repository: quay.io/kubescape/kubescape
-    tag: v2.0.181
+    tag: v2.3.3
     pullPolicy: IfNotPresent
 
   resources:
@@ -66,8 +72,17 @@ kubescape:
   # -- skip check for a newer version 
   skipUpdateCheck: true
 
+  # -- set the number of concurrent goroutines to process OPA rules
+  ruleProcessingConcurrency: 1
+  
   # -- submit results to the Kubescape cloud: https://cloud.armosec.io/
   submit: false
+
+  # -- list of namespaces to include
+  includeNamespaces: []
+
+  # -- List of namespaces to exclude
+  excludeNamespaces: []
 
   replicaCount: 1
 
@@ -81,9 +96,18 @@ kubescape:
     # -- enable/disable service monitor for prometheus (operator) integration
     enabled: true
 
+    # -- scrape interval
+    interval: 20m
+
+    # -- adjust to avoid timeout
+    scrapeTimeout: 100s
+
     # If needed the service monitor can be deployed to a different namespace than the one kubescape is in
     #namespace: my-namespace
-
+  
+  # Enable prometheus pod annotations,to allow your opensource prometheus (not operator) to scrape metrics
+  prometheusAnnotation:
+    enabled: false
   # -- Additional volumes to be mounted on Kubescape
   volumes: []
 

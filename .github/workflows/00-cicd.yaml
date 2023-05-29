@@ -3,11 +3,15 @@ name: 00-CICD-helm-chart
 on:
   workflow_dispatch:
     inputs:
-      IMAGE_TAG:
+      CHANGE_TAG:
         required: true
+        default: true
+        type: boolean
+      IMAGE_TAG:
+        # required: true
         type: string
       COMPONENT_NAME:
-        required: true
+        # required: true
         type: string
       HELM_E2E_TEST:
         required: true
@@ -16,9 +20,29 @@ on:
     # secrets: inherit
 
 jobs:
-  helm-values-update:
+  input-validator:
+    runs-on: ubuntu-latest
+    steps:
+      - name: input validator
+        run: |
+          if [ ${{ inputs.CHANGE_TAG }} = true ]; then
+            echo "CHANGE_TAG = true, checking if inputs COMPONENT_NAME and IMAGE_TAG are not null"
+            echo "COMPONENT_NAME = ${{ inputs.COMPONENT_NAME }}"
+            echo "IMAGE_TAG = ${{ inputs.IMAGE_TAG }}"
+            if [[ "${{ inputs.COMPONENT_NAME }}" = "" ]] || [[ "${{ inputs.IMAGE_TAG }}" = "" ]]; then
+              echo "One or more inputs are undefined"
+              exit 1
+            fi
+            echo "We are good to go"
+          elif [ ${{ inputs.CHANGE_TAG }} = false ]; then
+            echo "CHANGE_TAG = false, the workflow will not change any component image tag"
+          fi
+
+  helm-chart-update:
+    needs: input-validator
     uses: ./.github/workflows/01-update_tag.yaml
     with:
+      CHANGE_TAG: ${{ inputs.CHANGE_TAG }}
       IMAGE_TAG: ${{ inputs.IMAGE_TAG }}
       COMPONENT_NAME: ${{ inputs.COMPONENT_NAME }}
       MODE: patch
@@ -26,7 +50,7 @@ jobs:
     secrets: inherit
 
   e2e-test:
-    needs: helm-values-update
+    needs: helm-chart-update
     if: ${{ inputs.HELM_E2E_TEST == true }}
     uses: ./.github/workflows/02-e2e-test.yaml
     with:
@@ -41,17 +65,18 @@ jobs:
       - name: merge-to-master
         uses: "pascalgn/automerge-action@v0.15.5"
         env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          GITHUB_TOKEN: "${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}"
           MERGE_COMMIT_MESSAGE: "Merge to master - PR number: {pullRequest.number}"
-          MERGE_ERROR_FAIL: true
-          MERGE_METHOD: merge
+          MERGE_ERROR_FAIL: "true"
+          MERGE_METHOD: "merge"
           MERGE_LABELS: ""
           UPDATE_LABELS: ""
 
   helm-release: 
-    needs: [helm-values-update, merge-to-master]
+    needs: [helm-chart-update, merge-to-master]
     if: ${{ (always() && (contains(needs.*.result, 'success') || contains(needs.*.result, 'skipped')) && !(contains(needs.*.result, 'failure')) && !(contains(needs.*.result, 'cancelled'))) }}
     with:
-      COMMIT_REF: ${{ needs.helm-values-update.outputs.COMMIT_REF }}
+      COMMIT_REF: ${{ needs.helm-chart-update.outputs.COMMIT_REF }}
+      CHARTS_DIR: charts/kubescape-cloud-operator
     uses: ./.github/workflows/03-helm-release.yaml
     secrets: inherit

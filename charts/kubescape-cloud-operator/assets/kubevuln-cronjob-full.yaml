@@ -16,10 +16,10 @@ apiVersion: batch/v1
               labels:
                 armo.tier: "vuln-scan"
             spec:
-              {{- if .Values.imagePullSecrets }}
+            {{- if .Values.imagePullSecrets }}
               imagePullSecrets:
               - name: {{ toYaml .Values.imagePullSecrets }}
-              {{- end }}
+            {{- end }}
               containers:
               - name: {{ .Values.kubevulnScheduler.name }}
                 image: "{{ .Values.kubevulnScheduler.image.repository }}:{{ .Values.kubevulnScheduler.image.tag }}"
@@ -29,6 +29,8 @@ apiVersion: batch/v1
                   readOnlyRootFilesystem: true
                   runAsNonRoot: true
                   runAsUser: 100
+                resources:
+{{ toYaml .Values.kubevulnScheduler.resources | indent 18 }}
                 args: 
                   - -method=post
                   - -scheme=http

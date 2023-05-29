@@ -1,0 +1,39 @@
+name: relevancy-helm-release
+
+on:
+  push:
+    branches:
+      - relevancy-tests
+  pull_request:
+    branches:
+      - relevancy
+      - relevancy-tests
+
+jobs:
+  which_branch:
+    runs-on: ubuntu-latest
+    outputs:
+      branch_name: ${{ steps.extract_branch.outputs.branch_name }}
+    steps:
+    # extract branch name
+    - name: Extract branch name
+      id: extract_branch
+      run: |
+          if [[ "${{github.event_name}}" == "pull_request" ]]; then 
+            echo "branch_name=${{ github.head_ref }}" >> $GITHUB_ENV
+          else 
+            BRANCH_NAME="${{ github.ref }}"
+            BRANCH_NAME=${BRANCH_NAME#refs/heads/}
+            echo "branch_name=$BRANCH_NAME" >> $GITHUB_ENV
+          fi
+          echo "::set-output name=branch_name::$(echo $BRANCH_NAME)"
+          
+    - name: Print branch name
+      run: echo "${{ steps.extract_branch.outputs.branch_name }}"
+  
+  e2e-test:
+    needs: which_branch
+    uses: ./.github/workflows/relevancy-e2e-test.yaml
+    with:
+      BRANCH: "${{ needs.which_branch.outputs.branch_name }}"
+    secrets: inherit
