@@ -113,7 +113,17 @@ spec:
 {{- if .Values.operator.volumeMounts }}
 {{ toYaml .Values.operator.volumeMounts | indent 12 }}
 {{- end }}
+{{- if ne .Values.global.proxySecretFile ""}}
+            - name: proxy-secret
+              mountPath: /etc/ssl/certs/proxy.crt
+              subPath: proxy.crt
+{{- end }}
       volumes:
+        {{- if ne .Values.global.proxySecretFile ""}}
+        - name: proxy-secret
+          secret:
+            secretName: {{ .Values.global.proxySecretName }}
+        {{- end }}
         - name: tmp-dir
           emptyDir: {}
         - name: {{ .Values.global.cloudConfig }}

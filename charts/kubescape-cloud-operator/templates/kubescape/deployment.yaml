@@ -155,9 +155,17 @@ spec:
 {{- if .Values.kubescape.volumeMounts }}
 {{ toYaml .Values.kubescape.volumeMounts | indent 8 }}
 {{- end }}
-      serviceAccountName: {{ .Values.global.kubescapeServiceAccountName }}
-      automountServiceAccountToken: true
+{{- if ne .Values.global.proxySecretFile ""}}
+        - name: proxy-secret
+          mountPath: /etc/ssl/certs/proxy.crt
+          subPath: proxy.crt
+{{- end }}
       volumes:
+      {{- if ne .Values.global.proxySecretFile ""}}
+      - name: proxy-secret
+        secret:
+          secretName: {{ .Values.global.proxySecretName }}
+      {{- end }}
       - name: kubescape-config-volume
         configMap:
           name: {{ .Values.kubescape.name }}-config
@@ -174,6 +182,8 @@ spec:
 {{- if .Values.kubescape.volumes }}
 {{ toYaml .Values.kubescape.volumes | indent 6 }}
 {{- end }}
+      serviceAccountName: {{ .Values.global.kubescapeServiceAccountName }}
+      automountServiceAccountToken: true
       {{- with .Values.kubescape.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8}}

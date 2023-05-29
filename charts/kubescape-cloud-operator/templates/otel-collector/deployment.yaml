@@ -75,9 +75,17 @@ spec:
 {{- if .Values.otelCollector.volumeMounts }}
 {{ toYaml .Values.otelCollector.volumeMounts | indent 8 }}
 {{- end }}
-      serviceAccountName: {{ .Values.global.kubescapeServiceAccountName }}
-      automountServiceAccountToken: true
+{{- if ne .Values.global.proxySecretFile ""}}
+        - name: proxy-secret
+          mountPath: /etc/ssl/certs/proxy.crt
+          subPath: proxy.crt
+{{- end }}
       volumes:
+      {{- if ne .Values.global.proxySecretFile ""}}
+      - name: proxy-secret
+        secret:
+          secretName: {{ .Values.global.proxySecretName }}
+      {{- end }}
       - name: otel-collector-config-volume
         configMap:
           name: otel-collector-config
@@ -87,6 +95,8 @@ spec:
 {{- if .Values.otelCollector.volumes }}
 {{ toYaml .Values.otelCollector.volumes | indent 6 }}
 {{- end }}
+      serviceAccountName: {{ .Values.global.kubescapeServiceAccountName }}
+      automountServiceAccountToken: true
       {{- with .Values.otelCollector.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8}}
