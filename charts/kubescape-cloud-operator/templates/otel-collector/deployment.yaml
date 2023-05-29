@@ -1,4 +1,5 @@
 {{- if .Values.otelCollector.enabled  }}
+{{- $no_proxy_envar_list := (include "no_proxy_envar_list" .) -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -54,6 +55,12 @@ spec:
         env:
         - name: GOGC
           value: "80"
+        {{- if ne .Values.global.httpsProxy ""}}
+        - name: HTTPS_PROXY
+          value: "{{ .Values.global.httpsProxy }}"
+        - name : no_proxy
+          value: "{{ $no_proxy_envar_list }}"
+        {{- end }}
         command:
         - "/otelcol"
         - "--config=/conf/otel-collector-config.yaml"
@@ -68,9 +75,17 @@ spec:
 {{- if .Values.otelCollector.volumeMounts }}
 {{ toYaml .Values.otelCollector.volumeMounts | indent 8 }}
 {{- end }}
-      serviceAccountName: {{ .Values.global.kubescapeServiceAccountName }}
-      automountServiceAccountToken: true
+{{- if ne .Values.global.proxySecretFile ""}}
+        - name: proxy-secret
+          mountPath: /etc/ssl/certs/proxy.crt
+          subPath: proxy.crt
+{{- end }}
       volumes:
+      {{- if ne .Values.global.proxySecretFile ""}}
+      - name: proxy-secret
+        secret:
+          secretName: {{ .Values.global.proxySecretName }}
+      {{- end }}
       - name: otel-collector-config-volume
         configMap:
           name: otel-collector-config
@@ -80,6 +95,8 @@ spec:
 {{- if .Values.otelCollector.volumes }}
 {{ toYaml .Values.otelCollector.volumes | indent 6 }}
 {{- end }}
+      serviceAccountName: {{ .Values.global.kubescapeServiceAccountName }}
+      automountServiceAccountToken: true
       {{- with .Values.otelCollector.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8}}
