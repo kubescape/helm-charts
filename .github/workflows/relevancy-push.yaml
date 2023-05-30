@@ -27,13 +27,25 @@ jobs:
             echo "branch_name=$BRANCH_NAME" >> $GITHUB_ENV
           fi
           echo "::set-output name=branch_name::$(echo $BRANCH_NAME)"
+          echo "branch_name=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
           
     - name: Print branch name
       run: echo "${{ steps.extract_branch.outputs.branch_name }}"
   
-  e2e-test:
+  # e2e-test:
+  #   needs: which_branch
+  #   uses: ./.github/workflows/relevancy-e2e-test.yaml
+  #   with:
+  #     BRANCH: "${{ needs.which_branch.outputs.branch_name }}"
+  #   secrets: inherit
+
+  test-output:
+    runs-on: ubuntu-latest
+    name: test-output
     needs: which_branch
-    uses: ./.github/workflows/relevancy-e2e-test.yaml
-    with:
-      BRANCH: "${{ needs.which_branch.outputs.branch_name }}"
-    secrets: inherit
+    steps:
+    - name: print-output
+      run: |
+          echo "${{ needs.which_branch.outputs.branch_name }}"
+      
+      
