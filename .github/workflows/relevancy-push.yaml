@@ -26,18 +26,19 @@ jobs:
             BRANCH_NAME="${{ github.ref }}"
             BRANCH_NAME=${BRANCH_NAME#refs/heads/}
             echo "branch_name=$BRANCH_NAME" >> $GITHUB_ENV
+            echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
           fi
           echo "::set-output name=branch_name::$(echo $BRANCH_NAME)"
           
     - name: Print branch name
       run: echo "${{ steps.extract_branch.outputs.branch_name }}"
   
-  # e2e-test:
-  #   needs: which_branch
-  #   uses: ./.github/workflows/relevancy-e2e-test.yaml
-  #   with:
-  #     BRANCH: "${{ needs.which_branch.outputs.branch_name }}"
-  #   secrets: inherit
+  e2e-test:
+    needs: which_branch
+    uses: ./.github/workflows/relevancy-e2e-test.yaml
+    with:
+      BRANCH: "${{ needs.which_branch.outputs.branch_name }}"
+    secrets: inherit
 
   test-output:
     runs-on: ubuntu-latest
