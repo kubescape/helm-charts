@@ -1,4 +1,4 @@
-{{- if .Values.kubescape.enabled  }}
+{{- if .Values.kubescape.enabled }}
 {{- $cloud_provider := (include "cloud_provider" .) -}}
 apiVersion: apps/v1
 kind: Deployment
@@ -23,14 +23,14 @@ spec:
     matchLabels:
       app.kubernetes.io/name: {{ .Values.kubescape.name }}
       app.kubernetes.io/instance: {{ .Release.Name }}
-      tier: {{ .Values.global.namespaceTier}}
+      tier: {{ .Values.global.namespaceTier }}
   template:
     metadata:
       labels:
         app.kubernetes.io/name: {{ .Values.kubescape.name }}
         app.kubernetes.io/instance: {{ .Release.Name }}
         helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
-        tier: {{ .Values.global.namespaceTier}}
+        tier: {{ .Values.global.namespaceTier }}
         app: {{ .Values.kubescape.name }}
       {{- if .Values.kubescape.prometheusAnnotation.enabled }}
       annotations:
@@ -132,7 +132,7 @@ spec:
 {{- if .Values.kubescape.volumeMounts }}
 {{ toYaml .Values.kubescape.volumeMounts | indent 8 }}
 {{- end }}
-      serviceAccountName: {{ .Values.global.kubescapeServiceAccountName }}
+      serviceAccountName: {{ .Values.kubescape.name }}
       automountServiceAccountToken: true
       volumes:
       - name: host-scanner-definition
@@ -146,10 +146,10 @@ spec:
 {{- end }}
       {{- with .Values.kubescape.nodeSelector }}
       nodeSelector:
-        {{- toYaml . | nindent 8}}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.kubescape.affinity }}
       affinity:
-        {{- toYaml . | nindent 8}}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
 {{- end }}

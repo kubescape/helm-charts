@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/name: {{ .Values.gateway.name }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app: {{ .Values.gateway.name }}
-    tier: {{ .Values.global.namespaceTier}}
+    tier: {{ .Values.global.namespaceTier }}
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
 spec:
   replicas: {{ .Values.gateway.replicaCount }}
@@ -23,14 +23,14 @@ spec:
     matchLabels:
       app.kubernetes.io/name: {{ .Values.gateway.name }}
       app.kubernetes.io/instance: {{ .Release.Name }}
-      tier: {{ .Values.global.namespaceTier}}
+      tier: {{ .Values.global.namespaceTier }}
   template:
     metadata:
       labels:
         app.kubernetes.io/name: {{ .Values.gateway.name }}
         app.kubernetes.io/instance: {{ .Release.Name }}
         helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
-        tier: {{ .Values.global.namespaceTier}}
+        tier: {{ .Values.global.namespaceTier }}
         app: {{ .Values.gateway.name }}
       {{- if .Values.global.addRevisionLabel }}
         helm.sh/revision: "{{ .Release.Revision }}"
@@ -89,14 +89,14 @@ spec:
             - name: OTEL_COLLECTOR_SVC
               value: "otel-collector:4317"
             {{- end }}
-            {{- if ne .Values.global.httpsProxy ""}}
+            {{- if ne .Values.global.httpsProxy "" }}
             - name: HTTPS_PROXY
               value: "{{ .Values.global.httpsProxy }}"
             - name : no_proxy
               value: "{{ $no_proxy_envar_list }}"
             {{- end }}
             {{- range .Values.gateway.env }}
-            - name: {{ .name  }}
+            - name: {{ .name }}
               value: "{{ .value }}"
             {{- end }}
           args:
@@ -113,13 +113,13 @@ spec:
 {{- if .Values.gateway.volumeMounts }}
 {{ toYaml .Values.gateway.volumeMounts | indent 10 }}
 {{- end }}
-          {{- if ne .Values.global.proxySecretFile ""}}
+          {{- if ne .Values.global.proxySecretFile "" }}
           - name: proxy-secret
             mountPath: /etc/ssl/certs/proxy.crt
             subPath: proxy.crt
           {{- end }}
       volumes:
-      {{- if ne .Values.global.proxySecretFile ""}}
+      {{- if ne .Values.global.proxySecretFile "" }}
         - name: proxy-secret
           secret:
             secretName: {{ .Values.global.proxySecretName }}

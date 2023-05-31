@@ -325,9 +325,9 @@ graph TB
     k8sApi(Kubernetes API);
     kubevuln(Kubevuln)
     ks(Kubescape)
-    urlCm{{ConfigMap<br>URLs}}
-    recurringTempCm{{ConfigMap<br>Recur. Scan Template}}
-    recurringScanCj{{CronJob<br>Recurring Scan}}
+    urlCm{{ConfigMap<br>URLs }}
+    recurringTempCm{{ConfigMap<br>Recur. Scan Template }}
+    recurringScanCj{{CronJob<br>Recurring Scan }}
   end;
    masterGw(Master Gateway) .- gw
     gw ---> operator
@@ -364,10 +364,10 @@ subgraph Cluster
     k8sApi(Kubernetes API)
     operator(Operator)
     gateway(Gateway)
-    urlCm{{ConfigMap<br>URLs}}
-    recurringScanCj{{CronJob<br>Recurring Scan}}
-    recurringScanCm{{ConfigMap<br>Recurring Scan}}
-    recurringTempCm{{ConfigMap<br>Recurring Scan Template}}
+    urlCm{{ConfigMap<br>URLs }}
+    recurringScanCj{{CronJob<br>Recurring Scan }}
+    recurringScanCm{{ConfigMap<br>Recurring Scan }}
+    recurringTempCm{{ConfigMap<br>Recurring Scan Template }}
 
 end
 
@@ -415,10 +415,10 @@ subgraph Cluster
     k8sApi(Kubernetes API)
     operator(Operator)
     gateway(Gateway)
-    ksCm{{ConfigMap<br>Kubescape}}
-    recurringScanCj{{CronJob<br>Recurring Scan}}
-    recurringScanCm{{ConfigMap<br>Recurring Scan}}
-    recurringTempCm{{ConfigMap<br>Recurring Scan Template}}
+    ksCm{{ConfigMap<br>Kubescape }}
+    recurringScanCj{{CronJob<br>Recurring Scan }}
+    recurringScanCm{{ConfigMap<br>Recurring Scan }}
+    recurringTempCm{{ConfigMap<br>Recurring Scan Template }}
 end
 
 masterGateway .- gateway

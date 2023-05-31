@@ -2,21 +2,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "storage.apiServer.deploymentName" . | quote }}
+  name: {{ .Values.storage.name }}
   namespace: {{ .Values.ksNamespace }}
   labels:
-    {{ .Values.storage.labels | toYaml  | nindent 4}}
+    {{ .Values.storage.labels | toYaml  | nindent 4 }}
 spec:
   replicas: {{ .Values.storage.replicaCount }}
   selector:
     matchLabels:
-      {{ .Values.storage.labels | toYaml | nindent 6}}
+      {{ .Values.storage.labels | toYaml | nindent 6 }}
   template:
     metadata:
       labels:
-        {{ .Values.storage.labels | toYaml | nindent 8}}
+        {{ .Values.storage.labels | toYaml | nindent 8 }}
     spec:
-      serviceAccountName: {{ include "storage.serviceAccountName" . | quote }}
+      serviceAccountName: {{ .Values.storage.name }}
       securityContext:
         runAsUser: 100
         fsGroup: 101
@@ -39,7 +39,7 @@ spec:
         - name: "data"
           {{- if .Values.persistence.enabled }}
           persistentVolumeClaim:
-            claimName: {{ include "storage.apiServer.deploymentName" . | quote }}
+            claimName: {{ .Values.storage.name }}
           {{- else }}
           emptyDir: {}
           {{- end }}
