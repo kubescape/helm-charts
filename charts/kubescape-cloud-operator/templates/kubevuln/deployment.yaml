@@ -50,6 +50,7 @@ spec:
           imagePullPolicy: {{ .Values.kubevuln.image.pullPolicy }}
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 100
           ports:
@@ -102,11 +103,8 @@ spec:
             - name: {{ .Values.global.cloudConfig }}
               mountPath: /etc/config
               readOnly: true
-            {{- if .Values.persistence.enabled }}
             - name: "grype-db"
               mountPath: "/home/ks/.cache/grype"
-              readOnly: false
-            {{- end }}
 {{- if .Values.volumeMounts }}
 {{ toYaml .Values.volumeMounts | indent 12 }}
 {{- end }}
@@ -134,11 +132,13 @@ spec:
             items:
             - key: "clusterData"
               path: "clusterData.json"
-        {{- if .Values.persistence.enabled }}
         - name: "grype-db"
+          {{- if .Values.persistence.enabled }}
           persistentVolumeClaim:
             claimName: "{{ .Values.kubevuln.name }}"
-        {{- end }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
 {{- if .Values.volumes }}
 {{ toYaml .Values.volumes | indent 8 }}
 {{- end }}
