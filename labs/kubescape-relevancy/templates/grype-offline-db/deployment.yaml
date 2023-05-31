@@ -1,0 +1,53 @@
+{{- if .Values.grypeOfflineDB.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.grypeOfflineDB.name }}
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.grypeOfflineDB.name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app: {{ .Values.grypeOfflineDB.name }}
+    tier: {{ .Values.global.namespaceTier}}
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  strategy:
+    rollingUpdate:
+      maxSurge: 0%
+      maxUnavailable: 100%
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.grypeOfflineDB.name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      tier: {{ .Values.global.namespaceTier}}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Values.grypeOfflineDB.name }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        tier: {{ .Values.global.namespaceTier}}
+        app: {{ .Values.grypeOfflineDB.name }}
+      {{- if .Values.global.addRevisionLabel }}
+        helm.sh/revision: "{{ .Release.Revision }}"
+      {{- end }}
+    spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+      - name: {{ toYaml .Values.imagePullSecrets }}
+      {{- end }}
+      containers:
+        - name: {{ .Values.grypeOfflineDB.name }}
+          image: "{{ .Values.grypeOfflineDB.image.repository }}@{{ .Values.grypeOfflineDB.image.sha }}"
+          imagePullPolicy: {{ .Values.grypeOfflineDB.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          resources:
+{{ toYaml .Values.grypeOfflineDB.resources | indent 12 }}
+{{- end }}

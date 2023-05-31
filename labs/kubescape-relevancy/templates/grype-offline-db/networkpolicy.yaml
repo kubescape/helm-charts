@@ -1,0 +1,28 @@
+{{- if .Values.grypeOfflineDB.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Values.grypeOfflineDB.name }}
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    app: {{ .Values.grypeOfflineDB.name }}
+    tier: {{ .Values.global.namespaceTier}}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.grypeOfflineDB.name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      tier: {{ .Values.global.namespaceTier}}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: {{ .Values.ksNamespace }}
+              app.kubernetes.io/name: {{ .Values.kubevuln.name }}
+              tier: {{ .Values.global.namespaceTier}}
+      ports:
+        - port: 8080
+          protocol: TCP
+{{- end }}
