@@ -1,0 +1,41 @@
+{{- if .Values.kubescapeStorage.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kubescapeStorage.apiServer.deploymentName" . | quote }}
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    {{ .Values.kubescapeStorage.k8sApiserver.deployment.labels | toYaml  | nindent 4}}
+spec:
+  replicas: {{ .Values.kubescapeStorage.k8sApiserver.deployment.replicaCount }}
+  selector:
+    matchLabels:
+      {{ .Values.kubescapeStorage.k8sApiserver.deployment.labels | toYaml | nindent 6}}
+  template:
+    metadata:
+      labels:
+        {{ .Values.kubescapeStorage.k8sApiserver.deployment.labels | toYaml | nindent 8}}
+    spec:
+      serviceAccountName: {{ include "kubescapeStorage.serviceAccountName" . | quote }}
+      securityContext:
+        runAsUser: 100
+        fsGroup: 101
+      containers:
+      - name: apiserver
+        image: {{ printf "%s:%s" .Values.kubescapeStorage.k8sApiserver.deployment.image.repository .Values.kubescapeStorage.k8sApiserver.deployment.image.tag  | quote }}
+        imagePullPolicy: {{ .Values.kubescapeStorage.k8sApiserver.deployment.image.pullPolicy | quote }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+        volumeMounts:
+          - name: "data"
+            mountPath: "/data"
+      volumes:
+        - name: "data"
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "kubescapeStorage.apiServer.deploymentName" . | quote }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+{{- end }}

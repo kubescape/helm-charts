@@ -71,7 +71,7 @@ volumeMounts: []
 # Enable persistence using Persistent Volume Claims
 persistence:
   # -- enable/disable persistence
-  enabled: false
+  enabled: true
 
   # -- persistence storage class
   #    ref: https://kubernetes.io/docs/concepts/storage/storage-classes/
@@ -85,7 +85,7 @@ persistence:
   # -- persistence size
   size:
     backingStorage: 5Gi
-    kubevuln: 1Gi
+    kubevuln: 2Gi
 
 global:
   addRevisionLabel: true
@@ -160,7 +160,7 @@ kubescape:
   image:
     # -- source code: https://github.com/kubescape/kubescape/tree/master/httphandler (public repo)
     repository: quay.io/kubescape/kubescape
-    tag: v2.3.5
+    tag: v2.3.4
     pullPolicy: Always
 
   resources:
@@ -516,3 +516,42 @@ otelCollector:
     limits:
        cpu: 1
        memory: 1Gi
+
+# Values for the Kubescape Storage service that Kubescape uses for its internal
+# purposes like storage
+kubescapeStorage:
+  enabled: true
+
+  # Values or the Aggregated APIServer
+  k8sApiserver:
+    name: "storage-aggregated-apiserver"
+
+    deployment:
+      labels:
+        app.kubernetes.io/name: "aggregated-apiserver"
+        app.kubernetes.io/component: "apiserver"
+        app.kubernetes.io/part-of: "kubescape-storage"
+
+      replicaCount: 1
+      image:
+        pullPolicy: "IfNotPresent"
+        repository: "quay.io/matthiasb_1/storage"
+        tag: "noetcd"
+
+grypeOfflineDB:
+  enabled: false
+
+  name: grype-offline-db
+
+  image:
+    repository: ghcr.io/alexandreroman/grype-offline-db
+    sha: sha256:155db3be4baa461a50cebadfc8f52108fca71aa4ce5e460a30a4e0922e899ed2
+    pullPolicy: IfNotPresent
+
+  resources:
+    requests:
+       cpu: 100m
+       memory: 200Mi
+    limits:
+       cpu: 100m
+       memory: 200Mi
