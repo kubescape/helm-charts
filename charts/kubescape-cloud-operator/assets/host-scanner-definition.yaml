@@ -7,13 +7,13 @@ metadata:
     k8s-app: kubescape-host-scanner
     kubernetes.io/metadata.name: kubescape-host-scanner
     tier: kubescape-host-scanner-control-plane
-  name: kubescape-host-scanner
+  name: kubescape
 ---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: host-scanner
-  namespace: kubescape-host-scanner
+  namespace: kubescape
   labels:
     app: host-scanner
     k8s-app: kubescape-host-scanner
@@ -44,8 +44,9 @@ spec:
         effect: NoSchedule
       containers:
       - name: host-sensor
-        image: quay.io/kubescape/host-scanner:v1.0.54
+        image: quay.io/kubescape/host-scanner:v1.0.59
         securityContext:
+          allowPrivilegeEscalation: true
           privileged: true
           readOnlyRootFilesystem: true
           procMount: Unmasked
@@ -82,12 +83,17 @@ spec:
 {{- if .Values.kubescapeHostScanner.volumeMounts }}
 {{ toYaml .Values.kubescapeHostScanner.volumeMounts | indent 8 }}
 {{- end }}
-        readinessProbe:
+        startupProbe:
           httpGet:
-            path: /kernelVersion
+            path: /readyz
             port: 7888
-            initialDelaySeconds: 1
-            periodSeconds: 1
+          failureThreshold: 30
+          periodSeconds: 1
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 7888
+          periodSeconds: 10
       terminationGracePeriodSeconds: 120
       dnsPolicy: ClusterFirstWithHostNet
       automountServiceAccountToken: false
