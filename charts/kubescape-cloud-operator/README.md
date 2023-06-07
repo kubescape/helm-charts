@@ -332,7 +332,6 @@ graph TB
    masterGw(Master Gateway) .- gw
     gw ---> operator
     recurringScanCj ---> operator
-    recurringScanCj --> recurringScanCj
     operator -->|scan cluster| ks
     operator -->|scan images| kubevuln
     operator --> k8sApi
@@ -379,7 +378,6 @@ operator -->|Start Scan| kubevuln
 operator --- urlCm
 urlCm --- kubevuln 
 recurringTempCm --- operator
-recurringScanCj -->|Periodic Run| recurringScanCj
 recurringScanCj -->|Scan Notification| operator
 recurringScanCm --- recurringScanCj
 
@@ -429,7 +427,6 @@ operator -->|Start Scan| ks
 ks-->|Collect Cluster Info|k8sApi
 ksCm --- ks 
 recurringTempCm --- operator
-recurringScanCj -->|Periodic Run| recurringScanCj
 recurringScanCj -->|Scan Notification| operator
 recurringScanCm --- recurringScanCj
 subgraph Backend
