@@ -53,81 +53,81 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{/*
 Create the name of the Kubescape Storage ServiceAccount to use
 */}}
-{{- define "kubescapeStorage.serviceAccountName" -}}
-  {{- .Values.kubescapeStorage.k8sApiserver.name | printf "%s-sa" }}
+{{- define "storage.serviceAccountName" -}}
+  {{- .Values.storage.name | printf "%s-sa" }}
 {{- end }}
 
 {{/*
 Create the name of the Kubescape Storage ClusterRole to use
 */}}
-{{- define "kubescapeStorage.clusterRoleName" -}}
-  {{- .Values.kubescapeStorage.k8sApiserver.name | printf "%s-clusterrole" }}
+{{- define "storage.clusterRoleName" -}}
+  {{- .Values.storage.name | printf "%s-clusterrole" }}
 {{- end }}
 
 {{/*
 Create the name of the Kubescape Storage ClusterRoleBinding to use
 */}}
-{{- define "kubescapeStorage.clusterRoleBindingName" -}}
-  {{- .Values.kubescapeStorage.k8sApiserver.name | printf "%s-clusterrolebinding" }}
+{{- define "storage.clusterRoleBindingName" -}}
+  {{- .Values.storage.name | printf "%s-clusterrolebinding" }}
 {{- end }}
 
 {{/*
 Create the name of the Kubescape Storage Auth Reader RoleBinding to use
 */}}
-{{- define "kubescapeStorage.authReaderRoleBindingName" -}}
-  {{- .Values.kubescapeStorage.k8sApiserver.name | printf "%s-auth-reader" }}
+{{- define "storage.authReaderRoleBindingName" -}}
+  {{- .Values.storage.name | printf "%s-auth-reader" }}
 {{- end }}
 
 {{/*
 Create the name of the Kubescape Storage Auth Reader ClusterRoleBinding to use
 */}}
-{{- define "kubescapeStorage.authDelegatorClusterRoleBindingName" -}}
-  {{- .Values.kubescapeStorage.k8sApiserver.name | printf "%s:system:auth-delegator" }}
+{{- define "storage.authDelegatorClusterRoleBindingName" -}}
+  {{- .Values.storage.name | printf "%s:system:auth-delegator" }}
 {{- end }}
 
 {{/*
 Create the name of the Kubescape Storage APIServer to use
 */}}
-{{- define "kubescapeStorage.apiServer.deploymentName" -}}
-  {{- .Values.kubescapeStorage.k8sApiserver.name | printf "%s-apiserver" }}
+{{- define "storage.apiServer.deploymentName" -}}
+  {{- .Values.storage.name | printf "%s-apiserver" }}
 {{- end }}
 
 {{/*
 Name of the Kubescape Storage APIServer Service
 */}}
-{{- define "kubescapeStorage.apiServer.service.name" -}}
-  {{- .Values.kubescapeStorage.k8sApiserver.name | printf "%s-api" }}
+{{- define "storage.apiServer.service.name" -}}
+  {{- .Values.storage.name | printf "%s-api" }}
 {{- end }}
 
 {{/*
 Kubescape Storage: value of the backing storage's container port serving the payload
 */}}
-{{- define "kubescapeStorage.backingStorage.containerPort" -}}
+{{- define "storage.backingStorage.containerPort" -}}
 2379
 {{- end }}
 
 {{/*
 Kubescape Storage: value of the backing storage deployment port
 */}}
-{{- define "kubescapeStorage.backingStorage.deployment.port" -}}
+{{- define "storage.backingStorage.deployment.port" -}}
 - name: "etcd-port"
   protocol: "TCP"
-  containerPort: {{ include "kubescapeStorage.backingStorage.containerPort" . }}
+  containerPort: {{ include "storage.backingStorage.containerPort" . }}
 {{- end }}
 
 {{/*
 Kubescape Storage: value of the backing storage service port
 */}}
-{{- define "kubescapeStorage.backingStorage.service.port" -}}
+{{- define "storage.backingStorage.service.port" -}}
 - name: "etcd-port"
   protocol: "TCP"
-  targetPort: {{ include "kubescapeStorage.backingStorage.containerPort" . }}
-  port: {{ include "kubescapeStorage.backingStorage.containerPort" . }}
+  targetPort: {{ include "storage.backingStorage.containerPort" . }}
+  port: {{ include "storage.backingStorage.containerPort" . }}
 {{- end }}
 
 {{/*
 Kubescape Storage: value of the backing storage service name
 */}}
-{{- define "kubescapeStorage.backingStorage.service.name" -}}
-{{- printf "%s-backing-storage-svc" .Values.kubescapeStorage.k8sApiserver.name -}}
+{{- define "storage.backingStorage.service.name" -}}
+{{- printf "%s-backing-storage-svc" .Values.storage.name -}}
 {{- end }}

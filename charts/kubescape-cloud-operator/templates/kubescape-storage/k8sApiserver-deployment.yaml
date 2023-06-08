@@ -1,29 +1,29 @@
-{{- if .Values.kubescapeStorage.enabled }}
+{{- if .Values.storage.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "kubescapeStorage.apiServer.deploymentName" . | quote }}
+  name: {{ include "storage.apiServer.deploymentName" . | quote }}
   namespace: {{ .Values.ksNamespace }}
   labels:
-    {{ .Values.kubescapeStorage.k8sApiserver.deployment.labels | toYaml  | nindent 4}}
+    {{ .Values.storage.labels | toYaml  | nindent 4}}
 spec:
-  replicas: {{ .Values.kubescapeStorage.k8sApiserver.deployment.replicaCount }}
+  replicas: {{ .Values.storage.replicaCount }}
   selector:
     matchLabels:
-      {{ .Values.kubescapeStorage.k8sApiserver.deployment.labels | toYaml | nindent 6}}
+      {{ .Values.storage.labels | toYaml | nindent 6}}
   template:
     metadata:
       labels:
-        {{ .Values.kubescapeStorage.k8sApiserver.deployment.labels | toYaml | nindent 8}}
+        {{ .Values.storage.labels | toYaml | nindent 8}}
     spec:
-      serviceAccountName: {{ include "kubescapeStorage.serviceAccountName" . | quote }}
+      serviceAccountName: {{ include "storage.serviceAccountName" . | quote }}
       securityContext:
         runAsUser: 100
         fsGroup: 101
       containers:
       - name: apiserver
-        image: {{ printf "%s:%s" .Values.kubescapeStorage.k8sApiserver.deployment.image.repository .Values.kubescapeStorage.k8sApiserver.deployment.image.tag  | quote }}
-        imagePullPolicy: {{ .Values.kubescapeStorage.k8sApiserver.deployment.image.pullPolicy | quote }}
+        image: {{ printf "%s:%s" .Values.storage.image.repository .Values.storage.image.tag  | quote }}
+        imagePullPolicy: {{ .Values.storage.image.pullPolicy | quote }}
         securityContext:
           allowPrivilegeEscalation: false
           runAsNonRoot: true
@@ -34,7 +34,7 @@ spec:
         - name: "data"
           {{- if .Values.persistence.enabled }}
           persistentVolumeClaim:
-            claimName: {{ include "kubescapeStorage.apiServer.deploymentName" . | quote }}
+            claimName: {{ include "storage.apiServer.deploymentName" . | quote }}
           {{- else }}
           emptyDir: {}
           {{- end }}

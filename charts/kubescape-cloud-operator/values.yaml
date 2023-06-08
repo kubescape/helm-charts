@@ -519,24 +519,30 @@ otelCollector:
 
 # Values for the Kubescape Storage service that Kubescape uses for its internal
 # purposes like storage
-kubescapeStorage:
+storage:
   enabled: true
 
   # Values or the Aggregated APIServer
-  k8sApiserver:
-    name: "storage-aggregated-apiserver"
+  name: "storage"
 
-    deployment:
-      labels:
-        app.kubernetes.io/name: "aggregated-apiserver"
-        app.kubernetes.io/component: "apiserver"
-        app.kubernetes.io/part-of: "kubescape-storage"
+  labels:
+    app.kubernetes.io/name: "storage"
+    app.kubernetes.io/component: "apiserver"
+    app.kubernetes.io/part-of: "kubescape-storage"
 
-      replicaCount: 1
-      image:
-        pullPolicy: "IfNotPresent"
-        repository: "vklokun/kube-sample-apiserver"
-        tag: "watch-gupdate"
+  resources:
+    requests:
+       cpu: 50m
+       memory: 400Mi
+    limits:
+       cpu: 150m
+       memory: 600Mi
+
+  replicaCount: 1
+  image:
+    pullPolicy: "IfNotPresent"
+    repository: "vklokun/kube-sample-apiserver"
+    tag: "watch-gupdate"
 
 grypeOfflineDB:
   enabled: false
@@ -568,6 +574,14 @@ nodeAgent:
 
   daemonset: 
     name: node-agent
+
+  resources:
+    requests:
+       cpu: 50m
+       memory: 150Mi
+    limits:
+       cpu: 200m
+       memory: 500Mi
 
   volumes:
     - name: configmap-volume
