@@ -1,4 +1,5 @@
-{{- if and .Values.nodeAgent.enabled .Values.storage.enabled }}
+{{- if and .Values.nodeAgent.enabled .Values.kubescapeStorage.enabled }}
+{{- $no_proxy_envar_list := (include "no_proxy_envar_list" .) -}}
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -66,8 +67,13 @@ spec:
           hostPath:
             path: {{ .hostPath.path }}
             type: {{ .hostPath.type }}
-        {{- end }}      
-        {{- end }}      
+        {{- end }}
+        {{- end }}       
+        {{- if ne .Values.global.proxySecretFile ""}}
+        - name: proxy-secret
+          secret:
+            secretName: {{ .Values.global.proxySecretName }}
+        {{- end }}    
       initContainers:
       - env:
         {{- range .Values.nodeAgent.initContainer.env }}
@@ -103,6 +109,12 @@ spec:
             - name: OTEL_COLLECTOR_SVC
               value: "otel-collector:4317"
             {{- end }}
+            {{- if ne .Values.global.httpsProxy ""}}
+            - name: HTTPS_PROXY
+              value: "{{ .Values.global.httpsProxy }}"
+            - name : no_proxy
+              value: "{{ $no_proxy_envar_list }}"
+            {{- end }}
             - name: NODE_NAME
               valueFrom:
                 fieldRef:
@@ -124,4 +136,11 @@ spec:
           - mountPath: {{ .mountPath }}
             name: {{ .name }}
           {{- end }}
+          {{- if ne .Values.global.proxySecretFile ""}}
+          - name: proxy-secret
+            mountPath: /etc/ssl/certs/proxy.crt
+            subPath: proxy.crt
+          {{- end }}
+          
+          
 {{- end}}
