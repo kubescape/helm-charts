@@ -82,6 +82,14 @@ spec:
           value: "{{ .value }}"
         {{- end }}
         {{- end }}
+        {{- if ne .Values.global.httpsProxy ""}}
+        - name: HTTPS_PROXY
+          value: "{{ .Values.global.httpsProxy }}"
+        - name: HTTP_PROXY
+          value: "{{ .Values.global.httpsProxy }}"
+        - name : no_proxy
+          value: "{{ $no_proxy_envar_list }}"
+        {{- end }}
         image: "{{ .Values.nodeAgent.initContainer.image.repository }}:{{ .Values.nodeAgent.initContainer.image.tag }}"
         imagePullPolicy: {{ .Values.nodeAgent.initContainer.image.pullPolicy }}
         name: {{ .Values.nodeAgent.initContainer.name }}
@@ -93,6 +101,11 @@ spec:
         - mountPath: {{ .mountPath }}
           name: {{ .name }}
           readOnly: {{ .readOnly }}
+        {{- end }}
+        {{- if ne .Values.global.proxySecretFile ""}}
+        - name: proxy-secret
+          mountPath: /etc/ssl/certs/proxy.crt
+          subPath: proxy.crt
         {{- end }}
       containers:
         - name: {{ .Values.nodeAgent.containers.nodeAgent.name }}
