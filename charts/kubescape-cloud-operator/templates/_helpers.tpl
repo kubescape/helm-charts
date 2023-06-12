@@ -29,3 +29,23 @@ gke
   {{- end }}
 {{- end }}
 
+{{- define "check.provider" -}}
+  {{- if or (contains "eks" .Capabilities.KubeVersion.GitVersion) (contains "gke" .Capabilities.KubeVersion.GitVersion) (contains "azmk8s.io" .Values.clusterServer) -}}
+    {{- print "true" -}}
+  {{- else -}}
+    {{- print "false" -}}
+  {{- end -}}
+{{- end -}}
+
+{{- define "relevancy.Enabled" -}}
+  {{- $isManaged := include "check.provider" . -}}
+  {{ if eq .Values.capabilities.relevancy "enable" -}}
+    {{- print "true" -}}
+  {{ else if eq .Values.capabilities.relevancy "disable" -}}
+    {{- print "false" -}}
+  {{- else if and (eq .Values.capabilities.relevancy "detect") (eq $isManaged "true") -}}
+    {{- print "true" -}}
+  {{- else -}}
+    {{- print "false" -}}
+  {{- end -}}
+{{- end -}}
