@@ -3,15 +3,15 @@ name: relevancy-helm-release
 on:
   push:
     paths:
-      - 'labs/kubescape-relevancy/Chart.yaml'
+      - 'charts/kubescape-cloud-operator/Chart.yaml'
     branches: [ relevancy ]
    
 jobs:
-  e2e-test:
-    uses: ./.github/workflows/relevancy-e2e-test.yaml
-    with:
-      BRANCH: relevancy
-    secrets: inherit
+  # e2e-test:
+  #   uses: ./.github/workflows/relevancy-e2e-test.yaml
+  #   with:
+  #     BRANCH: relevancy
+  #   secrets: inherit
 
   helm-chart-release:
     runs-on: ubuntu-latest
@@ -42,8 +42,14 @@ jobs:
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.4.1
         with:
-          charts_dir: "labs"
+          charts_dir: "charts"
           # charts_repo_url: xxxxxx
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          
+  e2e-test:
+    uses: ./.github/workflows/relevancy-e2e-test.yaml
+    with:
+      BRANCH: relevancy
+    secrets: inherit
