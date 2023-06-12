@@ -30,12 +30,16 @@ on:
       COMMIT_REF:
         description: "latest commit sha"
         value: ${{ jobs.update-helm-chart.outputs.COMMIT_REF }}
+      PR_NUMBER:
+        description: "pr number"
+        value: ${{ jobs.update-helm-chart.outputs.PR_NUMBER }}
 
 
 jobs:
   update-helm-chart:
     outputs:
       COMMIT_REF: ${{ steps.commit-ref.outputs.COMMIT_REF }}
+      PR_NUMBER: ${{ steps.create-pr.outputs.pr_number }}
     runs-on: ubuntu-latest
     steps:
       - name: echo-input-parameters
@@ -79,8 +83,9 @@ jobs:
           
       - uses: repo-sync/pull-request@v2.11
         name: create a new PR
+        id: create-pr
         with:
-          destination_branch: "master"
+          destination_branch: "release"
           pr_title: "Pulling ${{ github.ref_name }} branch into master - Automated PR by CICD"
           github_token: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
           
@@ -90,3 +95,6 @@ jobs:
 
       - name: echo commit ref
         run: echo ${{ steps.commit-ref.outputs.COMMIT_REF }}
+
+      - name: output-pr-number
+        run: echo ${{ steps.create-pr.outputs.pr_number }}
