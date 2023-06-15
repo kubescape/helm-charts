@@ -2,17 +2,23 @@ name: 03-Helm chart release
 
 on:
   workflow_dispatch:
+    inputs:
+      CHARTS_NAME:
+        type: choice
+        description: What chart do you want to release?
+        options: 
+        - kubescape-cloud-operator
+        - kubescape-prometheus-integrator
 
   workflow_call:
     inputs:
       COMMIT_REF:
         required: true
         type: string
-      CHARTS_DIR:
+      CHARTS_NAME:
         required: true
         type: string
-        default: charts/kubescape-cloud-operator
-        
+
 jobs:
   helm-chart-release:
     runs-on: ubuntu-latest
@@ -21,14 +27,18 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+          # will change to: ref: release
+
+      - name: git status
+        run: git status
 
       - name: Configure Git
         run: |
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
           
-      - name: git checkout to new commit
-        run: git checkout ${{ inputs.COMMIT_REF }}
+      # - name: git checkout to new commit
+      #   run: git checkout ${{ inputs.COMMIT_REF }}
 
       - name: Install Helm
         uses: azure/setup-helm@v3.5
@@ -37,6 +47,6 @@ jobs:
 
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.4.1
-        env:
-          charts_dir: "${{ inputs.CHARTS_DIR }}"
+        env: 
+          charts_dir: "charts/${{ inputs.CHARTS_DIR }}"
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"

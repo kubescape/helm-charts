@@ -1,4 +1,4 @@
-{{- if and .Values.nodeAgent.enabled .Values.storage.enabled }}
+{{- if and (eq (include "relevancy.Enabled" .) "true") .Values.storage.enabled }}
 {{- $no_proxy_envar_list := (include "no_proxy_envar_list" .) -}}
 apiVersion: apps/v1
 kind: DaemonSet
@@ -82,6 +82,14 @@ spec:
           value: "{{ .value }}"
         {{- end }}
         {{- end }}
+        {{- if ne .Values.global.httpsProxy ""}}
+        - name: HTTPS_PROXY
+          value: "{{ .Values.global.httpsProxy }}"
+        - name: HTTP_PROXY
+          value: "{{ .Values.global.httpsProxy }}"
+        - name : no_proxy
+          value: "{{ $no_proxy_envar_list }}"
+        {{- end }}
         image: "{{ .Values.nodeAgent.initContainer.image.repository }}:{{ .Values.nodeAgent.initContainer.image.tag }}"
         imagePullPolicy: {{ .Values.nodeAgent.initContainer.image.pullPolicy }}
         name: {{ .Values.nodeAgent.initContainer.name }}
@@ -94,6 +102,11 @@ spec:
           name: {{ .name }}
           readOnly: {{ .readOnly }}
         {{- end }}
+        {{- if ne .Values.global.proxySecretFile ""}}
+        - name: proxy-secret
+          mountPath: /etc/ssl/certs/proxy.crt
+          subPath: proxy.crt
+        {{- end }}
       containers:
         - name: {{ .Values.nodeAgent.containers.nodeAgent.name }}
           image: "{{ .Values.nodeAgent.containers.nodeAgent.image.repository }}:{{ .Values.nodeAgent.containers.nodeAgent.image.tag }}"
@@ -101,6 +114,8 @@ spec:
           resources:
 {{ toYaml .Values.nodeAgent.resources | indent 12 }}
           env:
+            - name: GOMEMLIMIT
+              value: "{{ .Values.nodeAgent.resources.requests.memory }}B"
             - name: KS_LOGGER_LEVEL
               value: "{{ .Values.logger.level }}"
             - name: KS_LOGGER_NAME

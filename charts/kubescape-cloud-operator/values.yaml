@@ -6,6 +6,9 @@ ksNamespace: kubescape
 ksLabel: kubescape
 createKubescapeServiceAccount: true # TODO: move to kubescape
 
+capabilities:
+  relevancy: disable # enable/disable/detect
+
 # KS cloud BE URLs
 environment: "prod"
 eventReceiverHttpUrl: "https://report.armo.cloud"
@@ -26,7 +29,10 @@ stagingGatewayUrl: "ens.eustage2.cyberarmorsoft.com"
 stagingBackendOpenAPI: "https://api-stage.armosec.io/api"
 # Customer Specific Data
 # account is deliberately not defined here and it should be defined by the user
+# --set clusterName=`kubectl config current-context`
 clusterName: # cluster name must be defined by the user
+# --set clusterServer=`kubectl config view -o jsonpath="{.clusters[?(@.name=='$(kubectl config current-context)')].cluster.server}"`
+clusterServer: ""
 
 # -- client ID - https://hub.armosec.io/docs/authentication
 clientID: ""
@@ -227,7 +233,7 @@ operator:
   image:
     # -- source code: https://github.com/kubescape/operator
     repository: quay.io/kubescape/operator
-    tag: v0.1.24
+    tag: v0.1.25
     pullPolicy: Always
 
   service:
@@ -308,7 +314,7 @@ kubevuln:
   image:
     # -- source code: https://github.com/kubescape/kubevuln
     repository: quay.io/kubescape/kubevuln
-    tag: v0.2.91
+    tag: v0.2.96
     pullPolicy: Always
 
   replicaCount: 1
@@ -367,7 +373,7 @@ kollector:
   resources:
     requests:
        cpu: 10m
-       memory: 40Mi
+       memory: 100Mi
     limits:
        cpu: 500m
        memory: 500Mi
@@ -420,7 +426,7 @@ gateway:
   resources:
     requests:
        cpu: 10m
-       memory: 10Mi
+       memory: 30Mi
     limits:
        cpu: 100m
        memory: 50Mi
@@ -536,14 +542,13 @@ storage:
        memory: 400Mi
     limits:
        cpu: 150m
-       memory: 600Mi
+       memory: 1500Mi
 
   replicaCount: 1
   image:
     pullPolicy: "IfNotPresent"
     repository: "quay.io/kubescape/storage"
-    tag: "v0.0.2"
-
+    tag: "v0.0.5"
 grypeOfflineDB:
   enabled: false
 
@@ -563,7 +568,6 @@ grypeOfflineDB:
        memory: 200Mi
 
 nodeAgent:
-  enabled: false
   ServiceAccount: node-agent-service-account
   ClusterRole: node-agent-cluster-role
   ClusterRoleBinding: node-agent-cluster-role-binding
@@ -581,7 +585,7 @@ nodeAgent:
        memory: 150Mi
     limits:
        cpu: 200m
-       memory: 500Mi
+       memory: 700Mi
 
   volumes:
     - name: configmap-volume
@@ -660,8 +664,8 @@ nodeAgent:
     nodeAgent:
       name: node-agent
       image: 
-        repository: quay.io/kubescape/sniffer
-        tag: v0.1.61-relevancy
+        repository: quay.io/kubescape/node-agent
+        tag: v0.1.64-prerelease
         pullPolicy: IfNotPresent
       env:  
         - name: CONFIG_ENV_VAR
