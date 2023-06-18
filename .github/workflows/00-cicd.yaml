@@ -57,16 +57,16 @@ jobs:
       HELM_E2E_TEST: ${{ inputs.HELM_E2E_TEST }}
     secrets: inherit
 
-  merge-to-master:
+  merge-to-main:
     needs: [helm-chart-update, e2e-test]
     if: ${{ (always() && (contains(needs.*.result, 'success') || contains(needs.*.result, 'skipped')) && !(contains(needs.*.result, 'failure')) && !(contains(needs.*.result, 'cancelled'))) }}
     runs-on: ubuntu-latest
     steps:
-      - name: merge-to-master
+      - name: merge-to-main
         uses: "pascalgn/automerge-action@v0.15.5"
         env:
           GITHUB_TOKEN: "${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}"
-          MERGE_COMMIT_MESSAGE: "Merge to master - PR number: ${{ needs.helm-chart-update.outputs.PR_NUMBER }}"
+          MERGE_COMMIT_MESSAGE: "Merge to main - PR number: ${{ needs.helm-chart-update.outputs.PR_NUMBER }}"
           MERGE_ERROR_FAIL: "true"
           MERGE_METHOD: "merge"
           MERGE_LABELS: ""
@@ -74,7 +74,7 @@ jobs:
           PULL_REQUEST: ${{ needs.helm-chart-update.outputs.PR_NUMBER }}
 
   helm-release: 
-    needs: [helm-chart-update, merge-to-master]
+    needs: [helm-chart-update, merge-to-main]
     if: ${{ (always() && (contains(needs.*.result, 'success') || contains(needs.*.result, 'skipped')) && !(contains(needs.*.result, 'failure')) && !(contains(needs.*.result, 'cancelled'))) }}
     with:
       COMMIT_REF: ${{ needs.helm-chart-update.outputs.COMMIT_REF }}

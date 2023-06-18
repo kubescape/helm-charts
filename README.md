@@ -23,10 +23,10 @@ When the CICD will be triggered by one of them, it will run always on the ```dev
 1. Check for valid inputs combination to prevent cases of providing incorrect inputs (most useful for manual triggers, see instructions below).
 2. Update the ```values.yaml``` file according to the arguments that passed.
 3. Create a new commit for the new changes.
-4. Create a new PR from the ```dev``` branch into the ```master``` branch.
-5. Run E2E tests using ```helm_branch=dev``` parameter against the ARMO production backend, the tests will run as parallel jobs.
+4. Create a new PR from the ```main```
+5. Run E2E tests using ```helm_branch=main``` parameter against the ARMO production backend, the tests will run as parallel jobs.
 6. Create a JUnit report for every test.
-7. Only if all the tests successfully passed, the PR will be automatically merged into the ```master``` branch.
+7. Only if all the tests successfully passed, the PR will be automatically merged into the ```main``` branch.
 8. The last step will create a new GitHub release and Helm release for the new chart.
 
 
@@ -50,7 +50,7 @@ This process will run only the release step from the CICD and will create a new 
 
 1. Click on the “Actions” tab and click on the ```03-Helm chart release ``` workflow on the left side.
 2. Click “Run workflows” on the top of the previous runs list.
-3. Select the branch you want to create a release from by specifying it using the  ```Branch```. in most cases will be the “master” branch
+3. Select the branch you want to create a release from by specifying it using the  ```Branch```. in most cases will be the main branch
 4. Click on the ```Run workflow``` green button.
 
 **Note that running only the release process will not run any E2E tests**
