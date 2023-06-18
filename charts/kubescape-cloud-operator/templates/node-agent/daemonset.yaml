@@ -3,28 +3,28 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: {{ .Values.nodeAgent.daemonset.name }}
+  name: {{ .Values.nodeAgent.name }}
   namespace: {{ .Values.ksNamespace }}
   labels:
-      app.kubernetes.io/name: {{ .Values.nodeAgent.daemonset.name }}
+      app.kubernetes.io/name: {{ .Values.nodeAgent.name }}
       app.kubernetes.io/instance: {{ .Release.Name }}
-      app: {{ .Values.nodeAgent.daemonset.name }}
-      tier: {{ .Values.global.namespaceTier}}
+      app: {{ .Values.nodeAgent.name }}
+      tier: {{ .Values.global.namespaceTier }}
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ .Values.nodeAgent.daemonset.name }}
+      app.kubernetes.io/name: {{ .Values.nodeAgent.name }}
       app.kubernetes.io/instance: {{ .Release.Name }}
-      tier: {{ .Values.global.namespaceTier}}
+      tier: {{ .Values.global.namespaceTier }}
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: {{ .Values.nodeAgent.daemonset.name }}
+        app.kubernetes.io/name: {{ .Values.nodeAgent.name }}
         app.kubernetes.io/instance: {{ .Release.Name }}
-        tier: {{ .Values.global.namespaceTier}}
+        tier: {{ .Values.global.namespaceTier }}
         helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
-        app: {{ .Values.nodeAgent.daemonset.name }}
-        alt-name: {{ .Values.nodeAgent.daemonset.name }} # Why?
+        app: {{ .Values.nodeAgent.name }}
+        alt-name: {{ .Values.nodeAgent.name }} # Why?
       {{- if .Values.otelCollector.enabled }}
         otel: enabled
       {{- end }}
@@ -50,7 +50,7 @@ spec:
                 operator: In
                 values:
                 - linux
-      serviceAccountName: {{ .Values.nodeAgent.ServiceAccount }}
+      serviceAccountName: {{ .Values.nodeAgent.name }}
       automountServiceAccountToken: true
       nodeSelector:
         kubernetes.io/os: linux
@@ -58,7 +58,7 @@ spec:
       volumes:
         {{- range .Values.nodeAgent.volumes }}
         - name: {{ .name }}
-        {{- if .configMap}}
+        {{- if .configMap }}
           configMap: 
             name: {{ .configMap.name }}
         {{ else if .emptyDir }}
@@ -69,7 +69,7 @@ spec:
             type: {{ .hostPath.type }}
         {{- end }}
         {{- end }}       
-        {{- if ne .Values.global.proxySecretFile ""}}
+        {{- if ne .Values.global.proxySecretFile "" }}
         - name: proxy-secret
           secret:
             secretName: {{ .Values.global.proxySecretName }}
@@ -77,12 +77,12 @@ spec:
       initContainers:
       - env:
         {{- range .Values.nodeAgent.initContainer.env }}
-        - name: {{ .name  }}
+        - name: {{ .name }}
         {{- if .value }}
           value: "{{ .value }}"
         {{- end }}
         {{- end }}
-        {{- if ne .Values.global.httpsProxy ""}}
+        {{- if ne .Values.global.httpsProxy "" }}
         - name: HTTPS_PROXY
           value: "{{ .Values.global.httpsProxy }}"
         - name: HTTP_PROXY
@@ -102,7 +102,7 @@ spec:
           name: {{ .name }}
           readOnly: {{ .readOnly }}
         {{- end }}
-        {{- if ne .Values.global.proxySecretFile ""}}
+        {{- if ne .Values.global.proxySecretFile "" }}
         - name: proxy-secret
           mountPath: /etc/ssl/certs/proxy.crt
           subPath: proxy.crt
@@ -124,7 +124,7 @@ spec:
             - name: OTEL_COLLECTOR_SVC
               value: "otel-collector:4317"
             {{- end }}
-            {{- if ne .Values.global.httpsProxy ""}}
+            {{- if ne .Values.global.httpsProxy "" }}
             - name: HTTPS_PROXY
               value: "{{ .Values.global.httpsProxy }}"
             - name : no_proxy
@@ -135,7 +135,7 @@ spec:
                 fieldRef:
                   fieldPath: spec.nodeName
             {{- range .Values.nodeAgent.containers.nodeAgent.env }}
-            - name: {{ .name  }}
+            - name: {{ .name }}
             {{- if .value }}
               value: "{{ .value }}"
             {{- end }}
@@ -151,11 +151,9 @@ spec:
           - mountPath: {{ .mountPath }}
             name: {{ .name }}
           {{- end }}
-          {{- if ne .Values.global.proxySecretFile ""}}
+          {{- if ne .Values.global.proxySecretFile "" }}
           - name: proxy-secret
             mountPath: /etc/ssl/certs/proxy.crt
             subPath: proxy.crt
           {{- end }}
-          
-          
-{{- end}}
+{{- end }}

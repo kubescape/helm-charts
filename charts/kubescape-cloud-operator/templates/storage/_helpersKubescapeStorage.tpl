@@ -51,27 +51,6 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
-Create the name of the Kubescape Storage ServiceAccount to use
-*/}}
-{{- define "storage.serviceAccountName" -}}
-  {{- .Values.storage.name | printf "%s-sa" }}
-{{- end }}
-
-{{/*
-Create the name of the Kubescape Storage ClusterRole to use
-*/}}
-{{- define "storage.clusterRoleName" -}}
-  {{- .Values.storage.name | printf "%s-clusterrole" }}
-{{- end }}
-
-{{/*
-Create the name of the Kubescape Storage ClusterRoleBinding to use
-*/}}
-{{- define "storage.clusterRoleBindingName" -}}
-  {{- .Values.storage.name | printf "%s-clusterrolebinding" }}
-{{- end }}
-
-{{/*
 Create the name of the Kubescape Storage Auth Reader RoleBinding to use
 */}}
 {{- define "storage.authReaderRoleBindingName" -}}
@@ -83,51 +62,4 @@ Create the name of the Kubescape Storage Auth Reader ClusterRoleBinding to use
 */}}
 {{- define "storage.authDelegatorClusterRoleBindingName" -}}
   {{- .Values.storage.name | printf "%s:system:auth-delegator" }}
-{{- end }}
-
-{{/*
-Create the name of the Kubescape Storage APIServer to use
-*/}}
-{{- define "storage.apiServer.deploymentName" -}}
-  {{- .Values.storage.name | printf "%s-apiserver" }}
-{{- end }}
-
-{{/*
-Name of the Kubescape Storage APIServer Service
-*/}}
-{{- define "storage.apiServer.service.name" -}}
-  {{- .Values.storage.name | printf "%s-api" }}
-{{- end }}
-
-{{/*
-Kubescape Storage: value of the backing storage's container port serving the payload
-*/}}
-{{- define "storage.backingStorage.containerPort" -}}
-2379
-{{- end }}
-
-{{/*
-Kubescape Storage: value of the backing storage deployment port
-*/}}
-{{- define "storage.backingStorage.deployment.port" -}}
-- name: "etcd-port"
-  protocol: "TCP"
-  containerPort: {{ include "storage.backingStorage.containerPort" . }}
-{{- end }}
-
-{{/*
-Kubescape Storage: value of the backing storage service port
-*/}}
-{{- define "storage.backingStorage.service.port" -}}
-- name: "etcd-port"
-  protocol: "TCP"
-  targetPort: {{ include "storage.backingStorage.containerPort" . }}
-  port: {{ include "storage.backingStorage.containerPort" . }}
-{{- end }}
-
-{{/*
-Kubescape Storage: value of the backing storage service name
-*/}}
-{{- define "storage.backingStorage.service.name" -}}
-{{- printf "%s-backing-storage-svc" .Values.storage.name -}}
 {{- end }}
