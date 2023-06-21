@@ -14,6 +14,9 @@ spec:
   template:
     metadata:
       labels:
+      {{- if .Values.otelCollector.enabled }}
+        otel: enabled
+      {{- end }}
         {{ .Values.storage.labels | toYaml | nindent 8 }}
     spec:
       serviceAccountName: {{ .Values.storage.name }}
@@ -30,9 +33,14 @@ spec:
         env:
           - name: "GOMEMLIMIT"
             value: "{{ .Values.storage.resources.requests.memory }}B"
+          - name: OTEL_COLLECTOR_SVC
+            value: "otel-collector:4317"
         volumeMounts:
           - name: "data"
             mountPath: "/data"
+          - name: {{ .Values.global.cloudConfig }}
+            mountPath: /etc/config
+            readOnly: true
         resources:
 {{ toYaml .Values.storage.resources | indent 12 }}
       volumes:
@@ -43,4 +51,10 @@ spec:
           {{- else }}
           emptyDir: {}
           {{- end }}
+        - name: {{ .Values.global.cloudConfig }}
+          configMap:
+            name: {{ .Values.global.cloudConfig }}
+            items:
+            - key: "clusterData"
+              path: "clusterData.json"
 {{- end }}
