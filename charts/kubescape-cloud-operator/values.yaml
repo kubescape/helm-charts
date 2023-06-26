@@ -312,7 +312,7 @@ kubevuln:
   image:
     # -- source code: https://github.com/kubescape/kubevuln
     repository: quay.io/kubescape/kubevuln
-    tag: v0.2.96
+    tag: v0.2.99
     pullPolicy: Always
 
   replicaCount: 1
@@ -546,7 +546,7 @@ storage:
   image:
     pullPolicy: "IfNotPresent"
     repository: "quay.io/kubescape/storage"
-    tag: "v0.0.6"
+    tag: "v0.0.8"
 
 grypeOfflineDB:
   enabled: false
@@ -586,82 +586,32 @@ nodeAgent:
     - name: configmap-volume
       configMap:
         name: node-agent-config-map
-    - emptyDir: {}
-      name: root-falco-fs
     - hostPath:
-        path: /boot
-        type: ""
-      name: boot-fs
+        path: /
+      name: host
+    - hostPath:
+        path: /run
+      name: run
+    - hostPath:
+        path: /sys/fs/cgroup
+      name: cgroup
     - hostPath:
         path: /lib/modules
-        type: ""
-      name: lib-modules
+      name: modules
     - hostPath:
-        path: /usr
-        type: ""
-      name: usr-fs
-    - hostPath:
-        path: /etc
-        type: ""
-      name: etc-fs
-    - hostPath:
-        path: /dev
-        type: ""
-      name: dev-fs
-    - hostPath:
-        path: /var/run/docker.sock
-        type: ""
-      name: docker-socket
-    - hostPath:
-        path: /run/containerd/containerd.sock
-        type: ""
-      name: containerd-socket
-    - hostPath:
-        path: /run/crio/crio.sock
-        type: ""
-      name: crio-socket
-    - hostPath:
-        path: /proc
-        type: ""
-      name: proc-fs
+        path: /sys/fs/bpf
+      name: bpffs
     - hostPath:
         path: /sys/kernel/debug
-        type: ""
       name: debugfs
 
-  initContainer:
-    name: falco-driver-loader
-    image:
-      repository: docker.io/falcosecurity/falco-driver-loader
-      tag: 0.34.1
-      pullPolicy: IfNotPresent
-    env:
-      - name: FALCO_BPF_PROBE
-    volumeMounts:
-      - mountPath: /root/.falco
-        name: root-falco-fs
-        readOnly: false
-      - mountPath: /host/proc
-        name: proc-fs
-        readOnly: true
-      - mountPath: /host/boot
-        name: boot-fs
-        readOnly: true
-      - mountPath: /host/lib/modules
-        name: lib-modules
-      - mountPath: /host/usr
-        name: usr-fs
-        readOnly: true
-      - mountPath: /host/etc
-        name: etc-fs
-        readOnly: true
   containers:  
     nodeAgent:
       name: node-agent
       image: 
-        repository: quay.io/kubescape/node-agent
-        tag: v0.1.64-prerelease
-        pullPolicy: IfNotPresent
+        repository: quay.io/matthiasb_1/node-agent
+        tag: inspektor
+        pullPolicy: Always
       env:  
         - name: CONFIG_ENV_VAR
           value: "/etc/node-agent/configuration/ConfigurationFile.json"
@@ -672,15 +622,15 @@ nodeAgent:
       volumeMounts:
         - mountPath: /etc/node-agent/configuration
           name: configmap-volume
-        - mountPath: /root/.falco
-          name: root-falco-fs
-        - mountPath: /host/proc
-          name: proc-fs
+        - mountPath: /host
+          name: host
+        - mountPath: /run
+          name: run
+        - mountPath: /lib/modules
+          name: modules
         - mountPath: /sys/kernel/debug
           name: debugfs
-        - mountPath: /host/var/run/docker.sock
-          name: docker-socket
-        - mountPath: /host/run/containerd/containerd.sock
-          name: containerd-socket
-        - mountPath: /host/run/crio/crio.sock
-          name: crio-socket
+        - mountPath: /sys/fs/cgroup
+          name: cgroup
+        - mountPath: /sys/fs/bpf
+          name: bpffs
