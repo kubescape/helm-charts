@@ -1,15 +1,15 @@
 {{/* standardize cloud provider */}}
 {{- define "cloud_provider" -}}
-  {{- if .Values.cloudProviderMetadata.cloudProviderEngine -}}
-    {{- $provider := lower .Values.cloudProviderMetadata.cloudProviderEngine -}}
-    {{- if or (contains "eks" $provider) (contains "aws" $provider) (contains "amazon" $provider) -}}
-eks
-    {{- else if or (contains "gke" $provider) (contains "gcp" $provider) (contains "google" $provider) -}}
-gke
-   {{- else if or (contains "aks" $provider) (contains "azure" $provider) (contains "microsoft" $provider) -}}
-    {{- end -}}
+  {{- if contains "eks" .Capabilities.KubeVersion.GitVersion -}}
+    {{- print "eks" -}}
+  {{- else if contains "gke" .Capabilities.KubeVersion.GitVersion -}}
+    {{- print "gke" -}}
+  {{- else if contains "azmk8s.io" .Values.clusterServer -}}
+    {{- print "aks" -}}
+  {{- else -}}
+    {{- print "" -}}
   {{- end -}}
-{{- end }}
+{{- end -}}
 
 {{- define "account_guid" -}}
   {{- if .Values.kubescape.submit }}
@@ -30,7 +30,8 @@ gke
 {{- end }}
 
 {{- define "check.provider" -}}
-  {{- if or (contains "eks" .Capabilities.KubeVersion.GitVersion) (contains "gke" .Capabilities.KubeVersion.GitVersion) (contains "azmk8s.io" .Values.clusterServer) -}}
+  {{- $cloudProvider := include "cloud_provider" . -}}
+  {{- if or (eq $cloudProvider "eks") (eq $cloudProvider "gke") (eq $cloudProvider "aks") -}}
     {{- print "true" -}}
   {{- else -}}
     {{- print "false" -}}
