@@ -8,8 +8,8 @@
     {{- print "aks" -}}
   {{- else -}}
     {{- print "" -}}
-  {{- end -}}
-{{- end -}}
+  {{- end }}
+{{- end }}
 
 {{- define "account_guid" -}}
   {{- if .Values.kubescape.submit }}
