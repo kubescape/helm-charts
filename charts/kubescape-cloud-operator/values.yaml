@@ -570,9 +570,8 @@ nodeAgent:
   name: "node-agent"
 
   config: 
-    name: node-agent-config-map
-    maxLearningPeriod: 180 # minutes
-    learningPeriod: 2 # minutes
+    maxLearningPeriod: 3h
+    learningPeriod: 2m
 
   resources:
     requests:
@@ -610,20 +609,16 @@ nodeAgent:
   containers:  
     nodeAgent:
       name: node-agent
-      image: 
+      image:
         repository: quay.io/matthiasb_1/node-agent
-        tag: inspektor
+        tag: rewrite
         pullPolicy: Always
-      env:  
-        - name: CONFIG_ENV_VAR
-          value: "/etc/node-agent/configuration/ConfigurationFile.json"
+      env:
         - name: NodeName
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
       volumeMounts:
-        - mountPath: /etc/node-agent/configuration
-          name: configmap-volume
         - mountPath: /host
           name: host
         - mountPath: /run
