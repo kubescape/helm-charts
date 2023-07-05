@@ -228,7 +228,7 @@ operator:
   image:
     # -- source code: https://github.com/kubescape/operator
     repository: quay.io/kubescape/operator
-    tag: v0.1.25
+    tag: v0.1.28-prerelease
     pullPolicy: IfNotPresent
 
   service:
@@ -569,9 +569,8 @@ nodeAgent:
   name: "node-agent"
 
   config: 
-    name: node-agent-config-map
-    maxLearningPeriod: 180 # minutes
-    learningPeriod: 2 # minutes
+    maxLearningPeriod: 3h # duration string
+    learningPeriod: 2m # duration string
 
   resources:
     requests:
@@ -609,20 +608,16 @@ nodeAgent:
   containers:  
     nodeAgent:
       name: node-agent
-      image: 
-        repository: quay.io/matthiasb_1/node-agent
-        tag: inspektor
-        pullPolicy: Always
-      env:  
-        - name: CONFIG_ENV_VAR
-          value: "/etc/node-agent/configuration/ConfigurationFile.json"
+      image:
+        repository: quay.io/kubescape/node-agent
+        tag: v0.1.76-prerelease
+        pullPolicy: IfNotPresent
+      env:
         - name: NodeName
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
       volumeMounts:
-        - mountPath: /etc/node-agent/configuration
-          name: configmap-volume
         - mountPath: /host
           name: host
         - mountPath: /run

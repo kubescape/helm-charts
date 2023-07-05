@@ -57,6 +57,18 @@ spec:
         kubernetes.io/os: linux
         kubernetes.io/arch: amd64
       volumes:
+        - name: {{ .Values.global.cloudConfig }}
+          configMap:
+            name: {{ .Values.global.cloudConfig }}
+            items:
+              - key: "clusterData"
+                path: "clusterData.json"
+        - name: config
+          configMap:
+            name: {{ .Values.nodeAgent.name }}
+            items:
+              - key: "config.json"
+                path: "config.json"
         {{- range .Values.nodeAgent.volumes }}
         - name: {{ .name }}
         {{- if .configMap }}
@@ -121,6 +133,14 @@ spec:
               add:
                 - SYS_ADMIN
           volumeMounts:
+          - name: {{ .Values.global.cloudConfig }}
+            mountPath: /etc/config/clusterData.json
+            readOnly: true
+            subPath: "clusterData.json"
+          - name: config
+            mountPath: /etc/config/config.json
+            readOnly: true
+            subPath: "config.json"
           {{- range .Values.nodeAgent.containers.nodeAgent.volumeMounts }}
           - mountPath: {{ .mountPath }}
             name: {{ .name }}
