@@ -9,7 +9,7 @@
   {{- else -}}
     {{- print "" -}}
   {{- end }}
-{{- end }}
+{{- end }} 
 
 {{- define "account_guid" -}}
   {{- if .Values.kubescape.submit }}
