@@ -131,7 +131,6 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | kubescapeHostScanner.volumeMounts | object | `[]` | Additional volumeMounts for the host scanner |
 | awsIamRoleArn | string | `nil` | AWS IAM arn role |
 | cloudProviderMetadata.cloudRegion | string | `nil` | cloud region |
-| cloudProviderMetadata.cloudProviderEngine | string | `nil` | cloud provider engine |
 | cloudProviderMetadata.gkeProject | string | `nil` | GKE project |
 | cloudProviderMetadata.gkeServiceAccount | string | `nil` | GKE service account |
 | cloudProviderMetadata.aksSubscriptionID | string | `nil` | AKS subscription ID |
