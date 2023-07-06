@@ -1,5 +1,9 @@
 # Kubescape-Prometheus Integration
 
+## This chart is deprecated. Please use the [kubescape-cloud-operator](../kubescape-cloud-operator/README.md) chart instead.
+
+___
+
 ![Version: 0.0.12](https://img.shields.io/badge/Version-0.0.12-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.0.12](https://img.shields.io/badge/AppVersion-v0.0.12-informational?style=flat-square)
 
 ## [Docs](https://hub.armosec.io/docs/prometheus-exporter)
