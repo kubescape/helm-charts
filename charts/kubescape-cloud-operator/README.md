@@ -203,7 +203,6 @@ docker-compose logs uptrace
 | clientID | string | `""` | client ID, [read more](https://hub.armosec.io/docs/authentication) |
 | addRevisionLabel | bool | `true` | Add revision label to the components. This will insure the components will restart when updating the helm |
 | cloudProviderMetadata.cloudRegion | string | `nil` | cloud region |
-| cloudProviderMetadata.cloudProviderEngine | string | `nil` | cloud provider engine |
 | cloudProviderMetadata.gkeProject | string | `nil` | GKE project |
 | cloudProviderMetadata.gkeServiceAccount | string | `nil` | GKE service account |
 | cloudProviderMetadata.aksSubscriptionID | string | `nil` | AKS subscription ID |
