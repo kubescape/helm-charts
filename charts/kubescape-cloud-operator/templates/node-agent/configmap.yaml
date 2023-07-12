@@ -2,30 +2,13 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Values.nodeAgent.config.name }}
+  name: {{ .Values.nodeAgent.name }}
   namespace: {{ .Values.ksNamespace }}
 data:
-  ConfigurationFile.json: |
+  config.json: |
     {
-        "sniffer": {
-            "services": [
-                {
-                    "Name": "relevantCVEs"
-                }
-            ],
-            "maxSniffingTimePerContainer": {{ .Values.nodeAgent.config.maxLearningPeriod }}
-        },
-        "falcoEbpfEngine": {
-            "kernelObjPath": "/root/.falco/falco-bpf.o",
-            "ebpfEngineLoaderPath": "/etc/node-agent/resources/ebpf/falco/userspace_app"
-        },
-        "node": {
-            "name": ""
-        },
-        "db": {
-            "updateDataPeriod": {{ .Values.nodeAgent.config.learningPeriod }}
-        },
-        "clusterName": "{{ regexReplaceAll "\\W+" .Values.clusterName "-" }}",
-        "accountID": "{{ .Values.account }}"
+        "relevantCVEServiceEnabled": true,
+        "maxSniffingTimePerContainer": "{{ .Values.nodeAgent.config.maxLearningPeriod }}",
+        "updateDataPeriod": "{{ .Values.nodeAgent.config.learningPeriod }}"
     }
 {{- end }}
