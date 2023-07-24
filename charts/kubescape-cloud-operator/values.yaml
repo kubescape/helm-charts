@@ -566,7 +566,11 @@ grypeOfflineDB:
        memory: 200Mi
 
 nodeAgent:
-  name: "node-agent"
+  name: node-agent
+  image:
+    repository: quay.io/kubescape/node-agent
+    tag: v0.1.85
+    pullPolicy: IfNotPresent
 
   config: 
     maxLearningPeriod: 3h # duration string
@@ -575,10 +579,32 @@ nodeAgent:
   resources:
     requests:
        cpu: 100m
-       memory: 150Mi
+       memory: 180Mi
     limits:
        cpu: 500m
        memory: 700Mi
+
+  env:
+    - name: NodeName
+      valueFrom:
+        fieldRef:
+          fieldPath: spec.nodeName
+
+  volumeMounts:
+    - mountPath: /host
+      name: host
+    - mountPath: /run
+      name: run
+    - mountPath: /lib/modules
+      name: modules
+    - mountPath: /sys/kernel/debug
+      name: debugfs
+    - mountPath: /sys/fs/cgroup
+      name: cgroup
+    - mountPath: /sys/fs/bpf
+      name: bpffs
+    - mountPath: /data
+      name: data
 
   volumes:
     - hostPath:
@@ -602,33 +628,3 @@ nodeAgent:
     - emptyDir:
       name: data
 
-  containers:  
-    nodeAgent:
-      name: node-agent
-      image:
-        repository: quay.io/kubescape/node-agent
-        tag: v0.1.77
-        pullPolicy: IfNotPresent
-      env:
-        - name: NodeName
-          valueFrom:
-            fieldRef:
-              fieldPath: spec.nodeName
-      volumeMounts:
-        - mountPath: /host
-          name: host
-        - mountPath: /run
-          name: run
-        - mountPath: /lib/modules
-          name: modules
-        - mountPath: /sys/kernel/debug
-          name: debugfs
-        - mountPath: /sys/fs/cgroup
-          name: cgroup
-        - mountPath: /sys/fs/bpf
-          name: bpffs
-        - mountPath: /data
-          name: data
-node-agent:
-  image:
-    tag: v0.1.85

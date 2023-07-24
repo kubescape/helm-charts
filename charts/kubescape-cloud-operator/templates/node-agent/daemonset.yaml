@@ -41,8 +41,6 @@ spec:
                 operator: In
                 values:
                 - amd64
-                # - ppc64le
-                # - s390x
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
             - matchExpressions:
@@ -88,14 +86,14 @@ spec:
             secretName: {{ .Values.global.proxySecretName }}
         {{- end }}
       containers:
-        - name: {{ .Values.nodeAgent.containers.nodeAgent.name }}
-          image: "{{ .Values.nodeAgent.containers.nodeAgent.image.repository }}:{{ .Values.nodeAgent.containers.nodeAgent.image.tag }}"
-          imagePullPolicy: {{ .Values.nodeAgent.containers.nodeAgent.image.pullPolicy }}
+        - name: {{ .Values.nodeAgent.name }}
+          image: "{{ .Values.nodeAgent.image.repository }}:{{ .Values.nodeAgent.image.tag }}"
+          imagePullPolicy: {{ .Values.nodeAgent.image.pullPolicy }}
           resources:
 {{ toYaml .Values.nodeAgent.resources | indent 12 }}
           env:
             - name: GOMEMLIMIT
-              value: "{{ .Values.nodeAgent.resources.requests.memory }}B"
+              value: "600MiB"
             - name: KS_LOGGER_LEVEL
               value: "{{ .Values.logger.level }}"
             - name: KS_LOGGER_NAME
@@ -120,7 +118,7 @@ spec:
                   fieldPath: metadata.name
             - name: HOST_ROOT
               value: "/host"
-            {{- range .Values.nodeAgent.containers.nodeAgent.env }}
+            {{- range .Values.nodeAgent.env }}
             - name: {{ .name }}
             {{- if .value }}
               value: "{{ .value }}"
@@ -141,7 +139,7 @@ spec:
             mountPath: /etc/config/config.json
             readOnly: true
             subPath: "config.json"
-          {{- range .Values.nodeAgent.containers.nodeAgent.volumeMounts }}
+          {{- range .Values.nodeAgent.volumeMounts }}
           - mountPath: {{ .mountPath }}
             name: {{ .name }}
           {{- end }}
