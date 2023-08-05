@@ -197,8 +197,8 @@ docker-compose logs uptrace
 | operator.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | operator.volumes | object | `[]` | Additional volumes for the web socket |
 | operator.volumeMounts | object | `[]` | Additional volumeMounts for the web socket |
-| kubescapeHostScanner.volumes | object | `[]` | Additional volumes for the host scanner |
-| kubescapeHostScanner.volumeMounts | object | `[]` | Additional volumeMounts for the host scanner |
+| hostScanner.volumes | object | `[]` | Additional volumes for the host scanner |
+| hostScanner.volumeMounts | object | `[]` | Additional volumeMounts for the host scanner |
 | awsIamRoleArn | string | `nil` | AWS IAM arn role |
 | clientID | string | `""` | client ID, [read more](https://hub.armosec.io/docs/authentication) |
 | addRevisionLabel | bool | `true` | Add revision label to the components. This will insure the components will restart when updating the helm |

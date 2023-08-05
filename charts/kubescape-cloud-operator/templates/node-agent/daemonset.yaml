@@ -32,28 +32,9 @@ spec:
         helm.sh/revision: "{{ .Release.Revision }}"
       {{- end }}
     spec:
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: kubernetes.io/arch
-                operator: In
-                values:
-                - amd64
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: kubernetes.io/os
-                operator: In
-                values:
-                - linux
       serviceAccountName: {{ .Values.nodeAgent.name }}
       automountServiceAccountToken: true
       hostPID: true
-      nodeSelector:
-        kubernetes.io/os: linux
-        kubernetes.io/arch: amd64
       volumes:
         - name: {{ .Values.global.cloudConfig }}
           configMap:
@@ -148,6 +129,14 @@ spec:
             mountPath: /etc/ssl/certs/proxy.crt
             subPath: proxy.crt
           {{- end }}
+    {{- with .Values.nodeAgent.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeAgent.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
     {{- with .Values.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
