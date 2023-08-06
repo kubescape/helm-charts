@@ -1,14 +1,4 @@
 {{ template "cluster_name" . }}
-apiVersion: v1
-kind: Namespace
-metadata:
-  labels:
-    app: kubescape-host-scanner
-    k8s-app: kubescape-host-scanner
-    kubernetes.io/metadata.name: kubescape-host-scanner
-    tier: kubescape-host-scanner-control-plane
-  name: kubescape
----
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -33,18 +23,27 @@ spec:
       imagePullSecrets:
       - name: {{ toYaml .Values.imagePullSecrets }}
       {{- end }}
+
       tolerations:
-      # this toleration is to have the DaemonDet runnable on master nodes
-      # remove it if your masters can't run pods
-      - key: node-role.kubernetes.io/control-plane
-        operator: Exists
-        effect: NoSchedule
-      - key: node-role.kubernetes.io/master
-        operator: Exists
-        effect: NoSchedule
+    {{- with .Values.hostScanner.tolerations }}
+        {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+        {{- toYaml . | nindent 6 }}
+    {{- end }}
+
+    {{- with .Values.hostScanner.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.hostScanner.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
       containers:
       - name: host-sensor
-        image: quay.io/kubescape/host-scanner:v1.0.65
+        image: "{{ .Values.hostScanner.image.repository }}:{{ .Values.hostScanner.image.tag }}"
+        imagePullPolicy: {{ .Values.hostScanner.image.pullPolicy }}
         securityContext:
           allowPrivilegeEscalation: true
           privileged: true
@@ -77,11 +76,8 @@ spec:
         volumeMounts:
         - mountPath: /host_fs
           name: host-filesystem
-{{- if .Values.volumeMounts }}
-{{ toYaml .Values.volumeMounts | indent 8 }}
-{{- end }}
-{{- if .Values.kubescapeHostScanner.volumeMounts }}
-{{ toYaml .Values.kubescapeHostScanner.volumeMounts | indent 8 }}
+{{- if .Values.hostScanner.volumeMounts }}
+{{ toYaml .Values.hostScanner.volumeMounts | nindent 8 }}
 {{- end }}
         startupProbe:
           httpGet:
@@ -102,11 +98,8 @@ spec:
           path: /
           type: Directory
         name: host-filesystem
-{{- if .Values.volumeMounts }}
-{{ toYaml .Values.volumes | indent 6 }}
-{{- end }}
-{{- if .Values.kubescapeHostScanner.volumes }}
-{{ toYaml .Values.kubescapeHostScanner.volumes | indent 6 }}
+{{- if .Values.hostScanner.volumes }}
+{{ toYaml .Values.hostScanner.volumes | nindent 6 }}
 {{- end }}
       hostPID: true
       hostIPC: true

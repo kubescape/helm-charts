@@ -437,12 +437,29 @@ gateway:
   # Additional volumeMounts to be mounted on the notification-service
   volumeMounts: []
 
-kubescapeHostScanner:
+hostScanner:
+  # enabled: true
+  image:
+    # -- source code: https://github.com/kubescape/host-scanner (public repo)
+    repository: quay.io/kubescape/host-scanner
+    tag: 	v1.0.65
+    pullPolicy: IfNotPresent
+
   # Additional volumes to be mounted on the Kubescape host scanner
   volumes: []
 
   # Additional volumeMounts to be mounted on the Kubescape host scanner
   volumeMounts: []
+
+  tolerations:
+  # this toleration is to have the DaemonDet runnable on master nodes
+  # remove it if your masters can't run pods
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+  - key: node-role.kubernetes.io/master
+    operator: Exists
+    effect: NoSchedule
 
 # registry scan scheduled scan using a CronJob
 registryScanScheduler:
@@ -569,12 +586,13 @@ nodeAgent:
   name: node-agent
   image:
     repository: quay.io/kubescape/node-agent
-    tag: v0.1.88
+    tag: v0.1.91
     pullPolicy: IfNotPresent
 
   config: 
     maxLearningPeriod: 3h # duration string
     learningPeriod: 2m # duration string
+    updatePeriod: 10m # duration string
 
   resources:
     requests:
@@ -627,6 +645,23 @@ nodeAgent:
       name: debugfs
     - emptyDir:
       name: data
-node-agent:
-  image:
-    tag: v0.1.87
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/arch
+            operator: In
+            values:
+            - amd64
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/os
+            operator: In
+            values:
+            - linux
+
+  nodeSelector:
+    kubernetes.io/os: linux
+    kubernetes.io/arch: amd64

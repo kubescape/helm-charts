@@ -24,10 +24,22 @@ spec:
             app: {{ .Values.kubevulnScheduler.name }}
             armo.tier: "vuln-scan"
         spec:
-          {{- if .Values.imagePullSecrets }}
+        {{- with .Values.kubescapeScheduler.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 10 }}
+          {{- end }}
+          {{- with .Values.kubescapeScheduler.affinity }}
+          affinity:
+            {{- toYaml . | nindent 10 }}
+          {{- end }}
+        {{- with .Values.tolerations }}
+          tolerations:
+            {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- if .Values.imagePullSecrets }}
           imagePullSecrets:
           - name: {{ toYaml .Values.imagePullSecrets }}
-          {{- end }}
+        {{- end }}
           containers:
           - name: {{ .Values.kubevulnScheduler.name }}
             image: "{{ .Values.kubevulnScheduler.image.repository }}:{{ .Values.kubevulnScheduler.image.tag }}"

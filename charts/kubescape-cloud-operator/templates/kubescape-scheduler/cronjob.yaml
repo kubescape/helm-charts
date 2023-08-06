@@ -24,6 +24,18 @@ spec:
             app: {{ .Values.kubescapeScheduler.name }}
             armo.tier: "kubescape-scan"
         spec:
+        {{- with .Values.kubescapeScheduler.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 10 }}
+          {{- end }}
+          {{- with .Values.kubescapeScheduler.affinity }}
+          affinity:
+            {{- toYaml . | nindent 10 }}
+          {{- end }}
+        {{- with .Values.tolerations }}
+          tolerations:
+            {{- toYaml . | nindent 10 }}
+        {{- end }}
           {{- if .Values.imagePullSecrets }}
           imagePullSecrets:
           - name: {{ toYaml .Values.imagePullSecrets }}
