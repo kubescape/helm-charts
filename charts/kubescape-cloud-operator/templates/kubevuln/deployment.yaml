@@ -42,8 +42,8 @@ spec:
       - name: {{ toYaml .Values.imagePullSecrets }}
       {{- end }}
       securityContext:
-        runAsUser: 100
-        fsGroup: 101
+        runAsUser: 65532
+        fsGroup: 65532
       containers:
         - name: {{ .Values.kubevuln.name }}
           image: "{{ .Values.kubevuln.image.repository }}:{{ .Values.kubevuln.image.tag }}"
@@ -100,12 +100,12 @@ spec:
             - name: tmp-dir
               mountPath: /tmp
             - name: grype-db-cache
-              mountPath: /home/ks/anchore-resources/db
+              mountPath: /home/nonroot/anchore-resources/db
             - name: {{ .Values.global.cloudConfig }}
               mountPath: /etc/config
               readOnly: true
-            - name: "grype-db"
-              mountPath: "/home/ks/.cache/grype"
+            - name: grype-db
+              mountPath: /home/nonroot/.cache/grype
 {{- if .Values.volumeMounts }}
 {{ toYaml .Values.volumeMounts | indent 12 }}
 {{- end }}
