@@ -548,6 +548,25 @@ Every action has a generated `jobId` which is written to the log.
 
 An action which creates sub-action(s), will be created with a different `jobId` but with a `parentId` which will correlate to the parent action's `jobId`.
 
+### Distroless images
+
+Each component is built as a distroless image. This means that the image does not contain any shell or package manager. This is done for security reasons.
+
+In order to troubleshoot a component, you can use the `kubectl debug` command to add an [ephemeral container](https://kubernetes.io/docs/tasks/debug/debug-application/debug-running-pod/#ephemeral-container) to the pod and run a shell in it:
+
+```bash
+kubectl -n kubescape debug -it <pod-name> --image=busybox --target=<container-name>
+```
+
+**Note:** The `--target` parameter must be supported by the Container Runtime.
+When not supported, the Ephemeral Container may not be started, or it may be started with an isolated process namespace so that `ps` does not reveal processes in other containers.
+
+Use `kubectl delete` to remove the Pod when you're finished (there is no other way to remove the ephemeral container):
+
+```bash
+kubectl -n kubescape delete pod <pod-name>
+```
+
 ---
 
 ## Recurring scans
