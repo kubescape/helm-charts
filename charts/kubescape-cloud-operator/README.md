@@ -268,8 +268,6 @@ subgraph Backend
 
   A Master Gateway communicates with multiple in-cluster Gateways, hence it is able to communicate with multiple clusters.
 
-<details><summary>Component Diagram</summary>
-
 ```mermaid
 graph TB
   subgraph Backend
@@ -297,14 +295,12 @@ subgraph Cluster 1
     gw3 .- operator3
    masterGw .- gw1
 
-    
+
   classDef k8s fill:#326ce5,stroke:#fff,stroke-width:1px,color:#fff;
   classDef plain fill:#ddd,stroke:#fff,stroke-width:1px,color:#000;
   class k8sApi k8s
   class ks,operator1,dashboard,operator2,operator3 plain
 ```
-
-</details>
 
 ---
 
@@ -313,8 +309,6 @@ subgraph Cluster 1
 * __Resource Kind:__ `Deployment`
 * __Communication:__ REST API, Websocket
 * __Responsibility:__ The Operator component is at the heart of the solution as it is the triggering engine for the different actions in the cluster; It responds to REST API requests and messages received over websocket connection, and triggers the relevant action in the cluster. Such actions could be triggering a configuration scan, image vulnerability scan, defining a recurring scan (by creating CronJobs), etc.
-
-<details><summary>Component Diagram</summary>
 
 ```mermaid
 graph TB
@@ -343,8 +337,6 @@ graph TB
   class ks,gw,masterGw,kollector,urlCm,recurringScanCj,recurringTempCm,kubevuln,er,dashboard plain
 ```
 
-</details>
-
 ---
 
 ## [Kubevuln](https://github.com/kubescape/kubevuln/)
@@ -352,8 +344,6 @@ graph TB
 * __Resource Kind:__ `Deployment`
 * __Communication:__ REST API
 * __Responsibility:__ Scans container images for vulnerabilities, using [Grype](https://github.com/anchore/grype) as its engine.
-
-<details><summary>Component Diagram</summary>
 
 ```mermaid
 graph TB
@@ -394,7 +384,6 @@ class urlCm,recurringScanCm,operator,er,gateway,masterGateway,recurringScanCj,re
 
 
 ```
-</details>
 
 ---
 
@@ -403,8 +392,6 @@ class urlCm,recurringScanCm,operator,er,gateway,masterGateway,recurringScanCj,re
 * __Resource Kind:__ `Deployment`
 * __Communication:__ REST API
 * __Responsibility:__ Runs [Kubescape](https://github.com/kubescape/kubescape) for detecting misconfigurations in the cluster; This is microservice uses the same engine as the Kubescape CLI tool.
-
-<details><summary>Component Diagram</summary>
 
 ```mermaid
 graph TB
@@ -443,16 +430,12 @@ class ksCm,recurringScanCm,operator,er,gateway,masterGateway,recurringScanCj,rec
 
 ```
 
-</details>
-
 ---
 
 ## [Kollector](https://github.com/kubescape/kollector)
 
 * __Resource Kind:__ `StatefulSet`
 * __Responsibility:__ Communicates with the Kubernetes API server to collect cluster information and watches for changes in the cluster. Information is reported to the backend via the CloudEndpoint and the Gateway.
-
-<details><summary>Component Diagram</summary>
 
 ```mermaid
 graph TD
@@ -477,8 +460,6 @@ classDef plain fill:#ddd,stroke:#fff,stroke-width:1px,color:#000;
 class k8sApi k8s
 class er,gw,masterGw plain
 ```
-
-</details>
 
 ---
 
