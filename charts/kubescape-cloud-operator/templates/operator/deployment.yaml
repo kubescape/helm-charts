@@ -42,6 +42,9 @@ spec:
       imagePullSecrets:
       - name: {{ toYaml .Values.imagePullSecrets }}
       {{- end }}
+      securityContext:
+        runAsUser: 65532
+        fsGroup: 65532
       containers:
         - name: {{ .Values.operator.name }}
           image: "{{ .Values.operator.image.repository }}:{{ .Values.operator.image.tag }}"
@@ -50,7 +53,6 @@ spec:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             runAsNonRoot: true
-            runAsUser: 100
           ports:
             - name: "trigger-port"
               containerPort: 4002
