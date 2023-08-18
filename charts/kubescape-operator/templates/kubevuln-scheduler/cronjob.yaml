@@ -1,7 +1,8 @@
 {{- if not (.Capabilities.APIVersions.Has "batch/v1/CronJob") }}
   {{- fail "`batch/v1/CronJob not supported`" }}
 {{- end }}
-{{- if .Values.kubevulnScheduler.enabled }}
+{{- $components := fromYaml (include "components" .) }}
+{{- if $components.kubevulnScheduler.enabled }}
 {{- $kubevuln_daily_scan_cron_tab := (include "kubevuln_daily_scan_cron_tab" .) -}}
 apiVersion: batch/v1
 kind: CronJob
@@ -51,7 +52,7 @@ spec:
               readOnlyRootFilesystem: true
               runAsNonRoot: true
               runAsUser: 100
-            args: 
+            args:
               - -method=post
               - -scheme=http
               - -host={{ .Values.operator.name }}:{{ .Values.operator.service.port }}

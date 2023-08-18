@@ -1,4 +1,5 @@
-{{- if .Values.server  }}
+{{- $components := fromYaml (include "components" .) }}
+{{- if $components.serviceDiscovery.enabled }}
 {{- $no_proxy_envar_list := (include "no_proxy_envar_list" .) -}}
 apiVersion: batch/v1
 kind: Job
@@ -25,7 +26,7 @@ spec:
         helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
         tier: {{ .Values.global.namespaceTier }}
         app: {{ .Values.serviceDiscovery.name }}
-      {{- if .Values.otelCollector.enabled }}
+      {{- if $components.otelCollector.enabled }}
         otel: enabled
       {{- end }}
       {{- if .Values.global.addRevisionLabel }}
@@ -47,7 +48,7 @@ spec:
         args:
           - -method=get
           - -scheme=https
-          - -host={{ .Values.server }}
+          - -host={{ .Values.configurations.server.discoveryUrl }}
           - -path=api/v1/servicediscovery
           - -path-output=/data/services.json
         volumeMounts:
@@ -58,9 +59,9 @@ spec:
         image: "{{ .Values.serviceDiscovery.configMapUpdate.image.repository }}:{{ .Values.serviceDiscovery.configMapUpdate.image.tag }}"
         imagePullPolicy: {{ .Values.serviceDiscovery.configMapUpdate.image.pullPolicy }}
         command: ["/bin/sh", "-c"]
-        args: 
+        args:
           - |
-            kubectl create configmap {{ .Values.global.cloudConfig }} --from-literal=metrics=$(jq -r '.response.metrics' /data/services.json) --from-file=services=/data/services.json -n {{ .Values.ksNamespace }} --dry-run=client -o yaml | kubectl apply -f - 
+            kubectl create configmap {{ .Values.global.cloudConfig }} --from-literal=metrics=$(jq -r '.response.metrics' /data/services.json) --from-file=services=/data/services.json -n {{ .Values.ksNamespace }} --dry-run=client -o yaml | kubectl apply -f -
         volumeMounts:
         - name: shared-data
           mountPath: /data

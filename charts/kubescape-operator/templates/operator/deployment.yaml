@@ -1,4 +1,5 @@
-{{- if .Values.operator.enabled }}
+{{- $components := fromYaml (include "components" .) }}
+{{- if $components.operator.enabled }}
 {{- $no_proxy_envar_list := (include "no_proxy_envar_list" .) -}}
 apiVersion: apps/v1
 kind: Deployment
@@ -31,7 +32,7 @@ spec:
         helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
         tier: {{ .Values.global.namespaceTier }}
         app: {{ .Values.operator.name }}
-      {{- if .Values.otelCollector.enabled }}
+      {{- if $components.otelCollector.enabled }}
         otel: enabled
       {{- end }}
       {{- if .Values.global.addRevisionLabel }}
@@ -85,7 +86,7 @@ spec:
             - name: {{ .name }}
               value: "{{ .value }}"
             {{- end }}
-            {{- if .Values.otelCollector.enabled }}
+            {{- if $components.otelCollector.enabled }}
             - name: OTEL_COLLECTOR_SVC
               value: "otel-collector:4317"
             {{- end }}
@@ -106,12 +107,16 @@ spec:
               mountPath: /etc/config/clusterData.json
               readOnly: true
               subPath: "clusterData.json"
-            {{- if .Values.server }}
+            {{- if $components.serviceDiscovery.enabled }}
             - name: {{ .Values.global.cloudConfig }}
               mountPath: /etc/config/services.json
               readOnly: true
               subPath: "services.json"
             {{- end }}
+            - name: {{ .Values.global.capabilitiesConfig }}
+              mountPath: /etc/config/capabilities.json
+              readOnly: true
+              subPath: "capabilities.json"
             - name: config
               mountPath: /etc/config/config.json
               readOnly: true
@@ -141,10 +146,16 @@ spec:
             items:
             - key: "clusterData"
               path: "clusterData.json"
-            {{- if .Values.server }}
+            {{- if $components.serviceDiscovery.enabled }}
             - key: "services"
               path: "services.json"
             {{- end }}
+        - name: {{ .Values.global.capabilitiesConfig }}
+          configMap:
+            name: {{ .Values.global.capabilitiesConfig }}
+            items:
+              - key: "capabilities"
+                path: "capabilities.json"
         - name: config
           configMap:
             name: {{ .Values.operator.name }}

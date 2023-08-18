@@ -1,4 +1,4 @@
-{{ template "cluster_name" . }}
+{{- $components := fromYaml (include "components" .) -}}
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -15,7 +15,7 @@ spec:
     metadata:
       labels:
         name: host-scanner
-        {{- if .Values.otelCollector.enabled }}
+        {{- if $components.otelCollector.enabled }}
         otel: enabled
         {{- end }}
     spec:
@@ -53,8 +53,8 @@ spec:
         - name: KS_LOGGER_LEVEL
           value: "{{ .Values.logger.level }}"
         - name: KS_LOGGER_NAME
-          value: "{{ .Values.logger.name }}" 
-        {{- if .Values.otelCollector.enabled }}
+          value: "{{ .Values.logger.name }}"
+        {{- if $components.otelCollector.enabled }}
         - name: ACCOUNT_ID
           value: "{{ .Values.account }}"
         - name: CLUSTER_NAME

@@ -1,4 +1,5 @@
-{{ template "cluster_name" . }}
+{{- $components := fromYaml (include "components" .) }}
+{{- $configurations := fromYaml (include "configurations" .) }}
 # receivers configure how data gets into the Collector.
 receivers:
   otlp:
@@ -28,16 +29,16 @@ processors:
 # exporters configure how to send processed data to one or more backends.
 exporters:
   otlp/ksCloud:
-    {{- if .Values.server }}
+    {{- if $configurations.ksOtel }}
     endpoint: ${env:CLOUD_OTEL_COLLECTOR_URL}
     {{- else }}
     endpoint: ""
     {{- end }}
     tls:
       insecure: false
-  {{- if ne .Values.otelCollector.endpoint.host "" }}
+  {{- if $configurations.otel }}
   otlp:
-    endpoint: "{{ .Values.otelCollector.endpoint.host }}:{{ .Values.otelCollector.endpoint.port }}"
+    endpoint: "{{ .Values.configurations.server.otelUrl }}"
     tls:
       insecure: {{ .Values.otelCollector.endpoint.insecure }}
     {{- if .Values.otelCollector.endpoint.headers }}
@@ -55,34 +56,34 @@ service:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: 
-      {{- if ne .Values.otelCollector.endpoint.host "" }}
+      exporters:
+        - otlp/ksCloud
+      {{- if $configurations.otel }}
         - otlp
       {{- end }}
-        - otlp/ksCloud
     {{- if .Values.otelCollector.hostmetrics.enabled }}
     metrics/2:
       receivers: [hostmetrics]
       processors: [attributes/ksCloud, batch]
-      exporters: 
-      {{- if ne .Values.otelCollector.endpoint.host "" }}
+      exporters:
+        - otlp/ksCloud
+      {{- if $configurations.otel }}
         - otlp
       {{- end }}
-        - otlp/ksCloud
     {{- end }}
     metrics:
       receivers: [otlp]
       processors: [batch]
-      exporters: 
-      {{- if ne .Values.otelCollector.endpoint.host "" }}
+      exporters:
+        - otlp/ksCloud
+      {{- if $configurations.otel }}
         - otlp
       {{- end }}
-        - otlp/ksCloud
     logs:
       receivers: [otlp]
       processors: [batch]
-      exporters: 
-      {{- if ne .Values.otelCollector.endpoint.host "" }}
+      exporters:
+        - otlp/ksCloud
+      {{- if $configurations.otel }}
         - otlp
       {{- end }}
-        - otlp/ksCloud
