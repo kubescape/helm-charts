@@ -13,6 +13,12 @@ metadata:
     app: {{ .Values.kubescape.name }}
     tier: {{ .Values.global.namespaceTier }}
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+{{- if .Values.kubescape.prometheusAnnotation.enabled }}
+  annotations:
+    prometheus.io/path: /v1/metrics
+    prometheus.io/port: "8080"
+    prometheus.io/scrape: "true"
+{{- end }}
 spec:
   replicas: {{ .Values.kubescape.replicaCount }}
   revisionHistoryLimit: 2
@@ -82,7 +88,7 @@ spec:
         - name: KS_LOGGER_NAME
           value: "{{ .Values.logger.name }}"
         - name: KS_DOWNLOAD_ARTIFACTS  # When set to true the artifacts will be downloaded every scan execution
-          value: "{{ .Values.kubescape.downloadArtifacts }}" 
+          value: "{{ .Values.kubescape.downloadArtifacts }}"
         - name: RULE_PROCESSING_GOMAXPROCS
           value: "{{ .Values.kubescape.ruleProcessingConcurrency }}"
         - name: KS_DEFAULT_CONFIGMAP_NAME
@@ -136,7 +142,7 @@ spec:
         command:
         - ksserver
         resources:
-{{ toYaml .Values.kubescape.resources | indent 14 }}            
+{{ toYaml .Values.kubescape.resources | indent 14 }}
         volumeMounts:
         - name: kubescape-config-volume
           mountPath: /home/nonroot/.kubescape/config.json
