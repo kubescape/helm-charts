@@ -26,7 +26,7 @@ Otherwise, get the account ID from the [kubescape SaaS](https://hub.armosec.io/d
 
 Run the install command:
 ```
-helm upgrade --install kubescape kubescape/kubescape-cloud-operator -n kubescape --create-namespace --set account=<my_account_ID> --set clusterName=`kubectl config current-context` 
+helm upgrade --install kubescape kubescape/kubescape-operator -n kubescape --create-namespace --set account=<my_account_ID> --set clusterName=`kubectl config current-context` 
 ```
 
 > Add `--set clientID=<generated client id> --set secretKey=<generated secret key>` if you have [generated an auth key](https://hub.armosec.io/docs/authentication)
@@ -457,7 +457,7 @@ class er,gw,masterGw plain
 
 ---
 
-## [URLs ConfigMap](https://github.com/kubescape/helm-charts/blob/master/charts/kubescape-cloud-operator/templates/cloudapi-configmap.yaml)
+## [URLs ConfigMap](https://github.com/kubescape/helm-charts/blob/master/charts/kubescape-operator/templates/cloudapi-configmap.yaml)
 
 Holds a list of communication URLs. Used by the following components:
 

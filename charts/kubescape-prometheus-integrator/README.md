@@ -1,6 +1,6 @@
 # Kubescape-Prometheus Integration
 
-## This chart is deprecated. Please use the [kubescape-cloud-operator](../kubescape-cloud-operator/README.md) chart instead.
+## This chart is deprecated. Please use the [kubescape-operator](../kubescape-operator/README.md) chart instead.
 
 ___
 
@@ -141,4 +141,3 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | cloudProviderMetadata.aksResourceGroup | string | `nil` | AKS resource group |
 | volumes | object | `[]` | Additional volumes for all containers |
 | volumeMounts | object | `[]` | Additional volumeMounts for all containers |
- 
