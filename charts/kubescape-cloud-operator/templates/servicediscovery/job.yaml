@@ -1,0 +1,71 @@
+{{- if .Values.server  }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: service-discovery
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    app.kubernetes.io/name: service-discovery
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app: service-discovery
+    tier: {{ .Values.global.namespaceTier }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    "helm.sh/hook-weight": "1"
+spec:
+  template:
+    metadata:
+      name: "{{ .Release.Name }}"
+      labels:
+        app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+        app.kubernetes.io/instance: {{ .Release.Name | quote }}
+        helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+      labels:
+        app.kubernetes.io/name: service-discovery
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        tier: {{ .Values.global.namespaceTier }}
+        app: service-discovery
+      {{- if .Values.otelCollector.enabled }}
+        otel: enabled
+      {{- end }}
+      {{- if .Values.global.addRevisionLabel }}
+        helm.sh/revision: "{{ .Release.Revision }}"
+      {{- end }}
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: url-discovery
+        image: quay.io/kubescape/http-request:v0.2.2-prerelease
+        env:
+        {{- if ne .Values.global.httpsProxy "" }}
+          - name: HTTPS_PROXY
+            value: "{{ .Values.global.httpsProxy }}"
+          - name : no_proxy
+            value: "{{ $no_proxy_envar_list }}"
+        {{- end }}
+        args:
+          - -method=get
+          - -scheme=https
+          - -host={{ .Values.server }}
+          - -path=api/v1/servicediscovery
+          - -path-output=/data/config.json
+        volumeMounts:
+        - name: shared-data
+          mountPath: /data
+      - name: update-configmap
+        image: bitnami/kubectl:latest
+        command: ["/bin/sh", "-c"]
+        args: 
+          - |
+            while [ ! -f /data/config.json ]; do sleep 1; done
+            kubectl create configmap service-discovery --from-file=config.json=/data/config.json -n {{ .Values.ksNamespace }} --dry-run=client -o yaml | kubectl apply -f -  
+        volumeMounts:
+        - name: shared-data
+          mountPath: /data
+      volumes:
+      - name: shared-data
+        emptyDir: {}
+      serviceAccountName: service-discovery
+{{- end }}
