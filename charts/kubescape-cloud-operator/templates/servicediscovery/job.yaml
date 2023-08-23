@@ -1,4 +1,5 @@
 {{- if .Values.server  }}
+{{- $no_proxy_envar_list := (include "no_proxy_envar_list" .) -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -50,7 +51,7 @@ spec:
           - -scheme=https
           - -host={{ .Values.server }}
           - -path=api/v1/servicediscovery
-          - -path-output=/data/config.json
+          - -path-output=/data/services.json
         volumeMounts:
         - name: shared-data
           mountPath: /data
@@ -59,8 +60,8 @@ spec:
         command: ["/bin/sh", "-c"]
         args: 
           - |
-            while [ ! -f /data/config.json ]; do sleep 1; done
-            kubectl create configmap service-discovery --from-file=config.json=/data/config.json -n {{ .Values.ksNamespace }} --dry-run=client -o yaml | kubectl apply -f -  
+            while [ ! -f /data/services.json ]; do sleep 1; done
+            kubectl create configmap {{ .Values.global.cloudConfig }} --from-file=services=/data/services.json -n {{ .Values.ksNamespace }} --dry-run=client -o yaml | kubectl apply -f -  
         volumeMounts:
         - name: shared-data
           mountPath: /data
