@@ -81,17 +81,11 @@ spec:
               value: "{{ .Values.logger.level }}"
             - name: KS_LOGGER_NAME
               value: "{{ .Values.logger.name }}"
-            - name: NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
             {{- range .Values.operator.env }}
             - name: {{ .name }}
               value: "{{ .value }}"
             {{- end }}
             {{- if .Values.otelCollector.enabled }}
-            - name: ACCOUNT_ID
-              value: "{{ .Values.account }}"
             - name: OTEL_COLLECTOR_SVC
               value: "otel-collector:4317"
             {{- end }}
@@ -101,8 +95,6 @@ spec:
             - name : no_proxy
               value: "{{ $no_proxy_envar_list }}"
             {{- end }}
-            - name: TRIGGER_SECURITY_FRAMEWORK
-              value: "{{ .Values.operator.triggerSecurityFramework }}"
           args:
             - -alsologtostderr
             - -v=4
@@ -111,8 +103,13 @@ spec:
             - name: tmp-dir
               mountPath: /tmp
             - name: {{ .Values.global.cloudConfig }}
-              mountPath: /etc/config
+              mountPath: /etc/config/clusterData.json
               readOnly: true
+              subPath: "clusterData.json"
+            - name: config
+              mountPath: /etc/config/config.json
+              readOnly: true
+              subPath: "config.json"
 {{- if .Values.volumeMounts }}
 {{ toYaml .Values.volumeMounts | indent 12 }}
 {{- end }}
@@ -138,6 +135,12 @@ spec:
             items:
             - key: "clusterData"
               path: "clusterData.json"
+        - name: config
+          configMap:
+            name: {{ .Values.operator.name }}
+            items:
+            - key: "config.json"
+              path: "config.json"
 {{- if .Values.volumes }}
 {{ toYaml .Values.volumes | indent 8 }}
 {{- end }}
