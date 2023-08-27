@@ -148,6 +148,11 @@ spec:
           mountPath: /home/nonroot/results
         - name: failed
           mountPath: /home/nonroot/failed
+        {{- if .Values.server }}
+        - name: {{ .Values.global.cloudConfig }}
+          mountPath: /etc/config
+          readOnly: true
+        {{- end }}
 {{- if .Values.volumeMounts }}
 {{ toYaml .Values.volumeMounts | indent 8 }}
 {{- end }}
@@ -168,6 +173,14 @@ spec:
       - name: kubescape-config-volume
         configMap:
           name: {{ .Values.kubescape.name }}-config
+      {{- if .Values.server }}
+      - name: {{ .Values.global.cloudConfig }}
+        configMap: 
+          name: {{ .Values.global.cloudConfig }}
+          items:
+            - key: "services"
+              path: "services.json"
+      {{- end }}
       - name: host-scanner-definition
         configMap:
           name: host-scanner-definition
