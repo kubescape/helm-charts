@@ -61,7 +61,7 @@ spec:
         args: 
           - |
             while [ ! -f /data/services.json ]; do sleep 1; done
-            kubectl create configmap {{ .Values.global.cloudConfig }} --from-file=services=/data/services.json -n {{ .Values.ksNamespace }} --dry-run=client -o yaml | kubectl apply -f -  
+            kubectl create configmap {{ .Values.global.cloudConfig }} --from-literal=metrics=$(jq -r '.response.metrics' /data/services.json) --from-file=services=/data/services.json -n {{ .Values.ksNamespace }} --dry-run=client -o yaml | kubectl apply -f - 
         volumeMounts:
         - name: shared-data
           mountPath: /data

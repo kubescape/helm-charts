@@ -163,10 +163,6 @@ docker-compose logs uptrace
 | kubescape.serviceMonitor.enabled | bool | `false` | enable/disable service monitor for prometheus (operator) integration |
 | kubescape.skipUpdateCheck | bool | `false` | skip check for a newer version |
 | kubescape.submit | bool | `true` | submit results to Kubescape SaaS: https://cloud.armosec.io/ |
-| kubescape.urls.report | string | `""` | override the default cloud report URL |
-| kubescape.urls.api | string | `""` | override the default cloud API URL |
-| kubescape.urls.ui | string | `""` | override the default cloud UI URL |
-| kubescape.urls.auth | string | `""` | override the default cloud authentication URL |
 | kubescape.volumes | object | `[]` | Additional volumes for Kubescape |
 | kubescape.volumeMounts | object | `[]` | Additional volumeMounts for Kubescape |
 | kubescapeScheduler.enabled | bool | `true` | enable/disable a kubescape scheduled scan using a CronJob |
