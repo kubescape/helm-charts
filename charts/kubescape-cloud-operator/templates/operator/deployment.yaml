@@ -95,8 +95,6 @@ spec:
             - name : no_proxy
               value: "{{ $no_proxy_envar_list }}"
             {{- end }}
-            - name: TRIGGER_SECURITY_FRAMEWORK
-              value: "{{ .Values.operator.triggerSecurityFramework }}"
           args:
             - -alsologtostderr
             - -v=4
@@ -108,10 +106,12 @@ spec:
               mountPath: /etc/config/clusterData.json
               readOnly: true
               subPath: "clusterData.json"
+            {{- if .Values.server }}
             - name: {{ .Values.global.cloudConfig }}
               mountPath: /etc/config/services.json
               readOnly: true
               subPath: "services.json"
+            {{- end }}
             - name: config
               mountPath: /etc/config/config.json
               readOnly: true
@@ -141,7 +141,7 @@ spec:
             items:
             - key: "clusterData"
               path: "clusterData.json"
-            {{ if .Values.server }}
+            {{- if .Values.server }}
             - key: "services"
               path: "services.json"
             {{- end }}
