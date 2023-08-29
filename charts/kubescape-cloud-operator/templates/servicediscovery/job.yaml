@@ -36,7 +36,7 @@ spec:
       {{- end }}
     spec:
       restartPolicy: Never
-      containers:
+      initContainers:
       - name: url-discovery
         image: quay.io/kubescape/http-request:v0.2.2
         env:
@@ -55,12 +55,12 @@ spec:
         volumeMounts:
         - name: shared-data
           mountPath: /data
+      containers:
       - name: update-configmap
         image: bitnami/kubectl:latest
         command: ["/bin/sh", "-c"]
         args: 
           - |
-            while [ ! -f /data/services.json ]; do sleep 1; done
             kubectl create configmap {{ .Values.global.cloudConfig }} --from-literal=metrics=$(jq -r '.response.metrics' /data/services.json) --from-file=services=/data/services.json -n {{ .Values.ksNamespace }} --dry-run=client -o yaml | kubectl apply -f - 
         volumeMounts:
         - name: shared-data
