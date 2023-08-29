@@ -196,14 +196,12 @@ docker-compose logs uptrace
 | hostScanner.volumes | object | `[]` | Additional volumes for the host scanner |
 | hostScanner.volumeMounts | object | `[]` | Additional volumeMounts for the host scanner |
 | awsIamRoleArn | string | `nil` | AWS IAM arn role |
-| clientID | string | `""` | client ID, [read more](https://hub.armosec.io/docs/authentication) |
 | addRevisionLabel | bool | `true` | Add revision label to the components. This will insure the components will restart when updating the helm |
 | cloudProviderMetadata.cloudRegion | string | `nil` | cloud region |
 | cloudProviderMetadata.gkeProject | string | `nil` | GKE project |
 | cloudProviderMetadata.gkeServiceAccount | string | `nil` | GKE service account |
 | cloudProviderMetadata.aksSubscriptionID | string | `nil` | AKS subscription ID |
 | cloudProviderMetadata.aksResourceGroup | string | `nil` | AKS resource group |
-| secretKey | string | `""` | secret key, [read more](https://hub.armosec.io/docs/authentication) |
 | triggerNewImageScan | bool | `false` | enable/disable trigger image scan for new images |
 | volumes | object | `[]` | Additional volumes for all containers |
 | volumeMounts | object | `[]` | Additional volumeMounts for all containers |
