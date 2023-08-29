@@ -3,12 +3,12 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: service-discovery
+  name: {{ .Values.serviceDiscovery.name }}
   namespace: {{ .Values.ksNamespace }}
   labels:
-    app.kubernetes.io/name: service-discovery
+    app.kubernetes.io/name: {{ .Values.serviceDiscovery.name }}
     app.kubernetes.io/instance: {{ .Release.Name }}
-    app: service-discovery
+    app: {{ .Values.serviceDiscovery.name }}
     tier: {{ .Values.global.namespaceTier }}
   annotations:
     "helm.sh/hook": pre-install,pre-upgrade
@@ -23,11 +23,11 @@ spec:
         app.kubernetes.io/instance: {{ .Release.Name | quote }}
         helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
       labels:
-        app.kubernetes.io/name: service-discovery
+        app.kubernetes.io/name: {{ .Values.serviceDiscovery.name }}
         app.kubernetes.io/instance: {{ .Release.Name }}
         helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
         tier: {{ .Values.global.namespaceTier }}
-        app: service-discovery
+        app: {{ .Values.serviceDiscovery.name }}
       {{- if .Values.otelCollector.enabled }}
         otel: enabled
       {{- end }}
@@ -37,8 +37,9 @@ spec:
     spec:
       restartPolicy: Never
       initContainers:
-      - name: url-discovery
-        image: quay.io/kubescape/http-request:v0.2.2
+      - name: {{ .Values.serviceDiscovery.urlDiscovery.name }}
+        image: "{{ .Values.serviceDiscovery.urlDiscovery.image.repository }}:{{ .Values.serviceDiscovery.urlDiscovery.image.tag }}"
+        imagePullPolicy: {{ .Values.serviceDiscovery.urlDiscovery.image.pullPolicy }}
         env:
         {{- if ne .Values.global.httpsProxy "" }}
           - name: HTTPS_PROXY
@@ -56,8 +57,9 @@ spec:
         - name: shared-data
           mountPath: /data
       containers:
-      - name: update-configmap
-        image: bitnami/kubectl:latest
+      - name: {{ .Values.serviceDiscovery.configMapUpdate.name }}
+        image: "{{ .Values.serviceDiscovery.configMapUpdate.image.repository }}:{{ .Values.serviceDiscovery.configMapUpdate.image.tag }}"
+        imagePullPolicy: {{ .Values.serviceDiscovery.configMapUpdate.image.pullPolicy }}
         command: ["/bin/sh", "-c"]
         args: 
           - |
@@ -68,5 +70,5 @@ spec:
       volumes:
       - name: shared-data
         emptyDir: {}
-      serviceAccountName: service-discovery
+      serviceAccountName: {{ .Values.serviceDiscovery.name }}
 {{- end }}
