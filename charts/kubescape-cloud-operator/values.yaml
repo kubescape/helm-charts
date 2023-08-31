@@ -9,36 +9,15 @@ createKubescapeServiceAccount: true # TODO: move to kubescape
 capabilities:
   relevancy: detect # enable/disable/detect
 
-# KS cloud BE URLs
-environment: "prod"
-eventReceiverHttpUrl: "https://report.armo.cloud"
-k8sReportUrl: "wss://report.armo.cloud"
-gatewayUrl: "ens.euprod1.cyberarmorsoft.com"
-backendOpenAPI: "https://api.armosec.io/api"
-ksCloudOtelCollector: "otelcol.armosec.io:443"
-# KS cloud DEV BE URLs
-devEventReceiverHttpUrl: "https://report-ks.eudev3.cyberarmorsoft.com"
-devK8sReportUrl: "wss://report-ks.eudev3.cyberarmorsoft.com"
-devGatewayUrl: "ens.eudev3.cyberarmorsoft.com"
-devBackendOpenAPI: "https://api-dev.armosec.io/api"
-devKsCloudOtelCollector: "otelcol-dev.armosec.io:443"
-# KS cloud STAGING BE URLs
-stagingEventReceiverHttpUrl: "https://report-ks.eustage2.cyberarmorsoft.com"
-stagingK8sReportUrl: "wss://report-ks.eustage2.cyberarmorsoft.com"
-stagingGatewayUrl: "ens.eustage2.cyberarmorsoft.com"
-stagingBackendOpenAPI: "https://api-stage.armosec.io/api"
+# KS cloud BE 
+server: api.armosec.io
+
 # Customer Specific Data
 # account is deliberately not defined here and it should be defined by the user
 # --set clusterName=`kubectl config current-context`
 clusterName: # cluster name must be defined by the user
 # --set clusterServer=`kubectl config view -o jsonpath="{.clusters[?(@.name=='$(kubectl config current-context)')].cluster.server}"`
 clusterServer: ""
-
-# -- client ID - https://hub.armosec.io/docs/authentication
-clientID: ""
-
-# -- secret key - https://hub.armosec.io/docs/authentication
-secretKey: ""
 
 # -- set the image pull secrets for private registry support
 imagePullSecrets: ""
@@ -161,7 +140,7 @@ kubescape:
   image:
     # -- source code: https://github.com/kubescape/kubescape/tree/master/httphandler (public repo)
     repository: quay.io/kubescape/kubescape
-    tag: v2.9.0
+    tag: v2.9.1-prerelease
     pullPolicy: IfNotPresent
 
   resources:
@@ -171,13 +150,6 @@ kubescape:
     limits:
        cpu: 600m
        memory: 1Gi
-
-  # -- override the default URLs when using private cloud
-  urls:
-    report: ""
-    api: ""
-    ui: ""
-    auth: ""
 
   # -- enable host scanner feature: https://hub.armosec.io/docs/host-sensor
   enableHostScan: true
@@ -225,7 +197,7 @@ operator:
   image:
     # -- source code: https://github.com/kubescape/operator
     repository: quay.io/kubescape/operator
-    tag: v0.1.42-prerelease
+    tag: v0.1.44-prerelease
     pullPolicy: IfNotPresent
 
   service:
@@ -308,7 +280,7 @@ kubevuln:
   image:
     # -- source code: https://github.com/kubescape/kubevuln
     repository: quay.io/kubescape/kubevuln
-    tag: v0.2.104
+    tag: v0.2.112-prerelease
     pullPolicy: IfNotPresent
 
   replicaCount: 1
@@ -359,7 +331,7 @@ kollector:
   image:
     # -- source code: https://github.com/kubescape/kollector
     repository: quay.io/kubescape/kollector
-    tag: v0.1.24
+    tag: v0.1.27-prerelease
     pullPolicy: IfNotPresent
 
   replicaCount: 1
@@ -413,7 +385,7 @@ gateway:
   image:
     # -- source code: https://github.com/kubescape/gateway
     repository: quay.io/kubescape/gateway
-    tag: v0.1.14
+    tag: v0.1.15-prerelease
     pullPolicy: IfNotPresent
 
   replicaCount: 1
@@ -637,3 +609,21 @@ nodeAgent:
   nodeSelector:
     kubernetes.io/os: linux
     kubernetes.io/arch: amd64
+
+# service discovery job for discovering backend server URLs
+serviceDiscovery:
+  name: service-discovery
+
+  urlDiscovery:
+    name: url-discovery
+    image:
+      repository: quay.io/kubescape/http-request
+      tag: v0.2.2
+      pullPolicy: IfNotPresent
+
+  configMapUpdate:
+    name: update-configmap
+    image:
+      repository: bitnami/kubectl
+      tag: 1.27.5
+      pullPolicy: IfNotPresent
