@@ -12,11 +12,11 @@
 {{- end }}
 
 {{- define "configurations" -}}
-{{- $otel := not (empty .Values.configurations.server.otelUrl) -}}
-{{- $submit := not (empty .Values.configurations.server.discoveryUrl) -}}
+{{- $otel := not (empty .Values.configurations.otelUrl) -}}
+{{- $submit := not (empty .Values.server) -}}
 ksOtel: {{ $submit }}
 otel: {{ $otel }}
-otelPort : {{ if $otel }}{{ splitList ":" .Values.configurations.server.otelUrl | last }}{{ else }}""{{ end }}
+otelPort : {{ if $otel }}{{ splitList ":" .Values.configurations.otelUrl | last }}{{ else }}""{{ end }}
 submit: {{ $submit }}
   {{- if $submit -}}
     {{- if empty .Values.account -}}

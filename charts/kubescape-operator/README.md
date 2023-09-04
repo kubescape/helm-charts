@@ -130,7 +130,7 @@ docker-compose logs uptrace
 4. Follow the [instructions above](#installing-kubescape-operator-in-a-kubernetes-cluster-using-helm), add the OTEL collector configuration and install the operator as follows:
   
   ```
-  --set configurations.server.otelUrl=<collector host>:14317 --set otelCollector.endpoint.insecure=false
+  --set configurations.otelUrl=<collector host>:14317 --set otelCollector.endpoint.insecure=false
   ```
 
 5. Open Uptrace UI at [http://localhost:14318/overview/2](http://localhost:14318/overview/2)
