@@ -1,0 +1,17 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- if $components.operator.enabled }}
+{{- if not (.Capabilities.APIVersions.Has "batch/v1/CronJob") }}
+  {{- fail "`batch/v1/CronJob not supported`" }}
+{{- end }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    app: {{ .Values.global.cloudConfig }}
+    tier: {{ .Values.global.namespaceTier }}
+  name: registry-scan-cronjob-template
+data:
+  cronjobTemplate: |-
+    {{ tpl (.Files.Get "assets/registry-scan-cronjob-full.yaml") . }}
+{{- end }}

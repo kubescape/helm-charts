@@ -1,0 +1,89 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- $configurations := fromYaml (include "configurations" .) }}
+# receivers configure how data gets into the Collector.
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+  hostmetrics:
+    collection_interval: {{ .Values.otelCollector.hostmetrics.scrapeInterval }}
+    scrapers:
+      cpu:
+      memory:
+
+# processors specify what happens with the received data.
+processors:
+  attributes/ksCloud:
+    actions:
+      - key: account_id
+        value: "{{ .Values.account }}"
+        action: upsert
+      - key: cluster_name
+        value: "{{ regexReplaceAll "\\W+" .Values.clusterName "-" }}"
+        action: upsert
+  batch:
+    send_batch_size: 10000
+    timeout: 10s
+
+# exporters configure how to send processed data to one or more backends.
+exporters:
+  otlp/ksCloud:
+    {{- if $configurations.ksOtel }}
+    endpoint: ${env:CLOUD_OTEL_COLLECTOR_URL}
+    {{- else }}
+    endpoint: ""
+    {{- end }}
+    tls:
+      insecure: false
+  {{- if $configurations.otel }}
+  otlp:
+    endpoint: "{{ .Values.configurations.otelUrl }}"
+    tls:
+      insecure: {{ .Values.otelCollector.endpoint.insecure }}
+    {{- if .Values.otelCollector.endpoint.headers }}
+    headers:
+    {{- range $k, $v := .Values.otelCollector.endpoint.headers }}
+      {{ $k }}: {{ $v }}
+    {{- end }}
+    {{- end }}
+  {{- end }}
+
+# service pulls the configured receivers, processors, and exporters together into
+# processing pipelines. Unused receivers/processors/exporters are ignored.
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters:
+        - otlp/ksCloud
+      {{- if $configurations.otel }}
+        - otlp
+      {{- end }}
+    {{- if .Values.otelCollector.hostmetrics.enabled }}
+    metrics/2:
+      receivers: [hostmetrics]
+      processors: [attributes/ksCloud, batch]
+      exporters:
+        - otlp/ksCloud
+      {{- if $configurations.otel }}
+        - otlp
+      {{- end }}
+    {{- end }}
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters:
+        - otlp/ksCloud
+      {{- if $configurations.otel }}
+        - otlp
+      {{- end }}
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters:
+        - otlp/ksCloud
+      {{- if $configurations.otel }}
+        - otlp
+      {{- end }}

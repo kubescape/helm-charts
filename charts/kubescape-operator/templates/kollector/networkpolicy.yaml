@@ -1,0 +1,31 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- if and .Values.global.networkPolicy.enabled .Values.global.networkPolicy.createEgressRules $components.kollector.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Values.kollector.name }}
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    app: {{ .Values.kollector.name }}
+    tier: {{ .Values.global.namespaceTier }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.kollector.name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      tier: {{ .Values.global.namespaceTier }}
+  policyTypes:
+    - Egress
+  egress:
+      # k8sReportUrl ({{ .Values.k8sReportUrl }}/k8s/cluster-reports)
+    - ports:
+        - port: 443
+          protocol: TCP
+      # Cloud Vendor detection (Instance Metadata Services)
+    - ports:
+        - port: 80
+          protocol: TCP
+      to:
+        - ipBlock:
+            cidr: 169.254.169.254/32
+{{- end }}

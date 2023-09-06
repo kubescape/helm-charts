@@ -1,0 +1,19 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- if $components.otelCollector.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    app: otel-collector
+spec:
+  type: ClusterIP
+  ports:
+    - name: otlp
+      port: 4317
+      targetPort: 4317
+      protocol: TCP
+  selector:
+    app: otel-collector
+{{ end }}

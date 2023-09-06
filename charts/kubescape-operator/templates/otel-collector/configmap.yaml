@@ -1,0 +1,14 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- if $components.otelCollector.enabled }}
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: otel-collector-config
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    app: {{ .Values.global.cloudConfig }}
+    tier: {{ .Values.global.namespaceTier }}
+data:
+  otel-collector-config.yaml: |-
+{{ tpl (.Files.Get "assets/otel-collector-config.yaml") . | indent 4 }}
+{{- end }}

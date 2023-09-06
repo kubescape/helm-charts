@@ -1,0 +1,41 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- $configurations := fromYaml (include "configurations" .) }}
+{{- if and .Values.global.networkPolicy.enabled $components.otelCollector.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: otel-collector
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    app: otel-collector
+    tier: {{ .Values.global.namespaceTier }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: otel-collector
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      tier: {{ .Values.global.namespaceTier }}
+  policyTypes:
+    - Ingress
+  {{- if .Values.global.networkPolicy.createEgressRules }}
+    - Egress
+  egress:
+      # - otel backend
+    - ports:
+      - port: 443
+        protocol: TCP
+      {{- if $configurations.otel }}
+      - port: {{ $configurations.otelPort }}
+        protocol: TCP
+      {{- end }}
+  {{- end }}
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              otel: enabled
+      ports:
+        - port: otlp
+          protocol: TCP
+{{ end }}

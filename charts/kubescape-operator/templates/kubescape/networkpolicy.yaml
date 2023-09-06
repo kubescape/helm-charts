@@ -1,0 +1,39 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- if and .Values.global.networkPolicy.enabled $components.kubescape.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Values.kubescape.name }}
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    app: {{ .Values.kubescape.name }}
+    tier: {{ .Values.global.namespaceTier }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.kubescape.name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      tier: {{ .Values.global.namespaceTier }}
+  policyTypes:
+    - Ingress
+  {{- if .Values.global.networkPolicy.createEgressRules }}
+    - Egress
+  egress:
+      # - backendOpenAPI (https://api.armosec.io)
+      # - GitRegoStore (https://github.com/kubescape/regolibrary/releases/)
+    - ports:
+      - port: 443
+        protocol: TCP
+  {{- end }}
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: kubescape
+              app.kubernetes.io/name: operator
+              tier: ks-control-plane
+      ports:
+        - port: http
+          protocol: TCP
+{{ end }}

@@ -1,0 +1,28 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- if $components.storage.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "storage.authDelegatorClusterRoleBindingName" . | quote }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.storage.name }}
+  namespace: {{ .Values.ksNamespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Values.storage.name }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Values.storage.name }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Values.storage.name }}
+    namespace: {{ .Values.ksNamespace }}
+{{- end }}

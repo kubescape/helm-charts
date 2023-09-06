@@ -1,0 +1,161 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- if $components.kubevuln.enabled }}
+{{- $no_proxy_envar_list := (include "no_proxy_envar_list" .) -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.kubevuln.name }}
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.kubevuln.name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app: {{ .Values.kubevuln.name }}
+    tier: {{ .Values.global.namespaceTier }}
+spec:
+  replicas: {{ .Values.kubevuln.replicaCount }}
+  revisionHistoryLimit: 2
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.kubevuln.name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      tier: {{ .Values.global.namespaceTier }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Values.kubevuln.name }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        tier: {{ .Values.global.namespaceTier }}
+        app: {{ .Values.kubevuln.name }}
+      {{- if $components.otelCollector.enabled }}
+        otel: enabled
+      {{- end }}
+      {{- if .Values.global.addRevisionLabel }}
+        helm.sh/revision: "{{ .Release.Revision }}"
+      {{- end }}
+    spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+      - name: {{ toYaml .Values.imagePullSecrets }}
+      {{- end }}
+      securityContext:
+        runAsUser: 65532
+        fsGroup: 65532
+      containers:
+        - name: {{ .Values.kubevuln.name }}
+          image: "{{ .Values.kubevuln.image.repository }}:{{ .Values.kubevuln.image.tag }}"
+          imagePullPolicy: {{ .Values.kubevuln.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+          ports:
+          - containerPort: {{ .Values.kubevuln.service.port }}
+            protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /v1/liveness
+              port: {{ .Values.kubevuln.service.port }}
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /v1/readiness
+              port: {{ .Values.kubevuln.service.port }}
+          resources:
+{{ toYaml .Values.kubevuln.resources | indent 12 }}
+          env:
+            - name: GOMEMLIMIT
+              value: "{{ .Values.kubevuln.resources.requests.memory }}B"
+            - name: KS_LOGGER_LEVEL
+              value: "{{ .Values.logger.level }}"
+            - name: KS_LOGGER_NAME
+              value: "{{ .Values.logger.name }}"
+            - name: PRINT_POST_JSON
+              value: "{{ .Values.kubevuln.verbose }}"
+            {{- range .Values.kubevuln.env }}
+            - name: {{ .name }}
+              value: "{{ .value }}"
+            {{- end }}
+            {{- if $components.otelCollector.enabled }}
+            - name: ACCOUNT_ID
+              value: "{{ .Values.account }}"
+            - name: OTEL_COLLECTOR_SVC
+              value: "otel-collector:4317"
+            {{- end }}
+            {{- if ne .Values.global.httpsProxy "" }}
+            - name: HTTPS_PROXY
+              value: "{{ .Values.global.httpsProxy }}"
+            - name : no_proxy
+              value: "{{ $no_proxy_envar_list }}"
+            {{- end }}
+          args:
+            - -alsologtostderr
+            - -v=4
+            - 2>&1
+          volumeMounts:
+            - name: tmp-dir
+              mountPath: /tmp
+            - name: grype-db-cache
+              mountPath: /home/nonroot/anchore-resources/db
+            - name: {{ .Values.global.cloudConfig }}
+              mountPath: /etc/config
+              readOnly: true
+            - name: grype-db
+              mountPath: /home/nonroot/.cache/grype
+{{- if .Values.volumeMounts }}
+{{ toYaml .Values.volumeMounts | indent 12 }}
+{{- end }}
+{{- if .Values.kubevuln.volumeMounts }}
+{{ toYaml .Values.kubevuln.volumeMounts | indent 12 }}
+{{- end }}
+{{- if ne .Values.global.proxySecretFile "" }}
+            - name: proxy-secret
+              mountPath: /etc/ssl/certs/proxy.crt
+              subPath: proxy.crt
+{{- end }}
+      volumes:
+      {{- if ne .Values.global.proxySecretFile "" }}
+        - name: proxy-secret
+          secret:
+            secretName: {{ .Values.global.proxySecretName }}
+      {{- end }}
+        - name: tmp-dir
+          emptyDir: {}
+        - name: grype-db-cache
+          emptyDir: {}
+        - name: {{ .Values.global.cloudConfig }}
+          configMap:
+            name: {{ .Values.global.cloudConfig }}
+            items:
+            - key: "clusterData"
+              path: "clusterData.json"
+            {{- if $components.serviceDiscovery.enabled }}
+            - key: "services"
+              path: "services.json"
+            {{- end }}
+        - name: "grype-db"
+          emptyDir: {}
+{{- if .Values.volumes }}
+{{ toYaml .Values.volumes | indent 8 }}
+{{- end }}
+{{- if .Values.kubevuln.volumes }}
+{{ toYaml .Values.kubevuln.volumes | indent 8 }}
+{{- end }}
+      serviceAccountName: {{ .Values.kubevuln.name }}
+      automountServiceAccountToken: true
+      {{- with .Values.kubevuln.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.kubevuln.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+{{- end }}

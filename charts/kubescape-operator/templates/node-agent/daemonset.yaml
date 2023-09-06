@@ -1,0 +1,149 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- if $components.nodeAgent.enabled }}
+{{- $no_proxy_envar_list := (include "no_proxy_envar_list" .) -}}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ .Values.nodeAgent.name }}
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+      app.kubernetes.io/name: {{ .Values.nodeAgent.name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app: {{ .Values.nodeAgent.name }}
+      tier: {{ .Values.global.namespaceTier }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.nodeAgent.name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      tier: {{ .Values.global.namespaceTier }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Values.nodeAgent.name }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        tier: {{ .Values.global.namespaceTier }}
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        app: {{ .Values.nodeAgent.name }}
+        alt-name: {{ .Values.nodeAgent.name }} # Why?
+      {{- if $components.otelCollector.enabled }}
+        otel: enabled
+      {{- end }}
+      {{- if .Values.global.addRevisionLabel }}
+        helm.sh/revision: "{{ .Release.Revision }}"
+      {{- end }}
+    spec:
+      serviceAccountName: {{ .Values.nodeAgent.name }}
+      automountServiceAccountToken: true
+      hostPID: true
+      volumes:
+        - name: {{ .Values.global.cloudConfig }}
+          configMap:
+            name: {{ .Values.global.cloudConfig }}
+            items:
+              - key: "clusterData"
+                path: "clusterData.json"
+              {{- if $components.serviceDiscovery.enabled }}
+              - key: "services"
+                path: "services.json"
+              {{- end }}
+        - name: config
+          configMap:
+            name: {{ .Values.nodeAgent.name }}
+            items:
+              - key: "config.json"
+                path: "config.json"
+        {{- range .Values.nodeAgent.volumes }}
+        - name: {{ .name }}
+        {{- if .configMap }}
+          configMap:
+            name: {{ .configMap.name }}
+        {{ else if .emptyDir }}
+          emptyDir: {}
+        {{ else if .hostPath }}
+          hostPath:
+            path: {{ .hostPath.path }}
+            type: {{ .hostPath.type }}
+        {{- end }}
+        {{- end }}
+        {{- if ne .Values.global.proxySecretFile "" }}
+        - name: proxy-secret
+          secret:
+            secretName: {{ .Values.global.proxySecretName }}
+        {{- end }}
+      containers:
+        - name: {{ .Values.nodeAgent.name }}
+          image: "{{ .Values.nodeAgent.image.repository }}:{{ .Values.nodeAgent.image.tag }}"
+          imagePullPolicy: {{ .Values.nodeAgent.image.pullPolicy }}
+          resources:
+{{ toYaml .Values.nodeAgent.resources | indent 12 }}
+          env:
+            - name: GOMEMLIMIT
+              value: "600MiB"
+            - name: KS_LOGGER_LEVEL
+              value: "{{ .Values.logger.level }}"
+            - name: KS_LOGGER_NAME
+              value: "{{ .Values.logger.name }}"
+            {{- if $components.otelCollector.enabled }}
+            - name: OTEL_COLLECTOR_SVC
+              value: "otel-collector:4317"
+            {{- end }}
+            {{- if ne .Values.global.httpsProxy "" }}
+            - name: HTTPS_PROXY
+              value: "{{ .Values.global.httpsProxy }}"
+            - name : no_proxy
+              value: "{{ $no_proxy_envar_list }}"
+            {{- end }}
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: HOST_ROOT
+              value: "/host"
+            {{- range .Values.nodeAgent.env }}
+            - name: {{ .name }}
+            {{- if .value }}
+              value: "{{ .value }}"
+            {{- end }}
+            {{- end }}
+          securityContext:
+            runAsUser: 0
+            privileged: true
+            capabilities:
+              add:
+                - SYS_ADMIN
+          volumeMounts:
+          - name: {{ .Values.global.cloudConfig }}
+            mountPath: /etc/config/clusterData.json
+            readOnly: true
+            subPath: "clusterData.json"
+          - name: config
+            mountPath: /etc/config/config.json
+            readOnly: true
+            subPath: "config.json"
+          {{- range .Values.nodeAgent.volumeMounts }}
+          - mountPath: {{ .mountPath }}
+            name: {{ .name }}
+          {{- end }}
+          {{- if ne .Values.global.proxySecretFile "" }}
+          - name: proxy-secret
+            mountPath: /etc/ssl/certs/proxy.crt
+            subPath: proxy.crt
+          {{- end }}
+    {{- with .Values.nodeAgent.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeAgent.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+{{- end }}

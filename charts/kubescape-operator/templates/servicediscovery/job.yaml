@@ -1,0 +1,72 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- if $components.serviceDiscovery.enabled }}
+{{- $no_proxy_envar_list := (include "no_proxy_envar_list" .) -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.serviceDiscovery.name }}
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.serviceDiscovery.name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app: {{ .Values.serviceDiscovery.name }}
+    tier: {{ .Values.global.namespaceTier }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    "helm.sh/hook-weight": "1"
+spec:
+  template:
+    metadata:
+      name: "{{ .Release.Name }}"
+      labels:
+        app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+        app.kubernetes.io/name: {{ .Values.serviceDiscovery.name }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        tier: {{ .Values.global.namespaceTier }}
+        app: {{ .Values.serviceDiscovery.name }}
+      {{- if $components.otelCollector.enabled }}
+        otel: enabled
+      {{- end }}
+      {{- if .Values.global.addRevisionLabel }}
+        helm.sh/revision: "{{ .Release.Revision }}"
+      {{- end }}
+    spec:
+      restartPolicy: Never
+      initContainers:
+      - name: {{ .Values.serviceDiscovery.urlDiscovery.name }}
+        image: "{{ .Values.serviceDiscovery.urlDiscovery.image.repository }}:{{ .Values.serviceDiscovery.urlDiscovery.image.tag }}"
+        imagePullPolicy: {{ .Values.serviceDiscovery.urlDiscovery.image.pullPolicy }}
+        env:
+        {{- if ne .Values.global.httpsProxy "" }}
+          - name: HTTPS_PROXY
+            value: "{{ .Values.global.httpsProxy }}"
+          - name : no_proxy
+            value: "{{ $no_proxy_envar_list }}"
+        {{- end }}
+        args:
+          - -method=get
+          - -scheme=https
+          - -host={{ .Values.server }}
+          - -path=api/v1/servicediscovery
+          - -path-output=/data/services.json
+        volumeMounts:
+        - name: shared-data
+          mountPath: /data
+      containers:
+      - name: {{ .Values.serviceDiscovery.configMapUpdate.name }}
+        image: "{{ .Values.serviceDiscovery.configMapUpdate.image.repository }}:{{ .Values.serviceDiscovery.configMapUpdate.image.tag }}"
+        imagePullPolicy: {{ .Values.serviceDiscovery.configMapUpdate.image.pullPolicy }}
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            kubectl create configmap {{ .Values.global.cloudConfig }} --from-literal=metrics=$(jq -r '.response.metrics' /data/services.json) --from-file=services=/data/services.json -n {{ .Values.ksNamespace }} --dry-run=client -o yaml | kubectl apply -f -
+        volumeMounts:
+        - name: shared-data
+          mountPath: /data
+      volumes:
+      - name: shared-data
+        emptyDir: {}
+      serviceAccountName: {{ .Values.serviceDiscovery.name }}
+{{- end }}

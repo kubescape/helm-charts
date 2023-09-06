@@ -1,0 +1,157 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- if $components.kollector.enabled }}
+{{- $no_proxy_envar_list := (include "no_proxy_envar_list" .) -}}
+apiVersion: apps/v1
+# statefulset is needed in order to avoid two pods reporting from the same cluster in parallel.
+# parallel reporting will cause Kubescape SaaS to miss identify the cluster liveness status
+kind: StatefulSet
+metadata:
+  name: {{ .Values.kollector.name }}
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.kollector.name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app: {{ .Values.kollector.name }}
+    tier: {{ .Values.global.namespaceTier }}
+  # annotations:
+  #   helm.sh/hook: pre-install,pre-upgrade # hook should apply when installing and upgrading
+  #   helm.sh/hook-weight: "-1" # run before all other hooks
+  #   helm.sh/hook-delete-policy: before-hook-creation #,hook-succeeded
+spec:
+  serviceName: ""
+  replicas: {{ .Values.kollector.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.kollector.name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      tier: {{ .Values.global.namespaceTier }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Values.kollector.name }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        tier: {{ .Values.global.namespaceTier }}
+        app: {{ .Values.kollector.name }}
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+      {{- if .Values.global.addRevisionLabel }}
+        helm.sh/revision: "{{ .Release.Revision }}"
+      {{- end }}
+    spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+      - name: {{ toYaml .Values.imagePullSecrets }}
+      {{- end }}
+      containers:
+        - name: {{ .Values.kollector.name }}
+          image: "{{ .Values.kollector.image.repository }}:{{ .Values.kollector.image.tag }}"
+          imagePullPolicy: {{ .Values.kollector.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 100
+          ports:
+            - name: "readiness-port"
+              containerPort: 8000
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /v1/liveness
+              port: readiness-port
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /v1/readiness
+              port: readiness-port
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+{{ toYaml .Values.kollector.resources | indent 12 }}
+          env:
+            - name: GOMEMLIMIT
+              value: "{{ .Values.kollector.resources.requests.memory }}B"
+            - name: KS_LOGGER_LEVEL
+              value: "{{ .Values.logger.level }}"
+            - name: KS_LOGGER_NAME
+              value: "{{ .Values.logger.name }}"
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            {{- if $components.otelCollector.enabled }}
+            - name: ACCOUNT_ID
+              value: "{{ .Values.account }}"
+            - name: OTEL_COLLECTOR_SVC
+              value: "otel-collector:4317"
+            {{- end }}
+            {{- if ne .Values.global.httpsProxy "" }}
+            - name: HTTPS_PROXY
+              value: "{{ .Values.global.httpsProxy }}"
+            - name : no_proxy
+              value: "{{ $no_proxy_envar_list }}"
+            {{- end }}
+            {{- range .Values.kollector.env }}
+            - name: {{ .name }}
+              value: "{{ .value }}"
+            {{- end }}
+          args:
+          - -alsologtostderr
+          - -v=4
+          - 2>&1
+          volumeMounts:
+            - name: tmp-dir
+              mountPath: /tmp
+            - name: {{ .Values.global.cloudConfig }}
+              mountPath: /etc/config
+              readOnly: true
+{{- if .Values.volumeMounts }}
+{{ toYaml .Values.volumeMounts | indent 12 }}
+{{- end }}
+{{- if .Values.kollector.volumeMounts }}
+{{ toYaml .Values.kollector.volumeMounts | indent 12 }}
+{{- end }}
+{{- if ne .Values.global.proxySecretFile "" }}
+            - name: proxy-secret
+              mountPath: /etc/ssl/certs/proxy.crt
+              subPath: proxy.crt
+{{- end }}
+      volumes:
+      {{- if ne .Values.global.proxySecretFile "" }}
+        - name: proxy-secret
+          secret:
+            secretName: {{ .Values.global.proxySecretName }}
+      {{- end }}
+        - name: tmp-dir
+          emptyDir: {}
+        - name: {{ .Values.global.cloudConfig }}
+          configMap:
+            name: {{ .Values.global.cloudConfig }}
+            items:
+            - key: "clusterData"
+              path: "clusterData.json"
+            {{- if $components.serviceDiscovery.enabled }}
+            - key: "services"
+              path: "services.json"
+            {{- end }}
+{{- if .Values.volumes }}
+{{ toYaml .Values.volumes | indent 8 }}
+{{- end }}
+{{- if .Values.kollector.volumes }}
+{{ toYaml .Values.kollector.volumes | indent 8 }}
+{{- end }}
+      serviceAccountName: {{ .Values.kollector.name }}
+      automountServiceAccountToken: true
+      {{- with .Values.kollector.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.kollector.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+{{- end }}

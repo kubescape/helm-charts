@@ -1,0 +1,16 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- if $components.nodeAgent.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.nodeAgent.name }}
+  namespace: {{ .Values.ksNamespace }}
+data:
+  config.json: |
+    {
+        "relevantCVEServiceEnabled": true,
+        "InitialDelay": "{{ .Values.nodeAgent.config.learningPeriod }}",
+        "updateDataPeriod": "{{ .Values.nodeAgent.config.updatePeriod }}",
+        "maxSniffingTimePerContainer": "{{ .Values.nodeAgent.config.maxLearningPeriod }}"
+    }
+{{- end }}

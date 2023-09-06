@@ -1,0 +1,39 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- if and .Values.global.networkPolicy.enabled $components.kubevuln.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Values.kubevuln.name }}
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    app: {{ .Values.kubevuln.name }}
+    tier: {{ .Values.global.namespaceTier }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.kubevuln.name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      tier: {{ .Values.global.namespaceTier }}
+  policyTypes:
+    - Ingress
+  {{- if .Values.global.networkPolicy.createEgressRules }}
+    - Egress
+  egress:
+      # - eventReceiverHttpUrl ({{ .Values.eventReceiverHttpUrl }}/k8s/sysreport)
+      # - Grype's update-url (https://toolbox-data.anchore.io/grype/databases/listing.json)
+      # - All container registries
+    - ports:
+        - port: 443
+          protocol: TCP
+  {{- end }}
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: kubescape
+              app.kubernetes.io/name: operator
+              tier: ks-control-plane
+      ports:
+        - port: {{ .Values.kubevuln.service.port }}
+          protocol: TCP
+{{- end }}

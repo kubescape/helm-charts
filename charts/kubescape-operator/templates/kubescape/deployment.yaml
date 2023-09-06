@@ -1,0 +1,216 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- if $components.kubescape.enabled }}
+{{- $configurations := fromYaml (include "configurations" .) }}
+{{- $cloud_provider := (include "cloud_provider" .) -}}
+{{- $no_proxy_envar_list := (include "no_proxy_envar_list" .) -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.kubescape.name }}
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.kubescape.name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app: {{ .Values.kubescape.name }}
+    tier: {{ .Values.global.namespaceTier }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+{{- if .Values.kubescape.prometheusAnnotation.enabled }}
+  annotations:
+    prometheus.io/path: /v1/metrics
+    prometheus.io/port: "8080"
+    prometheus.io/scrape: "true"
+{{- end }}
+spec:
+  replicas: {{ .Values.kubescape.replicaCount }}
+  revisionHistoryLimit: 2
+  strategy:
+    rollingUpdate:
+      maxSurge: 0%
+      maxUnavailable: 100%
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.kubescape.name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      tier: {{ .Values.global.namespaceTier }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Values.kubescape.name }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        tier: {{ .Values.global.namespaceTier }}
+        app: {{ .Values.kubescape.name }}
+      {{- if $components.otelCollector.enabled }}
+        otel: enabled
+      {{- end }}
+      {{- if .Values.global.addRevisionLabel }}
+        helm.sh/revision: "{{ .Release.Revision }}"
+      {{- end }}
+    spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+      - name: {{ toYaml .Values.imagePullSecrets }}
+      {{- end }}
+      # securityContext:
+      #   runAsUser: 65532
+      #   fsGroup: 65532
+      containers:
+      - name: kubescape
+        image: "{{ .Values.kubescape.image.repository }}:{{ .Values.kubescape.image.tag }}"
+        imagePullPolicy: "{{ .Values.kubescape.image.pullPolicy }}"
+        securityContext:
+          allowPrivilegeEscalation: false
+          # readOnlyRootFilesystem: true
+          runAsUser: 0
+        ports:
+          - name: http
+            containerPort: 8080
+            protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /livez
+            port: 8080
+          initialDelaySeconds: 3
+          periodSeconds: 3
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8080
+          initialDelaySeconds: 3
+          periodSeconds: 3
+        env:
+        - name: GOMEMLIMIT
+          value: "{{ .Values.kubescape.resources.requests.memory }}B"
+        - name: CLUSTER_NAME
+          value: "{{ regexReplaceAll "\\W+" .Values.clusterName "-" }}"
+        - name: KS_LOGGER_LEVEL
+          value: "{{ .Values.logger.level }}"
+        - name: KS_LOGGER_NAME
+          value: "{{ .Values.logger.name }}"
+        - name: KS_DOWNLOAD_ARTIFACTS  # When set to true the artifacts will be downloaded every scan execution
+          value: "{{ .Values.kubescape.downloadArtifacts }}"
+        - name: RULE_PROCESSING_GOMAXPROCS
+          value: "{{ .Values.kubescape.ruleProcessingConcurrency }}"
+        - name: KS_DEFAULT_CONFIGMAP_NAME
+          value: "{{ .Values.kubescape.name }}-config"
+        - name: KS_DEFAULT_CONFIGMAP_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: KS_CONTEXT
+          value: "{{ .Values.clusterName }}"
+        - name: KS_ENABLE_HOST_SCANNER
+          value: "{{ $components.hostScanner.enabled }}"
+        - name: KS_SKIP_UPDATE_CHECK
+          value: "{{ .Values.kubescape.skipUpdateCheck }}"
+        - name: KS_HOST_SCAN_YAML
+          value: "/home/nonroot/.kubescape/host-scanner.yaml"
+        - name: LARGE_CLUSTER_SIZE
+          value: "1500"
+        {{- if $cloud_provider }}
+        - name: KS_CLOUD_PROVIDER
+          value: "{{ $cloud_provider }}"
+        - name: KS_CLOUD_REGION
+          value: "{{ .Values.cloudProviderMetadata.cloudRegion }}"
+        - name: KS_KUBE_CLUSTER
+          value: "{{ .Values.clusterName }}"
+        {{- if eq "gke" $cloud_provider }}
+        - name: KS_GKE_PROJECT
+          value: "{{ .Values.cloudProviderMetadata.gkeProject }}"
+        {{- end -}}
+        {{- if eq "aks" $cloud_provider }}
+        - name: AZURE_SUBSCRIPTION_ID
+          value: "{{ .Values.cloudProviderMetadata.aksSubscriptionID }}"
+        - name: AZURE_RESOURCE_GROUP
+          value: "{{ .Values.cloudProviderMetadata.aksResourceGroup }}"
+        {{- end }}
+        {{- end }}
+        {{- if $components.otelCollector.enabled }}
+        - name: ACCOUNT_ID
+          value: "{{ .Values.account }}"
+        - name: OTEL_COLLECTOR_SVC
+          value: "otel-collector:4317"
+        {{- end }}
+        {{- if ne .Values.global.httpsProxy "" }}
+        - name: HTTPS_PROXY
+          value: "{{ .Values.global.httpsProxy }}"
+        - name : no_proxy
+          value: "{{ $no_proxy_envar_list }}"
+        {{- end }}
+        command:
+        - ksserver
+        resources:
+{{ toYaml .Values.kubescape.resources | indent 14 }}
+        volumeMounts:
+        - name: kubescape-config-volume
+          mountPath: /home/nonroot/.kubescape/config.json
+          subPath: config.json
+        - name: host-scanner-definition
+          mountPath: /home/nonroot/.kubescape/host-scanner.yaml
+          subPath: host-scanner-yaml
+        - name: results
+          mountPath: /home/nonroot/results
+        - name: failed
+          mountPath: /home/nonroot/failed
+        {{- if $components.serviceDiscovery.enabled }}
+        - name: {{ .Values.global.cloudConfig }}
+          mountPath: /etc/config
+          readOnly: true
+        {{- end }}
+{{- if .Values.volumeMounts }}
+{{ toYaml .Values.volumeMounts | indent 8 }}
+{{- end }}
+{{- if .Values.kubescape.volumeMounts }}
+{{ toYaml .Values.kubescape.volumeMounts | indent 8 }}
+{{- end }}
+{{- if ne .Values.global.proxySecretFile "" }}
+        - name: proxy-secret
+          mountPath: /etc/ssl/certs/proxy.crt
+          subPath: proxy.crt
+{{- end }}
+      volumes:
+      {{- if ne .Values.global.proxySecretFile "" }}
+      - name: proxy-secret
+        secret:
+          secretName: {{ .Values.global.proxySecretName }}
+      {{- end }}
+      - name: kubescape-config-volume
+        configMap:
+          name: {{ .Values.kubescape.name }}-config
+      {{- if $components.serviceDiscovery.enabled }}
+      - name: {{ .Values.global.cloudConfig }}
+        configMap:
+          name: {{ .Values.global.cloudConfig }}
+          items:
+            - key: "services"
+              path: "services.json"
+      {{- end }}
+      - name: host-scanner-definition
+        configMap:
+          name: host-scanner-definition
+      - name: results
+        emptyDir: {}
+      - name: failed
+        emptyDir: {}
+{{- if .Values.volumes }}
+{{ toYaml .Values.volumes | indent 6 }}
+{{- end }}
+{{- if .Values.kubescape.volumes }}
+{{ toYaml .Values.kubescape.volumes | indent 6 }}
+{{- end }}
+      serviceAccountName: {{ .Values.kubescape.name }}
+      automountServiceAccountToken: true
+      {{- with .Values.kubescape.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.kubescape.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+{{- end }}

@@ -1,0 +1,45 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- if and .Values.global.networkPolicy.enabled $components.operator.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Values.operator.name }}
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    app: {{ .Values.operator.name }}
+    tier: {{ .Values.global.namespaceTier }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.operator.name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      tier: {{ .Values.global.namespaceTier }}
+  policyTypes:
+    - Ingress
+  {{- if .Values.global.networkPolicy.createEgressRules }}
+    - Egress
+  egress:
+      # Container registries
+    - ports:
+        - port: 443
+          protocol: TCP
+      # Cloud Vendor detection (Instance Metadata Services)
+    - ports:
+        - port: 80
+          protocol: TCP
+      to:
+        - ipBlock:
+            cidr: 169.254.169.254/32
+  {{- end }}
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              armo.tier: kubescape-scan
+        - podSelector:
+            matchLabels:
+              armo.tier: vuln-scan
+      ports:
+        - port: trigger-port
+          protocol: TCP
+{{- end }}

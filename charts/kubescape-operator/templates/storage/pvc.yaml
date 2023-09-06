@@ -1,0 +1,19 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- if and $components.storage.enabled (eq .Values.configurations.persistence "enable") }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.storage.name }}
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    {{ .Values.storage.labels | toYaml  | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.persistence.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.size.backingStorage }}
+  {{- if ne .Values.persistence.storageClass "-" }}
+  storageClassName: {{ .Values.persistence.storageClass | quote }}
+  {{- end }}
+{{- end }}

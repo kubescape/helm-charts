@@ -1,0 +1,17 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- if $components.operator.enabled }}
+{{- if not (.Capabilities.APIVersions.Has "batch/v1/CronJob") }}
+  {{- fail "`batch/v1/CronJob not supported`" }}
+{{- end }}
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: kubescape-cronjob-template
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    app: {{ .Values.global.cloudConfig }}
+    tier: {{ .Values.global.namespaceTier }}
+data:
+  cronjobTemplate: |-
+    {{ tpl (.Files.Get "assets/kubescape-cronjob-full.yaml") . }}
+{{- end }}

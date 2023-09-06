@@ -1,0 +1,92 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- if $components.storage.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.storage.name }}
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    {{ .Values.storage.labels | toYaml  | nindent 4 }}
+spec:
+  replicas: {{ .Values.storage.replicaCount }}
+  revisionHistoryLimit: 2
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{ .Values.storage.labels | toYaml | nindent 6 }}
+  template:
+    metadata:
+      labels:
+      {{- if $components.otelCollector.enabled }}
+        otel: enabled
+      {{- end }}
+        {{ .Values.storage.labels | toYaml | nindent 8 }}
+    spec:
+      serviceAccountName: {{ .Values.storage.name }}
+      securityContext:
+        runAsUser: 65532
+        fsGroup: 65532
+      initContainers:
+        - name: fix-permissions
+          image: busybox
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 0
+          command: ["sh", "-c", "chown -Rc 65532:65532 /data"]
+          volumeMounts:
+            - name: "data"
+              mountPath: "/data"
+      containers:
+      - name: apiserver
+        image: {{ printf "%s:%s" .Values.storage.image.repository .Values.storage.image.tag  | quote }}
+        imagePullPolicy: {{ .Values.storage.image.pullPolicy | quote }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+        env:
+          - name: "GOMEMLIMIT"
+            value: "{{ .Values.storage.resources.requests.memory }}B"
+          {{- if $components.otelCollector.enabled }}
+          - name: OTEL_COLLECTOR_SVC
+            value: "otel-collector:4317"
+          {{- end }}
+        volumeMounts:
+          - name: "data"
+            mountPath: "/data"
+          - name: {{ .Values.global.cloudConfig }}
+            mountPath: /etc/config
+            readOnly: true
+        resources:
+{{ toYaml .Values.storage.resources | indent 12 }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.storage.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.storage.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      volumes:
+        - name: "data"
+          {{- if eq .Values.configurations.persistence "enable" }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.storage.name }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: {{ .Values.global.cloudConfig }}
+          configMap:
+            name: {{ .Values.global.cloudConfig }}
+            items:
+            - key: "clusterData"
+              path: "clusterData.json"
+            {{- if $components.serviceDiscovery.enabled }}
+            - key: "services"
+              path: "services.json"
+            {{- end }}
+{{- end }}
