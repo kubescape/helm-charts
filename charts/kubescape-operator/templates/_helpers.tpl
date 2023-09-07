@@ -45,7 +45,7 @@ kubevuln:
 kubevulnScheduler:
   enabled: {{ and $configurations.submit (or (eq .Values.capabilities.relevancy "enable") (eq .Values.capabilities.vulnerabilityScan "enable")) }}
 nodeAgent:
-  enabled: {{ or (eq .Values.capabilities.relevancy "enable") (eq .Values.capabilities.networkGenerator "enable") (eq .Values.capabilities.seccomp "enable") (eq .Values.capabilities.runtimeObservability "enable") }}
+  enabled: {{ (eq .Values.capabilities.relevancy "enable") }}
 operator:
   enabled: true
 otelCollector:
