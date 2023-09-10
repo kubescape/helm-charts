@@ -1,7 +1,6 @@
 {{- $components := fromYaml (include "components" .) }}
 {{- if $components.kubescape.enabled }}
 {{- $configurations := fromYaml (include "configurations" .) }}
-{{- $cloud_provider := (include "cloud_provider" .) -}}
 {{- $no_proxy_envar_list := (include "no_proxy_envar_list" .) -}}
 apiVersion: apps/v1
 kind: Deployment
@@ -108,23 +107,21 @@ spec:
           value: "/home/nonroot/.kubescape/host-scanner.yaml"
         - name: LARGE_CLUSTER_SIZE
           value: "1500"
-        {{- if $cloud_provider }}
-        - name: KS_CLOUD_PROVIDER
-          value: "{{ $cloud_provider }}"
+        {{- if .Values.cloudProviderMetadata.cloudRegion }}
         - name: KS_CLOUD_REGION
           value: "{{ .Values.cloudProviderMetadata.cloudRegion }}"
-        - name: KS_KUBE_CLUSTER
-          value: "{{ .Values.clusterName }}"
-        {{- if eq "gke" $cloud_provider }}
+        {{- end }}
+        {{- if .Values.cloudProviderMetadata.gkeProject }}
         - name: KS_GKE_PROJECT
           value: "{{ .Values.cloudProviderMetadata.gkeProject }}"
-        {{- end -}}
-        {{- if eq "aks" $cloud_provider }}
+        {{- end }}
+        {{- if .Values.cloudProviderMetadata.aksSubscriptionID }}
         - name: AZURE_SUBSCRIPTION_ID
           value: "{{ .Values.cloudProviderMetadata.aksSubscriptionID }}"
+        {{- end }}
+        {{- if .Values.cloudProviderMetadata.aksResourceGroup }}
         - name: AZURE_RESOURCE_GROUP
           value: "{{ .Values.cloudProviderMetadata.aksResourceGroup }}"
-        {{- end }}
         {{- end }}
         {{- if $components.otelCollector.enabled }}
         - name: ACCOUNT_ID
