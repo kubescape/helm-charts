@@ -29,8 +29,6 @@ Run the install command:
 helm upgrade --install kubescape kubescape/kubescape-operator -n kubescape --create-namespace --set account=<my_account_ID> --set clusterName=`kubectl config current-context` 
 ```
 
-> Add `--set clientID=<generated client id> --set secretKey=<generated secret key>` if you have [generated an auth key](https://hub.armosec.io/docs/authentication)
-
 > Add `--set kubescape.serviceMonitor.enabled=true` for installing the Prometheus service monitor, [read more about Prometheus integration](https://hub.armosec.io/docs/prometheus-exporter)
 
 ### Removing old version of Kubescape helm chart
@@ -467,9 +465,6 @@ gatewayWebsocketURL: 127.0.0.1:8001                             # component: in-
 gatewayRestURL: 127.0.0.1:8002                                  # component: in-cluster gateway
 kubevulnURL: 127.0.0.1:8081                                     # component: kubevuln
 kubescapeURL: 127.0.0.1:8080                                    # component: kubescape
-EventReceiverRestURL: https://report.cloud.com                  # component: ARMO CloudEndpoint
-EventReceiverWebsocketURL: wss://report.cloud.com               # component: ARMO CloudEndpoint
-rootGatewayURL: wss://masterns.cloud.com/v1/waitfornotification # component: master gateway
 accountID: 1111-aaaaa-4444-555
 clusterName: minikube
 ```
