@@ -29,12 +29,7 @@ Run the install command:
 helm upgrade --install kubescape kubescape/kubescape-operator -n kubescape --create-namespace --set account=<my_account_ID> --set clusterName=`kubectl config current-context` 
 ```
 
-> Add `--set clientID=<generated client id> --set secretKey=<generated secret key>` if you have [generated an auth key](https://hub.armosec.io/docs/authentication)
-
 > Add `--set kubescape.serviceMonitor.enabled=true` for installing the Prometheus service monitor, [read more about Prometheus integration](https://hub.armosec.io/docs/prometheus-exporter)
-
-### Removing old version of Kubescape helm chart
-To avoid collisions, if are running an older versions (>=`1.7.18`), you should run the following command: `helm uninstall armo -n armo-system`
 
 ### Adjusting Resource Usage for Your Cluster
 
@@ -64,15 +59,15 @@ kubescape:
 ```
 If your cluster has 50 resources, we still recommend allocating at least 128 MiB of memory.
 
-When it comes to CPU, the more you allocate, the faster Kubescape will scan your cluster.
+Regarding CPU, the more you allocate, the faster Kubescape will scan your cluster.
 This is especially true for clusters that have a large amount of resources.
 However, we recommend that you give Kubescape no less than 500m CPU no matter the size of your cluster so it can scan a relatively large amount of resources fast ;)
 
 ### Setting up Telemetry
-Several or our in-cluster components implement telemetry data using [OpenTelemetry](https://opentelemetry.io/) (otel).
+Several of Kubescape's in-cluster components implement telemetry data using [OpenTelemetry](https://opentelemetry.io/) (otel).
 You can optionally install an otel [collector](https://opentelemetry.io/docs/collector/) to your cluster to aggregate all metrics and send them to your own tracing tool.
 
-You simply have to fill in these information before [installing kubescape operator](#installing-kubescape-operator-in-a-kubernetes-cluster-using-helm):
+You simply have to fill in this information before [installing kubescape operator](#installing-kubescape-operator-in-a-kubernetes-cluster-using-helm):
 ```
 otelCollector:
   enabled: true
@@ -178,7 +173,7 @@ docker-compose logs uptrace
 | kubevuln.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | kubevuln.volumes | object | `[]` | Additional volumes for the image vulnerability scanning |
 | kubevuln.volumeMounts | object | `[]` | Additional volumeMounts for the image vulnerability scanning |
-| kubevulnScheduler.enabled | bool | `true` | enable/disable a image vulnerability scheduled scan using a CronJob |
+| kubevulnScheduler.enabled | bool | `true` | enable/disable an image vulnerability scheduled scan using a CronJob |
 | kubevulnScheduler.image.repository | string | `"quay.io/kubescape/http_request"` | [source code](https://github.com/kubescape/http-request) (public repo) |
 | kubevulnScheduler.scanSchedule | string | `"0 0 * * *"` | scan schedule frequency |
 | kubevulnScheduler.volumes | object | `[]` | Additional volumes for scan scheduler |
@@ -191,7 +186,7 @@ docker-compose logs uptrace
 | hostScanner.volumes | object | `[]` | Additional volumes for the host scanner |
 | hostScanner.volumeMounts | object | `[]` | Additional volumeMounts for the host scanner |
 | awsIamRoleArn | string | `nil` | AWS IAM arn role |
-| addRevisionLabel | bool | `true` | Add revision label to the components. This will insure the components will restart when updating the helm |
+| addRevisionLabel | bool | `true` | Add revision label to the components. This will ensure the components will restart when updating the helm |
 | cloudProviderMetadata.cloudRegion | string | `nil` | cloud region |
 | cloudProviderMetadata.gkeProject | string | `nil` | GKE project |
 | cloudProviderMetadata.gkeServiceAccount | string | `nil` | GKE service account |
@@ -467,8 +462,8 @@ gatewayWebsocketURL: 127.0.0.1:8001                             # component: in-
 gatewayRestURL: 127.0.0.1:8002                                  # component: in-cluster gateway
 kubevulnURL: 127.0.0.1:8081                                     # component: kubevuln
 kubescapeURL: 127.0.0.1:8080                                    # component: kubescape
-EventReceiverRestURL: https://report.cloud.com                  # component: ARMO CloudEndpoint
-EventReceiverWebsocketURL: wss://report.cloud.com               # component: ARMO CloudEndpoint
+EventReceiverRestURL: https://report.cloud.com                  # component: Server CloudEndpoint
+EventReceiverWebsocketURL: wss://report.cloud.com               # component: Server CloudEndpoint
 rootGatewayURL: wss://masterns.cloud.com/v1/waitfornotification # component: master gateway
 accountID: 1111-aaaaa-4444-555
 clusterName: minikube
@@ -483,7 +478,7 @@ Some in-cluster components communicate with the Kubernetes API server for differ
 
 * Kollector
 
-  Watches for changes in namespace, workloads, nodes. Reports information to the CloudEndpoint. Identifies image-related changes and triggers an image scanning on the new images accordingly (scanning new images functionality is optional).
+  Watches for changes in namespace, workloads, and nodes. Reports information to the CloudEndpoint. Identifies image-related changes and triggers an image scanning on the new images accordingly (scanning new images functionality is optional).
 
 * Operator
 
@@ -621,7 +616,7 @@ sequenceDiagram
 
 ## Kubescape-Prometheus Integration
 
-Most of the end users either use [`kube-prometheus-stack`](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) prometheus operator else [`prometheus helm chart`](https://github.com/prometheus-community/helm-charts/tree/main/charts/prometheus) to install prometheus for monitoring. Based on your choice of prometheus, you can follow either of the below method to enable kubescape monitoring with Prometheus.
+Most of the end-users either use [`kube-prometheus-stack`](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) Prometheus operator else [`prometheus helm chart`](https://github.com/prometheus-community/helm-charts/tree/main/charts/prometheus) to install Prometheus for monitoring. Based on your choice of Prometheus, you can follow either of the below methods to enable kubescape monitoring with Prometheus.
 
 ---
 
