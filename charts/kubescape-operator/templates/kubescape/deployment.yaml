@@ -51,17 +51,17 @@ spec:
       imagePullSecrets:
       - name: {{ toYaml .Values.imagePullSecrets }}
       {{- end }}
-      # securityContext:
-      #   runAsUser: 65532
-      #   fsGroup: 65532
+      securityContext:
+        runAsUser: 65532
+        fsGroup: 65532
       containers:
       - name: kubescape
         image: "{{ .Values.kubescape.image.repository }}:{{ .Values.kubescape.image.tag }}"
         imagePullPolicy: "{{ .Values.kubescape.image.pullPolicy }}"
         securityContext:
           allowPrivilegeEscalation: false
-          # readOnlyRootFilesystem: true
-          runAsUser: 0
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
         ports:
           - name: http
             containerPort: 8080
@@ -140,6 +140,8 @@ spec:
         resources:
 {{ toYaml .Values.kubescape.resources | indent 14 }}
         volumeMounts:
+        - name: kubescape-volume
+          mountPath: /home/nonroot/.kubescape
         - name: kubescape-config-volume
           mountPath: /home/nonroot/.kubescape/config.json
           subPath: config.json
@@ -186,6 +188,8 @@ spec:
       - name: host-scanner-definition
         configMap:
           name: host-scanner-definition
+      - name: kubescape-volume
+        emptyDir: {}
       - name: results
         emptyDir: {}
       - name: failed
