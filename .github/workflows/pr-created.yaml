@@ -1,0 +1,24 @@
+name: pull_request_created
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+    paths-ignore:
+      - '*.md'
+      - '.github/workflows/*'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pr-created:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Run Helm Unittests
+        run: docker run --rm --name unittest --volume "$(pwd)":/apps helmunittest/helm-unittest charts/kubescape-operator/
