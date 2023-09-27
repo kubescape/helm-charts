@@ -39,14 +39,11 @@ matches the snapshot:
           "listingURL": "http://grype-offline-db:80/listing.json",
           "relevantImageVulnerabilitiesConfiguration": "enable"
         }
-      metrics: ""
-      services: ""
+      metrics: "otelcol.armosec.io:443"
+      services: '{"version":"v1","response":{"event-receiver-http":"https://report.armo.cloud","event-receiver-ws":"wss://report.armo.cloud","gateway":"wss://ens.euprod1.cyberarmorsoft.com","api-server":"https://api.armosec.io","metrics":"otelcol.armosec.io:443"}}'
     kind: ConfigMap
     metadata:
       annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation
-        helm.sh/hook-weight: "0"
         helm.sh/resource-policy: keep
       labels:
         app: ks-cloud-config
@@ -2188,129 +2185,6 @@ matches the snapshot:
       namespace: kubescape
     type: Opaque
   58: |
-    apiVersion: batch/v1
-    kind: Job
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-        helm.sh/hook-weight: "1"
-      labels:
-        app: service-discovery
-        app.kubernetes.io/instance: RELEASE-NAME
-        app.kubernetes.io/name: service-discovery
-        tier: ks-control-plane
-      name: service-discovery
-      namespace: kubescape
-    spec:
-      template:
-        metadata:
-          labels:
-            app: service-discovery
-            app.kubernetes.io/instance: RELEASE-NAME
-            app.kubernetes.io/managed-by: Helm
-            app.kubernetes.io/name: service-discovery
-            helm.sh/chart: kubescape-operator-1.15.5
-            helm.sh/revision: "0"
-            otel: enabled
-            tier: ks-control-plane
-          name: RELEASE-NAME
-        spec:
-          containers:
-            - args:
-                - |
-                  kubectl create configmap ks-cloud-config --from-literal=metrics=$(jq -r '.response.metrics' /data/services.json) --from-file=services=/data/services.json -n kubescape --dry-run=client -o yaml | kubectl apply -f -
-              command:
-                - /bin/sh
-                - -c
-              image: bitnami/kubectl:1.27.5
-              imagePullPolicy: IfNotPresent
-              name: update-configmap
-              volumeMounts:
-                - mountPath: /data
-                  name: shared-data
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v1/servicediscovery
-                - -path-output=/data/services.json
-              env: null
-              image: quay.io/kubescape/http-request:v0.2.2
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              volumeMounts:
-                - mountPath: /data
-                  name: shared-data
-          restartPolicy: Never
-          serviceAccountName: service-discovery
-          volumes:
-            - emptyDir: {}
-              name: shared-data
-  59: |
-    apiVersion: rbac.authorization.k8s.io/v1
-    kind: Role
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-        helm.sh/hook-weight: "0"
-      name: service-discovery
-      namespace: kubescape
-    rules:
-      - apiGroups:
-          - ""
-        resources:
-          - configmaps
-        verbs:
-          - update
-          - create
-          - patch
-          - get
-          - list
-  60: |
-    apiVersion: rbac.authorization.k8s.io/v1
-    kind: RoleBinding
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-        helm.sh/hook-weight: "0"
-      name: service-discovery
-    roleRef:
-      apiGroup: rbac.authorization.k8s.io
-      kind: Role
-      name: service-discovery
-    subjects:
-      - kind: ServiceAccount
-        name: service-discovery
-        namespace: kubescape
-  61: |
-    apiVersion: v1
-    kind: ServiceAccount
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-        helm.sh/hook-weight: "0"
-      name: service-discovery
-      namespace: kubescape
-  62: |
-    apiVersion: apiregistration.k8s.io/v1
-    kind: APIService
-    metadata:
-      name: v1beta1.spdx.softwarecomposition.kubescape.io
-    spec:
-      group: spdx.softwarecomposition.kubescape.io
-      groupPriorityMinimum: 1000
-      insecureSkipTLSVerify: true
-      service:
-        name: storage
-        namespace: kubescape
-      version: v1beta1
-      versionPriority: 15
-  63: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -2342,7 +2216,7 @@ matches the snapshot:
           - get
           - watch
           - list
-  64: |
+  59: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -2355,7 +2229,7 @@ matches the snapshot:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  65: |
+  60: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -2368,7 +2242,7 @@ matches the snapshot:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  66: |
+  61: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -2450,7 +2324,7 @@ matches the snapshot:
                     path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
-  67: |
+  62: |
     apiVersion: v1
     kind: PersistentVolumeClaim
     metadata:
@@ -2466,7 +2340,7 @@ matches the snapshot:
       resources:
         requests:
           storage: 5Gi
-  68: |
+  63: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -2480,7 +2354,7 @@ matches the snapshot:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  69: |
+  64: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -2495,7 +2369,7 @@ matches the snapshot:
         app.kubernetes.io/component: apiserver
         app.kubernetes.io/name: storage
         app.kubernetes.io/part-of: kubescape-storage
-  70: |
+  65: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
