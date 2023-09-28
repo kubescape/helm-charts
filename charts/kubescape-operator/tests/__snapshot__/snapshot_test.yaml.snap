@@ -39,7 +39,7 @@ matches the snapshot:
           "listingURL": "http://grype-offline-db:80/listing.json",
           "relevantImageVulnerabilitiesConfiguration": "enable"
         }
-      metrics: "otelcol.armosec.io:443"
+      metrics: otelcol.armosec.io:443
       services: '{"version":"v1","response":{"event-receiver-http":"https://report.armo.cloud","event-receiver-ws":"wss://report.armo.cloud","gateway":"wss://ens.euprod1.cyberarmorsoft.com","api-server":"https://api.armosec.io","metrics":"otelcol.armosec.io:443"}}'
     kind: ConfigMap
     metadata:
@@ -855,6 +855,8 @@ matches the snapshot:
                       fieldPath: metadata.namespace
                 - name: KS_CONTEXT
                   value: kind-kind
+                - name: KS_DEFAULT_CLOUD_CONFIGMAP_NAME
+                  value: url-config
                 - name: KS_ENABLE_HOST_SCANNER
                   value: "true"
                 - name: KS_SKIP_UPDATE_CHECK
@@ -2183,6 +2185,20 @@ matches the snapshot:
       namespace: kubescape
     type: Opaque
   58: |
+    apiVersion: apiregistration.k8s.io/v1
+    kind: APIService
+    metadata:
+      name: v1beta1.spdx.softwarecomposition.kubescape.io
+    spec:
+      group: spdx.softwarecomposition.kubescape.io
+      groupPriorityMinimum: 1000
+      insecureSkipTLSVerify: true
+      service:
+        name: storage
+        namespace: kubescape
+      version: v1beta1
+      versionPriority: 15
+  59: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -2214,7 +2230,7 @@ matches the snapshot:
           - get
           - watch
           - list
-  59: |
+  60: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -2227,7 +2243,7 @@ matches the snapshot:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  60: |
+  61: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -2240,7 +2256,7 @@ matches the snapshot:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  61: |
+  62: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -2322,7 +2338,7 @@ matches the snapshot:
                     path: services.json
                 name: url-config
               name: url-config
-  62: |
+  63: |
     apiVersion: v1
     kind: PersistentVolumeClaim
     metadata:
@@ -2338,7 +2354,7 @@ matches the snapshot:
       resources:
         requests:
           storage: 5Gi
-  63: |
+  64: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -2352,7 +2368,7 @@ matches the snapshot:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  64: |
+  65: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -2367,7 +2383,7 @@ matches the snapshot:
         app.kubernetes.io/component: apiserver
         app.kubernetes.io/name: storage
         app.kubernetes.io/part-of: kubescape-storage
-  65: |
+  66: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
