@@ -13,10 +13,6 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app: {{ .Values.kollector.name }}
     tier: {{ .Values.global.namespaceTier }}
-  # annotations:
-  #   helm.sh/hook: pre-install,pre-upgrade # hook should apply when installing and upgrading
-  #   helm.sh/hook-weight: "-1" # run before all other hooks
-  #   helm.sh/hook-delete-policy: before-hook-creation #,hook-succeeded
 spec:
   serviceName: ""
   replicas: {{ .Values.kollector.replicaCount }}
@@ -40,6 +36,16 @@ spec:
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
       - name: {{ toYaml .Values.imagePullSecrets }}
+      {{- end }}
+      {{- if $components.serviceDiscovery.enabled }}
+      initContainers:
+      - name: wait-for-cloud-config
+        image: "{{ .Values.serviceDiscovery.configMapCheck.image.repository }}:{{ .Values.serviceDiscovery.configMapCheck.image.tag }}"
+        imagePullPolicy: {{ .Values.serviceDiscovery.configMapCheck.image.pullPolicy }}
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            while true; do result=$(kubectl get configmap "{{ .Values.global.cloudConfig }}" -n "{{ .Values.ksNamespace }}" -o jsonpath='{.data.services}'); if [ -z "$result" ]; then sleep 5; else sleep 5 && break; fi; done
       {{- end }}
       containers:
         - name: {{ .Values.kollector.name }}

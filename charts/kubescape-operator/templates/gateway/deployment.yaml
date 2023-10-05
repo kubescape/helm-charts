@@ -44,6 +44,16 @@ spec:
       securityContext:
         runAsUser: 65532
         fsGroup: 65532
+      {{- if $components.serviceDiscovery.enabled }}
+      initContainers:
+      - name: wait-for-cloud-config
+        image: "{{ .Values.serviceDiscovery.configMapCheck.image.repository }}:{{ .Values.serviceDiscovery.configMapCheck.image.tag }}"
+        imagePullPolicy: {{ .Values.serviceDiscovery.configMapCheck.image.pullPolicy }}
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            while true; do result=$(kubectl get configmap "{{ .Values.global.cloudConfig }}" -n "{{ .Values.ksNamespace }}" -o jsonpath='{.data.services}'); if [ -z "$result" ]; then sleep 5; else sleep 5 && break; fi; done
+      {{- end }}
       containers:
         - name: {{ .Values.gateway.name }}
           image: "{{ .Values.gateway.image.repository }}:{{ .Values.gateway.image.tag }}"
@@ -144,7 +154,13 @@ spec:
 {{- if .Values.gateway.volumes }}
 {{ toYaml .Values.gateway.volumes | indent 8 }}
 {{- end }}
+      # service discovery init container
+      {{- if $components.serviceDiscovery.enabled }}
+      serviceAccountName: {{ .Values.gateway.name }}
+      automountServiceAccountToken: true
+      {{- else }}
       automountServiceAccountToken: false
+      {{- end }}
       {{- with .Values.gateway.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
