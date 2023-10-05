@@ -1,0 +1,16 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- if and $components.kubevuln.enabled $components.serviceDiscovery.enabled }}
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ .Values.kubevuln.name }}
+  namespace: {{ .Values.ksNamespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ .Values.kubevuln.name }}
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.kubevuln.name }}
+  namespace: {{ .Values.ksNamespace }}
+{{- end }}
