@@ -5,6 +5,7 @@
 ksOtel: {{ $submit }}
 otel: {{ $otel }}
 otelPort : {{ if $otel }}{{ splitList ":" .Values.configurations.otelUrl | last }}{{ else }}""{{ end }}
+runtimeObservability: {{ eq .Values.capabilities.runtimeObservability "enable" }}
 submit: {{ $submit }}
   {{- if $submit -}}
     {{- if empty .Values.account -}}

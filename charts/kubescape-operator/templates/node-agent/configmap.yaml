@@ -1,4 +1,5 @@
 {{- $components := fromYaml (include "components" .) }}
+{{- $configurations := fromYaml (include "configurations" .) }}
 {{- if $components.nodeAgent.enabled }}
 apiVersion: v1
 kind: ConfigMap
@@ -8,6 +9,7 @@ metadata:
 data:
   config.json: |
     {
+        "applicationProfileServiceEnabled": {{ $configurations.runtimeObservability }},
         "relevantCVEServiceEnabled": true,
         "InitialDelay": "{{ .Values.nodeAgent.config.learningPeriod }}",
         "updateDataPeriod": "{{ .Values.nodeAgent.config.updatePeriod }}",
