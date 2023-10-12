@@ -4,12 +4,12 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: otel-collector
+  name: {{ .Values.otelCollector.name }}
   namespace: {{ .Values.ksNamespace }}
   labels:
-    app.kubernetes.io/name: otel-collector
+    app.kubernetes.io/name: {{ .Values.otelCollector.name }}
     app.kubernetes.io/instance: {{ .Release.Name }}
-    app: otel-collector
+    app: {{ .Values.otelCollector.name }}
     tier: {{ .Values.global.namespaceTier }}
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
 spec:
@@ -22,17 +22,17 @@ spec:
     type: RollingUpdate
   selector:
     matchLabels:
-      app.kubernetes.io/name: otel-collector
+      app.kubernetes.io/name: {{ .Values.otelCollector.name }}
       app.kubernetes.io/instance: {{ .Release.Name }}
       tier: {{ .Values.global.namespaceTier }}
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: otel-collector
+        app.kubernetes.io/name: {{ .Values.otelCollector.name }}
         app.kubernetes.io/instance: {{ .Release.Name }}
         helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
         tier: {{ .Values.global.namespaceTier }}
-        app: otel-collector
+        app: {{ .Values.otelCollector.name }}
       {{- if .Values.global.addRevisionLabel }}
         helm.sh/revision: "{{ .Release.Revision }}"
       {{- end }}
@@ -41,8 +41,18 @@ spec:
       imagePullSecrets:
       - name: {{ toYaml .Values.imagePullSecrets }}
       {{- end }}
+      {{- if $components.serviceDiscovery.enabled }}
+      initContainers:
+      - name: wait-for-cloud-config
+        image: "{{ .Values.serviceDiscovery.configMapCheck.image.repository }}:{{ .Values.serviceDiscovery.configMapCheck.image.tag }}"
+        imagePullPolicy: {{ .Values.serviceDiscovery.configMapCheck.image.pullPolicy }}
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            while true; do result=$(kubectl get configmap "{{ .Values.global.cloudConfig }}" -n "{{ .Values.ksNamespace }}" -o jsonpath='{.data.metrics}'); if [ -z "$result" ]; then sleep 5; else sleep 5 && break; fi; done
+      {{- end }}
       containers:
-      - name: otel-collector
+      - name: {{ .Values.otelCollector.name }}
         image: "{{ .Values.otelCollector.image.repository }}:{{ .Values.otelCollector.image.tag }}"
         imagePullPolicy: "{{ .Values.otelCollector.image.pullPolicy }}"
         securityContext:
@@ -103,7 +113,13 @@ spec:
 {{- if .Values.otelCollector.volumes }}
 {{ toYaml .Values.otelCollector.volumes | indent 6 }}
 {{- end }}
+      # service discovery init container
+      {{- if $components.serviceDiscovery.enabled }}
+      serviceAccountName: {{ .Values.otelCollector.name }}
+      automountServiceAccountToken: true
+      {{- else }}
       serviceAccountName: default
+      {{- end}}
       {{- with .Values.otelCollector.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

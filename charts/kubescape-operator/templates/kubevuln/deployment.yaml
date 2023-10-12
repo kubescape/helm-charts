@@ -43,6 +43,16 @@ spec:
       securityContext:
         runAsUser: 65532
         fsGroup: 65532
+      {{- if $components.serviceDiscovery.enabled }}
+      initContainers:
+      - name: wait-for-cloud-config
+        image: "{{ .Values.serviceDiscovery.configMapCheck.image.repository }}:{{ .Values.serviceDiscovery.configMapCheck.image.tag }}"
+        imagePullPolicy: {{ .Values.serviceDiscovery.configMapCheck.image.pullPolicy }}
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            while true; do result=$(kubectl get configmap "{{ .Values.global.cloudConfig }}" -n "{{ .Values.ksNamespace }}" -o jsonpath='{.data.services}'); if [ -z "$result" ]; then sleep 5; else sleep 5 && break; fi; done
+      {{- end }}
       containers:
         - name: {{ .Values.kubevuln.name }}
           image: "{{ .Values.kubevuln.image.repository }}:{{ .Values.kubevuln.image.tag }}"

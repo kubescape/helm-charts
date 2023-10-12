@@ -1,0 +1,16 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- if and $components.otelCollector.enabled $components.serviceDiscovery.enabled }}
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ .Values.otelCollector.name }}
+  namespace: {{ .Values.ksNamespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ .Values.otelCollector.name }}
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.otelCollector.name }}
+  namespace: {{ .Values.ksNamespace }}
+{{- end }}

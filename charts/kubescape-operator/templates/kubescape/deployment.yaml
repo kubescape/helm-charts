@@ -51,17 +51,27 @@ spec:
       imagePullSecrets:
       - name: {{ toYaml .Values.imagePullSecrets }}
       {{- end }}
-      # securityContext:
-      #   runAsUser: 65532
-      #   fsGroup: 65532
+      securityContext:
+        runAsUser: 65532
+        fsGroup: 65532
+      {{- if $components.serviceDiscovery.enabled }}
+      initContainers:
+      - name: wait-for-cloud-config
+        image: "{{ .Values.serviceDiscovery.configMapCheck.image.repository }}:{{ .Values.serviceDiscovery.configMapCheck.image.tag }}"
+        imagePullPolicy: {{ .Values.serviceDiscovery.configMapCheck.image.pullPolicy }}
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            while true; do result=$(kubectl get configmap "{{ .Values.global.cloudConfig }}" -n "{{ .Values.ksNamespace }}" -o jsonpath='{.data.services}'); if [ -z "$result" ]; then sleep 5; else sleep 5 && break; fi; done
+      {{- end }}
       containers:
       - name: kubescape
         image: "{{ .Values.kubescape.image.repository }}:{{ .Values.kubescape.image.tag }}"
         imagePullPolicy: "{{ .Values.kubescape.image.pullPolicy }}"
         securityContext:
           allowPrivilegeEscalation: false
-          # readOnlyRootFilesystem: true
-          runAsUser: 0
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
         ports:
           - name: http
             containerPort: 8080
@@ -99,6 +109,8 @@ spec:
               fieldPath: metadata.namespace
         - name: KS_CONTEXT
           value: "{{ .Values.clusterName }}"
+        - name: KS_DEFAULT_CLOUD_CONFIGMAP_NAME
+          value: {{ .Values.global.cloudConfig }}
         - name: KS_ENABLE_HOST_SCANNER
           value: "{{ $components.hostScanner.enabled }}"
         - name: KS_SKIP_UPDATE_CHECK
@@ -140,6 +152,8 @@ spec:
         resources:
 {{ toYaml .Values.kubescape.resources | indent 14 }}
         volumeMounts:
+        - name: kubescape-volume
+          mountPath: /home/nonroot/.kubescape
         - name: kubescape-config-volume
           mountPath: /home/nonroot/.kubescape/config.json
           subPath: config.json
@@ -186,6 +200,8 @@ spec:
       - name: host-scanner-definition
         configMap:
           name: host-scanner-definition
+      - name: kubescape-volume
+        emptyDir: {}
       - name: results
         emptyDir: {}
       - name: failed
