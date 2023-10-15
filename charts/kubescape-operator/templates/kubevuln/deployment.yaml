@@ -106,6 +106,9 @@ spec:
             - -v=4
             - 2>&1
           volumeMounts:
+            - name: {{ .Values.global.cloudSecret }}
+              mountPath: /etc/access-token-secret
+              readOnly: true
             - name: tmp-dir
               mountPath: /tmp
             - name: grype-db-cache
@@ -127,6 +130,9 @@ spec:
               subPath: proxy.crt
 {{- end }}
       volumes:
+        - name: {{ .Values.global.cloudSecret }}
+          secret:
+            secretName: {{ .Values.global.cloudSecret }}
       {{- if ne .Values.global.proxySecretFile "" }}
         - name: proxy-secret
           secret:
