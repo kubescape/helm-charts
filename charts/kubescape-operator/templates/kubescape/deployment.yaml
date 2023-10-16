@@ -152,6 +152,9 @@ spec:
         resources:
 {{ toYaml .Values.kubescape.resources | indent 14 }}
         volumeMounts:
+        - name: {{ .Values.global.cloudSecret }}
+          mountPath: /etc/access-token-secret
+          readOnly: true
         - name: kubescape-volume
           mountPath: /home/nonroot/.kubescape
         - name: kubescape-config-volume
@@ -181,6 +184,9 @@ spec:
           subPath: proxy.crt
 {{- end }}
       volumes:
+      - name: {{ .Values.global.cloudSecret }}
+        secret:
+          secretName: {{ .Values.global.cloudSecret }}
       {{- if ne .Values.global.proxySecretFile "" }}
       - name: proxy-secret
         secret:
