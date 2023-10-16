@@ -7,6 +7,14 @@ metadata:
   labels:
     app: {{ .Values.global.cloudConfig }}
     tier: {{ .Values.global.namespaceTier }}
+  {{- if $components.serviceDiscovery.enabled }}
+  annotations:
+    "argocd.argoproj.io/sync-options": Delete=false
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation
+    "helm.sh/resource-policy": keep
+  {{- end }}
 data:
   {{- if $components.serviceDiscovery.enabled }}
   metrics: '{{ .Values.serviceDiscovery.metrics }}'

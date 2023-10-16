@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kubescape
+spec:
+  destination:
+    name: ''
+    namespace: kubescape
+    server: 'https://kubernetes.default.svc' # change to your server
+  source:
+    path: charts/kubescape-operator
+    repoURL: 'https://github.com/kubescape/helm-charts'
+    targetRevision: HEAD
+    helm:
+      valueFiles:
+        - values.yaml
+      parameters:
+        - name: account
+          value: '' # add account ID
+        - name: clusterName
+          value: '' # add cluster name
+        - name: server
+          value: '' # add Kubescape-compatible backend service URL
+  project: default
+  syncPolicy:
+    syncOptions:
+      - PruneLast=true
+      - CreateNamespace=true
+      - RespectIgnoreDifferences=true
+  ignoreDifferences:
+    - group: core
+      kind: ConfigMap
+      name: ks-cloud-config
+      namespace: kubescape
+      jsonPointers:
+        - /data
+        - /metadata
