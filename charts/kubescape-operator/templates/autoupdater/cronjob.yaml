@@ -1,0 +1,46 @@
+{{- if eq .Values.capabilities.autoUpgrading "enable" }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Values.helmReleaseUpgrader.name }}
+  namespace: {{ .Values.ksNamespace }}
+  annotations:
+    "helm.sh/resource-policy": keep
+spec:
+  schedule: {{ .Values.helmReleaseUpgrader.schedule | quote }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: {{ .Values.helmReleaseUpgrader.name }}
+          securityContext:
+            runAsNonRoot: true
+            # User and Group IDs as defined in the Helm Release Upgrader image
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+          volumes:
+            - name: "helm-scratch-data"
+              emptyDir:
+                sizeLimit: 500Mi
+          containers:
+          - name: {{ .Values.helmReleaseUpgrader.name }}
+            image: {{ printf "%s:%s" .Values.helmReleaseUpgrader.image.repository .Values.helmReleaseUpgrader.image.tag  | quote }}
+            imagePullPolicy: {{ .Values.helmReleaseUpgrader.image.pullPolicy | quote }}
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+            volumeMounts:
+              - name: "helm-scratch-data"
+                mountPath: /data/helm-scratch-data
+            env:
+              - name: "HELM_CACHE_HOME"
+                value: "/data/helm-scratch-data/.cache"
+              - name: "HELM_CONFIG_HOME"
+                value: "/data/helm-scratch-data/.config"
+              - name: "HELM_DATA_HOME"
+                value: "/data/helm-scratch-data/.data"
+            resources:
+{{ toYaml .Values.helmReleaseUpgrader.resources | indent 14 }}
+          restartPolicy: OnFailure
+{{ end }}
