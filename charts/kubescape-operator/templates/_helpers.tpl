@@ -11,9 +11,6 @@ submit: {{ $submit }}
     {{- if empty .Values.account -}}
       {{- fail "submitting is enabled but value for account is not defined: please register at https://cloud.armosec.io to get yours and re-run with  --set account=<your Guid>" }}
     {{- end -}}
-    {{- if empty .Values.token -}}
-      {{- fail "value for token is not defined: re-run with --set token=<your token>" }}
-    {{- end -}}
     {{- if empty .Values.clusterName -}}
       {{- fail "value for clusterName is not defined: re-run with  --set clusterName=<your cluster name>" }}
     {{- end -}}
