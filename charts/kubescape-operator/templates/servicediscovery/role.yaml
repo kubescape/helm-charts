@@ -1,0 +1,16 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- if $components.serviceDiscovery.enabled }}
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ .Values.serviceDiscovery.name }}
+  namespace: {{ .Values.ksNamespace }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    "helm.sh/hook-weight": "0"
+rules:
+- apiGroups: [""]
+  resources: [ "configmaps"]
+  verbs: ["update", "create", "patch", "get", "list"]
+{{- end }}
