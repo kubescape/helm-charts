@@ -12,6 +12,9 @@ capabilities:
   vulnerabilityScan: enable
   nodeScan: enable
   runtimeObservability: disable
+  # This is an experimental capability with an elevated security risk. Read the
+  # matching README section before enabling.
+  autoUpgrading: disable
   # networkGenerator: disable
   # seccompGenerator: disable
 
@@ -640,3 +643,33 @@ serviceDiscovery:
       repository: bitnami/kubectl
       tag: 1.27.6
       pullPolicy: IfNotPresent
+
+# Configures the Helm Release Upgrader
+helmReleaseUpgrader:
+  name: "helm-release-upgrader"
+  image:
+    repository: "quay.io/kubescape/helm-release-upgrader"
+    tag: "v0.1.0"
+    pullPolicy: "IfNotPresent"
+
+  # A cron schedule of how often the updating CronJob should run
+  schedule: "0 14 * * *"
+
+  # Resource requests and limits for the CronJob
+  resources:
+    # Requests and Limits are the same to make the CronJob Burstable
+    requests:
+      # Setting a higher CPU request helps with the Job runtime. If you don’t
+      # care about job execution speed and want to save on resources, feel free
+      # to lower this
+      cpu: 500m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      # Keep the memory limit sufficiently high.
+      #
+      # The updating CronJob runs an image that runs `helm upgrade`. It renders
+      # the chart and that can require a lot of memory. If you don’t want your
+      # updating job to be OOM Killed, keep this at 256 MiB or higher depending
+      # on the size of your cluster.
+      memory: 256Mi
