@@ -155,7 +155,7 @@ docker-compose logs uptrace
 | kubescape.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | kubescape.serviceMonitor.enabled | bool | `false` | enable/disable service monitor for prometheus (operator) integration |
 | kubescape.skipUpdateCheck | bool | `false` | skip check for a newer version |
-| kubescape.serviceMonitor.labels | `[]` | adds labels for servicemonitor |
+| kubescape.labels | `[]` | adds labels to the kubescape microservice |
 | kubescape.submit | bool | `true` | submit results to Kubescape SaaS: https://cloud.armosec.io/ |
 | kubescape.volumes | object | `[]` | Additional volumes for Kubescape |
 | kubescape.volumeMounts | object | `[]` | Additional volumeMounts for Kubescape |
