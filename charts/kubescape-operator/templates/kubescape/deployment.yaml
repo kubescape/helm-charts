@@ -81,8 +81,6 @@ spec:
         env:
         - name: GOMEMLIMIT
           value: "{{ .Values.kubescape.resources.requests.memory }}B"
-        - name: CLUSTER_NAME
-          value: "{{ regexReplaceAll "\\W+" .Values.clusterName "-" }}"
         - name: KS_LOGGER_LEVEL
           value: "{{ .Values.logger.level }}"
         - name: KS_LOGGER_NAME
@@ -142,10 +140,11 @@ spec:
         resources:
 {{ toYaml .Values.kubescape.resources | indent 14 }}
         volumeMounts:
+        - name: {{ .Values.global.cloudSecret }}
+          mountPath: /etc/credentials
+          readOnly: true
         - name: kubescape-volume
           mountPath: /home/nonroot/.kubescape
-        - name: kubescape-config-volume
-          mountPath: /home/nonroot/.kubescape/config.json
           subPath: config.json
         - name: host-scanner-definition
           mountPath: /home/nonroot/.kubescape/host-scanner.yaml
@@ -154,11 +153,9 @@ spec:
           mountPath: /home/nonroot/results
         - name: failed
           mountPath: /home/nonroot/failed
-        {{- if $components.serviceDiscovery.enabled }}
         - name: {{ .Values.global.cloudConfig }}
           mountPath: /etc/config
           readOnly: true
-        {{- end }}
 {{- if .Values.volumeMounts }}
 {{ toYaml .Values.volumeMounts | indent 8 }}
 {{- end }}
@@ -171,22 +168,24 @@ spec:
           subPath: proxy.crt
 {{- end }}
       volumes:
+      - name: {{ .Values.global.cloudSecret }}
+        secret:
+          secretName: {{ .Values.global.cloudSecret }}
       {{- if ne .Values.global.proxySecretFile "" }}
       - name: proxy-secret
         secret:
           secretName: {{ .Values.global.proxySecretName }}
       {{- end }}
-      - name: kubescape-config-volume
-        configMap:
-          name: {{ .Values.kubescape.name }}-config
-      {{- if $components.serviceDiscovery.enabled }}
       - name: {{ .Values.global.cloudConfig }}
         configMap:
           name: {{ .Values.global.cloudConfig }}
           items:
-            - key: "services"
-              path: "services.json"
-      {{- end }}
+          - key: "clusterData"
+            path: "clusterData.json"
+          {{- if $components.serviceDiscovery.enabled }}
+          - key: "services"
+            path: "services.json"
+          {{- end }}
       - name: host-scanner-definition
         configMap:
           name: host-scanner-definition

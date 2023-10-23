@@ -101,6 +101,20 @@ matches the snapshot:
   6: |
     apiVersion: v1
     data:
+      accessKey: ""
+      account: OWU2YzBjMmMtNmJkMC00OTE5LTgxNWItNTUwMzBkZTdjOWEw
+    kind: Secret
+    metadata:
+      labels:
+        app: cloud-secret
+        kubescape.io/infra: credentials
+        tier: ks-control-plane
+      name: cloud-secret
+      namespace: kubescape
+    type: Opaque
+  7: |
+    apiVersion: v1
+    data:
       clusterData: |
         {
           "serviceDiscovery": true,
@@ -110,7 +124,6 @@ matches the snapshot:
           "kubevulnURL": "kubevuln:8080",
           "kubescapeURL": "kubescape:8080",
           "triggerNewImageScan": "false",
-          "accountID": "9e6c0c2c-6bd0-4919-815b-55030de7c9a0",
           "clusterName": "kind-kind",
           "storage": true,
           "relevantImageVulnerabilitiesEnabled": true,
@@ -122,6 +135,7 @@ matches the snapshot:
           "maxImageSize": 5.36870912e+09,
           "keepLocal": false,
           "scanTimeout": "5m",
+          "continuousPostureScan": false,
           "listingURL": "http://grype-offline-db:80/listing.json",
           "relevantImageVulnerabilitiesConfiguration": "enable"
         }
@@ -141,7 +155,7 @@ matches the snapshot:
         tier: ks-control-plane
       name: ks-cloud-config
       namespace: kubescape
-  7: |
+  8: |
     apiVersion: v1
     data:
       capabilities: |
@@ -157,7 +171,7 @@ matches the snapshot:
         tier: ks-control-plane
       name: ks-capabilities
       namespace: kubescape
-  8: |
+  9: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -213,7 +227,7 @@ matches the snapshot:
                   value: 9e6c0c2c-6bd0-4919-815b-55030de7c9a0
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
-              image: quay.io/kubescape/gateway:v0.1.15
+              image: quay.io/kubescape/gateway:v0.1.16-prerelease
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -250,6 +264,9 @@ matches the snapshot:
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
+                - mountPath: /etc/credentials
+                  name: cloud-secret
+                  readOnly: true
                 - mountPath: /etc/config
                   name: ks-cloud-config
                   readOnly: true
@@ -260,6 +277,9 @@ matches the snapshot:
             fsGroup: 65532
             runAsUser: 65532
           volumes:
+            - name: cloud-secret
+              secret:
+                secretName: cloud-secret
             - name: proxy-secret
               secret:
                 secretName: kubescape-proxy-certificate
@@ -271,7 +291,7 @@ matches the snapshot:
                     path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
-  9: |
+  10: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -304,7 +324,7 @@ matches the snapshot:
       policyTypes:
         - Ingress
         - Egress
-  10: |
+  11: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -325,7 +345,7 @@ matches the snapshot:
       selector:
         app: gateway
       type: ClusterIP
-  11: |
+  12: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -376,7 +396,7 @@ matches the snapshot:
               securityContext:
                 allowPrivilegeEscalation: false
                 runAsNonRoot: true
-  12: |
+  13: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -403,7 +423,7 @@ matches the snapshot:
           tier: ks-control-plane
       policyTypes:
         - Ingress
-  13: |
+  14: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -419,7 +439,7 @@ matches the snapshot:
       selector:
         app: grype-offline-db
       type: ClusterIP
-  14: |
+  15: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -458,7 +478,7 @@ matches the snapshot:
           - get
           - watch
           - list
-  15: |
+  16: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -471,7 +491,7 @@ matches the snapshot:
       - kind: ServiceAccount
         name: kollector
         namespace: kubescape
-  16: |
+  17: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -498,7 +518,7 @@ matches the snapshot:
           tier: ks-control-plane
       policyTypes:
         - Egress
-  17: |
+  18: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -507,7 +527,7 @@ matches the snapshot:
         app: kollector
       name: kollector
       namespace: kubescape
-  18: |
+  19: |
     apiVersion: apps/v1
     kind: StatefulSet
     metadata:
@@ -561,7 +581,7 @@ matches the snapshot:
                   value: "false"
                 - name: WAIT_BEFORE_REPORT
                   value: "0"
-              image: quay.io/kubescape/kollector:v0.1.27
+              image: quay.io/kubescape/kollector:v0.1.28-prerelease
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -593,6 +613,9 @@ matches the snapshot:
                 runAsNonRoot: true
                 runAsUser: 100
               volumeMounts:
+                - mountPath: /etc/credentials
+                  name: cloud-secret
+                  readOnly: true
                 - mountPath: /tmp
                   name: tmp-dir
                 - mountPath: /etc/config
@@ -603,6 +626,9 @@ matches the snapshot:
                   subPath: proxy.crt
           serviceAccountName: kollector
           volumes:
+            - name: cloud-secret
+              secret:
+                secretName: cloud-secret
             - name: proxy-secret
               secret:
                 secretName: kubescape-proxy-certificate
@@ -616,7 +642,7 @@ matches the snapshot:
                     path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
-  19: |
+  20: |
     apiVersion: v1
     data:
       request-body.json: '{"commands":[{"CommandName":"kubescapeScan","args":{"scanV1": {}}}]}'
@@ -627,7 +653,7 @@ matches the snapshot:
         tier: ks-control-plane
       name: kubescape-scheduler
       namespace: kubescape
-  20: |
+  21: |
     apiVersion: batch/v1
     kind: CronJob
     metadata:
@@ -683,7 +709,7 @@ matches the snapshot:
                     name: kubescape-scheduler
                   name: kubescape-scheduler
       schedule: 1 2 3 4 5
-  21: |
+  22: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -859,7 +885,7 @@ matches the snapshot:
           - create
           - update
           - patch
-  22: |
+  23: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -872,22 +898,6 @@ matches the snapshot:
       - kind: ServiceAccount
         name: kubescape
         namespace: kubescape
-  23: |
-    apiVersion: v1
-    data:
-      config.json: |
-        {
-          "accountID": "9e6c0c2c-6bd0-4919-815b-55030de7c9a0",
-          "clusterName": "kind-kind"
-        }
-    kind: ConfigMap
-    metadata:
-      labels:
-        app: kubescape-config
-        kubescape.io/infra: kubescape-config
-        tier: ks-control-plane
-      name: kubescape-config
-      namespace: kubescape
   24: |
     apiVersion: apps/v1
     kind: Deployment
@@ -931,8 +941,6 @@ matches the snapshot:
               env:
                 - name: GOMEMLIMIT
                   value: 400MiB
-                - name: CLUSTER_NAME
-                  value: kind-kind
                 - name: KS_LOGGER_LEVEL
                   value: info
                 - name: KS_LOGGER_NAME
@@ -963,7 +971,7 @@ matches the snapshot:
                   value: 9e6c0c2c-6bd0-4919-815b-55030de7c9a0
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
-              image: quay.io/kubescape/kubescape:v2.9.2
+              image: quay.io/kubescape/kubescape:v2.9.3-prerelease
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -994,10 +1002,11 @@ matches the snapshot:
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
+                - mountPath: /etc/credentials
+                  name: cloud-secret
+                  readOnly: true
                 - mountPath: /home/nonroot/.kubescape
                   name: kubescape-volume
-                - mountPath: /home/nonroot/.kubescape/config.json
-                  name: kubescape-config-volume
                   subPath: config.json
                 - mountPath: /home/nonroot/.kubescape/host-scanner.yaml
                   name: host-scanner-definition
@@ -1017,14 +1026,16 @@ matches the snapshot:
             runAsUser: 65532
           serviceAccountName: kubescape
           volumes:
+            - name: cloud-secret
+              secret:
+                secretName: cloud-secret
             - name: proxy-secret
               secret:
                 secretName: kubescape-proxy-certificate
             - configMap:
-                name: kubescape-config
-              name: kubescape-config-volume
-            - configMap:
                 items:
+                  - key: clusterData
+                    path: clusterData.json
                   - key: services
                     path: services.json
                 name: ks-cloud-config
@@ -1404,7 +1415,7 @@ matches the snapshot:
                   value: 9e6c0c2c-6bd0-4919-815b-55030de7c9a0
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
-              image: quay.io/kubescape/kubevuln:v0.2.116
+              image: quay.io/kubescape/kubevuln:v0.2.126-prerelease
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -1434,6 +1445,9 @@ matches the snapshot:
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
+                - mountPath: /etc/credentials
+                  name: cloud-secret
+                  readOnly: true
                 - mountPath: /tmp
                   name: tmp-dir
                 - mountPath: /home/nonroot/anchore-resources/db
@@ -1451,6 +1465,9 @@ matches the snapshot:
             runAsUser: 65532
           serviceAccountName: kubevuln
           volumes:
+            - name: cloud-secret
+              secret:
+                secretName: cloud-secret
             - name: proxy-secret
               secret:
                 secretName: kubescape-proxy-certificate
@@ -1903,7 +1920,7 @@ matches the snapshot:
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
-              image: quay.io/kubescape/operator:v0.1.52
+              image: quay.io/kubescape/operator:v0.1.55-prerelease
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -1937,6 +1954,9 @@ matches the snapshot:
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
+                - mountPath: /etc/credentials
+                  name: cloud-secret
+                  readOnly: true
                 - mountPath: /tmp
                   name: tmp-dir
                 - mountPath: /etc/config/clusterData.json
@@ -1963,6 +1983,9 @@ matches the snapshot:
             runAsUser: 65532
           serviceAccountName: operator
           volumes:
+            - name: cloud-secret
+              secret:
+                secretName: cloud-secret
             - name: proxy-secret
               secret:
                 secretName: kubescape-proxy-certificate
