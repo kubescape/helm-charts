@@ -19,6 +19,8 @@ spec:
       tier: {{ .Values.global.namespaceTier }}
   template:
     metadata:
+      annotations:
+        container.apparmor.security.beta.kubernetes.io/node-agent: unconfined
       labels:
         app.kubernetes.io/name: {{ .Values.nodeAgent.name }}
         app.kubernetes.io/instance: {{ .Release.Name }}
@@ -112,10 +114,18 @@ spec:
             {{- end }}
           securityContext:
             runAsUser: 0
-            privileged: true
+            privileged: {{ .Values.nodeAgent.privileged }}
             capabilities:
               add:
                 - SYS_ADMIN
+                - SYS_PTRACE
+                - BPF
+                - PERFMON
+                - NET_ADMIN
+                - SYSLOG
+                - SYS_RESOURCE
+                - IPC_LOCK
+                - NET_RAW
           volumeMounts:
           - name: {{ .Values.global.cloudConfig }}
             mountPath: /etc/config/clusterData.json

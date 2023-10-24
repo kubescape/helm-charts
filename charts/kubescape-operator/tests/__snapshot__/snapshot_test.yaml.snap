@@ -1655,6 +1655,8 @@ matches the snapshot:
           tier: ks-control-plane
       template:
         metadata:
+          annotations:
+            container.apparmor.security.beta.kubernetes.io/node-agent: unconfined
           labels:
             alt-name: node-agent
             app: node-agent
@@ -1710,7 +1712,15 @@ matches the snapshot:
                 capabilities:
                   add:
                     - SYS_ADMIN
-                privileged: true
+                    - SYS_PTRACE
+                    - BPF
+                    - PERFMON
+                    - NET_ADMIN
+                    - SYSLOG
+                    - SYS_RESOURCE
+                    - IPC_LOCK
+                    - NET_RAW
+                privileged: false
                 runAsUser: 0
               volumeMounts:
                 - mountPath: /etc/config/clusterData.json
