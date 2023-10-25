@@ -12,6 +12,7 @@ capabilities:
   vulnerabilityScan: enable
   nodeScan: enable
   runtimeObservability: disable
+  networkServiceEnabled: enable
   # This is an experimental capability with an elevated security risk. Read the
   # matching README section before enabling.
   autoUpgrading: disable
@@ -33,7 +34,7 @@ clusterName:  # cluster name must be defined by the user
 imagePullSecrets: ""
 
 logger:
-  level: info
+  level: debug
   name: zap
 
 # cloud support
@@ -290,14 +291,12 @@ kubevuln:
 
   resources:
     requests:
-      cpu: 300m
       memory: 1000Mi
       # Consider to increase ephemeral-storage requests in order to avoid pod eviction due to huge images
       # More details: https://hub.armosec.io/docs/limitations
       #               https://github.com/kubescape/kubescape/issues/389
       ephemeral-storage: 5Gi
     limits:
-      cpu: 1500m
       memory: 5000Mi
       ephemeral-storage: 6Gi
   config:
@@ -503,16 +502,14 @@ storage:
 
   resources:
     requests:
-      cpu: 50m
       memory: 400Mi
     limits:
-      cpu: 150m
       memory: 1500Mi
 
   replicaCount: 1
   image:
-    repository: quay.io/kubescape/storage
-    tag: v0.0.22
+    repository: danielgrunberger/storage
+    tag: v103
     pullPolicy: IfNotPresent
 
 grypeOfflineDB:
@@ -527,23 +524,21 @@ grypeOfflineDB:
 
   resources:
     requests:
-      cpu: 100m
       memory: 200Mi
     limits:
-      cpu: 100m
       memory: 200Mi
 
 nodeAgent:
   name: node-agent
   image:
-    repository: quay.io/kubescape/node-agent
-    tag: v0.1.107
+    repository: danielgrunberger/node-agent
+    tag: v18
     pullPolicy: IfNotPresent
 
   config:
     maxLearningPeriod: 3h # duration string
-    learningPeriod: 2m # duration string
-    updatePeriod: 10m # duration string
+    learningPeriod: 1m # duration string
+    updatePeriod: 2m # duration string
 
   resources:
     requests:
