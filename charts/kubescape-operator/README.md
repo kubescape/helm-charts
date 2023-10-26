@@ -518,7 +518,7 @@ Each component is built as a distroless image. This means that the image does no
 In order to troubleshoot a component, you can use the `kubectl debug` command to add an [ephemeral container](https://kubernetes.io/docs/tasks/debug/debug-application/debug-running-pod/#ephemeral-container) to the pod and run a shell in it:
 
 ```bash
-kubectl -n kubescape debug -it <pod-name> --image=busybox --target=<container-name>
+kubectl -n kubescape debug -it <pod-name> --image=docker.io/busybox --target=<container-name>
 ```
 
 **Note:** The `--target` parameter must be supported by the Container Runtime.
