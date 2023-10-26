@@ -38,6 +38,8 @@ spec:
       - name: {{ .Values.serviceDiscovery.urlDiscovery.name }}
         image: "{{ .Values.serviceDiscovery.urlDiscovery.image.repository }}:{{ .Values.serviceDiscovery.urlDiscovery.image.tag }}"
         imagePullPolicy: {{ .Values.serviceDiscovery.urlDiscovery.image.pullPolicy }}
+        resources:
+{{ toYaml .Values.serviceDiscovery.resources | indent 14 }}
         env:
         {{- if ne .Values.global.httpsProxy "" }}
           - name: HTTPS_PROXY
@@ -59,6 +61,8 @@ spec:
         image: "{{ .Values.serviceDiscovery.configMapUpdate.image.repository }}:{{ .Values.serviceDiscovery.configMapUpdate.image.tag }}"
         imagePullPolicy: {{ .Values.serviceDiscovery.configMapUpdate.image.pullPolicy }}
         command: ["/bin/sh", "-c"]
+        resources:
+{{ toYaml .Values.serviceDiscovery.resources | indent 14 }}
         args:
           - |
             kubectl create configmap {{ .Values.global.cloudConfig }} --from-literal=metrics=$(jq -r '.response.metrics' /data/services.json) --from-file=services=/data/services.json -n {{ .Values.ksNamespace }} --dry-run=client -o yaml | kubectl patch configmap {{ .Values.global.cloudConfig }} --patch "$(cat -)" -n {{ .Values.ksNamespace }}
