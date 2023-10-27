@@ -732,3 +732,15 @@ kubectl -n kubescape delete clusterrolebinding/helm-release-upgrader \
 ```
 
 Once it finishes, you should have no traces of the Release Upgrader in your cluster.
+
+## Troubleshooting
+
+```json
+{"level":"fatal", "msg":"error starting the container watcher", "error":"failed to initialize container collection: starting runc fanotify: no runc instance can be monitored with fanotify. The following paths were tested: /bin/runc,/usr/bin/runc,/usr/sbin/runc,/usr/local/bin/runc,/usr/local/sbin/runc,/usr/lib/cri-o-runc/sbin/runc,/run/torcx/unpack/docker/bin/runc,/usr/bin/crun. You can use the RUNC_PATH env variable to specify a custom path. If you are succesful doing so, please open a PR to add your custom path to runcPaths\n"}
+```
+
+In case you read this error from the `node-agent` logs, you can solve by re-install the **helm-chart** with the following parameters, replacing the `</path/to/your/runc>` with your own path:
+
+```shell
+--set nodeAgent.env[0].name=RUNC_PATH,nodeAgent.env[0].value=</path/to/your/runc>
+```
