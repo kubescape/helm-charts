@@ -8,6 +8,7 @@ ksLabel: kubescape
 capabilities:
   relevancy: enable
   configurationScan: enable
+  # Continuous Scanning continuously evaluates the security posture of your cluster.
   continuousScan: disable
   vulnerabilityScan: enable
   nodeScan: enable
@@ -92,6 +93,17 @@ global:
   networkPolicy:
     enabled: false
     createEgressRules: false
+
+continuousScanning:
+  configMapName: cs-matching-rules
+  matchingRules:
+    match:
+      - apiGroups: ["apps"]
+        apiVersions: ["v1"]
+        resources: ["deployments"]
+    namespaces:
+      - kube-system
+      - default
 
 # kubescape scheduled scan using a CronJob
 kubescapeScheduler:
@@ -192,6 +204,7 @@ kubescape:
 # Operator will trigger kubescape and kubevuln scanning
 operator:
 
+
   replicaCount: 1
 
   # operator Deployment name
@@ -199,8 +212,8 @@ operator:
 
   image:
     # -- source code: https://github.com/kubescape/operator
-    repository: quay.io/kubescape/operator
-    tag: v0.1.58
+    repository: vklokun/ks-operator-test
+    tag: continuous-scanning
     pullPolicy: IfNotPresent
 
   service:
@@ -512,9 +525,9 @@ storage:
 
   replicaCount: 1
   image:
-    repository: quay.io/kubescape/storage
-    tag: v0.0.32
-    pullPolicy: IfNotPresent
+    repository: vklokun/storage
+    tag: v0.0.31-alreadyexists-revert
+    pullPolicy: Never
 
 grypeOfflineDB:
   enabled: false
