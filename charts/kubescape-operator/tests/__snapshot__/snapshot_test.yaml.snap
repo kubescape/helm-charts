@@ -1725,6 +1725,9 @@ matches the snapshot:
                 seLinuxOptions:
                   type: spc_t
               volumeMounts:
+                - mountPath: /etc/credentials
+                  name: cloud-secret
+                  readOnly: true
                 - mountPath: /etc/config/clusterData.json
                   name: ks-cloud-config
                   readOnly: true
@@ -1756,6 +1759,9 @@ matches the snapshot:
             kubernetes.io/os: linux
           serviceAccountName: node-agent
           volumes:
+            - name: cloud-secret
+              secret:
+                secretName: cloud-secret
             - configMap:
                 items:
                   - key: clusterData
@@ -2545,6 +2551,8 @@ matches the snapshot:
             - env:
                 - name: GOMEMLIMIT
                   value: 400MiB
+                - name: ACCOUNT_ID
+                  value: 9e6c0c2c-6bd0-4919-815b-55030de7c9a0
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
               image: quay.io/kubescape/storage:v0.0.30
