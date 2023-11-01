@@ -225,7 +225,10 @@ matches the snapshot:
                 - name: HTTP_PORT
                   value: "8002"
                 - name: ACCOUNT_ID
-                  value: 9e6c0c2c-6bd0-4919-815b-55030de7c9a0
+                  valueFrom:
+                    secretKeyRef:
+                      key: account
+                      name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
               image: quay.io/kubescape/gateway:v0.1.17
@@ -575,7 +578,10 @@ matches the snapshot:
                     fieldRef:
                       fieldPath: metadata.namespace
                 - name: ACCOUNT_ID
-                  value: 9e6c0c2c-6bd0-4919-815b-55030de7c9a0
+                  valueFrom:
+                    secretKeyRef:
+                      key: account
+                      name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
                 - name: PRINT_REPORT
@@ -969,7 +975,10 @@ matches the snapshot:
                 - name: LARGE_CLUSTER_SIZE
                   value: "1500"
                 - name: ACCOUNT_ID
-                  value: 9e6c0c2c-6bd0-4919-815b-55030de7c9a0
+                  valueFrom:
+                    secretKeyRef:
+                      key: account
+                      name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
               image: quay.io/kubescape/kubescape:v3.0.0
@@ -1095,7 +1104,10 @@ matches the snapshot:
                 - name: KS_LOGGER_NAME
                   value: "zap"
                 - name: ACCOUNT_ID
-                  value: "9e6c0c2c-6bd0-4919-815b-55030de7c9a0"
+                  valueFrom:
+                    secretKeyRef:
+                      name: cloud-secret
+                      key: account
                 - name: CLUSTER_NAME
                   value: "kind-kind"
                 - name: OTEL_COLLECTOR_SVC
@@ -1414,7 +1426,10 @@ matches the snapshot:
                 - name: CA_MAX_VULN_SCAN_ROUTINES
                   value: "1"
                 - name: ACCOUNT_ID
-                  value: 9e6c0c2c-6bd0-4919-815b-55030de7c9a0
+                  valueFrom:
+                    secretKeyRef:
+                      key: account
+                      name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
               image: quay.io/kubescape/kubevuln:v0.2.129
@@ -1700,7 +1715,7 @@ matches the snapshot:
                 - name: HOST_ROOT
                   value: /host
                 - name: NodeName
-              image: quay.io/kubescape/node-agent:v0.1.112
+              image: quay.io/kubescape/node-agent:v0.1.113
               imagePullPolicy: IfNotPresent
               name: node-agent
               resources:
@@ -1725,6 +1740,9 @@ matches the snapshot:
                 seLinuxOptions:
                   type: spc_t
               volumeMounts:
+                - mountPath: /etc/credentials
+                  name: cloud-secret
+                  readOnly: true
                 - mountPath: /etc/config/clusterData.json
                   name: ks-cloud-config
                   readOnly: true
@@ -1756,6 +1774,9 @@ matches the snapshot:
             kubernetes.io/os: linux
           serviceAccountName: node-agent
           volumes:
+            - name: cloud-secret
+              secret:
+                secretName: cloud-secret
             - configMap:
                 items:
                   - key: clusterData
@@ -1933,7 +1954,7 @@ matches the snapshot:
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
-              image: quay.io/kubescape/operator:v0.1.57
+              image: quay.io/kubescape/operator:v0.1.58
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -2545,9 +2566,14 @@ matches the snapshot:
             - env:
                 - name: GOMEMLIMIT
                   value: 400MiB
+                - name: ACCOUNT_ID
+                  valueFrom:
+                    secretKeyRef:
+                      key: account
+                      name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
-              image: quay.io/kubescape/storage:v0.0.30
+              image: quay.io/kubescape/storage:v0.0.32
               imagePullPolicy: IfNotPresent
               name: apiserver
               resources:
