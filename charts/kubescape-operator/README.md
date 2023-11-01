@@ -732,3 +732,137 @@ kubectl -n kubescape delete clusterrolebinding/helm-release-upgrader \
 ```
 
 Once it finishes, you should have no traces of the Release Upgrader in your cluster.
+
+# Network Policy generation (beta)
+
+Disclaimer: Please note that this feature is currently in BETA and it's disabled by default.
+Creating Network Policies for workloads running in a cluster is a very important step in securing your cluster. But doing so manually can be a very tedious and error-prone task. Kubescape provides a way to automatically generate Network Policies for your cluster. Once enabled, Kubescape will listen to the network communication on your workloads, and you can then use `kubectl` to generate Network Policies automatically based on the captured traffic. Please note that the policies won't be applied to the cluster automatically. You will have to apply them manually.
+
+## Installation 
+Kubescape Network Policy generation is built into the Kubescape Operator Helm chart. To use this capability, you need to enable it. Start by navigating to the `values.yaml` file and make sure that the corresponding `capabilities.networkPolicyService` key is set to `enabled`, like so:
+```yaml
+capabilities:
+  networkPolicyService: enable  # Make sure this is set to "enable"
+```
+
+Once you apply the chart with the capability enabled, Kubescape will continuously listen to the workloads traffic and you could then generate network policies for them.
+
+## Network Policy generation
+
+To generate a Network Policy for a workload, all you need to do is run the following command:
+```
+kubectl -n <namespace> get generatednetworkpolicies.spdx.softwarecomposition.kubescape.io <workload-kind>-<workload-name> -o yaml
+```
+For example, if you want to generate a Network Policy for a `Deployment` named `nginx` in the `default` namespace, you would run the following command:
+```
+kubectl -n default get generatednetworkpolicies.spdx.softwarecomposition.kubescape.io deployment-nginx -o yaml
+```
+This will return you a CRD of Kind `GeneratedNetworkPolicy`. This CRD will contain on its `spec` the generated Network Policy. You can then apply this Network Policy to your cluster.
+
+This is an example of a generated CRD:
+```yaml
+kind: GeneratedNetworkPolicy
+metadata:
+  creationTimestamp: "2023-11-01T10:50:10Z"
+  labels:
+    kubescape.io/workload-api-group: apps
+    kubescape.io/workload-api-version: v1
+    kubescape.io/workload-kind: deployment
+    kubescape.io/workload-name: operator
+    kubescape.io/workload-namespace: kubescape
+  name: deployment-operator
+  namespace: kubescape
+policyRef: []
+spec:
+  apiVersion: networking.k8s.io/v1
+  kind: NetworkPolicy
+  metadata:
+    annotations:
+      generated-by: kubescape
+    creationTimestamp: null
+    name: deployment-operator
+    namespace: kubescape
+  spec:
+    egress:
+    - ports:
+      - port: 8001
+        protocol: TCP
+      to:
+      - podSelector:
+          matchLabels:
+            app: gateway
+    - ports:
+      - port: 443
+        protocol: TCP
+      to:
+      - ipBlock:
+          cidr: 16.171.184.118/32
+    - ports:
+      - port: 53
+        protocol: UDP
+      to:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: kube-system
+        podSelector:
+          matchLabels:
+            k8s-app: kube-dns
+    - ports:
+      - port: 4317
+        protocol: TCP
+      to:
+      - podSelector:
+          matchLabels:
+            app: otel-collector
+    - ports:
+      - port: 8080
+        protocol: TCP
+      to:
+      - podSelector:
+          matchLabels:
+            app: kubescape
+    - ports:
+      - port: 443
+        protocol: TCP
+      to:
+      - ipBlock:
+          cidr: 16.170.46.131/32
+    - ports:
+      - port: 8080
+        protocol: TCP
+      to:
+      - podSelector:
+          matchLabels:
+            app: kubevuln
+    - ports:
+      - port: 80
+        protocol: TCP
+      to:
+      - ipBlock:
+          cidr: 169.254.169.254/32
+    - ports:
+      - port: 443
+        protocol: TCP
+      to:
+      - ipBlock:
+          cidr: 10.128.0.90/32
+    - ports:
+      - port: 443
+        protocol: TCP
+      to:
+      - ipBlock:
+          cidr: 13.50.180.111/32
+    podSelector:
+      matchLabels:
+        app.kubernetes.io/instance: kubescape
+        app.kubernetes.io/name: operator
+        tier: ks-control-plane
+    policyTypes:
+    - Egress
+```
+
+Since the Network Policy generation is based on the traffic that is captured, it is recommended to generate the Network Policy after the workload has been running for a while. This will ensure that the Network Policy will contain all the required rules.
+We also recommend going over the generated Network Policy and making sure that it contains all the required rules. You can then apply the Network Policy to your cluster.
+
+## How it works
+With Network Policy feature enabled, Kubescape will use the `node-agent` component to listen for the network traffic in all your Pods. This traffic will then be aggregate by workload, and saved into a CRD of Kind `NetworkNeighbors`. This CRD represents all the incoming and outgoing communication for all Pods which belong to the same workload. When the client asks for a `GeneratedNetworkPolicy` CRD, Kubescape will use the `NetworkNeighbors` CRD to generate the Network Policy, converting all traffic into Network Policy rules.
