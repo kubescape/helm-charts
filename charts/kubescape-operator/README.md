@@ -841,8 +841,9 @@ sequenceDiagram
 
 # Network Policy generation (beta)
 
-Disclaimer: Please note that this feature is currently in BETA and it's disabled by default.
-Creating Network Policies for workloads running in a cluster is a very important step in securing your cluster. But doing so manually can be a very tedious and error-prone task. Kubescape provides a way to automatically generate Network Policies for your cluster. Once enabled, Kubescape will listen to the network communication on your workloads, and you can then use `kubectl` to generate Network Policies automatically based on the captured traffic. Please note that the policies won't be applied to the cluster automatically. You will have to apply them manually.
+Disclaimer: Please note that this feature is currently in BETA and it's disabled by default.  
+Creating Network Policies for workloads running in a cluster is a very important step in securing your cluster. But doing so manually can be a very tedious and error-prone task.   
+Kubescape provides a way to automatically generate Network Policies for your cluster. Once the Network Policy generation feature is enabled, Kubescape will listen to the network communication on your workloads, and you can then use `kubectl` to generate Network Policies automatically based on the captured traffic. Please note that the policies won't be applied to the cluster automatically. You will have to apply them manually.
 
 ## Installation 
 Kubescape Network Policy generation is built into the Kubescape Operator Helm chart. To use this capability, you need to enable it. Start by navigating to the `values.yaml` file and make sure that the corresponding `capabilities.networkPolicyService` key is set to `enabled`, like so:
@@ -857,11 +858,11 @@ Once you apply the chart with the capability enabled, Kubescape will continuousl
 
 To generate a Network Policy for a workload, all you need to do is run the following command:
 ```
-kubectl -n <namespace> get generatednetworkpolicies.spdx.softwarecomposition.kubescape.io <workload-kind>-<workload-name> -o yaml
+kubectl -n <namespace> get generatednetworkpolicies <workload-kind>-<workload-name> -o yaml
 ```
 For example, if you want to generate a Network Policy for a `Deployment` named `nginx` in the `default` namespace, you would run the following command:
 ```
-kubectl -n default get generatednetworkpolicies.spdx.softwarecomposition.kubescape.io deployment-nginx -o yaml
+kubectl -n default get generatednetworkpolicies deployment-nginx -o yaml
 ```
 This will return you a CRD of Kind `GeneratedNetworkPolicy`. This CRD will contain on its `spec` the generated Network Policy. You can then apply this Network Policy to your cluster.
 
