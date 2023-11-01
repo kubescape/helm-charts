@@ -1,11 +1,28 @@
 Thank you for installing {{ .Chart.Name }} version {{ .Chart.Version }}.
 
-You can see and change the values of your's recurring configurations daily scan in the following link:
-https://cloud.armosec.io/settings/assets/clusters/scheduled-scans?cluster={{ regexReplaceAll "\\W+" .Values.clusterName "-" }}
+{{ $components := fromYaml (include "components" .) -}}
+{{ if $components.kubescapeScheduler.enabled -}}
+You can view your cluster's configuration scanning schedule using the following command:
 > kubectl -n {{ .Values.ksNamespace }} get cj {{ .Values.kubescapeScheduler.name }} -o=jsonpath='{.metadata.name}{"\t"}{.spec.schedule}{"\n"}'
 
-You can see and change the values of your's recurring images daily scan in the following link:
-https://cloud.armosec.io/settings/assets/images
+To change the schedule, set the `.spec.schedule` key to the value you need with:
+> kubectl -n {{ .Values.ksNamespace }} edit cj {{ .Values.kubescapeScheduler.name }}
+{{- end }}
+
+{{ if $components.kubevulnScheduler.enabled -}}
+The image scanning schedule is available with the following command:
 > kubectl -n {{ .Values.ksNamespace }} get cj {{ .Values.kubevulnScheduler.name }} -o=jsonpath='{.metadata.name}{"\t"}{.spec.schedule}{"\n"}'
+
+To change the schedule, edit the `.spec.schedule` key with:
+> kubectl -n {{ .Values.ksNamespace }} edit cj {{ .Values.kubevulnScheduler.name }}
+{{- end }}
+
+{{ if eq .Values.capabilities.continuousScan "enable" -}}
+Once Kubescape finishes initial scanning, you can view a list of Kubescape configuration scan results using the following command:
+> kubectl get workloadconfigurationscansummaries -A
+
+When you see an interesting workload, take a closer look at its security posture with:
+> kubectl get workloadconfigurationscansummary -n {EXAMPLE_RESOURCE_NAMESPACE} {EXAMPLE_RESOURCE_NAME} -o yaml
+{{- end }}
 
 See you!!!

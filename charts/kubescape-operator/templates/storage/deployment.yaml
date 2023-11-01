@@ -29,7 +29,7 @@ spec:
         fsGroup: 65532
       initContainers:
         - name: fix-permissions
-          image: busybox
+          image: docker.io/busybox
           imagePullPolicy: IfNotPresent
           securityContext:
             runAsUser: 0
@@ -48,6 +48,11 @@ spec:
           - name: "GOMEMLIMIT"
             value: "{{ .Values.storage.resources.requests.memory }}B"
           {{- if $components.otelCollector.enabled }}
+          - name: ACCOUNT_ID
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.global.cloudSecret }}
+                key: account
           - name: OTEL_COLLECTOR_SVC
             value: "otel-collector:4317"
           {{- end }}

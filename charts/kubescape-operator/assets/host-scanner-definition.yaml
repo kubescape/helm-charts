@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: host-scanner
-  namespace: kubescape
+  namespace: {{ .Values.ksNamespace }}
   labels:
     app: host-scanner
     k8s-app: kubescape-host-scanner
@@ -56,7 +56,10 @@ spec:
           value: "{{ .Values.logger.name }}"
         {{- if $components.otelCollector.enabled }}
         - name: ACCOUNT_ID
-          value: "{{ .Values.account }}"
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.global.cloudSecret }}
+              key: account
         - name: CLUSTER_NAME
           value: "{{ regexReplaceAll "\\W+" .Values.clusterName "-" }}"
         - name: OTEL_COLLECTOR_SVC

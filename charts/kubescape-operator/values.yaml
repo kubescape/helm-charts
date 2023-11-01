@@ -8,13 +8,14 @@ ksLabel: kubescape
 capabilities:
   relevancy: enable
   configurationScan: enable
+  # Continuous Scanning continuously evaluates the security posture of your cluster.
   continuousScan: disable
   vulnerabilityScan: enable
   nodeScan: enable
   runtimeObservability: disable
   networkPolicyService: enable
   # This is an experimental capability with an elevated security risk. Read the
-  # matching README section before enabling.
+  # matching docs before enabling.
   autoUpgrading: disable
   # networkGenerator: disable
   # seccompGenerator: disable
@@ -93,6 +94,21 @@ global:
   networkPolicy:
     enabled: false
     createEgressRules: false
+
+# Continuous scanning configurations
+continuousScanning:
+  configMapName: cs-matching-rules
+
+  # Matching rules for the monitored resources.
+  # Kubescape will watch resources of every provided GVR across the provided
+  # namespaces.
+  matchingRules:
+    match:
+      - apiGroups: ["apps"]
+        apiVersions: ["v1"]
+        resources: ["deployments"]
+    namespaces:
+      - default
 
 # kubescape scheduled scan using a CronJob
 kubescapeScheduler:
@@ -201,7 +217,7 @@ operator:
   image:
     # -- source code: https://github.com/kubescape/operator
     repository: quay.io/kubescape/operator
-    tag: v0.1.55-prerelease
+    tag: v0.1.60
     pullPolicy: IfNotPresent
 
   service:
@@ -278,7 +294,7 @@ kubevuln:
   image:
     # -- source code: https://github.com/kubescape/kubevuln
     repository: quay.io/kubescape/kubevuln
-    tag: v0.2.126-prerelease
+    tag: v0.2.129
     pullPolicy: IfNotPresent
 
   replicaCount: 1
@@ -302,6 +318,7 @@ kubevuln:
   config:
     maxImageSize: 5368709120 # set max image size for scanning, It is recommended to use the same as the requested ephemeral-storage
     scanTimeout: 5m # set timeout for scanning an image
+    vexGeneration: false # set the feature of vex generation (experimental)
 
   env:
     - name: CA_MAX_VULN_SCAN_ROUTINES # TODO update the kubevuln
@@ -324,7 +341,7 @@ kollector:
   image:
     # -- source code: https://github.com/kubescape/kollector
     repository: quay.io/kubescape/kollector
-    tag: v0.1.28-prerelease
+    tag: v0.1.29
     pullPolicy: IfNotPresent
 
   replicaCount: 1
@@ -375,7 +392,7 @@ gateway:
   image:
     # -- source code: https://github.com/kubescape/gateway
     repository: quay.io/kubescape/gateway
-    tag: v0.1.16-prerelease
+    tag: v0.1.17
     pullPolicy: IfNotPresent
 
   replicaCount: 1
@@ -474,7 +491,7 @@ otelCollector:
     scrapeInterval: 30s
 
   image:
-    repository: otel/opentelemetry-collector
+    repository: docker.io/otel/opentelemetry-collector
     tag: 0.86.0
     pullPolicy: IfNotPresent
 
@@ -554,6 +571,8 @@ nodeAgent:
         fieldRef:
           fieldPath: spec.nodeName
 
+  privileged: false
+
   volumeMounts:
     - mountPath: /host
       name: host
@@ -591,6 +610,7 @@ nodeAgent:
       name: debugfs
     - emptyDir:
       name: data
+
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
@@ -629,16 +649,24 @@ serviceDiscovery:
   configMapCheck:
     name: check-url-configmap
     image:
-      repository: bitnami/kubectl
+      repository: docker.io/bitnami/kubectl
       tag: 1.27.6
       pullPolicy: IfNotPresent
 
   configMapUpdate:
     name: update-configmap
     image:
-      repository: bitnami/kubectl
+      repository: docker.io/bitnami/kubectl
       tag: 1.27.6
       pullPolicy: IfNotPresent
+
+  resources:
+    requests:
+      cpu: 10m
+      memory: 10Mi
+    limits:
+      cpu: 100m
+      memory: 50Mi
 
 # Configures the Helm Release Upgrader
 helmReleaseUpgrader:

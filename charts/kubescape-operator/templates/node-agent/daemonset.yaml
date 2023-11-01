@@ -19,6 +19,8 @@ spec:
       tier: {{ .Values.global.namespaceTier }}
   template:
     metadata:
+      annotations:
+        container.apparmor.security.beta.kubernetes.io/node-agent: unconfined
       labels:
         app.kubernetes.io/name: {{ .Values.nodeAgent.name }}
         app.kubernetes.io/instance: {{ .Release.Name }}
@@ -37,6 +39,9 @@ spec:
       automountServiceAccountToken: true
       hostPID: true
       volumes:
+        - name: {{ .Values.global.cloudSecret }}
+          secret:
+            secretName: {{ .Values.global.cloudSecret }}
         - name: {{ .Values.global.cloudConfig }}
           configMap:
             name: {{ .Values.global.cloudConfig }}
@@ -112,11 +117,22 @@ spec:
             {{- end }}
           securityContext:
             runAsUser: 0
-            privileged: true
+            privileged: {{ .Values.nodeAgent.privileged }}
             capabilities:
               add:
                 - SYS_ADMIN
+                - SYS_PTRACE
+                - NET_ADMIN
+                - SYSLOG
+                - SYS_RESOURCE
+                - IPC_LOCK
+                - NET_RAW
+            seLinuxOptions:
+              type: spc_t
           volumeMounts:
+          - name: {{ .Values.global.cloudSecret }}
+            mountPath: /etc/credentials
+            readOnly: true
           - name: {{ .Values.global.cloudConfig }}
             mountPath: /etc/config/clusterData.json
             readOnly: true
