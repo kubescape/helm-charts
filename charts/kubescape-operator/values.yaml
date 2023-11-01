@@ -6,17 +6,30 @@ ksNamespace: kubescape
 ksLabel: kubescape
 
 capabilities:
-  relevancy: enable
+  # ====== configuration scanning related capabilities ====== 
+  # 
+  # Default configuration scanning setup
   configurationScan: enable
   # Continuous Scanning continuously evaluates the security posture of your cluster.
   continuousScan: disable
-  vulnerabilityScan: enable
   nodeScan: enable
+
+  # ====== Image vulnerabilities scanning related capabilities ====== 
+  # 
+  vulnerabilityScan: enable
+  relevancy: enable
+
+  # ====== Runtime related capabilities ====== 
+  # 
   runtimeObservability: disable
   networkPolicyService: disable
+
+  # ====== Other capabilities ====== 
+  #
   # This is an experimental capability with an elevated security risk. Read the
   # matching docs before enabling.
   autoUpgrading: disable
+
   # networkGenerator: disable
   # seccompGenerator: disable
 
@@ -150,6 +163,9 @@ kubescapeScheduler:
       cpu: 10m
       memory: 20Mi
 
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+
 # kubescape scanner - https://github.com/kubescape/kubescape
 kubescape:
 
@@ -158,7 +174,7 @@ kubescape:
   image:
     # -- source code: https://github.com/kubescape/kubescape/tree/master/httphandler (public repo)
     repository: quay.io/kubescape/kubescape
-    tag: v3.0.0
+    tag: v3.0.1
     pullPolicy: IfNotPresent
 
   resources:
@@ -196,6 +212,10 @@ kubescape:
   serviceMonitor:
     # -- enable/disable service monitor for prometheus (operator) integration
     enabled: false
+
+    # -- Customize prometheus interval and scrapeTimeout
+    interval: 200s
+    scrapeTimeout: 150s
 
     # If needed the service monitor can be deployed to a different namespace than the one kubescape is in
     #namespace: my-namespace
@@ -282,6 +302,9 @@ kubevulnScheduler:
       cpu: 10m
       memory: 20Mi
 
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  
 # kubevuln - image vulnerability scanning microservice
 kubevuln:
 
@@ -477,6 +500,9 @@ registryScanScheduler:
     limits:
       cpu: 10m
       memory: 20Mi
+  
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
 
 # opentelemetry collector
 otelCollector:
@@ -531,6 +557,12 @@ storage:
   image:
     repository: quay.io/kubescape/storage
     tag: v0.0.33 
+    pullPolicy: IfNotPresent
+
+  # image for init container
+  initImage:
+    repository: docker.io/busybox
+    tag: 1.36.1
     pullPolicy: IfNotPresent
 
 grypeOfflineDB:
@@ -703,3 +735,6 @@ helmReleaseUpgrader:
       # updating job to be OOM Killed, keep this at 256 MiB or higher depending
       # on the size of your cluster.
       memory: 256Mi
+
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
