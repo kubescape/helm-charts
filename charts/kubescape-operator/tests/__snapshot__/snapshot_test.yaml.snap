@@ -167,7 +167,7 @@ matches the snapshot:
     data:
       capabilities: |
         {
-          "capabilities":{"autoUpgrading":"enable","configurationScan":"enable","continuousScan":"disable","nodeScan":"enable","relevancy":"enable","runtimeObservability":"disable","vulnerabilityScan":"enable"},
+          "capabilities":{"autoUpgrading":"enable","configurationScan":"enable","continuousScan":"disable","networkPolicyService":"disable","nodeScan":"enable","relevancy":"enable","runtimeObservability":"disable","vulnerabilityScan":"enable"},
           "components":{"gateway":{"enabled":true},"hostScanner":{"enabled":true},"kollector":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":true},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true}},
           "configurations":{"otelUrl":"otelCollector:4317","persistence":"enable"}
         }
@@ -413,7 +413,7 @@ matches the snapshot:
                   cpu: 100m
                   memory: 200Mi
                 requests:
-                  cpu: 100m
+                  cpu: 150m
                   memory: 200Mi
               securityContext:
                 allowPrivilegeEscalation: false
@@ -1588,6 +1588,8 @@ matches the snapshot:
         resources:
           - pods
           - nodes
+          - services
+          - endpoints
         verbs:
           - get
           - watch
@@ -1636,6 +1638,7 @@ matches the snapshot:
           - applicationactivities
           - applicationprofiles
           - applicationprofilesummaries
+          - networkneighborses
         verbs:
           - create
           - get
@@ -1665,7 +1668,8 @@ matches the snapshot:
             "relevantCVEServiceEnabled": true,
             "InitialDelay": "2m",
             "updateDataPeriod": "10m",
-            "maxSniffingTimePerContainer": "3h"
+            "maxSniffingTimePerContainer": "3h",
+            "networkServiceEnabled":  "false"
         }
     kind: ConfigMap
     metadata:
@@ -1733,7 +1737,7 @@ matches the snapshot:
                 - name: HOST_ROOT
                   value: /host
                 - name: NodeName
-              image: quay.io/kubescape/node-agent:v0.1.113
+              image: quay.io/kubescape/node-agent:v0.1.114
               imagePullPolicy: IfNotPresent
               name: node-agent
               resources:
@@ -2601,7 +2605,7 @@ matches the snapshot:
                       name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
-              image: quay.io/kubescape/storage:v0.0.32
+              image: quay.io/kubescape/storage:v0.0.33
               imagePullPolicy: IfNotPresent
               name: apiserver
               resources:
