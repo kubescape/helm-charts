@@ -3,13 +3,19 @@ matches the snapshot:
     raw: |
       Thank you for installing kubescape-operator version 1.16.1.
 
-      You can see and change the values of your's recurring configurations daily scan in the following link:
-      https://cloud.armosec.io/settings/assets/clusters/scheduled-scans?cluster=kind-kind
+      You can view your cluster's configuration scanning schedule using the following command:
       > kubectl -n kubescape get cj kubescape-scheduler -o=jsonpath='{.metadata.name}{"\t"}{.spec.schedule}{"\n"}'
 
-      You can see and change the values of your's recurring images daily scan in the following link:
-      https://cloud.armosec.io/settings/assets/images
+      To change the schedule, set the `.spec.schedule` key to the value you need with:
+      > kubectl -n kubescape edit cj kubescape-scheduler
+
+      The image scanning schedule is available with the following command:
       > kubectl -n kubescape get cj kubevuln-scheduler -o=jsonpath='{.metadata.name}{"\t"}{.spec.schedule}{"\n"}'
+
+      To change the schedule, edit the `.spec.schedule` key with:
+      > kubectl -n kubescape edit cj kubevuln-scheduler
+
+
 
       See you!!!
   2: |
@@ -176,7 +182,7 @@ matches the snapshot:
     apiVersion: v1
     data:
       matchingRules.json: |
-        {"match":[{"apiGroups":["apps"],"apiVersions":["v1"],"resources":["deployments"]}],"namespaces":["kube-system","default"]}
+        {"match":[{"apiGroups":["apps"],"apiVersions":["v1"],"resources":["deployments"]}],"namespaces":["default"]}
     kind: ConfigMap
     metadata:
       labels:
@@ -1966,7 +1972,7 @@ matches the snapshot:
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
-              image: vklokun/ks-operator-test:continuous-scanning
+              image: quay.io/kubescape/operator:v0.1.60
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -2595,8 +2601,8 @@ matches the snapshot:
                       name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
-              image: vklokun/storage:v0.0.31-alreadyexists-revert
-              imagePullPolicy: Never
+              image: quay.io/kubescape/storage:v0.0.32
+              imagePullPolicy: IfNotPresent
               name: apiserver
               resources:
                 limits:
