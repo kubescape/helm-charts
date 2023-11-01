@@ -8,12 +8,13 @@ ksLabel: kubescape
 capabilities:
   relevancy: enable
   configurationScan: enable
+  # Continuous Scanning continuously evaluates the security posture of your cluster.
   continuousScan: disable
   vulnerabilityScan: enable
   nodeScan: enable
   runtimeObservability: disable
   # This is an experimental capability with an elevated security risk. Read the
-  # matching README section before enabling.
+  # matching docs before enabling.
   autoUpgrading: disable
   # networkGenerator: disable
   # seccompGenerator: disable
@@ -92,6 +93,21 @@ global:
   networkPolicy:
     enabled: false
     createEgressRules: false
+
+# Continuous scanning configurations
+continuousScanning:
+  configMapName: cs-matching-rules
+
+  # Matching rules for the monitored resources.
+  # Kubescape will watch resources of every provided GVR across the provided
+  # namespaces.
+  matchingRules:
+    match:
+      - apiGroups: ["apps"]
+        apiVersions: ["v1"]
+        resources: ["deployments"]
+    namespaces:
+      - default
 
 # kubescape scheduled scan using a CronJob
 kubescapeScheduler:
@@ -200,7 +216,7 @@ operator:
   image:
     # -- source code: https://github.com/kubescape/operator
     repository: quay.io/kubescape/operator
-    tag: v0.1.58
+    tag: v0.1.60
     pullPolicy: IfNotPresent
 
   service:
