@@ -2397,6 +2397,162 @@ all capabilities:
         app: otel-collector
       type: ClusterIP
   62: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      name: prometheus-exporter
+    rules:
+      - apiGroups:
+          - spdx.softwarecomposition.kubescape.io
+        resources:
+          - configurationscansummaries
+          - vulnerabilitysummaries
+        verbs:
+          - get
+          - watch
+          - list
+  63: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: prometheus-exporter
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: prometheus-exporter
+    subjects:
+      - kind: ServiceAccount
+        name: prometheus-exporter
+        namespace: kubescape
+  64: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        app: prometheus-exporter
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/name: prometheus-exporter
+        tier: ks-control-plane
+      name: prometheus-exporter
+      namespace: kubescape
+    spec:
+      replicas: null
+      revisionHistoryLimit: 2
+      selector:
+        matchLabels:
+          app.kubernetes.io/instance: RELEASE-NAME
+          app.kubernetes.io/name: prometheus-exporter
+          tier: ks-control-plane
+      strategy:
+        type: Recreate
+      template:
+        metadata:
+          labels:
+            app: prometheus-exporter
+            app.kubernetes.io/instance: RELEASE-NAME
+            app.kubernetes.io/name: prometheus-exporter
+            tier: ks-control-plane
+        spec:
+          affinity: null
+          automountServiceAccountToken: true
+          containers:
+            - env:
+                - name: GOMEMLIMIT
+                  value: 100MiB
+                - name: KS_LOGGER_LEVEL
+                  value: info
+                - name: KS_LOGGER_NAME
+                  value: zap
+              image: quay.io/matthiasb_1/prometheus-exporter:latest
+              imagePullPolicy: Always
+              livenessProbe:
+                initialDelaySeconds: 3
+                periodSeconds: 3
+                tcpSocket:
+                  port: 8080
+              name: prometheus-exporter
+              ports:
+                - containerPort: 8080
+                  name: metrics
+                  protocol: TCP
+              readinessProbe:
+                tcpSocket:
+                  port: 8080
+              resources:
+                limits:
+                  cpu: 500m
+                  memory: 500Mi
+                requests:
+                  cpu: 100m
+                  memory: 100Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+              volumeMounts:
+                - mountPath: /etc/config
+                  name: ks-cloud-config
+                  readOnly: true
+          nodeSelector: null
+          securityContext:
+            fsGroup: 65532
+            runAsUser: 65532
+          serviceAccountName: prometheus-exporter
+          tolerations: null
+          volumes:
+            - configMap:
+                items:
+                  - key: clusterData
+                    path: clusterData.json
+                name: ks-cloud-config
+              name: ks-cloud-config
+  65: |
+    apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      labels:
+        app: prometheus-exporter
+        tier: ks-control-plane
+      name: prometheus-exporter
+      namespace: kubescape
+    spec:
+      ingress:
+        - ports:
+            - port: 8080
+              protocol: TCP
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/instance: RELEASE-NAME
+          app.kubernetes.io/name: prometheus-exporter
+          tier: ks-control-plane
+      policyTypes:
+        - Ingress
+  66: |
+    apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        app: prometheus-exporter
+      name: prometheus-exporter
+      namespace: kubescape
+    spec:
+      ports:
+        - port: 8080
+          protocol: TCP
+          targetPort: 8080
+      selector:
+        app: prometheus-exporter
+      type: null
+  67: |
+    apiVersion: v1
+    automountServiceAccountToken: false
+    kind: ServiceAccount
+    metadata:
+      labels:
+        app: prometheus-exporter
+      name: prometheus-exporter
+      namespace: kubescape
+  68: |
     apiVersion: v1
     data:
       proxy.crt: foo
@@ -2405,7 +2561,7 @@ all capabilities:
       name: kubescape-proxy-certificate
       namespace: kubescape
     type: Opaque
-  63: |
+  69: |
     apiVersion: batch/v1
     kind: Job
     metadata:
@@ -2482,7 +2638,7 @@ all capabilities:
           volumes:
             - emptyDir: {}
               name: shared-data
-  64: |
+  70: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -2503,7 +2659,7 @@ all capabilities:
           - patch
           - get
           - list
-  65: |
+  71: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -2520,7 +2676,7 @@ all capabilities:
       - kind: ServiceAccount
         name: service-discovery
         namespace: kubescape
-  66: |
+  72: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -2530,7 +2686,7 @@ all capabilities:
         helm.sh/hook-weight: "0"
       name: service-discovery
       namespace: kubescape
-  67: |
+  73: |
     apiVersion: apiregistration.k8s.io/v1
     kind: APIService
     metadata:
@@ -2544,7 +2700,7 @@ all capabilities:
         namespace: kubescape
       version: v1beta1
       versionPriority: 15
-  68: |
+  74: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -2653,7 +2809,7 @@ all capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  70: |
+  76: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -2666,7 +2822,7 @@ all capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  71: |
+  77: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -2749,7 +2905,7 @@ all capabilities:
                     path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
-  72: |
+  78: |
     apiVersion: v1
     kind: PersistentVolumeClaim
     metadata:
@@ -2765,7 +2921,7 @@ all capabilities:
       resources:
         requests:
           storage: 5Gi
-  73: |
+  79: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -2779,7 +2935,7 @@ all capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  74: |
+  80: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -2794,13 +2950,13 @@ all capabilities:
         app.kubernetes.io/component: apiserver
         app.kubernetes.io/name: storage
         app.kubernetes.io/part-of: kubescape-storage
-  75: |
+  81: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
       name: storage
       namespace: kubescape
-  76: |
+  82: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -2864,7 +3020,7 @@ all capabilities:
           - update
           - patch
           - delete
-  77: |
+  83: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -2877,7 +3033,7 @@ all capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  78: |
+  84: |
     apiVersion: v1
     data:
       config.json: |
@@ -2963,7 +3119,7 @@ all capabilities:
     metadata:
       name: synchronizer
       namespace: kubescape
-  79: |
+  85: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -3084,7 +3240,7 @@ all capabilities:
                     path: config.json
                 name: synchronizer
               name: config
-  80: |
+  86: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -3106,7 +3262,7 @@ all capabilities:
       policyTypes:
         - Ingress
         - Egress
-  81: |
+  87: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
