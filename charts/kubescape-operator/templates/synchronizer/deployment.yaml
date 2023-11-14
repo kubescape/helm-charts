@@ -1,0 +1,168 @@
+{{- $checksums := fromYaml (include "checksums" .) }}
+{{- $components := fromYaml (include "components" .) }}
+{{- if $components.synchronizer.enabled }}
+{{- $no_proxy_envar_list := (include "no_proxy_envar_list" .) -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.synchronizer.name }}
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.synchronizer.name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app: {{ .Values.synchronizer.name }}
+    tier: {{ .Values.global.namespaceTier }}
+spec:
+  replicas: {{ .Values.synchronizer.replicaCount }}
+  revisionHistoryLimit: 2
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.synchronizer.name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      tier: {{ .Values.global.namespaceTier }}
+  template:
+    metadata:
+      annotations:
+        checksum/synchronizer-configmap: {{ $checksums.synchronizerConfig }}
+        checksum/cloud-secret: {{ $checksums.cloudSecret }}
+        checksum/cloud-config: {{ $checksums.cloudConfig }}
+      {{- if ne .Values.global.proxySecretFile "" }}
+        checksum/proxy-config: {{ $checksums.proxySecret }}
+      {{- end }}
+      labels:
+        app.kubernetes.io/name: {{ .Values.synchronizer.name }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        tier: {{ .Values.global.namespaceTier }}
+        app: {{ .Values.synchronizer.name }}
+      {{- if $components.otelCollector.enabled }}
+        otel: enabled
+      {{- end }}
+    spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+      - name: {{ toYaml .Values.imagePullSecrets }}
+      {{- end }}
+      securityContext:
+        runAsUser: 65532
+        fsGroup: 65532
+      containers:
+        - name: {{ .Values.synchronizer.name }}
+          image: "{{ .Values.synchronizer.image.repository }}:{{ .Values.synchronizer.image.tag }}"
+          imagePullPolicy: {{ .Values.synchronizer.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 7888
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          resources:
+{{ toYaml .Values.synchronizer.resources | indent 12 }}
+          env:
+            - name: GOMEMLIMIT
+              value: "{{ .Values.synchronizer.resources.requests.memory }}B"
+            - name: KS_LOGGER_LEVEL
+              value: "{{ .Values.logger.level }}"
+            - name: KS_LOGGER_NAME
+              value: "{{ .Values.logger.name }}"
+            {{- range .Values.synchronizer.env }}
+            - name: {{ .name }}
+              value: "{{ .value }}"
+            {{- end }}
+            {{- if $components.otelCollector.enabled }}
+            - name: ACCOUNT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $components.cloudSecret.name }}
+                  key: account
+            - name: OTEL_COLLECTOR_SVC
+              value: "otel-collector:4317"
+            {{- end }}
+            {{- if ne .Values.global.httpsProxy "" }}
+            - name: HTTPS_PROXY
+              value: "{{ .Values.global.httpsProxy }}"
+            - name : no_proxy
+              value: "{{ $no_proxy_envar_list }}"
+            {{- end }}
+          command: ["/usr/bin/client"]
+          volumeMounts:
+            - name: {{ $components.cloudSecret.name }}
+              mountPath: /etc/credentials
+              readOnly: true
+            - name: {{ .Values.global.cloudConfig }}
+              mountPath: /etc/config/clusterData.json
+              readOnly: true
+              subPath: "clusterData.json"
+            {{- if $components.serviceDiscovery.enabled }}
+            - name: {{ .Values.global.cloudConfig }}
+              mountPath: /etc/config/services.json
+              readOnly: true
+              subPath: "services.json"
+            {{- end }}
+            - name: config
+              mountPath: /etc/config/config.json
+              readOnly: true
+              subPath: "config.json"
+{{- if .Values.volumeMounts }}
+{{ toYaml .Values.volumeMounts | indent 12 }}
+{{- end }}
+{{- if .Values.synchronizer.volumeMounts }}
+{{ toYaml .Values.synchronizer.volumeMounts | indent 12 }}
+{{- end }}
+{{- if ne .Values.global.proxySecretFile "" }}
+            - name: proxy-secret
+              mountPath: /etc/ssl/certs/proxy.crt
+              subPath: proxy.crt
+{{- end }}
+      volumes:
+        - name: {{ $components.cloudSecret.name }}
+          secret:
+            secretName: {{ $components.cloudSecret.name }}
+      {{- if ne .Values.global.proxySecretFile "" }}
+        - name: proxy-secret
+          secret:
+            secretName: {{ .Values.global.proxySecretName }}
+      {{- end }}
+        - name: {{ .Values.global.cloudConfig }}
+          configMap:
+            name: {{ .Values.global.cloudConfig }}
+            items:
+            - key: "clusterData"
+              path: "clusterData.json"
+            {{- if $components.serviceDiscovery.enabled }}
+            - key: "services"
+              path: "services.json"
+            {{- end }}
+        - name: config
+          configMap:
+            name: {{ .Values.synchronizer.name }}
+            items:
+              - key: "config.json"
+                path: "config.json"
+{{- if .Values.volumes }}
+{{ toYaml .Values.volumes | indent 8 }}
+{{- end }}
+{{- if .Values.synchronizer.volumes }}
+{{ toYaml .Values.synchronizer.volumes | indent 8 }}
+{{- end }}
+      serviceAccountName: {{ .Values.synchronizer.name }}
+      automountServiceAccountToken: true
+      {{- with .Values.synchronizer.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.synchronizer.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+{{- end }}

@@ -1,0 +1,27 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- if and .Values.global.networkPolicy.enabled $components.synchronizer.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Values.synchronizer.name }}
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    app: {{ .Values.synchronizer.name }}
+    tier: {{ .Values.global.namespaceTier }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.synchronizer.name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      tier: {{ .Values.global.namespaceTier }}
+  policyTypes:
+    - Ingress
+  {{- if .Values.global.networkPolicy.createEgressRules }}
+    - Egress
+  egress:
+      # - synchronizer server
+    - ports:
+        - port: 8443
+          protocol: TCP
+  {{- end }}
+{{- end }}

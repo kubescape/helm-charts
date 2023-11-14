@@ -1,0 +1,20 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- if $components.synchronizer.enabled }}
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ .Values.synchronizer.name }}
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["spdx.softwarecomposition.kubescape.io"]
+    resources: ["applicationactivities", "applicationprofiles", "applicationprofilesummaries", "configurationscansummaries", "networkneighborses", "openvulnerabilityexchangecontainers", "sbomspdxv2p3s", "sbomspdxv2p3filtereds", "sbomsummaries", "vulnerabilitymanifests", "vulnerabilitymanifestsummaries", "vulnerabilitysummaries", "workloadconfigurationscans", "workloadconfigurationscansummaries"]
+    verbs: ["get", "watch", "list"]
+#  - apiGroups: ["spdx.softwarecomposition.kubescape.io"]
+#    resources: ["knownservers"]
+#    verbs: ["get", "watch", "list", "create", "update", "patch", "delete"]
+{{- end }}

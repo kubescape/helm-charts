@@ -1,0 +1,77 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- $configurations := fromYaml (include "configurations" .) }}
+{{- if $components.synchronizer.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.synchronizer.name }}
+  namespace: {{ .Values.ksNamespace }}
+data:
+  config.json: |
+    {
+      "inCluster": {
+        "resources": [
+          {
+            "group": "apps",
+            "version": "v1",
+            "resource": "deployments",
+            "strategy": "patch"
+          },
+          {
+            "group": "",
+            "version": "v1",
+            "resource": "pods",
+            "strategy": "patch"
+          },
+          {
+            "group": "spdx.softwarecomposition.kubescape.io",
+            "version": "v1beta1",
+            "resource": "sbomspdxv2p3s",
+            "strategy": "copy"
+          },
+          {
+            "group": "spdx.softwarecomposition.kubescape.io",
+            "version": "v1beta1",
+            "resource": "sbomspdxv2p3filtereds",
+            "strategy": "copy"
+          },
+          {
+            "group": "spdx.softwarecomposition.kubescape.io",
+            "version": "v1beta1",
+            "resource": "vulnerabilitymanifests",
+            "strategy": "copy"
+          },
+          {
+            "group": "spdx.softwarecomposition.kubescape.io",
+            "version": "v1beta1",
+            "resource": "workloadconfigurationscans",
+            "strategy": "copy"
+          },
+          {
+            "group": "spdx.softwarecomposition.kubescape.io",
+            "version": "v1beta1",
+            "resource": "applicationprofiles",
+            "strategy": "copy"
+          },
+          {
+            "group": "spdx.softwarecomposition.kubescape.io",
+            "version": "v1beta1",
+            "resource": "applicationactivities",
+            "strategy": "copy"
+          },
+          {
+            "group": "spdx.softwarecomposition.kubescape.io",
+            "version": "v1beta1",
+            "resource": "networkneighborses",
+            "strategy": "copy"
+          },
+          {
+            "group": "spdx.softwarecomposition.kubescape.io",
+            "version": "v1beta1",
+            "resource": "openvulnerabilityexchangecontainers",
+            "strategy": "copy"
+          }
+        ]
+      }
+    }
+{{- end }}
