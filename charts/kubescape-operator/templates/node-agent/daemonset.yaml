@@ -20,6 +20,12 @@ spec:
   template:
     metadata:
       annotations:
+        checksum/node-agent-config: {{ include (printf "%s/node-agent/configmap.yaml" $.Template.BasePath) . | sha256sum }} 
+        checksum/cloud-secret: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.configMapsDirectory $.Values.global.cloudSecretFile) . | sha256sum }}
+        checksum/cloud-config: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.configMapsDirectory $.Values.global.cloudConfigMapFile) . | sha256sum }}
+      {{- if ne .Values.global.proxySecretFile "" }}
+        checksum/proxy-config: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.proxySecretDirectory $.Values.global.proxySecretName) . | sha256sum }}
+      {{- end }}
         container.apparmor.security.beta.kubernetes.io/node-agent: unconfined
       labels:
         app.kubernetes.io/name: {{ .Values.nodeAgent.name }}
@@ -30,9 +36,6 @@ spec:
         alt-name: {{ .Values.nodeAgent.name }} # Why?
       {{- if $components.otelCollector.enabled }}
         otel: enabled
-      {{- end }}
-      {{- if .Values.global.addRevisionLabel }}
-        helm.sh/revision: "{{ .Release.Revision }}"
       {{- end }}
     spec:
       serviceAccountName: {{ .Values.nodeAgent.name }}

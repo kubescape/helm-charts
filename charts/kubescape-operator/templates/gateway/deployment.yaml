@@ -27,15 +27,17 @@ spec:
       tier: {{ .Values.global.namespaceTier }}
   template:
     metadata:
+      annotations:
+        checksum/cloud-secret: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.configMapsDirectory $.Values.global.cloudSecretFile) . | sha256sum }}
+        checksum/cloud-config: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.configMapsDirectory $.Values.global.cloudConfigMapFile) . | sha256sum }}
+      {{- if ne .Values.global.proxySecretFile "" }}
+        checksum/proxy-config: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.proxySecretDirectory $.Values.global.proxySecretName) . | sha256sum }}
+      {{- end }}
       labels:
         app.kubernetes.io/name: {{ .Values.gateway.name }}
         app.kubernetes.io/instance: {{ .Release.Name }}
-        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
         tier: {{ .Values.global.namespaceTier }}
         app: {{ .Values.gateway.name }}
-      {{- if .Values.global.addRevisionLabel }}
-        helm.sh/revision: "{{ .Release.Revision }}"
-      {{- end }}
     spec:
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
