@@ -18,6 +18,8 @@ capabilities:
   # 
   vulnerabilityScan: enable
   relevancy: enable
+  # Generate VEX documents alongside the image vulnerabilities report (experimental)
+  vexGeneration: disable
 
   # ====== Runtime related capabilities ====== 
   # 
@@ -242,7 +244,7 @@ operator:
   image:
     # -- source code: https://github.com/kubescape/operator
     repository: quay.io/kubescape/operator
-    tag: v0.1.60
+    tag: v0.1.61
     pullPolicy: IfNotPresent
 
   service:
@@ -348,7 +350,6 @@ kubevuln:
   config:
     maxImageSize: 5368709120 # set max image size for scanning, It is recommended to use the same as the requested ephemeral-storage
     scanTimeout: 5m # set timeout for scanning an image
-    vexGeneration: false # set the feature of vex generation (experimental)
 
   env:
     - name: CA_MAX_VULN_SCAN_ROUTINES # TODO update the kubevuln
@@ -585,7 +586,7 @@ grypeOfflineDB:
       cpu: 150m
       memory: 200Mi
     limits:
-      cpu: 100m
+      cpu: 150m
       memory: 200Mi
 
 nodeAgent:
@@ -659,13 +660,6 @@ nodeAgent:
       requiredDuringSchedulingIgnoredDuringExecution:
         nodeSelectorTerms:
           - matchExpressions:
-              - key: kubernetes.io/arch
-                operator: In
-                values:
-                  - amd64
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-          - matchExpressions:
               - key: kubernetes.io/os
                 operator: In
                 values:
@@ -673,7 +667,6 @@ nodeAgent:
 
   nodeSelector:
     kubernetes.io/os: linux
-    kubernetes.io/arch: amd64
 
 # service discovery job for discovering backend server URLs
 serviceDiscovery:

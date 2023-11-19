@@ -2,34 +2,55 @@
 
 ![Version: 1.16.2](https://img.shields.io/badge/Version-1.16.2-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.16.2](https://img.shields.io/badge/AppVersion-v1.16.2-informational?style=flat-square)
 
-## [Docs](https://hub.armosec.io/docs/installation-of-armo-in-cluster)
-
-## Installing Kubescape Operator in a Kubernetes cluster using Helm:
-
-1. Add the Kubescape Helm Repo
-```
-helm repo add kubescape https://kubescape.github.io/helm-charts/
-```
-
-2. Update helm repo
-```
-helm repo update
-```
-
-3. Install the Helm Chart, use your account ID and give your cluster a name 
-
-if you ran kubescape cli tool and submitted, you can get your Account ID from the local cache: 
-```
-kubescape config view | grep -i accountID
-```
-Otherwise, get the account ID from the [kubescape SaaS](https://hub.armosec.io/docs/installation-of-armo-in-cluster#install-a-pre-registered-cluster)
+## Install
 
 Run the install command:
 ```
-helm upgrade --install kubescape kubescape/kubescape-operator -n kubescape --create-namespace --set account=<my_account_ID> --set clusterName=`kubectl config current-context` 
+helm repo update ; helm upgrade --install kubescape kubescape/kubescape-operator -n kubescape --create-namespace --set clusterName=`kubectl config current-context` --set capabilities.continuousScan=enable
 ```
 
-> Add `--set kubescape.serviceMonitor.enabled=true` for installing the Prometheus service monitor, [read more about Prometheus integration](https://hub.armosec.io/docs/prometheus-exporter)
+Verify that the installation was successful:
+```shell
+$ kubectl get pods -n kubescape
+kubescape     kubescape-548d6b4577-qshb5                          1/1     Running   0               60m
+kubescape     kubevuln-6779c9d74b-wfgqf                           1/1     Running   0               60m
+kubescape     operator-5d745b5b84-ts7zq                           1/1     Running   0               60m
+kubescape     storage-59567854fd-hg8n8                            1/1     Running   0               60m
+```
+## View results
+
+The scanning results will be available gradually as the scans are completed.
+
+View your configuration scan summaries:
+```
+kubectl get workloadconfigurationscansummaries -A
+```
+
+Detailed reports are also available:
+```
+kubectl get workloadconfigurationscans -A
+```
+
+View your image vulnerabilities scan summaries:
+```
+kubectl get vulnerabilitymanifestsummaries -A
+```
+
+Detailed reports are also available:
+```
+kubectl get vulnerabilitymanifests -A
+```
+
+## Uninstall
+
+You can uninstall this helm chart by running the following command:
+```
+helm uninstall kubescape -n kubescape
+```
+Then, delete the kubescape namespace:
+```shell  
+kubectl delete ns kubescape
+```
 
 ### Adjusting Resource Usage for Your Cluster
 
@@ -742,7 +763,7 @@ To let cluster operators see the current security posture of their cluster, Kube
 
 ## Installation
 
-Continuous Scanning is built into the Kubescape Operator Helm chart. To use this capability, you only need to enable it. Start by navigating to the `values.yaml` file and make sure that the corresponding `capabilities.continuousScan` key is set to `enabled`, like so:
+Continuous Scanning is built into the Kubescape Operator Helm chart. To use this capability, you only need to enable it. Start by navigating to the `values.yaml` file and make sure that the corresponding `capabilities.continuousScan` key is set to `enable`, like so:
 
 ```yaml
 capabilities:
@@ -848,7 +869,7 @@ Creating Network Policies for workloads running in a cluster is a very important
 Kubescape provides a way to automatically generate Network Policies for your cluster. Once the Network Policy generation feature is enabled, Kubescape will listen to the network communication on your workloads, and you can then use `kubectl` to generate Network Policies automatically based on the captured traffic. Please note that the policies won't be applied to the cluster automatically. You will have to apply them manually.
 
 ## Installation 
-Kubescape Network Policy generation is built into the Kubescape Operator Helm chart. To use this capability, you need to enable it. Start by navigating to the `values.yaml` file and make sure that the corresponding `capabilities.networkPolicyService` key is set to `enabled`, like so:
+Kubescape Network Policy generation is built into the Kubescape Operator Helm chart. To use this capability, you need to enable it. Start by navigating to the `values.yaml` file and make sure that the corresponding `capabilities.networkPolicyService` key is set to `enable`, like so:
 ```yaml
 capabilities:
   networkPolicyService: enable  # Make sure this is set to "enable"
