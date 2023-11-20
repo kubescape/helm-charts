@@ -1,3 +1,4 @@
+{{- $checksums := fromYaml (include "checksums" .) }}
 {{- $components := fromYaml (include "components" .) }}
 {{- if $components.operator.enabled }}
 {{- $no_proxy_envar_list := (include "no_proxy_envar_list" .) -}}
@@ -27,13 +28,13 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/operator-config: {{ include (printf "%s/operator/configmap.yaml" $.Template.BasePath) . | sha256sum }} 
-        checksum/cloud-secret: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.configMapsDirectory $.Values.global.cloudSecretFile) . | sha256sum }}
-        checksum/cloud-config: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.configMapsDirectory $.Values.global.cloudConfigMapFile) . | sha256sum }}
-        checksum/capabilities-config: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.configMapsDirectory $.Values.global.capabilitiesConfigMap) . | sha256sum }}
-        checksum/matching-rules-config: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.configMapsDirectory $.Values.global.matchingRulesConfigMap) . | sha256sum }}
+        checksum/operator-config: {{ $checksums.operatorConfig }}
+        checksum/cloud-secret: {{ $checksums.cloudSecret }}
+        checksum/cloud-config: {{ $checksums.cloudConfig }}
+        checksum/capabilities-config: {{ $checksums.capabilitiesConfig }}
+        checksum/matching-rules-config: {{ $checksums.matchingRulesConfig }}
       {{- if ne .Values.global.proxySecretFile "" }}
-        checksum/proxy-config: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.proxySecretDirectory $.Values.global.proxySecretFileName) . | sha256sum }}
+        checksum/proxy-config: {{ $checksums.proxySecret }}
       {{- end }}
       labels:
         app.kubernetes.io/name: {{ .Values.operator.name }}

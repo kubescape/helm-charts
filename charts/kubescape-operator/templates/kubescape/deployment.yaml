@@ -1,3 +1,4 @@
+{{- $checksums := fromYaml (include "checksums" .) }}
 {{- $components := fromYaml (include "components" .) }}
 {{- if $components.kubescape.enabled }}
 {{- $configurations := fromYaml (include "configurations" .) }}
@@ -35,11 +36,11 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/host-scanner-configmap: {{ include (printf "%s/kubescape/host-scanner-definition-configmap.yaml" $.Template.BasePath ) . | sha256sum }}
-        checksum/cloud-secret: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.configMapsDirectory $.Values.global.cloudSecretFile) . | sha256sum }}
-        checksum/cloud-config: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.configMapsDirectory $.Values.global.cloudConfigMapFile) . | sha256sum }}
+        checksum/host-scanner-configmap: {{ $checksums.hostScannerConfig }}
+        checksum/cloud-secret: {{ $checksums.cloudSecret }}
+        checksum/cloud-config: {{ $checksums.cloudConfig }}
       {{- if ne .Values.global.proxySecretFile "" }}
-        checksum/proxy-config: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.proxySecretDirectory $.Values.global.proxySecretFileName) . | sha256sum }}
+        checksum/proxy-config: {{ $checksums.proxySecret }}
       {{- end }}
       labels:
         app.kubernetes.io/name: {{ .Values.kubescape.name }}
