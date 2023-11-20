@@ -1,3 +1,4 @@
+{{- $checksums := fromYaml (include "checksums" .) }}
 {{- $components := fromYaml (include "components" .) }}
 {{- if $components.gateway.enabled }}
 {{- $no_proxy_envar_list := (include "no_proxy_envar_list" .) -}}
@@ -27,15 +28,17 @@ spec:
       tier: {{ .Values.global.namespaceTier }}
   template:
     metadata:
+      annotations:
+        checksum/cloud-secret: {{ $checksums.cloudSecret }}
+        checksum/cloud-config: {{ $checksums.cloudConfig }}
+      {{- if ne .Values.global.proxySecretFile "" }}
+        checksum/proxy-config: {{ $checksums.proxySecret }}
+      {{- end }}
       labels:
         app.kubernetes.io/name: {{ .Values.gateway.name }}
         app.kubernetes.io/instance: {{ .Release.Name }}
-        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
         tier: {{ .Values.global.namespaceTier }}
         app: {{ .Values.gateway.name }}
-      {{- if .Values.global.addRevisionLabel }}
-        helm.sh/revision: "{{ .Release.Revision }}"
-      {{- end }}
     spec:
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:

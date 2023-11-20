@@ -1,3 +1,4 @@
+{{- $checksums := fromYaml (include "checksums" .) }}
 {{- $components := fromYaml (include "components" .) }}
 {{- if $components.operator.enabled }}
 {{- $no_proxy_envar_list := (include "no_proxy_envar_list" .) -}}
@@ -26,6 +27,15 @@ spec:
       tier: {{ .Values.global.namespaceTier }}
   template:
     metadata:
+      annotations:
+        checksum/operator-config: {{ $checksums.operatorConfig }}
+        checksum/cloud-secret: {{ $checksums.cloudSecret }}
+        checksum/cloud-config: {{ $checksums.cloudConfig }}
+        checksum/capabilities-config: {{ $checksums.capabilitiesConfig }}
+        checksum/matching-rules-config: {{ $checksums.matchingRulesConfig }}
+      {{- if ne .Values.global.proxySecretFile "" }}
+        checksum/proxy-config: {{ $checksums.proxySecret }}
+      {{- end }}
       labels:
         app.kubernetes.io/name: {{ .Values.operator.name }}
         app.kubernetes.io/instance: {{ .Release.Name }}
@@ -34,9 +44,6 @@ spec:
         app: {{ .Values.operator.name }}
       {{- if $components.otelCollector.enabled }}
         otel: enabled
-      {{- end }}
-      {{- if .Values.global.addRevisionLabel }}
-        helm.sh/revision: "{{ .Release.Revision }}"
       {{- end }}
     spec:
       {{- if .Values.imagePullSecrets }}

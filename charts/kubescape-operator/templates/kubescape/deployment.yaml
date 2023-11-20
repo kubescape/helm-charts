@@ -1,3 +1,4 @@
+{{- $checksums := fromYaml (include "checksums" .) }}
 {{- $components := fromYaml (include "components" .) }}
 {{- if $components.kubescape.enabled }}
 {{- $configurations := fromYaml (include "configurations" .) }}
@@ -34,6 +35,13 @@ spec:
       tier: {{ .Values.global.namespaceTier }}
   template:
     metadata:
+      annotations:
+        checksum/host-scanner-configmap: {{ $checksums.hostScannerConfig }}
+        checksum/cloud-secret: {{ $checksums.cloudSecret }}
+        checksum/cloud-config: {{ $checksums.cloudConfig }}
+      {{- if ne .Values.global.proxySecretFile "" }}
+        checksum/proxy-config: {{ $checksums.proxySecret }}
+      {{- end }}
       labels:
         app.kubernetes.io/name: {{ .Values.kubescape.name }}
         app.kubernetes.io/instance: {{ .Release.Name }}
@@ -42,9 +50,6 @@ spec:
         app: {{ .Values.kubescape.name }}
       {{- if $components.otelCollector.enabled }}
         otel: enabled
-      {{- end }}
-      {{- if .Values.global.addRevisionLabel }}
-        helm.sh/revision: "{{ .Release.Revision }}"
       {{- end }}
     spec:
       {{- if .Values.imagePullSecrets }}

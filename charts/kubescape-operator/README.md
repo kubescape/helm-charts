@@ -208,7 +208,6 @@ docker-compose logs uptrace
 | hostScanner.volumes | object | `[]` | Additional volumes for the host scanner |
 | hostScanner.volumeMounts | object | `[]` | Additional volumeMounts for the host scanner |
 | awsIamRoleArn | string | `nil` | AWS IAM arn role |
-| addRevisionLabel | bool | `true` | Add revision label to the components. This will ensure the components will restart when updating the helm |
 | cloudProviderMetadata.cloudRegion | string | `nil` | cloud region |
 | cloudProviderMetadata.gkeProject | string | `nil` | GKE project |
 | cloudProviderMetadata.gkeServiceAccount | string | `nil` | GKE service account |

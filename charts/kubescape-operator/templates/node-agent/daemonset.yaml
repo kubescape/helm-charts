@@ -1,3 +1,4 @@
+{{- $checksums := fromYaml (include "checksums" .) }}
 {{- $components := fromYaml (include "components" .) }}
 {{- if $components.nodeAgent.enabled }}
 {{- $no_proxy_envar_list := (include "no_proxy_envar_list" .) -}}
@@ -20,6 +21,12 @@ spec:
   template:
     metadata:
       annotations:
+        checksum/node-agent-config: {{ $checksums.nodeAgentConfig }}
+        checksum/cloud-secret: {{ $checksums.cloudSecret }}
+        checksum/cloud-config: {{ $checksums.cloudConfig }}
+      {{- if ne .Values.global.proxySecretFile "" }}
+        checksum/proxy-config: {{ $checksums.proxySecret }}
+      {{- end }}
         container.apparmor.security.beta.kubernetes.io/node-agent: unconfined
       labels:
         app.kubernetes.io/name: {{ .Values.nodeAgent.name }}
@@ -30,9 +37,6 @@ spec:
         alt-name: {{ .Values.nodeAgent.name }} # Why?
       {{- if $components.otelCollector.enabled }}
         otel: enabled
-      {{- end }}
-      {{- if .Values.global.addRevisionLabel }}
-        helm.sh/revision: "{{ .Release.Revision }}"
       {{- end }}
     spec:
       serviceAccountName: {{ .Values.nodeAgent.name }}
