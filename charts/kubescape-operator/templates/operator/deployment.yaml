@@ -108,7 +108,7 @@ spec:
             - -v=4
             - 2>&1
           volumeMounts:
-            - name: {{ .Values.global.cloudSecret }}
+            - name: {{ $components.cloudSecret.name }}
               mountPath: /etc/credentials
               readOnly: true
             - name: tmp-dir
@@ -123,7 +123,7 @@ spec:
               readOnly: true
               subPath: "services.json"
             {{- end }}
-            - name: {{ .Values.global.capabilitiesConfig }}
+            - name: ks-capabilities
               mountPath: /etc/config/capabilities.json
               readOnly: true
               subPath: "capabilities.json"
@@ -147,9 +147,9 @@ spec:
               subPath: proxy.crt
 {{- end }}
       volumes:
-        - name: {{ .Values.global.cloudSecret }}
+        - name: {{ $components.cloudSecret.name }}
           secret:
-            secretName: {{ .Values.global.cloudSecret }}
+            secretName: {{ $components.cloudSecret.name }}
         {{- if ne .Values.global.proxySecretFile "" }}
         - name: proxy-secret
           secret:
@@ -167,9 +167,9 @@ spec:
             - key: "services"
               path: "services.json"
             {{- end }}
-        - name: {{ .Values.global.capabilitiesConfig }}
+        - name: ks-capabilities
           configMap:
-            name: {{ .Values.global.capabilitiesConfig }}
+            name: ks-capabilities
             items:
               - key: "capabilities"
                 path: "capabilities.json"

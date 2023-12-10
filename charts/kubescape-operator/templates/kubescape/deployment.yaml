@@ -112,6 +112,10 @@ spec:
           value: "/home/nonroot/.kubescape/host-scanner.yaml"
         - name: LARGE_CLUSTER_SIZE
           value: "1500"
+        {{- range .Values.kubescape.env }}
+        - name: {{ .name }}
+          value: "{{ .value }}"
+        {{- end }}
         {{- if .Values.cloudProviderMetadata.cloudRegion }}
         - name: KS_CLOUD_REGION
           value: "{{ .Values.cloudProviderMetadata.cloudRegion }}"
@@ -144,7 +148,7 @@ spec:
         - name: ACCOUNT_ID
           valueFrom:
             secretKeyRef:
-              name: {{ .Values.global.cloudSecret }}
+              name: {{ $components.cloudSecret.name }}
               key: account
         - name: OTEL_COLLECTOR_SVC
           value: "otel-collector:4317"
@@ -160,7 +164,7 @@ spec:
         resources:
 {{ toYaml .Values.kubescape.resources | indent 14 }}
         volumeMounts:
-        - name: {{ .Values.global.cloudSecret }}
+        - name: {{ $components.cloudSecret.name }}
           mountPath: /etc/credentials
           readOnly: true
         - name: kubescape-volume
@@ -188,9 +192,9 @@ spec:
           subPath: proxy.crt
 {{- end }}
       volumes:
-      - name: {{ .Values.global.cloudSecret }}
+      - name: {{ $components.cloudSecret.name }}
         secret:
-          secretName: {{ .Values.global.cloudSecret }}
+          secretName: {{ $components.cloudSecret.name }}
       {{- if ne .Values.global.proxySecretFile "" }}
       - name: proxy-secret
         secret:
