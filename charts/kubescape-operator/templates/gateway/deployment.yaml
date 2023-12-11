@@ -94,7 +94,7 @@ spec:
             - name: ACCOUNT_ID
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.global.cloudSecret }}
+                  name: {{ $components.cloudSecret.name }}
                   key: account
             - name: OTEL_COLLECTOR_SVC
               value: "otel-collector:4317"
@@ -114,7 +114,7 @@ spec:
             - -v=4
             - 2>&1
           volumeMounts:
-          - name: {{ .Values.global.cloudSecret }}
+          - name: {{ $components.cloudSecret.name }}
             mountPath: /etc/credentials
             readOnly: true
           - name: {{ .Values.global.cloudConfig }}
@@ -132,9 +132,9 @@ spec:
             subPath: proxy.crt
           {{- end }}
       volumes:
-        - name: {{ .Values.global.cloudSecret }}
+        - name: {{ $components.cloudSecret.name }}
           secret:
-            secretName: {{ .Values.global.cloudSecret }}
+            secretName: {{ $components.cloudSecret.name }}
       {{- if ne .Values.global.proxySecretFile "" }}
         - name: proxy-secret
           secret:
