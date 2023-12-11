@@ -1,0 +1,15 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- if $components.synchronizer.enabled }}
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ .Values.synchronizer.name }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Values.synchronizer.name }}
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.synchronizer.name }}
+  namespace: {{ .Values.ksNamespace }}
+{{- end }}

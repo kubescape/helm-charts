@@ -7,6 +7,7 @@ matchingRulesConfig: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.
 nodeAgentConfig: {{ include (printf "%s/node-agent/configmap.yaml" $.Template.BasePath) . | sha256sum }}
 operatorConfig: {{ include (printf "%s/operator/configmap.yaml" $.Template.BasePath) . | sha256sum }}
 proxySecret: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.proxySecretDirectory "proxy-secret.yaml") . | sha256sum }}
+synchronizerConfig: {{ include (printf "%s/synchronizer/configmap.yaml" $.Template.BasePath) . | sha256sum }}
 {{- end -}}
 
 
@@ -59,4 +60,6 @@ storage:
 cloudSecret:
   create: {{ $configurations.createCloudSecret }}
   name: {{ if $configurations.createCloudSecret }}"cloud-secret"{{ else }}{{ .Values.credentials.cloudSecret }}{{ end }}
+synchronizer:
+  enabled: {{ and $configurations.submit (eq .Values.capabilities.synchronizer "enable") }}
 {{- end -}}
