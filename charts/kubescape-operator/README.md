@@ -866,6 +866,7 @@ sequenceDiagram
 # Network Policy generation (beta)
 
 Disclaimer: Please note that this feature is currently in BETA and it's disabled by default.  
+
 Creating Network Policies for workloads running in a cluster is a very important step in securing your cluster. But doing so manually can be a very tedious and error-prone task.   
 Kubescape provides a way to automatically generate Network Policies for your cluster. Once the Network Policy generation feature is enabled, Kubescape will listen to the network communication on your workloads, and you can then use `kubectl` to generate Network Policies automatically based on the captured traffic. Please note that the policies won't be applied to the cluster automatically. You will have to apply them manually.
 
@@ -989,7 +990,7 @@ spec:
 ```
 
 `spec` - contains the Kubernetes native Network Policy to be applied on the cluster.  
-`policyRef` - contains enrichment information about the generated Network Policy. Each entry refers to an single `ipBlock` on the Network Policy.  
+`policyRef` - contains enrichment information about the generated Network Policy. Each entry refers to an single `cidr` on the Network Policy.  
 `policyRef.originalIP` - the original IP that was captured on the traffic.  
 `policyRef.ipBlock` - the IP Block that was generated based on the original IP.  
 `policyRef.dns` - the DNS resolution of the original IP. This enrichment is done by the node-agent component.  
@@ -1019,8 +1020,13 @@ sequenceDiagram
     end
     k8a ->> u: Installation Complete
 
+    %% Initial creation of NetworkNeighbors resource by Node-Agent
+    ksn ->> ksn: Listen for Initial Network Traffic
+    ksn ->> k8a: Create NetworkNeighbors Resource
+    k8a ->> kss: Store NetworkNeighbors Resource
+
     %% Node-Agent continuously monitors network traffic and updates NetworkNeighbors
-    loop Monitor Network Traffic
+    loop Continuously Monitor Network Traffic
         ksn ->> ksn: Listen for Network Traffic
         ksn ->> k8a: Update NetworkNeighbors Resource
         k8a ->> kss: Store Updated NetworkNeighbors
@@ -1060,7 +1066,7 @@ spec:
   server: github.com
 ```
 
-This KnownServer is saying that the IP network of `142.250.1.100/24` is equivalent to the server `github.com`, and we can name it `github-workflows`.  
+This KnownServer is saying that the IP network of `142.250.1.100/24` is equivalent to the server `github.com`, and on this example we name it `github-workflows`, to give more details about what this service is used for.  
 When generating a Network Policy, Kubescape will use this information to enrich the generated Network Policy.    
 
 
