@@ -6,32 +6,33 @@ ksNamespace: kubescape
 ksLabel: kubescape
 
 capabilities:
-  # ====== configuration scanning related capabilities ====== 
-  # 
+  # ====== configuration scanning related capabilities ======
+  #
   # Default configuration scanning setup
   configurationScan: enable
   # Continuous Scanning continuously evaluates the security posture of your cluster.
   continuousScan: disable
   nodeScan: enable
 
-  # ====== Image vulnerabilities scanning related capabilities ====== 
-  # 
+  # ====== Image vulnerabilities scanning related capabilities ======
+  #
   vulnerabilityScan: enable
   relevancy: enable
   # Generate VEX documents alongside the image vulnerabilities report (experimental)
   vexGeneration: disable
 
-  # ====== Runtime related capabilities ====== 
-  # 
+  # ====== Runtime related capabilities ======
+  #
   runtimeObservability: disable
   networkPolicyService: disable
 
-  # ====== Other capabilities ====== 
+  # ====== Other capabilities ======
   #
   # This is an experimental capability with an elevated security risk. Read the
   # matching docs before enabling.
   autoUpgrading: disable
 
+  synchronizer: disable
   # networkGenerator: disable
   # seccompGenerator: disable
 
@@ -94,21 +95,17 @@ persistence:
     backingStorage: 5Gi
     kubevuln: 2Gi
 
+credentials:
+  cloudSecret: # If left blank, the secret will be generated using the default name. Override this option if you already have a secret and wish to prevent Helm from creating the default secret on your behalf
+ 
 global:
   httpsProxy: ""
   proxySecretFile: ""
-  proxySecretFileName: proxy-secret.yaml
   proxySecretName: kubescape-proxy-certificate
   namespaceTier: ks-control-plane
-  capabilitiesConfig: ks-capabilities
-  cloudSecret: cloud-secret
   cloudConfig: ks-cloud-config
   proxySecretDirectory: proxy-support
   configMapsDirectory: configs
-  cloudSecretFile: cloud-secret.yaml
-  cloudConfigMapFile: cloudapi-configmap.yaml
-  capabilitiesConfigMap: components-configmap.yaml
-  matchingRulesConfigMap: matchingRules-configmap.yaml
   kubescapePsp:
     name: ks-allow-privileged
     enabled: false
@@ -182,7 +179,7 @@ kubescape:
   image:
     # -- source code: https://github.com/kubescape/kubescape/tree/master/httphandler (public repo)
     repository: quay.io/kubescape/kubescape
-    tag: v3.0.1
+    tag: v3.0.2-prerelease
     pullPolicy: IfNotPresent
 
   resources:
@@ -192,10 +189,6 @@ kubescape:
     limits:
       cpu: 600m
       memory: 1Gi
-
-  # Enable prometheus pod annotations,to allow your opensource prometheus (not operator) to scrape metrics
-  prometheusAnnotation:
-    enabled: false
 
   # Enable prometheus pod annotations,to allow your opensource prometheus (not operator) to scrape metrics
   prometheusAnnotation:
@@ -245,7 +238,7 @@ operator:
   image:
     # -- source code: https://github.com/kubescape/operator
     repository: quay.io/kubescape/operator
-    tag: v0.1.61
+    tag: v0.1.67
     pullPolicy: IfNotPresent
 
   service:
@@ -312,7 +305,7 @@ kubevulnScheduler:
 
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 1
-  
+
 # kubevuln - image vulnerability scanning microservice
 kubevuln:
 
@@ -325,7 +318,7 @@ kubevuln:
   image:
     # -- source code: https://github.com/kubescape/kubevuln
     repository: quay.io/kubescape/kubevuln
-    tag: v0.2.129
+    tag: v0.2.133
     pullPolicy: IfNotPresent
 
   replicaCount: 1
@@ -373,7 +366,7 @@ kollector:
   image:
     # -- source code: https://github.com/kubescape/kollector
     repository: quay.io/kubescape/kollector
-    tag: v0.1.29
+    tag: v0.1.33
     pullPolicy: IfNotPresent
 
   replicaCount: 1
@@ -424,7 +417,7 @@ gateway:
   image:
     # -- source code: https://github.com/kubescape/gateway
     repository: quay.io/kubescape/gateway
-    tag: v0.1.17
+    tag: v0.1.20
     pullPolicy: IfNotPresent
 
   replicaCount: 1
@@ -507,7 +500,7 @@ registryScanScheduler:
     limits:
       cpu: 10m
       memory: 20Mi
-  
+
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 1
 
@@ -705,6 +698,20 @@ serviceDiscovery:
     limits:
       cpu: 100m
       memory: 50Mi
+
+synchronizer:
+  name: synchronizer
+  image:
+    repository: quay.io/kubescape/synchronizer
+    tag: v0.0.17
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 100m
+      memory: 250Mi
+    limits:
+      cpu: 200m
+      memory: 500Mi
 
 # Configures the Helm Release Upgrader
 helmReleaseUpgrader:

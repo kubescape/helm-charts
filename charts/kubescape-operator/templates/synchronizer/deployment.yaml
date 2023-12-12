@@ -1,84 +1,80 @@
 {{- $checksums := fromYaml (include "checksums" .) }}
 {{- $components := fromYaml (include "components" .) }}
-{{- if $components.kollector.enabled }}
+{{- if $components.synchronizer.enabled }}
 {{- $no_proxy_envar_list := (include "no_proxy_envar_list" .) -}}
 apiVersion: apps/v1
-# statefulset is needed in order to avoid two pods reporting from the same cluster in parallel.
-# parallel reporting will cause Kubescape SaaS to miss identify the cluster liveness status
-kind: StatefulSet
+kind: Deployment
 metadata:
-  name: {{ .Values.kollector.name }}
+  name: {{ .Values.synchronizer.name }}
   namespace: {{ .Values.ksNamespace }}
   labels:
-    app.kubernetes.io/name: {{ .Values.kollector.name }}
+    app.kubernetes.io/name: {{ .Values.synchronizer.name }}
     app.kubernetes.io/instance: {{ .Release.Name }}
-    app: {{ .Values.kollector.name }}
+    app: {{ .Values.synchronizer.name }}
     tier: {{ .Values.global.namespaceTier }}
 spec:
-  serviceName: ""
-  replicas: {{ .Values.kollector.replicaCount }}
+  replicas: {{ .Values.synchronizer.replicaCount }}
+  revisionHistoryLimit: 2
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ .Values.kollector.name }}
+      app.kubernetes.io/name: {{ .Values.synchronizer.name }}
       app.kubernetes.io/instance: {{ .Release.Name }}
       tier: {{ .Values.global.namespaceTier }}
   template:
     metadata:
       annotations:
+        checksum/synchronizer-configmap: {{ $checksums.synchronizerConfig }}
         checksum/cloud-secret: {{ $checksums.cloudSecret }}
         checksum/cloud-config: {{ $checksums.cloudConfig }}
       {{- if ne .Values.global.proxySecretFile "" }}
         checksum/proxy-config: {{ $checksums.proxySecret }}
       {{- end }}
       labels:
-        app.kubernetes.io/name: {{ .Values.kollector.name }}
+        app.kubernetes.io/name: {{ .Values.synchronizer.name }}
         app.kubernetes.io/instance: {{ .Release.Name }}
-        tier: {{ .Values.global.namespaceTier }}
-        app: {{ .Values.kollector.name }}
         helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        tier: {{ .Values.global.namespaceTier }}
+        app: {{ .Values.synchronizer.name }}
+      {{- if $components.otelCollector.enabled }}
+        otel: enabled
+      {{- end }}
     spec:
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
       - name: {{ toYaml .Values.imagePullSecrets }}
       {{- end }}
+      securityContext:
+        runAsUser: 65532
+        fsGroup: 65532
       containers:
-        - name: {{ .Values.kollector.name }}
-          image: "{{ .Values.kollector.image.repository }}:{{ .Values.kollector.image.tag }}"
-          imagePullPolicy: {{ .Values.kollector.image.pullPolicy }}
+        - name: {{ .Values.synchronizer.name }}
+          image: "{{ .Values.synchronizer.image.repository }}:{{ .Values.synchronizer.image.tag }}"
+          imagePullPolicy: {{ .Values.synchronizer.image.pullPolicy }}
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             runAsNonRoot: true
-            runAsUser: 100
-          ports:
-            - name: "readiness-port"
-              containerPort: 8000
-              protocol: TCP
           livenessProbe:
             httpGet:
-              path: /v1/liveness
-              port: readiness-port
+              path: /healthz
+              port: 7888
             initialDelaySeconds: 3
             periodSeconds: 3
-          readinessProbe:
-            httpGet:
-              path: /v1/readiness
-              port: readiness-port
-            initialDelaySeconds: 10
-            periodSeconds: 5
           resources:
-{{ toYaml .Values.kollector.resources | indent 12 }}
+{{ toYaml .Values.synchronizer.resources | indent 12 }}
           env:
             - name: GOMEMLIMIT
-              value: "{{ .Values.kollector.resources.requests.memory }}B"
+              value: "{{ .Values.synchronizer.resources.requests.memory }}B"
             - name: KS_LOGGER_LEVEL
               value: "{{ .Values.logger.level }}"
             - name: KS_LOGGER_NAME
               value: "{{ .Values.logger.name }}"
-            - name: NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
+            {{- range .Values.synchronizer.env }}
+            - name: {{ .name }}
+              value: "{{ .value }}"
+            {{- end }}
             {{- if $components.otelCollector.enabled }}
             - name: ACCOUNT_ID
               valueFrom:
@@ -94,28 +90,30 @@ spec:
             - name : no_proxy
               value: "{{ $no_proxy_envar_list }}"
             {{- end }}
-            {{- range .Values.kollector.env }}
-            - name: {{ .name }}
-              value: "{{ .value }}"
-            {{- end }}
-          args:
-          - -alsologtostderr
-          - -v=4
-          - 2>&1
+          command: ["/usr/bin/client"]
           volumeMounts:
             - name: {{ $components.cloudSecret.name }}
               mountPath: /etc/credentials
               readOnly: true
-            - name: tmp-dir
-              mountPath: /tmp
             - name: {{ .Values.global.cloudConfig }}
-              mountPath: /etc/config
+              mountPath: /etc/config/clusterData.json
               readOnly: true
+              subPath: "clusterData.json"
+            {{- if $components.serviceDiscovery.enabled }}
+            - name: {{ .Values.global.cloudConfig }}
+              mountPath: /etc/config/services.json
+              readOnly: true
+              subPath: "services.json"
+            {{- end }}
+            - name: config
+              mountPath: /etc/config/config.json
+              readOnly: true
+              subPath: "config.json"
 {{- if .Values.volumeMounts }}
 {{ toYaml .Values.volumeMounts | indent 12 }}
 {{- end }}
-{{- if .Values.kollector.volumeMounts }}
-{{ toYaml .Values.kollector.volumeMounts | indent 12 }}
+{{- if .Values.synchronizer.volumeMounts }}
+{{ toYaml .Values.synchronizer.volumeMounts | indent 12 }}
 {{- end }}
 {{- if ne .Values.global.proxySecretFile "" }}
             - name: proxy-secret
@@ -131,8 +129,6 @@ spec:
           secret:
             secretName: {{ .Values.global.proxySecretName }}
       {{- end }}
-        - name: tmp-dir
-          emptyDir: {}
         - name: {{ .Values.global.cloudConfig }}
           configMap:
             name: {{ .Values.global.cloudConfig }}
@@ -143,19 +139,25 @@ spec:
             - key: "services"
               path: "services.json"
             {{- end }}
+        - name: config
+          configMap:
+            name: {{ .Values.synchronizer.name }}
+            items:
+              - key: "config.json"
+                path: "config.json"
 {{- if .Values.volumes }}
 {{ toYaml .Values.volumes | indent 8 }}
 {{- end }}
-{{- if .Values.kollector.volumes }}
-{{ toYaml .Values.kollector.volumes | indent 8 }}
+{{- if .Values.synchronizer.volumes }}
+{{ toYaml .Values.synchronizer.volumes | indent 8 }}
 {{- end }}
-      serviceAccountName: {{ .Values.kollector.name }}
+      serviceAccountName: {{ .Values.synchronizer.name }}
       automountServiceAccountToken: true
-      {{- with .Values.kollector.nodeSelector }}
+      {{- with .Values.synchronizer.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.kollector.affinity }}
+      {{- with .Values.synchronizer.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}

@@ -27,16 +27,6 @@ spec:
       securityContext:
         runAsUser: 65532
         fsGroup: 65532
-      initContainers:
-        - name: fix-permissions
-          image: "{{ .Values.storage.initImage.repository }}:{{ .Values.storage.initImage.tag }}"
-          imagePullPolicy: {{ .Values.storage.initImage.pullPolicy }}
-          securityContext:
-            runAsUser: 0
-          command: ["sh", "-c", "chown -Rc 65532:65532 /data"]
-          volumeMounts:
-            - name: "data"
-              mountPath: "/data"
       containers:
       - name: apiserver
         image: "{{ .Values.storage.image.repository }}:{{ .Values.storage.image.tag }}"
@@ -51,7 +41,7 @@ spec:
           - name: ACCOUNT_ID
             valueFrom:
               secretKeyRef:
-                name: {{ .Values.global.cloudSecret }}
+                name: {{ $components.cloudSecret.name }}
                 key: account
           - name: OTEL_COLLECTOR_SVC
             value: "otel-collector:4317"
