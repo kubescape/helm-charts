@@ -23,7 +23,7 @@ otelPort : {{ if $otel }}{{ splitList ":" .Values.configurations.otelUrl | last 
 runtimeObservability: {{ eq .Values.capabilities.runtimeObservability "enable" }}
 submit: {{ $submit }}
   {{- if $submit -}}
-    {{- if empty .Values.account -}}
+    {{- if and (empty .Values.account) $createCloudSecret -}}
       {{- fail "submitting is enabled but value for account is not defined: please register at https://cloud.armosec.io to get yours and re-run with  --set account=<your Guid>" }}
     {{- end -}}
     {{- if empty .Values.clusterName -}}
