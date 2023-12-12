@@ -988,19 +988,19 @@ spec:
     - Egress
 ```
 
-`spec` - contains the Kubernetes native Network Policy to be applied on the cluster.
-`policyRef` - contains enrichment information about the generated Network Policy. Each entry refers to an single `ipBlock` on the Network Policy.
-`policyRef.originalIP` - the original IP that was captured on the traffic.
-`policyRef.ipBlock` - the IP Block that was generated based on the original IP.
-`policyRef.dns` - the DNS resolution of the original IP. This enrichment is done by the node-agent component.
-`policyRef.server` - the server to which the IP belongs to. This enrichment is done by the storage component, based on the `KnownServer` CRDs (see "Advanced Usage").
-`policyRef.name` - this is a user identifer for the IP. This is used to identify the IP in a user-friendly manner. This enrichment is done by the storage component, based on the `KnownServer` CRDs (see "Advanced Usage").
+`spec` - contains the Kubernetes native Network Policy to be applied on the cluster.  
+`policyRef` - contains enrichment information about the generated Network Policy. Each entry refers to an single `ipBlock` on the Network Policy.  
+`policyRef.originalIP` - the original IP that was captured on the traffic.  
+`policyRef.ipBlock` - the IP Block that was generated based on the original IP.  
+`policyRef.dns` - the DNS resolution of the original IP. This enrichment is done by the node-agent component.  
+`policyRef.server` - the server to which the IP belongs to. This enrichment is done by the storage component, based on the `KnownServer` CRDs (see "Advanced Usage").  
+`policyRef.name` - this is a user identifer for the IP. This is used to identify the IP in a user-friendly manner. This enrichment is done by the storage component, based on the `KnownServer` CRDs (see "Advanced Usage").  
 
 Since the Network Policy generation is based on the traffic that is captured, it is recommended to generate the Network Policy after the workload has been running for a while. This will ensure that the Network Policy will contain all the required rules.
 We also recommend going over the generated Network Policy and making sure that it contains all the required rules. You can then apply the Network Policy to your cluster.
 
 ## How it works
-With Network Policy feature enabled, Kubescape will use the `node-agent` component to listen for the network traffic in all your Pods. This traffic will then be aggregate by workload, and saved into a CRD of Kind `NetworkNeighbors`. This CRD represents all the incoming and outgoing communication for all Pods which belong to the same workload. When the client asks for a `GeneratedNetworkPolicy` CRD, Kubescape will use the `NetworkNeighbors` CRD to generate the Network Policy, converting all traffic into Network Policy rules.  
+With Network Policy feature enabled, Kubescape will use the `node-agent` component to listen for the network traffic in all your Pods. This traffic will then be aggregate by workload, and saved into a CRD of Kind `NetworkNeighbors`. This CRD represents all the incoming and outgoing communication for all Pods which belong to the same workload. When the client asks for a `GeneratedNetworkPolicy` CRD, Kubescape will use the `NetworkNeighbors` CRD to as well as `KnownServers` CRDs (see "Advanced Usage") to generate the Network Policy, converting all traffic into Network Policy rules.  
 
 ```mermaid
 sequenceDiagram
@@ -1019,10 +1019,12 @@ sequenceDiagram
     end
     k8a ->> u: Installation Complete
 
-    %% Node-Agent listening for network traffic and creating NetworkNeighbors resource
-    ksn ->> ksn: Listen for Network Traffic
-    ksn ->> k8a: Create NetworkNeighbors Resource
-    k8a ->> kss: Store NetworkNeighbors Resource
+    %% Node-Agent continuously monitors network traffic and updates NetworkNeighbors
+    loop Monitor Network Traffic
+        ksn ->> ksn: Listen for Network Traffic
+        ksn ->> k8a: Update NetworkNeighbors Resource
+        k8a ->> kss: Store Updated NetworkNeighbors
+    end
 
     %% Optional scenario: User creates a 'KnownServer' CRD
     opt User creates KnownServer CRD
@@ -1043,7 +1045,7 @@ sequenceDiagram
   
 ### Known Servers
 
-When generating Network Policies based on captured traffic, we will often encounter IPs which, by themselves, don't have any meaning. They may be part of an bigger network on which every IP actually belongs to the same service, and thus we should add the entire network to the policy. Or it may be unclear for someone looking at the policy what this IP actually means.  
+When generating Network Policies based on captured traffic, we will often encounter IPs which, by themselves, don't have any meaning. They may be part of an bigger network on which every IP actually belongs to the same service, and thus, the entire network should be represented on the policy. Or it may be unclear for someone looking at the policy what this IP actually means, and what service it represents.    
 The `KnownServer` CRD comes to take care of both situations. You can define for an IP the network which is equivalent to it, and also the server to which it belongs to. You can also name it in a user-friendly manner, so it will be easier to understand what this IP actually means.
 
 Example of a `KnownServer` CRD:
@@ -1061,6 +1063,7 @@ spec:
 This KnownServer is saying that the IP network of `142.250.1.100/24` is equivalent to the server `github.com`, and we can name it `github-workflows`.  
 When generating a Network Policy, Kubescape will use this information to enrich the generated Network Policy.    
 
+
 So if, for example, we encounter the IP `142.250.1.104` in the captured traffic, the generated network policy will have `142.250.1.100/24` as the `ipBlock` for the rule which was generated based on this IP. And the `policyRef` section will include an entry as follows:
 ```yaml
 policyRef:
@@ -1070,13 +1073,14 @@ policyRef:
   originalIP: 142.250.1.104
   dns: ""
 ```
-The `dns` field will be populated depending on the data retrieved from the node-agent. If the node-agent was able to resolve the IP to a DNS name, it will be populated here. Otherwise, it will be empty.
+The `dns` field will be populated depending on the data retrieved from the node-agent and stored in the `NetworkNeighbors`.
   
 You can generate as many `KnownServer` CRDs as you want. Kubescape will use all of them when generating the Network Policy.
 
 ### Network Neighbors
 The captured traffic is stored by the node-agent in a CRD called `NetworkNeighbors`. This CRD represents the ingress and egress traffic aggregated by the parent workload (for example, if we create a Deployment with 2 Pods, we will only see NetworkNeighbors for the Deployment and not for it Pods nor for it Replicas).  
-This CRD is used by the storage to generate the NetworkPolicy on-the-fly upon a request from the user.  
+This CRD is used by the storage to generate the NetworkPolicy on-the-fly upon a request from the user.   
+
 Example of a `NetworkNeighbors` CRD:
 ```yaml
 apiVersion: spdx.softwarecomposition.kubescape.io/v1beta1
@@ -1193,12 +1197,11 @@ spec:
 `egress.namespaceSelector` - the namespace selector for the entry's traffic, in case the traffic is going to a Pod in a different namespace.  
 `egress.podSelector` - the pod selector for the entry's traffic, in case the traffic is going to a Pod in the same namespace.  
 `egress.ports` - the ports for the entry's traffic.  
-`egress.ports.port` - the port number for the entry's traffic.
+`egress.ports.port` - the port number for the entry's traffic.  
 `egress.ports.protocol` - the protocol for the entry's traffic.
-`egress.ports.name` - an identifier for the port entry.  
+`egress.ports.name` - the identifier for the port entry.  
 `egress.type` - the type of the entry's traffic. Can be `internal` or `external`, where internal means that the traffic is going to a Pod in the cluster, and external means that the traffic is going outside of the cluster.  
-`ingress` - same as `egress`, but for ingress traffic.  
-
+`ingress` - same as `egress`, but for ingress traffic.    
 To retrieve the `NetworkNeighbors` CRD for a workload, you can run the following command:
 ```bash
 kubectl -n <namespace> get networkneighbors <workload-kind>-<workload-name> -o yaml
