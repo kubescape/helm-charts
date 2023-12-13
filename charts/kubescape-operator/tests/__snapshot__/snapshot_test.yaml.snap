@@ -2716,6 +2716,26 @@ matches the snapshot:
           - apps
         resources:
           - deployments
+          - statefulsets
+          - daemonsets
+          - replicasets
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - batch
+        resources:
+          - jobs
+          - cronjobs
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - networking.k8s.io
+        resources:
+          - networkpolicies
         verbs:
           - get
           - list
@@ -2725,22 +2745,23 @@ matches the snapshot:
         resources:
           - applicationactivities
           - applicationprofiles
-          - applicationprofilesummaries
-          - configurationscansummaries
           - networkneighborses
-          - openvulnerabilityexchangecontainers
-          - sbomspdxv2p3s
-          - sbomspdxv2p3filtereds
-          - sbomsummaries
-          - vulnerabilitymanifests
-          - vulnerabilitymanifestsummaries
-          - vulnerabilitysummaries
-          - workloadconfigurationscans
-          - workloadconfigurationscansummaries
         verbs:
           - get
           - watch
           - list
+      - apiGroups:
+          - spdx.softwarecomposition.kubescape.io
+        resources:
+          - knownservers
+        verbs:
+          - get
+          - watch
+          - list
+          - create
+          - update
+          - patch
+          - delete
   77: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
@@ -2768,33 +2789,51 @@ matches the snapshot:
                 "strategy": "patch"
               },
               {
+                "group": "apps",
+                "version": "v1",
+                "resource": "statefulsets",
+                "strategy": "patch"
+              },
+              {
+                "group": "apps",
+                "version": "v1",
+                "resource": "daemonsets",
+                "strategy": "patch"
+              },
+              {
+                "group": "apps",
+                "version": "v1",
+                "resource": "replicasets",
+                "strategy": "patch"
+              },
+              {
+                "group": "batch",
+                "version": "v1",
+                "resource": "jobs",
+                "strategy": "patch"
+              },
+              {
+                "group": "batch",
+                "version": "v1",
+                "resource": "cronjobs",
+                "strategy": "patch"
+              },
+              {
                 "group": "",
                 "version": "v1",
                 "resource": "pods",
                 "strategy": "patch"
               },
               {
-                "group": "spdx.softwarecomposition.kubescape.io",
-                "version": "v1beta1",
-                "resource": "sbomspdxv2p3s",
-                "strategy": "copy"
+                "group": "networking.k8s.io",
+                "version": "v1",
+                "resource": "networkpolicies",
+                "strategy": "patch"
               },
               {
                 "group": "spdx.softwarecomposition.kubescape.io",
                 "version": "v1beta1",
-                "resource": "sbomspdxv2p3filtereds",
-                "strategy": "copy"
-              },
-              {
-                "group": "spdx.softwarecomposition.kubescape.io",
-                "version": "v1beta1",
-                "resource": "vulnerabilitymanifests",
-                "strategy": "copy"
-              },
-              {
-                "group": "spdx.softwarecomposition.kubescape.io",
-                "version": "v1beta1",
-                "resource": "workloadconfigurationscans",
+                "resource": "applicationactivities",
                 "strategy": "copy"
               },
               {
@@ -2806,19 +2845,13 @@ matches the snapshot:
               {
                 "group": "spdx.softwarecomposition.kubescape.io",
                 "version": "v1beta1",
-                "resource": "applicationactivities",
+                "resource": "knownservers",
                 "strategy": "copy"
               },
               {
                 "group": "spdx.softwarecomposition.kubescape.io",
                 "version": "v1beta1",
                 "resource": "networkneighborses",
-                "strategy": "copy"
-              },
-              {
-                "group": "spdx.softwarecomposition.kubescape.io",
-                "version": "v1beta1",
-                "resource": "openvulnerabilityexchangecontainers",
                 "strategy": "copy"
               }
             ]
@@ -2855,7 +2888,7 @@ matches the snapshot:
             checksum/cloud-config: 253f0c05e8d2915ab3627479c2f810d8cf3d40b03c0807ec6af34da0e1d1e049
             checksum/cloud-secret: 7a52a6a06abb711221729ad1ea112ce6b3d64144afde7ff807e46ed477fa2fe6
             checksum/proxy-config: f2071cad863e27de0eec2175d24d505135c28d48c11a520ad04a9f4f8a5ac0b7
-            checksum/synchronizer-configmap: 2ab60c33d0833338d971786cb779679455f5fa0ca12bee84f0aecb995a8a2e79
+            checksum/synchronizer-configmap: 848dd8561ee759e419b37415a20528258c55a5ece19bb07df5df328bd0378fa7
           labels:
             app: synchronizer
             app.kubernetes.io/instance: RELEASE-NAME
