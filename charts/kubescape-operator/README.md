@@ -163,6 +163,7 @@ docker-compose logs uptrace
 | global.kubescapePsp.enabled | bool | `false` | Enable all privileges in Pod Security Policies for Kubescape namespace |
 | global.httpsProxy | string | `""` | Set https egress proxy for all components. Must supply also port.  |
 | global.proxySecretFile | string | `""` | Set proxy certificate / RootCA for all components to be used for proxy configured in global.httpsProxy |
+| global.overrideRuntimePath | string | `""` | Override the runtime path for node-agent |
 | credentials.cloudSecret | string | `""` | Leave it blank for the default secret. If you have an existing secret, override with the existing secret name to avoid Helm creating a default one |
 | kollector.affinity | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the StatefulSet |
 | kollector.env[0] | object | `{"name":"PRINT_REPORT","value":"false"}` | print in verbose mode (print all reported data) |
@@ -1212,3 +1213,17 @@ To retrieve the `NetworkNeighbors` CRD for a workload, you can run the following
 ```bash
 kubectl -n <namespace> get networkneighbors <workload-kind>-<workload-name> -o yaml
 ```
+---
+## Common Issues
+* Error starting the container watcher - `(fanotify)`.
+
+  This error is usually caused by the `node-agent` not being able to find `runc` in any of the default paths.
+  This can be fixed by adding the path of `runc` to the global configuration [here](#values).
+  If you aren't sure where `runc` is located, you can run the following command on the node to find it:
+  ```bash
+  find / -name runc 2>/dev/null
+  ```
+  In case you are in an environment where you can't access the node, one solution is to run a privileged pod on the node, and run the command from there. To create a privileged pod, run the following command:
+  ```bash
+   kubectl run --rm -i --tty busybox --image=busybox --restart=Never --overrides='{"spec": {"template": {"spec": {"containers": [{"securityContext": {"privileged": true} }]}}}}' -- /bin/sh
+  ```
