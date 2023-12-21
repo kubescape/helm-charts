@@ -1223,7 +1223,7 @@ kubectl -n <namespace> get networkneighbors <workload-kind>-<workload-name> -o y
   ```bash
   find / -name runc 2>/dev/null
   ```
-  In case you are in an environment where you can't access the node, once solution is to run a privileged pod on the node, and run the command from there, to run a privileged pod, run the following command:
+  In case you are in an environment where you can't access the node, one solution is to run a privileged pod on the node, and run the command from there. To create a privileged pod, run the following command:
   ```bash
    kubectl run --rm -i --tty busybox --image=busybox --restart=Never --overrides='{"spec": {"template": {"spec": {"containers": [{"securityContext": {"privileged": true} }]}}}}' -- /bin/sh
   ```
