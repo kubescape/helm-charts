@@ -27,18 +27,6 @@ spec:
             app: {{ .Values.kubescapeScheduler.name }}
             armo.tier: "kubescape-scan"
         spec:
-        {{- with .Values.kubescapeScheduler.nodeSelector }}
-          nodeSelector:
-            {{- toYaml . | nindent 10 }}
-          {{- end }}
-          {{- with .Values.kubescapeScheduler.affinity }}
-          affinity:
-            {{- toYaml . | nindent 10 }}
-          {{- end }}
-        {{- with .Values.tolerations }}
-          tolerations:
-            {{- toYaml . | nindent 10 }}
-        {{- end }}
           {{- if .Values.imagePullSecrets }}
           imagePullSecrets:
           - name: {{ toYaml .Values.imagePullSecrets }}
@@ -74,6 +62,24 @@ spec:
 {{- end }}
           restartPolicy: Never
           automountServiceAccountToken: false
+          nodeSelector:
+          {{- if .Values.kubescapeScheduler.nodeSelector }}
+          {{- toYaml .Values.kubescapeScheduler.nodeSelector | nindent 12 }}
+          {{- else if .Values.customScheduling.nodeSelector }}
+          {{- toYaml .Values.customScheduling.nodeSelector | nindent 12 }}
+          {{- end }}
+          affinity:
+          {{- if .Values.kubescapeScheduler.affinity }}
+          {{- toYaml .Values.kubescapeScheduler.affinity | nindent 12 }}
+          {{- else if .Values.customScheduling.affinity }}
+          {{- toYaml .Values.customScheduling.affinity | nindent 12 }}
+          {{- end }}
+          tolerations:
+          {{- if .Values.kubescapeScheduler.tolerations }}
+          {{- toYaml .Values.kubescapeScheduler.tolerations | nindent 12 }}
+          {{- else if .Values.customScheduling.tolerations }}
+          {{- toYaml .Values.customScheduling.tolerations | nindent 12 }}
+          {{- end }}
           volumes:
           - name: {{ .Values.kubescapeScheduler.name }}
             configMap:

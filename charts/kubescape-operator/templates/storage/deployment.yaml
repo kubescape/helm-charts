@@ -54,18 +54,24 @@ spec:
             readOnly: true
         resources:
 {{ toYaml .Values.storage.resources | indent 12 }}
-    {{- with .Values.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-    {{- end }}
-    {{- with .Values.storage.nodeSelector }}
       nodeSelector:
-        {{- toYaml . | nindent 8 }}
-    {{- end }}
-    {{- with .Values.storage.affinity }}
+      {{- if .Values.storage.nodeSelector }}
+      {{- toYaml .Values.storage.nodeSelector | nindent 8 }}
+      {{- else if .Values.customScheduling.nodeSelector }}
+      {{- toYaml .Values.customScheduling.nodeSelector | nindent 8 }}
+      {{- end }}
       affinity:
-        {{- toYaml . | nindent 8 }}
-    {{- end }}
+      {{- if .Values.storage.affinity }}
+      {{- toYaml .Values.storage.affinity | nindent 8 }}
+      {{- else if .Values.customScheduling.affinity }}
+      {{- toYaml .Values.customScheduling.affinity | nindent 8 }}
+      {{- end }}
+      tolerations:
+      {{- if .Values.storage.tolerations }}
+      {{- toYaml .Values.storage.tolerations | nindent 8 }}
+      {{- else if .Values.customScheduling.tolerations }}
+      {{- toYaml .Values.customScheduling.tolerations | nindent 8 }}
+      {{- end }}
       volumes:
         - name: "data"
           {{- if eq .Values.configurations.persistence "enable" }}

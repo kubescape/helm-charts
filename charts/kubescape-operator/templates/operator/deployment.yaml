@@ -193,16 +193,22 @@ spec:
 {{- end }}
       serviceAccountName: {{ .Values.operator.name }}
       automountServiceAccountToken: true
-      {{- with .Values.operator.nodeSelector }}
       nodeSelector:
-        {{- toYaml . | nindent 8 }}
+      {{- if .Values.operator.nodeSelector }}
+      {{- toYaml .Values.operator.nodeSelector | nindent 8 }}
+      {{- else if .Values.customScheduling.nodeSelector }}
+      {{- toYaml .Values.customScheduling.nodeSelector | nindent 8 }}
       {{- end }}
-      {{- with .Values.operator.affinity }}
       affinity:
-        {{- toYaml . | nindent 8 }}
+      {{- if .Values.operator.affinity }}
+      {{- toYaml .Values.operator.affinity | nindent 8 }}
+      {{- else if .Values.customScheduling.affinity }}
+      {{- toYaml .Values.customScheduling.affinity | nindent 8 }}
       {{- end }}
-    {{- with .Values.tolerations }}
       tolerations:
-        {{- toYaml . | nindent 8 }}
-    {{- end }}
+      {{- if .Values.operator.tolerations }}
+      {{- toYaml .Values.operator.tolerations | nindent 8 }}
+      {{- else if .Values.customScheduling.tolerations }}
+      {{- toYaml .Values.customScheduling.tolerations | nindent 8 }}
+      {{- end }}
 {{- end }}

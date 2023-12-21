@@ -19,27 +19,28 @@ spec:
         otel: enabled
         {{- end }}
     spec:
+      nodeSelector:
+      {{- if .Values.hostScanner.nodeSelector }}
+      {{- toYaml .Values.hostScanner.nodeSelector | nindent 8 }}
+      {{- else if .Values.customScheduling.nodeSelector }}
+      {{- toYaml .Values.customScheduling.nodeSelector | nindent 8 }}
+      {{- end }}
+      affinity:
+      {{- if .Values.hostScanner.affinity }}
+      {{- toYaml .Values.hostScanner.affinity | nindent 8 }}
+      {{- else if .Values.customScheduling.affinity }}
+      {{- toYaml .Values.customScheduling.affinity | nindent 8 }}
+      {{- end }}
+      tolerations:
+      {{- if .Values.hostScanner.tolerations }}
+      {{- toYaml .Values.hostScanner.tolerations | nindent 8 }}
+      {{- else if .Values.customScheduling.tolerations }}
+      {{- toYaml .Values.customScheduling.tolerations | nindent 8 }}
+      {{- end }}
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
       - name: {{ toYaml .Values.imagePullSecrets }}
       {{- end }}
-
-      tolerations:
-    {{- with .Values.hostScanner.tolerations }}
-        {{- toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .Values.tolerations }}
-        {{- toYaml . | nindent 6 }}
-    {{- end }}
-
-    {{- with .Values.hostScanner.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-    {{- end }}
-    {{- with .Values.hostScanner.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-    {{- end }}
       containers:
       - name: host-sensor
         image: "{{ .Values.hostScanner.image.repository }}:{{ .Values.hostScanner.image.tag }}"
@@ -79,6 +80,9 @@ spec:
         volumeMounts:
         - mountPath: /host_fs
           name: host-filesystem
+{{- if .Values.volumeMounts }}
+{{ toYaml .Values.volumeMounts | indent 8 }}
+{{- end }}
 {{- if .Values.hostScanner.volumeMounts }}
 {{ toYaml .Values.hostScanner.volumeMounts | nindent 8 }}
 {{- end }}
@@ -101,6 +105,9 @@ spec:
           path: /
           type: Directory
         name: host-filesystem
+{{- if .Values.volumes }}
+{{ toYaml .Values.volumes | indent 6 }}
+{{- end }}
 {{- if .Values.hostScanner.volumes }}
 {{ toYaml .Values.hostScanner.volumes | nindent 6 }}
 {{- end }}

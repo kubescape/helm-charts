@@ -106,16 +106,22 @@ spec:
 {{ toYaml .Values.otelCollector.volumes | indent 6 }}
 {{- end }}
       serviceAccountName: default
-      {{- with .Values.otelCollector.nodeSelector }}
       nodeSelector:
-        {{- toYaml . | nindent 8 }}
+      {{- if .Values.otelCollector.nodeSelector }}
+      {{- toYaml .Values.otelCollector.nodeSelector | nindent 8 }}
+      {{- else if .Values.customScheduling.nodeSelector }}
+      {{- toYaml .Values.customScheduling.nodeSelector | nindent 8 }}
       {{- end }}
-      {{- with .Values.otelCollector.affinity }}
       affinity:
-        {{- toYaml . | nindent 8 }}
+      {{- if .Values.otelCollector.affinity }}
+      {{- toYaml .Values.otelCollector.affinity | nindent 8 }}
+      {{- else if .Values.customScheduling.affinity }}
+      {{- toYaml .Values.customScheduling.affinity | nindent 8 }}
       {{- end }}
-    {{- with .Values.tolerations }}
       tolerations:
-        {{- toYaml . | nindent 8 }}
-    {{- end }}
+      {{- if .Values.otelCollector.tolerations }}
+      {{- toYaml .Values.otelCollector.tolerations | nindent 8 }}
+      {{- else if .Values.customScheduling.tolerations }}
+      {{- toYaml .Values.customScheduling.tolerations | nindent 8 }}
+      {{- end }}
 {{- end }}

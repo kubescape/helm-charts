@@ -157,16 +157,22 @@ spec:
 {{ toYaml .Values.gateway.volumes | indent 8 }}
 {{- end }}
       automountServiceAccountToken: false
-      {{- with .Values.gateway.nodeSelector }}
       nodeSelector:
-        {{- toYaml . | nindent 8 }}
+      {{- if .Values.gateway.nodeSelector }}
+      {{- toYaml .Values.gateway.nodeSelector | nindent 8 }}
+      {{- else if .Values.customScheduling.nodeSelector }}
+      {{- toYaml .Values.customScheduling.nodeSelector | nindent 8 }}
       {{- end }}
-      {{- with .Values.gateway.affinity }}
       affinity:
-        {{- toYaml . | nindent 8 }}
+      {{- if .Values.gateway.affinity }}
+      {{- toYaml .Values.gateway.affinity | nindent 8 }}
+      {{- else if .Values.customScheduling.affinity }}
+      {{- toYaml .Values.customScheduling.affinity | nindent 8 }}
       {{- end }}
-    {{- with .Values.tolerations }}
       tolerations:
-        {{- toYaml . | nindent 8 }}
-    {{- end }}
+      {{- if .Values.gateway.tolerations }}
+      {{- toYaml .Values.gateway.tolerations | nindent 8 }}
+      {{- else if .Values.customScheduling.tolerations }}
+      {{- toYaml .Values.customScheduling.tolerations | nindent 8 }}
+      {{- end }}
 {{- end }}
