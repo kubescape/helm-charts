@@ -153,16 +153,22 @@ spec:
 {{- end }}
       serviceAccountName: {{ .Values.synchronizer.name }}
       automountServiceAccountToken: true
-      {{- with .Values.synchronizer.nodeSelector }}
       nodeSelector:
-        {{- toYaml . | nindent 8 }}
+      {{- if .Values.synchronizer.nodeSelector }}
+      {{- toYaml .Values.synchronizer.nodeSelector | nindent 8 }}
+      {{- else if .Values.nodeSelector }}
+      {{- toYaml .Values.nodeSelector | nindent 8 }}
       {{- end }}
-      {{- with .Values.synchronizer.affinity }}
       affinity:
-        {{- toYaml . | nindent 8 }}
+      {{- if .Values.synchronizer.affinity }}
+      {{- toYaml .Values.synchronizer.affinity | nindent 8 }}
+      {{- else if .Values.affinity }}
+      {{- toYaml .Values.affinity | nindent 8 }}
       {{- end }}
-    {{- with .Values.tolerations }}
       tolerations:
-        {{- toYaml . | nindent 8 }}
-    {{- end }}
+      {{- if .Values.synchronizer.tolerations }}
+      {{- toYaml .Values.synchronizer.tolerations | nindent 8 }}
+      {{- else if .Values.tolerations }}
+      {{- toYaml .Values.tolerations | nindent 8 }}
+      {{- end }}
 {{- end }}

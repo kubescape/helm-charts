@@ -159,16 +159,22 @@ spec:
 {{- end }}
       serviceAccountName: {{ .Values.kubevuln.name }}
       automountServiceAccountToken: true
-      {{- with .Values.kubevuln.nodeSelector }}
       nodeSelector:
-        {{- toYaml . | nindent 8 }}
+      {{- if .Values.kubevuln.nodeSelector }}
+      {{- toYaml .Values.kubevuln.nodeSelector | nindent 8 }}
+      {{- else if .Values.nodeSelector }}
+      {{- toYaml .Values.nodeSelector | nindent 8 }}
       {{- end }}
-      {{- with .Values.kubevuln.affinity }}
       affinity:
-        {{- toYaml . | nindent 8 }}
+      {{- if .Values.kubevuln.affinity }}
+      {{- toYaml .Values.kubevuln.affinity | nindent 8 }}
+      {{- else if .Values.affinity }}
+      {{- toYaml .Values.affinity | nindent 8 }}
       {{- end }}
-    {{- with .Values.tolerations }}
       tolerations:
-        {{- toYaml . | nindent 8 }}
-    {{- end }}
+      {{- if .Values.kubevuln.tolerations }}
+      {{- toYaml .Values.kubevuln.tolerations | nindent 8 }}
+      {{- else if .Values.tolerations }}
+      {{- toYaml .Values.tolerations | nindent 8 }}
+      {{- end }}
 {{- end }}

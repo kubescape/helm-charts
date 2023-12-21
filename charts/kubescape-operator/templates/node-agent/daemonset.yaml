@@ -43,6 +43,12 @@ spec:
       automountServiceAccountToken: true
       hostPID: true
       volumes:
+      {{- if .Values.nodeAgent.volumes }}
+      {{- toYaml .Values.nodeAgent.volumes | nindent 8 }}
+      {{- end }}
+      {{- if .Values.volumes }}
+      {{- toYaml .Values.volumes | nindent 8 }}
+      {{- end }}
         - name: {{ $components.cloudSecret.name }}
           secret:
             secretName: {{ $components.cloudSecret.name }}
@@ -62,19 +68,8 @@ spec:
             items:
               - key: "config.json"
                 path: "config.json"
-        {{- range .Values.nodeAgent.volumes }}
-        - name: {{ .name }}
-        {{- if .configMap }}
-          configMap:
-            name: {{ .configMap.name }}
-        {{ else if .emptyDir }}
-          emptyDir: {}
-        {{ else if .hostPath }}
-          hostPath:
-            path: {{ .hostPath.path }}
-            type: {{ .hostPath.type }}
-        {{- end }}
-        {{- end }}
+
+
         {{- if ne .Values.global.proxySecretFile "" }}
         - name: proxy-secret
           secret:
@@ -134,6 +129,12 @@ spec:
             seLinuxOptions:
               type: {{ .Values.nodeAgent.seLinuxType }}
           volumeMounts:
+          {{- if .Values.volumeMounts }}
+          {{- toYaml .Values.volumeMounts | nindent 10 }}
+          {{- end }}
+          {{- if .Values.nodeAgent.volumeMounts }}
+          {{- toYaml .Values.nodeAgent.volumeMounts | nindent 10 }}
+          {{- end }}
           - name: {{ $components.cloudSecret.name }}
             mountPath: /etc/credentials
             readOnly: true
@@ -145,25 +146,27 @@ spec:
             mountPath: /etc/config/config.json
             readOnly: true
             subPath: "config.json"
-          {{- range .Values.nodeAgent.volumeMounts }}
-          - mountPath: {{ .mountPath }}
-            name: {{ .name }}
-          {{- end }}
           {{- if ne .Values.global.proxySecretFile "" }}
           - name: proxy-secret
             mountPath: /etc/ssl/certs/proxy.crt
             subPath: proxy.crt
           {{- end }}
-    {{- with .Values.nodeAgent.nodeSelector }}
       nodeSelector:
-        {{- toYaml . | nindent 8 }}
+      {{- if .Values.nodeAgent.nodeSelector }}
+      {{- toYaml .Values.nodeAgent.nodeSelector | nindent 8 }}
+      {{- else if .Values.nodeSelector }}
+      {{- toYaml .Values.nodeSelector | nindent 8 }}
       {{- end }}
-      {{- with .Values.nodeAgent.affinity }}
       affinity:
-        {{- toYaml . | nindent 8 }}
+      {{- if .Values.nodeAgent.affinity }}
+      {{- toYaml .Values.nodeAgent.affinity | nindent 8 }}
+      {{- else if .Values.affinity }}
+      {{- toYaml .Values.affinity | nindent 8 }}
       {{- end }}
-    {{- with .Values.tolerations }}
       tolerations:
-        {{- toYaml . | nindent 8 }}
-    {{- end }}
+      {{- if .Values.nodeAgent.tolerations }}
+      {{- toYaml .Values.nodeAgent.tolerations | nindent 8 }}
+      {{- else if .Values.tolerations }}
+      {{- toYaml .Values.tolerations | nindent 8 }}
+      {{- end }}
 {{- end }}
