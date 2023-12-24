@@ -62,5 +62,5 @@ cloudSecret:
   create: {{ $configurations.createCloudSecret }}
   name: {{ if $configurations.createCloudSecret }}"cloud-secret"{{ else }}{{ .Values.credentials.cloudSecret }}{{ end }}
 synchronizer:
-  enabled: {{ and $configurations.submit (eq .Values.capabilities.synchronizer "enable") }}
+  enabled: {{ or (and $configurations.submit (eq .Values.capabilities.networkPolicyService "enable")) (and $configurations.submit (eq .Values.capabilities.runtimeObservability "enable")) }}
 {{- end -}}
