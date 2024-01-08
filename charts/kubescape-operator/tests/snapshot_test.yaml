@@ -1,6 +1,6 @@
-suite: Full Snapshot
+suite: Snapshot tests
 tests:
-  - it: matches the snapshot
+  - it: all capabilities
     asserts:
       - matchSnapshot: {}
     capabilities:
@@ -18,7 +18,49 @@ tests:
         runtimeObservability: enable
         networkPolicyService: enable
         autoUpgrading: enable
-        synchronizer: enable
+      server: api.armosec.io
+      configurations.otelUrl: "otelCollector:4317"
+      clusterName: kind-kind
+      global:
+        networkPolicy:
+          createEgressRules: true
+          enabled: true
+        proxySecretFile: foo
+      grypeOfflineDB.enabled: true
+      kubescape.serviceMonitor.enabled: true
+      kubescapeScheduler.scanSchedule: "1 2 3 4 5"
+      kubevulnScheduler.scanSchedule: "1 2 3 4 5"
+  - it: minimal capabilities
+    asserts:
+      - matchSnapshot: {}
+    capabilities:
+      apiVersions:
+        - batch/v1/CronJob
+    set:
+      account: 9e6c0c2c-6bd0-4919-815b-55030de7c9a0
+      server: api.armosec.io
+      configurations.otelUrl: "otelCollector:4317"
+      clusterName: kind-kind
+      kubescapeScheduler.scanSchedule: "1 2 3 4 5"
+      kubevulnScheduler.scanSchedule: "1 2 3 4 5"
+  - it: default capabilities
+    asserts:
+      - matchSnapshot: {}
+    capabilities:
+      apiVersions:
+        - batch/v1/CronJob
+    set:
+      account: 9e6c0c2c-6bd0-4919-815b-55030de7c9a0
+      capabilities:
+        configurationScan: enable
+        continuousScan: disable
+        nodeScan: enable
+        vulnerabilityScan: enable
+        relevancy: enable
+        vexGeneration: disable
+        runtimeObservability: enable
+        networkPolicyService: enable
+        autoUpgrading: disable
       server: api.armosec.io
       configurations.otelUrl: "otelCollector:4317"
       clusterName: kind-kind
