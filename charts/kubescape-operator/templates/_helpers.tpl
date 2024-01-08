@@ -26,6 +26,9 @@ submit: {{ $submit }}
     {{- if and (empty .Values.account) $createCloudSecret -}}
       {{- fail "submitting is enabled but value for account is not defined: please register at https://cloud.armosec.io to get yours and re-run with  --set account=<your Guid>" }}
     {{- end -}}
+    {{- if and (empty .Values.accessKey) $createCloudSecret -}}
+      {{- fail "submitting is enabled but value for accessKey is not defined: To obtain an access key, go to 'Settings' -> 'Agent Access Keys' at https://cloud.armosec.io and re-run with  --set accessKey=<your key>" }}
+    {{- end -}}
     {{- if empty .Values.clusterName -}}
       {{- fail "value for clusterName is not defined: re-run with  --set clusterName=<your cluster name>" }}
     {{- end -}}
