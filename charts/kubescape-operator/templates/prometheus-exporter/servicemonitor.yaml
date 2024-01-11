@@ -1,0 +1,17 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- if $components.prometheusExporter.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ .Values.prometheusExporter.name }}
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    app: {{ .Values.prometheusExporter.name }}
+spec:
+  namespaceSelector:
+    matchNames:
+      -  {{ .Values.ksNamespace }}
+  selector:
+    matchLabels:
+      app: {{ .Values.prometheusExporter.name }}
+{{ end }}

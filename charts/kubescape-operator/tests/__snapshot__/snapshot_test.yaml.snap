@@ -2458,12 +2458,12 @@ all capabilities:
           containers:
             - env:
                 - name: GOMEMLIMIT
-                  value: 100MiB
+                  value: 10MiB
                 - name: KS_LOGGER_LEVEL
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/matthiasb_1/prometheus-exporter:latest
+              image: quay.io/kubescape/prometheus-exporter:v0.0.6
               imagePullPolicy: Always
               livenessProbe:
                 initialDelaySeconds: 3
@@ -2480,11 +2480,11 @@ all capabilities:
                   port: 8080
               resources:
                 limits:
-                  cpu: 500m
-                  memory: 500Mi
-                requests:
-                  cpu: 100m
+                  cpu: 50m
                   memory: 100Mi
+                requests:
+                  cpu: 10m
+                  memory: 10Mi
               securityContext:
                 allowPrivilegeEscalation: false
                 readOnlyRootFilesystem: true
@@ -2553,6 +2553,21 @@ all capabilities:
       name: prometheus-exporter
       namespace: kubescape
   68: |
+    apiVersion: monitoring.coreos.com/v1
+    kind: ServiceMonitor
+    metadata:
+      labels:
+        app: prometheus-exporter
+      name: prometheus-exporter
+      namespace: kubescape
+    spec:
+      namespaceSelector:
+        matchNames:
+          - kubescape
+      selector:
+        matchLabels:
+          app: prometheus-exporter
+  69: |
     apiVersion: v1
     data:
       proxy.crt: foo
@@ -2561,7 +2576,7 @@ all capabilities:
       name: kubescape-proxy-certificate
       namespace: kubescape
     type: Opaque
-  69: |
+  70: |
     apiVersion: batch/v1
     kind: Job
     metadata:
@@ -2638,7 +2653,7 @@ all capabilities:
           volumes:
             - emptyDir: {}
               name: shared-data
-  70: |
+  71: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -2659,7 +2674,7 @@ all capabilities:
           - patch
           - get
           - list
-  71: |
+  72: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -2676,7 +2691,7 @@ all capabilities:
       - kind: ServiceAccount
         name: service-discovery
         namespace: kubescape
-  72: |
+  73: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -2686,7 +2701,7 @@ all capabilities:
         helm.sh/hook-weight: "0"
       name: service-discovery
       namespace: kubescape
-  73: |
+  74: |
     apiVersion: apiregistration.k8s.io/v1
     kind: APIService
     metadata:
@@ -2700,7 +2715,7 @@ all capabilities:
         namespace: kubescape
       version: v1beta1
       versionPriority: 15
-  74: |
+  75: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -2809,7 +2824,7 @@ all capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  76: |
+  77: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -2822,7 +2837,7 @@ all capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  77: |
+  78: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -2905,7 +2920,7 @@ all capabilities:
                     path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
-  78: |
+  79: |
     apiVersion: v1
     kind: PersistentVolumeClaim
     metadata:
@@ -2921,7 +2936,7 @@ all capabilities:
       resources:
         requests:
           storage: 5Gi
-  79: |
+  80: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -2935,7 +2950,7 @@ all capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  80: |
+  81: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -2950,13 +2965,13 @@ all capabilities:
         app.kubernetes.io/component: apiserver
         app.kubernetes.io/name: storage
         app.kubernetes.io/part-of: kubescape-storage
-  81: |
+  82: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
       name: storage
       namespace: kubescape
-  82: |
+  83: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -3020,7 +3035,7 @@ all capabilities:
           - update
           - patch
           - delete
-  83: |
+  84: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -3033,7 +3048,7 @@ all capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  84: |
+  85: |
     apiVersion: v1
     data:
       config.json: |
@@ -3119,7 +3134,7 @@ all capabilities:
     metadata:
       name: synchronizer
       namespace: kubescape
-  85: |
+  86: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -3240,7 +3255,7 @@ all capabilities:
                     path: config.json
                 name: synchronizer
               name: config
-  86: |
+  87: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -3262,7 +3277,7 @@ all capabilities:
       policyTypes:
         - Ingress
         - Egress
-  87: |
+  88: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
