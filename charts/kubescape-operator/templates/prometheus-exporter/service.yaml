@@ -1,0 +1,18 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- if $components.prometheusExporter.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.prometheusExporter.name }}
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    app: {{ .Values.prometheusExporter.name }}
+spec:
+  type: {{ .Values.prometheusExporter.service.type }}
+  ports:
+    - port: {{ .Values.prometheusExporter.service.port }}
+      targetPort: {{ .Values.prometheusExporter.service.targetPort }}
+      protocol: {{ .Values.prometheusExporter.service.protocol }}
+  selector:
+    app: {{ .Values.prometheusExporter.name }}
+{{- end }}

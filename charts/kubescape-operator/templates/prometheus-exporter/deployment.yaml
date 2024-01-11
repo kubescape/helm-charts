@@ -1,0 +1,111 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- if $components.prometheusExporter.enabled }}
+{{- $no_proxy_envar_list := (include "no_proxy_envar_list" .) -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.prometheusExporter.name }}
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.prometheusExporter.name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app: {{ .Values.prometheusExporter.name }}
+    tier: {{ .Values.global.namespaceTier }}
+spec:
+  replicas: {{ .Values.prometheusExporter.replicaCount }}
+  revisionHistoryLimit: 2
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.prometheusExporter.name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      tier: {{ .Values.global.namespaceTier }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Values.prometheusExporter.name }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        tier: {{ .Values.global.namespaceTier }}
+        app: {{ .Values.prometheusExporter.name }}
+    spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+      - name: {{ toYaml .Values.imagePullSecrets }}
+      {{- end }}
+      securityContext:
+        runAsUser: 65532
+        fsGroup: 65532
+      containers:
+        - name: {{ .Values.prometheusExporter.name }}
+          image: {{ .Values.prometheusExporter.image.repository }}:{{ .Values.prometheusExporter.image.tag }}
+          imagePullPolicy: {{ .Values.prometheusExporter.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+          ports:
+          - name: metrics
+            containerPort: {{ .Values.prometheusExporter.service.port }}
+            protocol: TCP
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.prometheusExporter.service.port }}
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.prometheusExporter.service.port }}
+          resources:
+{{ toYaml .Values.prometheusExporter.resources | indent 12 }}
+          env:
+            - name: GOMEMLIMIT
+              value: "{{ .Values.prometheusExporter.resources.requests.memory }}B"
+            - name: KS_LOGGER_LEVEL
+              value: "{{ .Values.logger.level }}"
+            - name: KS_LOGGER_NAME
+              value: "{{ .Values.logger.name }}"
+          volumeMounts:
+            - name: {{ .Values.global.cloudConfig }}
+              mountPath: /etc/config
+              readOnly: true
+{{- if .Values.volumeMounts }}
+{{ toYaml .Values.volumeMounts | indent 12 }}
+{{- end }}
+{{- if .Values.kubevuln.volumeMounts }}
+{{ toYaml .Values.kubevuln.volumeMounts | indent 12 }}
+{{- end }}
+      volumes:
+        - name: {{ .Values.global.cloudConfig }}
+          configMap:
+            name: {{ .Values.global.cloudConfig }}
+            items:
+            - key: "clusterData"
+              path: "clusterData.json"
+{{- if .Values.volumes }}
+{{ toYaml .Values.volumes | indent 8 }}
+{{- end }}
+{{- if .Values.prometheusExporter.volumes }}
+{{ toYaml .Values.prometheusExporter.volumes | indent 8 }}
+{{- end }}
+      serviceAccountName: {{ .Values.prometheusExporter.name }}
+      automountServiceAccountToken: true
+      nodeSelector:
+      {{- if .Values.prometheusExporter.nodeSelector }}
+      {{- toYaml .Values.prometheusExporter.nodeSelector | nindent 8 }}
+      {{- else if .Values.customScheduling.nodeSelector }}
+      {{- toYaml .Values.customScheduling.nodeSelector | nindent 8 }}
+      {{- end }}
+      affinity:
+      {{- if .Values.prometheusExporter.affinity }}
+      {{- toYaml .Values.prometheusExporter.affinity | nindent 8 }}
+      {{- else if .Values.customScheduling.affinity }}
+      {{- toYaml .Values.customScheduling.affinity | nindent 8 }}
+      {{- end }}
+      tolerations:
+      {{- if .Values.prometheusExporter.tolerations }}
+      {{- toYaml .Values.prometheusExporter.tolerations | nindent 8 }}
+      {{- else if .Values.customScheduling.tolerations }}
+      {{- toYaml .Values.customScheduling.tolerations | nindent 8 }}
+      {{- end }}
+{{- end }}

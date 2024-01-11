@@ -61,6 +61,8 @@ serviceDiscovery:
   enabled: {{ $configurations.submit }}
 storage:
   enabled: true
+prometheusExporter:
+  enabled: {{ eq .Values.capabilities.prometheusExporter "enable" }}
 cloudSecret:
   create: {{ $configurations.createCloudSecret }}
   name: {{ if $configurations.createCloudSecret }}"cloud-secret"{{ else }}{{ .Values.credentials.cloudSecret }}{{ end }}
