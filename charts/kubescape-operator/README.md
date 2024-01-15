@@ -1,6 +1,6 @@
 # Kubescape Operator
 
-![Version: 1.17.2](https://img.shields.io/badge/Version-1.17.2-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.17.2](https://img.shields.io/badge/AppVersion-v1.17.2-informational?style=flat-square)
+![Version: 1.17.3](https://img.shields.io/badge/Version-1.17.3-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.17.3](https://img.shields.io/badge/AppVersion-v1.17.3-informational?style=flat-square)
 
 ## Install
 
@@ -225,7 +225,6 @@ docker-compose logs uptrace
 | cloudProviderMetadata.aksClientID | string | `nil` | AKS client ID |
 | cloudProviderMetadata.aksClientSecret | string | `nil` | AKS client secret |
 | cloudProviderMetadata.aksTenantID | string | `nil` | AKS tenant ID |
-| triggerNewImageScan | bool | `false` | enable/disable trigger image scan for new images |
 | volumes | object | `[]` | Additional volumes for all containers |
 | volumeMounts | object | `[]` | Additional volumeMounts for all containers |
 
