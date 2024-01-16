@@ -173,7 +173,6 @@ docker-compose logs uptrace
 | global.overrideRuntimePath | string | `""` | Override the runtime path for node-agent |
 | credentials.cloudSecret | string | `""` | Leave it blank for the default secret. If you have an existing secret, override with the existing secret name to avoid Helm creating a default one |
 | kollector.affinity | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the StatefulSet |
-| kollector.env[0] | object | `{"name":"PRINT_REPORT","value":"false"}` | print in verbose mode (print all reported data) |
 | kollector.image.repository | string | `"quay.io/kubescape/kollector"` | [source code](https://github.com/kubescape/kollector) |
 | kollector.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | kollector.volumes | object | `[]` | Additional volumes for the collector |
@@ -879,10 +878,9 @@ Creating Network Policies for workloads running in a cluster is a very important
 Kubescape provides a way to automatically generate Network Policies for your cluster. Once the Network Policy generation feature is enabled, Kubescape will listen to the network communication on your workloads, and you can then use `kubectl` to generate Network Policies automatically based on the captured traffic. Please note that the policies won't be applied to the cluster automatically. You will have to apply them manually.
 
 ## Installation 
-Kubescape Network Policy generation is built into the Kubescape Operator Helm chart. To use this capability, you need to enable it. Start by navigating to the `values.yaml` file and make sure that the corresponding `capabilities.networkPolicyService` key is set to `enable`, like so:
-```yaml
-capabilities:
-  networkPolicyService: enable  # Make sure this is set to "enable"
+Kubescape Network Policy generation is built into the Kubescape Operator Helm chart. To use this capability, you need to enable it when installing the chart:
+```bash
+--set capabilities.networkPolicyService=enable
 ```
 
 Once you apply the chart with the capability enabled, Kubescape will continuously listen to the workloads traffic and you could then generate network policies for them.
