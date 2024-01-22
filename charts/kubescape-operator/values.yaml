@@ -91,7 +91,9 @@ configurations:
   otelUrl: # default is empty
   persistence: enable
 
-
+# -----------------------------------------------------------------------------------------
+# ------------------------ Cloud Providers ------------------------------------------------
+# -----------------------------------------------------------------------------------------
 
 # It is recommended to setup the cloud info when installing the chart on a managed cluster, this will enable to check the related settings
 # cloud support
@@ -108,55 +110,6 @@ cloudProviderMetadata:
 
   # -- GKE project
   gkeProject:
-
-
-# Enable persistence using Persistent Volume Claims
-persistence:
-
-  # -- persistence storage class
-  #    ref: https://kubernetes.io/docs/concepts/storage/storage-classes/
-  #    note: set to "-" (dash) for default storage class
-  storageClass: "-"
-
-  # -- persistence access mode
-  #    ref: https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes
-  accessMode: ReadWriteOnce
-
-  # -- persistence size
-  size:
-    backingStorage: 5Gi
-    kubevuln: 2Gi
-
-global:
-  httpsProxy: ""
-  proxySecretFile: ""
-  proxySecretName: kubescape-proxy-certificate
-  namespaceTier: ks-control-plane
-  cloudConfig: ks-cloud-config
-  proxySecretDirectory: proxy-support
-  configMapsDirectory: configs
-  kubescapePsp:
-    name: ks-allow-privileged
-    enabled: false
-  networkPolicy:
-    enabled: false
-    createEgressRules: false
-  overrideRuntimePath: ""
-
-# Continuous scanning configurations
-continuousScanning:
-  configMapName: cs-matching-rules
-
-  # Matching rules for the monitored resources.
-  # Kubescape will watch resources of every provided GVR across the provided
-  # namespaces.
-  matchingRules:
-    match:
-      - apiGroups: ["apps"]
-        apiVersions: ["v1"]
-        resources: ["deployments"]
-    namespaces:
-      - default
 
 # -----------------------------------------------------------------------------------------
 # ----------------------- Microservices - core --------------------------------------------
@@ -269,8 +222,8 @@ kubevuln:
 
   image:
     # -- source code: https://github.com/kubescape/kubevuln
-    repository: quay.io/dwertent/kubevuln
-    tag: syft-0.0.0
+    repository: quay.io/kubescape/kubevuln
+    tag: v0.3.0
     pullPolicy: Always
 
   replicaCount: 1
@@ -420,8 +373,8 @@ storage:
 
   image:
     # -- source code: https://github.com/kubescape/storage
-    repository: quay.io/dwertent/storage
-    tag: syft-0.0.0
+    repository: quay.io/kubescape/storage
+    tag: v0.0.60
     pullPolicy: Always
 
   # cleanup interval is a duration string
@@ -529,7 +482,7 @@ synchronizer:
   name: synchronizer
   image:
     repository: quay.io/kubescape/synchronizer
-    tag: v0.0.34
+    tag: v0.0.36
     pullPolicy: IfNotPresent
   resources:
     requests:
@@ -815,3 +768,55 @@ registryScanScheduler:
 
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 1
+
+# -----------------------------------------------------------------------------------------
+# ------------------------- Configurations ------------------------------------------------
+# -----------------------------------------------------------------------------------------
+
+# Enable persistence using Persistent Volume Claims
+persistence:
+
+  # -- persistence storage class
+  #    ref: https://kubernetes.io/docs/concepts/storage/storage-classes/
+  #    note: set to "-" (dash) for default storage class
+  storageClass: "-"
+
+  # -- persistence access mode
+  #    ref: https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes
+  accessMode: ReadWriteOnce
+
+  # -- persistence size
+  size:
+    backingStorage: 5Gi
+    kubevuln: 2Gi
+
+global:
+  httpsProxy: ""
+  proxySecretFile: ""
+  proxySecretName: kubescape-proxy-certificate
+  namespaceTier: ks-control-plane
+  cloudConfig: ks-cloud-config
+  proxySecretDirectory: proxy-support
+  configMapsDirectory: configs
+  kubescapePsp:
+    name: ks-allow-privileged
+    enabled: false
+  networkPolicy:
+    enabled: false
+    createEgressRules: false
+  overrideRuntimePath: ""
+
+# Continuous scanning configurations
+continuousScanning:
+  configMapName: cs-matching-rules
+
+  # Matching rules for the monitored resources.
+  # Kubescape will watch resources of every provided GVR across the provided
+  # namespaces.
+  matchingRules:
+    match:
+      - apiGroups: ["apps"]
+        apiVersions: ["v1"]
+        resources: ["deployments"]
+    namespaces:
+      - default
