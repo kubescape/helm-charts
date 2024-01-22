@@ -224,7 +224,6 @@ docker-compose logs uptrace
 | cloudProviderMetadata.aksClientID | string | `nil` | AKS client ID |
 | cloudProviderMetadata.aksClientSecret | string | `nil` | AKS client secret |
 | cloudProviderMetadata.aksTenantID | string | `nil` | AKS tenant ID |
-| triggerNewImageScan | bool | `false` | enable/disable trigger image scan for new images |
 | volumes | object | `[]` | Additional volumes for all containers |
 | volumeMounts | object | `[]` | Additional volumeMounts for all containers |
 
