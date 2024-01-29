@@ -75,3 +75,50 @@ tests:
       kubescape.serviceMonitor.enabled: true
       kubescapeScheduler.scanSchedule: "1 2 3 4 5"
       kubevulnScheduler.scanSchedule: "1 2 3 4 5"
+  - it: with single private registry credentials
+    template: configs/private-registries-creds-secret.yaml
+    documentSelector: 
+      path: metadata.name
+      value: kubescape-registry-scan-secrets 
+    asserts:
+      - equal:
+          path: metadata.name
+          value: kubescape-registry-scan-secrets 
+      - matchSnapshot: {}
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      configurations.otelUrl: "otelCollector:4317"
+      clusterName: kind-kind
+      imageScanning:
+        privateRegistries:
+          credentials:
+            - registry: foo.example.com
+              username: bar
+              password: baz
+  - it: with multiple private registry credentials
+    template: configs/private-registries-creds-secret.yaml
+    documentSelector: 
+      path: metadata.name
+      value: kubescape-registry-scan-secrets 
+    asserts:
+      - equal:
+          path: metadata.name
+          value: kubescape-registry-scan-secrets 
+      - matchSnapshot: {}
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      configurations.otelUrl: "otelCollector:4317"
+      clusterName: kind-kind
+      imageScanning:
+        privateRegistries:
+          credentials:
+            - registry: foo.example.com
+              username: bar
+              password: baz
+            - registry: test.example.com
+              username: xxx
+              password: yyy
