@@ -1236,3 +1236,7 @@ kubectl -n <namespace> get networkneighbors <workload-kind>-<workload-name> -o y
   ```bash
    kubectl run --rm -i --tty busybox --image=busybox --restart=Never --overrides='{"spec": {"template": {"spec": {"containers": [{"securityContext": {"privileged": true} }]}}}}' -- /bin/sh
   ```
+  For K3s, the `runc` binary is different from the system one, and is located in `/var/lib/rancher/k3s/data/current/bin/runc`. Given this path, the option to set during the Helm installation is (note the `/host` prefix):
+  ```bash
+  --set global.overrideRuntimePath="/host/var/lib/rancher/k3s/data/current/bin/runc"
+  ```
