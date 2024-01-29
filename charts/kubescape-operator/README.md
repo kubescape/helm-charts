@@ -226,6 +226,11 @@ docker-compose logs uptrace
 | cloudProviderMetadata.aksTenantID | string | `nil` | AKS tenant ID |
 | volumes | object | `[]` | Additional volumes for all containers |
 | volumeMounts | object | `[]` | Additional volumeMounts for all containers |
+| imageScanning.privateRegistries.credentials | object | `[]` | Credentials for scanning images pulled from private container registries. This configuration is not needed when using `imagePullSecrets`|
+| imageScanning.privateRegistries.credentials.registry | string | `nil` | URL of the private container registry.|
+| imageScanning.privateRegistries.credentials.username | string | `nil` | Username/Client ID for authentication.|
+| imageScanning.privateRegistries.credentials.password | string | `nil` | Password/Token/Client Secret for authentication.|
+
 
 
 # In-cluster components overview
