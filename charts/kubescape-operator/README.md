@@ -723,6 +723,10 @@ The Helm chart provides a capability to automatically fetch the latest chart ver
 
 To enable this capability, simply simply set the `capabilities.autoUpgrading` to `enable` and configure how often you would like to check for updates by adjusting the cron schedule:
 
+> [!WARNING]
+> The Auto Upgrading capability works the same way as a regular Helm upgrade.
+> Therefore, it [won't update Kubernetes resources after manual changes](https://github.com/helm/helm/issues/11040#issuecomment-1154700942).
+
 ```yaml
 capabilities:
   autoUpgrading: enable
