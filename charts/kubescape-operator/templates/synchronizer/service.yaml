@@ -1,0 +1,19 @@
+{{- $components := fromYaml (include "components" .) }}
+  {{- if $components.synchronizer.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.synchronizer.name }}
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    app: {{ .Values.synchronizer.name }}
+    kubescape.io/ignore: "true"
+spec:
+  type: {{ .Values.synchronizer.service.type }}
+  ports:
+    - port: {{ .Values.synchronizer.service.port }}
+      targetPort: {{ .Values.synchronizer.service.targetPort }}
+      protocol: {{ .Values.synchronizer.service.protocol }}
+  selector:
+    app: {{ .Values.synchronizer.name }}
+  {{- end }}

@@ -1,4 +1,5 @@
 {{- $components := fromYaml (include "components" .)  }}
+{{- $configurations := fromYaml (include "configurations" .)  }}
 kind: ConfigMap
 apiVersion: v1
 metadata:
@@ -42,7 +43,7 @@ data:
       "keepLocal": {{ not $components.serviceDiscovery.enabled }},
       "scanTimeout": "{{ .Values.kubevuln.config.scanTimeout }}",
       "vexGeneration": {{ eq .Values.capabilities.vexGeneration "enable" }},
-      "continuousPostureScan": {{ and (eq .Values.capabilities.continuousScan "enable") ($components.storage.enabled) }},
+      "continuousPostureScan": {{ $configurations.continuousScan }},
 {{- if .Values.grypeOfflineDB.enabled }}
       "listingURL": "http://{{ .Values.grypeOfflineDB.name }}:80/listing.json",
 {{- end }}
