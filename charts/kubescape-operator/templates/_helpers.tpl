@@ -16,6 +16,7 @@ synchronizerConfig: {{ include (printf "%s/synchronizer/configmap.yaml" $.Templa
 {{- $createCloudSecret := (empty .Values.credentials.cloudSecret) -}}
 {{- $otel := not (empty .Values.configurations.otelUrl) -}}
 {{- $submit := not (empty .Values.server) -}}
+continuousScan: {{ and (eq .Values.capabilities.continuousScan "enable") (not $submit) }}
 createCloudSecret: {{ $createCloudSecret }}
 ksOtel: {{ $submit }}
 otel: {{ $otel }}
