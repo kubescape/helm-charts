@@ -165,7 +165,8 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | imageScanning.privateRegistries.credentials.registry | string | `nil` | URL of the private container registry.|
 | imageScanning.privateRegistries.credentials.username | string | `nil` | Username/Client ID for authentication.|
 | imageScanning.privateRegistries.credentials.password | string | `nil` | Password/Token/Client Secret for authentication.|
-
+| imageScanning.privateRegistries.credentials.skipTlsVerify | bool | `false` | Skip TLS certificate verification |
+| imageScanning.privateRegistries.credentials.insecure | bool | `false` | Use HTTP instead of HTTPS |
 
 
 # In-cluster components overview
