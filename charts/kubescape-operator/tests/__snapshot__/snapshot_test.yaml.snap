@@ -1,6 +1,6 @@
 all capabilities:
   1: |
-    raw: "Thank you for installing kubescape-operator version 1.18.6.\nView your cluster's configuration scanning schedule:  \n> kubectl -n kubescape get cj kubescape-scheduler -o=jsonpath='{.metadata.name}{\"\\t\"}{.spec.schedule}{\"\\n\"}'\n\nTo change the schedule, set `.spec.schedule`:  \n> kubectl -n kubescape edit cj kubescape-scheduler\nView your cluster's image scanning schedule:  \n> kubectl -n kubescape get cj kubevuln-scheduler -o=jsonpath='{.metadata.name}{\"\\t\"}{.spec.schedule}{\"\\n\"}'  \n\nTo change the schedule, edit `.spec.schedule`:  \n> kubectl -n kubescape edit cj kubevuln-scheduler\nView your configuration scan summaries:  \n> kubectl get workloadconfigurationscansummaries -A\n\nDetailed reports are also available:  \n> kubectl get workloadconfigurationscans -A\n\nView your image vulnerabilities scan summaries:  \n> kubectl get vulnerabilitymanifestsummaries -A\n\nDetailed reports are also available:  \n> kubectl get vulnerabilitymanifests -A\n\nkubescape-operator generates suggested network policies. To view them:  \n> kubectl get generatednetworkpolicies -n <namespace>\n\n"
+    raw: "Thank you for installing kubescape-operator version 1.18.7.\nView your cluster's configuration scanning schedule:  \n> kubectl -n kubescape get cj kubescape-scheduler -o=jsonpath='{.metadata.name}{\"\\t\"}{.spec.schedule}{\"\\n\"}'\n\nTo change the schedule, set `.spec.schedule`:  \n> kubectl -n kubescape edit cj kubescape-scheduler\nView your cluster's image scanning schedule:  \n> kubectl -n kubescape get cj kubevuln-scheduler -o=jsonpath='{.metadata.name}{\"\\t\"}{.spec.schedule}{\"\\n\"}'  \n\nTo change the schedule, edit `.spec.schedule`:  \n> kubectl -n kubescape edit cj kubevuln-scheduler\nView your configuration scan reports:\n> kubectl get workloadconfigurationscans -A\n\nView your image vulnerabilities:\n> kubectl get vulnerabilitymanifests -A\n\nkubescape-operator generates suggested network policies. To view them:  \n> kubectl get generatednetworkpolicies -n <namespace>\n\n"
   2: |
     apiVersion: batch/v1
     kind: CronJob
@@ -194,7 +194,7 @@ all capabilities:
         app: gateway
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: gateway
-        helm.sh/chart: kubescape-operator-1.18.6
+        helm.sh/chart: kubescape-operator-1.18.7
         kubescape.io/ignore: "true"
         tier: ks-control-plane
       name: gateway
@@ -321,7 +321,7 @@ all capabilities:
     metadata:
       labels:
         app: gateway
-        helm.sh/chart: kubescape-operator-1.18.6
+        helm.sh/chart: kubescape-operator-1.18.7
         tier: ks-control-plane
       name: gateway
       namespace: kubescape
@@ -401,7 +401,7 @@ all capabilities:
             app: grype-offline-db
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/name: grype-offline-db
-            helm.sh/chart: kubescape-operator-1.18.6
+            helm.sh/chart: kubescape-operator-1.18.7
             tier: ks-control-plane
         spec:
           affinity: null
@@ -591,7 +591,7 @@ all capabilities:
             app: kollector
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/name: kollector
-            helm.sh/chart: kubescape-operator-1.18.6
+            helm.sh/chart: kubescape-operator-1.18.7
             tier: ks-control-plane
         spec:
           affinity: null
@@ -727,7 +727,7 @@ all capabilities:
                     - -path=v1/triggerAction
                     - -headers="Content-Type:application/json"
                     - -path-body=/home/ks/request-body.json
-                  image: quay.io/kubescape/http-request:v0.0.14
+                  image: quay.io/kubescape/http-request:v0.2.5
                   imagePullPolicy: IfNotPresent
                   name: kubescape-scheduler
                   resources:
@@ -944,7 +944,6 @@ all capabilities:
           - spdx.softwarecomposition.kubescape.io
         resources:
           - workloadconfigurationscans
-          - workloadconfigurationscansummaries
         verbs:
           - create
           - update
@@ -972,7 +971,7 @@ all capabilities:
         app: kubescape
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape
-        helm.sh/chart: kubescape-operator-1.18.6
+        helm.sh/chart: kubescape-operator-1.18.7
         kubescape.io/ignore: "true"
         tier: ks-control-plane
       name: kubescape
@@ -1001,7 +1000,7 @@ all capabilities:
             app: kubescape
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/name: kubescape
-            helm.sh/chart: kubescape-operator-1.18.6
+            helm.sh/chart: kubescape-operator-1.18.7
             otel: enabled
             tier: ks-control-plane
         spec:
@@ -1046,7 +1045,7 @@ all capabilities:
                       name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
-              image: quay.io/kubescape/kubescape:v3.0.4
+              image: quay.io/kubescape/kubescape:v3.0.7
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -1230,7 +1229,7 @@ all capabilities:
     metadata:
       labels:
         app: kubescape
-        helm.sh/chart: kubescape-operator-1.18.6
+        helm.sh/chart: kubescape-operator-1.18.7
         tier: ks-control-plane
       name: kubescape
       namespace: kubescape
@@ -1388,7 +1387,7 @@ all capabilities:
                     - -path=v1/triggerAction
                     - -headers="Content-Type:application/json"
                     - -path-body=/home/ks/request-body.json
-                  image: quay.io/kubescape/http-request:v0.0.14
+                  image: quay.io/kubescape/http-request:v0.2.5
                   imagePullPolicy: IfNotPresent
                   name: kubevuln-scheduler
                   resources:
@@ -1429,11 +1428,7 @@ all capabilities:
           - spdx.softwarecomposition.kubescape.io
         resources:
           - vulnerabilitymanifests
-          - vulnerabilitymanifestsummaries
-          - sbomsummaries
-          - sbomspdxv2p3s
           - openvulnerabilityexchangecontainers
-          - sbomsyftfiltereds
           - sbomsyfts
         verbs:
           - create
@@ -1445,7 +1440,7 @@ all capabilities:
       - apiGroups:
           - spdx.softwarecomposition.kubescape.io
         resources:
-          - sbomspdxv2p3filtereds
+          - sbomsyftfiltereds
         verbs:
           - get
           - watch
@@ -1497,7 +1492,7 @@ all capabilities:
             app: kubevuln
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/name: kubevuln
-            helm.sh/chart: kubescape-operator-1.18.6
+            helm.sh/chart: kubescape-operator-1.18.7
             otel: enabled
             tier: ks-control-plane
         spec:
@@ -1526,7 +1521,7 @@ all capabilities:
                       name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
-              image: quay.io/kubescape/kubevuln:v0.3.6
+              image: quay.io/kubescape/kubevuln:v0.3.8
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -1707,8 +1702,6 @@ all capabilities:
       - apiGroups:
           - spdx.softwarecomposition.kubescape.io
         resources:
-          - sbomspdxv2p3s
-          - sbomsummaries
           - sbomsyfts
         verbs:
           - get
@@ -1717,10 +1710,8 @@ all capabilities:
       - apiGroups:
           - spdx.softwarecomposition.kubescape.io
         resources:
-          - sbomspdxv2p3filtereds
           - applicationactivities
           - applicationprofiles
-          - applicationprofilesummaries
           - networkneighborses
           - sbomsyftfiltereds
         verbs:
@@ -1794,7 +1785,7 @@ all capabilities:
             app: node-agent
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/name: node-agent
-            helm.sh/chart: kubescape-operator-1.18.6
+            helm.sh/chart: kubescape-operator-1.18.7
             otel: enabled
             tier: ks-control-plane
         spec:
@@ -1829,7 +1820,7 @@ all capabilities:
                     fieldRef:
                       fieldPath: metadata.name
                 - name: NodeName
-              image: quay.io/kubescape/node-agent:v0.2.12
+              image: quay.io/kubescape/node-agent:v0.2.14
               imagePullPolicy: IfNotPresent
               name: node-agent
               resources:
@@ -1980,13 +1971,8 @@ all capabilities:
       - apiGroups:
           - spdx.softwarecomposition.kubescape.io
         resources:
-          - sbomspdxv2p3s
-          - sbomspdxv2p3filtereds
           - vulnerabilitymanifests
-          - sbomsummaries
-          - vulnerabilitymanifestsummaries
           - workloadconfigurationscans
-          - workloadconfigurationscansummaries
           - openvulnerabilityexchangecontainers
           - sbomsyftfiltereds
           - sbomsyfts
@@ -2062,7 +2048,7 @@ all capabilities:
             app: operator
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/name: operator
-            helm.sh/chart: kubescape-operator-1.18.6
+            helm.sh/chart: kubescape-operator-1.18.7
             otel: enabled
             tier: ks-control-plane
         spec:
@@ -2075,7 +2061,7 @@ all capabilities:
                 - 2>&1
               env:
                 - name: HELM_RELEASE
-                  value: kubescape-operator-1.18.6
+                  value: kubescape-operator-1.18.7
                 - name: GOMEMLIMIT
                   value: 100MiB
                 - name: KS_LOGGER_LEVEL
@@ -2190,7 +2176,7 @@ all capabilities:
   50: |
     apiVersion: v1
     data:
-      cronjobTemplate: "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: kubescape-scheduler\n  namespace: kubescape\n  labels:\n    app: kubescape-scheduler\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\n    armo.tier: \"kubescape-scan\"\nspec:\n  schedule: \"1 2 3 4 5\"\n  successfulJobsHistoryLimit: 3\n  failedJobsHistoryLimit: 1\n  jobTemplate:\n    spec:\n      template:\n        metadata:\n          labels:\n            armo.tier: \"kubescape-scan\"\n        spec:\n          containers:\n          - name: kubescape-scheduler\n            image: \"quay.io/kubescape/http-request:v0.0.14\"\n            imagePullPolicy: IfNotPresent\n            securityContext:\n              allowPrivilegeEscalation: false\n              readOnlyRootFilesystem: true\n              runAsNonRoot: true\n              runAsUser: 100\n            resources:\n              limits:\n                cpu: 10m\n                memory: 20Mi\n              requests:\n                cpu: 1m\n                memory: 10Mi\n            args: \n              - -method=post\n              - -scheme=http\n              - -host=operator:4002\n              - -path=v1/triggerAction\n              - -headers=\"Content-Type:application/json\"\n              - -path-body=/home/ks/request-body.json\n            volumeMounts:\n              - name: \"request-body-volume\"\n                mountPath: /home/ks/request-body.json\n                subPath: request-body.json\n                readOnly: true\n          restartPolicy: Never\n          automountServiceAccountToken: false\n          nodeSelector:\n          affinity:\n          tolerations:\n          volumes:\n            - name: \"request-body-volume\" # placeholder\n              configMap:\n                name: kubescape-scheduler"
+      cronjobTemplate: "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: kubescape-scheduler\n  namespace: kubescape\n  labels:\n    app: kubescape-scheduler\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\n    armo.tier: \"kubescape-scan\"\nspec:\n  schedule: \"1 2 3 4 5\"\n  successfulJobsHistoryLimit: 3\n  failedJobsHistoryLimit: 1\n  jobTemplate:\n    spec:\n      template:\n        metadata:\n          labels:\n            armo.tier: \"kubescape-scan\"\n        spec:\n          containers:\n          - name: kubescape-scheduler\n            image: \"quay.io/kubescape/http-request:v0.2.5\"\n            imagePullPolicy: IfNotPresent\n            securityContext:\n              allowPrivilegeEscalation: false\n              readOnlyRootFilesystem: true\n              runAsNonRoot: true\n              runAsUser: 100\n            resources:\n              limits:\n                cpu: 10m\n                memory: 20Mi\n              requests:\n                cpu: 1m\n                memory: 10Mi\n            args: \n              - -method=post\n              - -scheme=http\n              - -host=operator:4002\n              - -path=v1/triggerAction\n              - -headers=\"Content-Type:application/json\"\n              - -path-body=/home/ks/request-body.json\n            volumeMounts:\n              - name: \"request-body-volume\"\n                mountPath: /home/ks/request-body.json\n                subPath: request-body.json\n                readOnly: true\n          restartPolicy: Never\n          automountServiceAccountToken: false\n          nodeSelector:\n          affinity:\n          tolerations:\n          volumes:\n            - name: \"request-body-volume\" # placeholder\n              configMap:\n                name: kubescape-scheduler"
     kind: ConfigMap
     metadata:
       labels:
@@ -2202,7 +2188,7 @@ all capabilities:
   51: |
     apiVersion: v1
     data:
-      cronjobTemplate: "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: kubevuln-scheduler\n  namespace: kubescape\n  labels:\n    app: kubevuln-scheduler\n    kubescape.io/ignore: \"true\"\n    tier: ks-control-plane\n    armo.tier: \"vuln-scan\"\nspec:\n  schedule: \"1 2 3 4 5\" \n  successfulJobsHistoryLimit: 3\n  failedJobsHistoryLimit: 1\n  jobTemplate:\n    spec:\n      template:\n        metadata:\n          labels:\n            armo.tier: \"vuln-scan\"\n        spec:\n          containers:\n          - name: kubevuln-scheduler\n            image: \"quay.io/kubescape/http-request:v0.0.14\"\n            imagePullPolicy: IfNotPresent\n            securityContext:\n              allowPrivilegeEscalation: false\n              readOnlyRootFilesystem: true\n              runAsNonRoot: true\n              runAsUser: 100\n            resources:\n              limits:\n                cpu: 10m\n                memory: 20Mi\n              requests:\n                cpu: 1m\n                memory: 10Mi\n            args: \n              - -method=post\n              - -scheme=http\n              - -host=operator:4002\n              - -path=v1/triggerAction\n              - -headers=\"Content-Type:application/json\"\n              - -path-body=/home/ks/request-body.json\n            volumeMounts:\n              - name: \"request-body-volume\"\n                mountPath: /home/ks/request-body.json\n                subPath: request-body.json\n                readOnly: true\n          restartPolicy: Never\n          automountServiceAccountToken: false\n          nodeSelector:\n          affinity:\n          tolerations:\n          volumes:\n            - name: \"request-body-volume\" # placeholder\n              configMap:\n                name: kubevuln-scheduler"
+      cronjobTemplate: "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: kubevuln-scheduler\n  namespace: kubescape\n  labels:\n    app: kubevuln-scheduler\n    kubescape.io/ignore: \"true\"\n    tier: ks-control-plane\n    armo.tier: \"vuln-scan\"\nspec:\n  schedule: \"1 2 3 4 5\" \n  successfulJobsHistoryLimit: 3\n  failedJobsHistoryLimit: 1\n  jobTemplate:\n    spec:\n      template:\n        metadata:\n          labels:\n            armo.tier: \"vuln-scan\"\n        spec:\n          containers:\n          - name: kubevuln-scheduler\n            image: \"quay.io/kubescape/http-request:v0.2.5\"\n            imagePullPolicy: IfNotPresent\n            securityContext:\n              allowPrivilegeEscalation: false\n              readOnlyRootFilesystem: true\n              runAsNonRoot: true\n              runAsUser: 100\n            resources:\n              limits:\n                cpu: 10m\n                memory: 20Mi\n              requests:\n                cpu: 1m\n                memory: 10Mi\n            args: \n              - -method=post\n              - -scheme=http\n              - -host=operator:4002\n              - -path=v1/triggerAction\n              - -headers=\"Content-Type:application/json\"\n              - -path-body=/home/ks/request-body.json\n            volumeMounts:\n              - name: \"request-body-volume\"\n                mountPath: /home/ks/request-body.json\n                subPath: request-body.json\n                readOnly: true\n          restartPolicy: Never\n          automountServiceAccountToken: false\n          nodeSelector:\n          affinity:\n          tolerations:\n          volumes:\n            - name: \"request-body-volume\" # placeholder\n              configMap:\n                name: kubevuln-scheduler"
     kind: ConfigMap
     metadata:
       labels:
@@ -2253,7 +2239,7 @@ all capabilities:
   53: |
     apiVersion: v1
     data:
-      cronjobTemplate: "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: registry-scheduler\n  namespace: kubescape\n  labels:\n    app: registry-scheduler\n    kubescape.io/ignore: \"true\"\n    tier: ks-control-plane\n    armo.tier: \"registry-scan\"\nspec:\n  schedule: \"0 0 * * *\"\n  successfulJobsHistoryLimit: 3\n  failedJobsHistoryLimit: 1\n  jobTemplate:\n    spec:\n      template:\n        metadata:\n          labels:\n            armo.tier: \"registry-scan\"\n        spec:\n          containers:\n          - name: registry-scheduler\n            image: \"quay.io/kubescape/http-request:v0.0.14\"\n            imagePullPolicy: IfNotPresent\n            securityContext:\n              allowPrivilegeEscalation: false\n              readOnlyRootFilesystem: true\n              runAsNonRoot: true\n              runAsUser: 100\n            resources:\n              limits:\n                cpu: 10m\n                memory: 20Mi\n              requests:\n                cpu: 1m\n                memory: 10Mi\n            args: \n              - -method=post\n              - -scheme=http\n              - -host=operator:4002\n              - -path=v1/triggerAction\n              - -headers=\"Content-Type:application/json\"\n              - -path-body=/home/ks/request-body.json\n            volumeMounts:\n              - name: \"request-body-volume\"\n                mountPath: /home/ks/request-body.json\n                subPath: request-body.json\n                readOnly: true\n          restartPolicy: Never\n          automountServiceAccountToken: false\n          nodeSelector:\n          affinity:\n          tolerations:\n          volumes:\n            - name: \"request-body-volume\" # placeholder\n              configMap:\n                name: registry-scheduler"
+      cronjobTemplate: "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: registry-scheduler\n  namespace: kubescape\n  labels:\n    app: registry-scheduler\n    kubescape.io/ignore: \"true\"\n    tier: ks-control-plane\n    armo.tier: \"registry-scan\"\nspec:\n  schedule: \"0 0 * * *\"\n  successfulJobsHistoryLimit: 3\n  failedJobsHistoryLimit: 1\n  jobTemplate:\n    spec:\n      template:\n        metadata:\n          labels:\n            armo.tier: \"registry-scan\"\n        spec:\n          containers:\n          - name: registry-scheduler\n            image: \"quay.io/kubescape/http-request:v0.2.5\"\n            imagePullPolicy: IfNotPresent\n            securityContext:\n              allowPrivilegeEscalation: false\n              readOnlyRootFilesystem: true\n              runAsNonRoot: true\n              runAsUser: 100\n            resources:\n              limits:\n                cpu: 10m\n                memory: 20Mi\n              requests:\n                cpu: 1m\n                memory: 10Mi\n            args: \n              - -method=post\n              - -scheme=http\n              - -host=operator:4002\n              - -path=v1/triggerAction\n              - -headers=\"Content-Type:application/json\"\n              - -path-body=/home/ks/request-body.json\n            volumeMounts:\n              - name: \"request-body-volume\"\n                mountPath: /home/ks/request-body.json\n                subPath: request-body.json\n                readOnly: true\n          restartPolicy: Never\n          automountServiceAccountToken: false\n          nodeSelector:\n          affinity:\n          tolerations:\n          volumes:\n            - name: \"request-body-volume\" # placeholder\n              configMap:\n                name: registry-scheduler"
     kind: ConfigMap
     metadata:
       labels:
@@ -2359,7 +2345,7 @@ all capabilities:
         app: otel-collector
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: otel-collector
-        helm.sh/chart: kubescape-operator-1.18.6
+        helm.sh/chart: kubescape-operator-1.18.7
         kubescape.io/ignore: "true"
         tier: ks-control-plane
       name: otel-collector
@@ -2443,7 +2429,7 @@ all capabilities:
     metadata:
       labels:
         app: otel-collector
-        helm.sh/chart: kubescape-operator-1.18.6
+        helm.sh/chart: kubescape-operator-1.18.7
         tier: ks-control-plane
       name: otel-collector
       namespace: kubescape
@@ -2523,7 +2509,7 @@ all capabilities:
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/managed-by: Helm
             app.kubernetes.io/name: service-discovery
-            helm.sh/chart: kubescape-operator-1.18.6
+            helm.sh/chart: kubescape-operator-1.18.7
             otel: enabled
             tier: ks-control-plane
           name: RELEASE-NAME
@@ -2557,7 +2543,7 @@ all capabilities:
                 - -path=api/v2/servicediscovery
                 - -path-output=/data/services.json
               env: null
-              image: quay.io/kubescape/http-request:v0.2.2
+              image: quay.io/kubescape/http-request:v0.2.5
               imagePullPolicy: IfNotPresent
               name: url-discovery
               resources:
@@ -2820,7 +2806,7 @@ all capabilities:
                       name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
-              image: quay.io/kubescape/storage:v0.0.69
+              image: quay.io/kubescape/storage:v0.0.73
               imagePullPolicy: IfNotPresent
               name: apiserver
               resources:
@@ -3142,7 +3128,7 @@ all capabilities:
             app: synchronizer
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/name: synchronizer
-            helm.sh/chart: kubescape-operator-1.18.6
+            helm.sh/chart: kubescape-operator-1.18.7
             otel: enabled
             tier: ks-control-plane
         spec:
@@ -3153,7 +3139,7 @@ all capabilities:
                 - /usr/bin/client
               env:
                 - name: HELM_RELEASE
-                  value: kubescape-operator-1.18.6
+                  value: kubescape-operator-1.18.7
                 - name: GOMEMLIMIT
                   value: 250MiB
                 - name: KS_LOGGER_LEVEL
@@ -3167,7 +3153,7 @@ all capabilities:
                       name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
-              image: quay.io/kubescape/synchronizer:v0.0.68
+              image: quay.io/kubescape/synchronizer:v0.0.70
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -3293,7 +3279,7 @@ all capabilities:
       namespace: kubescape
 default capabilities:
   1: |
-    raw: "Thank you for installing kubescape-operator version 1.18.6.\nView your cluster's configuration scanning schedule:  \n> kubectl -n kubescape get cj kubescape-scheduler -o=jsonpath='{.metadata.name}{\"\\t\"}{.spec.schedule}{\"\\n\"}'\n\nTo change the schedule, set `.spec.schedule`:  \n> kubectl -n kubescape edit cj kubescape-scheduler\nView your cluster's image scanning schedule:  \n> kubectl -n kubescape get cj kubevuln-scheduler -o=jsonpath='{.metadata.name}{\"\\t\"}{.spec.schedule}{\"\\n\"}'  \n\nTo change the schedule, edit `.spec.schedule`:  \n> kubectl -n kubescape edit cj kubevuln-scheduler\n\n\nView your image vulnerabilities scan summaries:  \n> kubectl get vulnerabilitymanifestsummaries -A\n\nDetailed reports are also available:  \n> kubectl get vulnerabilitymanifests -A\n\nkubescape-operator generates suggested network policies. To view them:  \n> kubectl get generatednetworkpolicies -n <namespace>\n\n"
+    raw: "Thank you for installing kubescape-operator version 1.18.7.\nView your cluster's configuration scanning schedule:  \n> kubectl -n kubescape get cj kubescape-scheduler -o=jsonpath='{.metadata.name}{\"\\t\"}{.spec.schedule}{\"\\n\"}'\n\nTo change the schedule, set `.spec.schedule`:  \n> kubectl -n kubescape edit cj kubescape-scheduler\nView your cluster's image scanning schedule:  \n> kubectl -n kubescape get cj kubevuln-scheduler -o=jsonpath='{.metadata.name}{\"\\t\"}{.spec.schedule}{\"\\n\"}'  \n\nTo change the schedule, edit `.spec.schedule`:  \n> kubectl -n kubescape edit cj kubevuln-scheduler\n\n\nView your image vulnerabilities:\n> kubectl get vulnerabilitymanifests -A\n\nkubescape-operator generates suggested network policies. To view them:  \n> kubectl get generatednetworkpolicies -n <namespace>\n\n"
   2: |
     apiVersion: v1
     data:
@@ -3391,7 +3377,7 @@ default capabilities:
         app: gateway
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: gateway
-        helm.sh/chart: kubescape-operator-1.18.6
+        helm.sh/chart: kubescape-operator-1.18.7
         kubescape.io/ignore: "true"
         tier: ks-control-plane
       name: gateway
@@ -3518,7 +3504,7 @@ default capabilities:
     metadata:
       labels:
         app: gateway
-        helm.sh/chart: kubescape-operator-1.18.6
+        helm.sh/chart: kubescape-operator-1.18.7
         tier: ks-control-plane
       name: gateway
       namespace: kubescape
@@ -3598,7 +3584,7 @@ default capabilities:
             app: grype-offline-db
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/name: grype-offline-db
-            helm.sh/chart: kubescape-operator-1.18.6
+            helm.sh/chart: kubescape-operator-1.18.7
             tier: ks-control-plane
         spec:
           affinity: null
@@ -3788,7 +3774,7 @@ default capabilities:
             app: kollector
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/name: kollector
-            helm.sh/chart: kubescape-operator-1.18.6
+            helm.sh/chart: kubescape-operator-1.18.7
             tier: ks-control-plane
         spec:
           affinity: null
@@ -3924,7 +3910,7 @@ default capabilities:
                     - -path=v1/triggerAction
                     - -headers="Content-Type:application/json"
                     - -path-body=/home/ks/request-body.json
-                  image: quay.io/kubescape/http-request:v0.0.14
+                  image: quay.io/kubescape/http-request:v0.2.5
                   imagePullPolicy: IfNotPresent
                   name: kubescape-scheduler
                   resources:
@@ -4141,7 +4127,6 @@ default capabilities:
           - spdx.softwarecomposition.kubescape.io
         resources:
           - workloadconfigurationscans
-          - workloadconfigurationscansummaries
         verbs:
           - create
           - update
@@ -4169,7 +4154,7 @@ default capabilities:
         app: kubescape
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape
-        helm.sh/chart: kubescape-operator-1.18.6
+        helm.sh/chart: kubescape-operator-1.18.7
         kubescape.io/ignore: "true"
         tier: ks-control-plane
       name: kubescape
@@ -4198,7 +4183,7 @@ default capabilities:
             app: kubescape
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/name: kubescape
-            helm.sh/chart: kubescape-operator-1.18.6
+            helm.sh/chart: kubescape-operator-1.18.7
             otel: enabled
             tier: ks-control-plane
         spec:
@@ -4243,7 +4228,7 @@ default capabilities:
                       name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
-              image: quay.io/kubescape/kubescape:v3.0.4
+              image: quay.io/kubescape/kubescape:v3.0.7
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -4427,7 +4412,7 @@ default capabilities:
     metadata:
       labels:
         app: kubescape
-        helm.sh/chart: kubescape-operator-1.18.6
+        helm.sh/chart: kubescape-operator-1.18.7
         tier: ks-control-plane
       name: kubescape
       namespace: kubescape
@@ -4585,7 +4570,7 @@ default capabilities:
                     - -path=v1/triggerAction
                     - -headers="Content-Type:application/json"
                     - -path-body=/home/ks/request-body.json
-                  image: quay.io/kubescape/http-request:v0.0.14
+                  image: quay.io/kubescape/http-request:v0.2.5
                   imagePullPolicy: IfNotPresent
                   name: kubevuln-scheduler
                   resources:
@@ -4626,11 +4611,7 @@ default capabilities:
           - spdx.softwarecomposition.kubescape.io
         resources:
           - vulnerabilitymanifests
-          - vulnerabilitymanifestsummaries
-          - sbomsummaries
-          - sbomspdxv2p3s
           - openvulnerabilityexchangecontainers
-          - sbomsyftfiltereds
           - sbomsyfts
         verbs:
           - create
@@ -4642,7 +4623,7 @@ default capabilities:
       - apiGroups:
           - spdx.softwarecomposition.kubescape.io
         resources:
-          - sbomspdxv2p3filtereds
+          - sbomsyftfiltereds
         verbs:
           - get
           - watch
@@ -4694,7 +4675,7 @@ default capabilities:
             app: kubevuln
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/name: kubevuln
-            helm.sh/chart: kubescape-operator-1.18.6
+            helm.sh/chart: kubescape-operator-1.18.7
             otel: enabled
             tier: ks-control-plane
         spec:
@@ -4723,7 +4704,7 @@ default capabilities:
                       name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
-              image: quay.io/kubescape/kubevuln:v0.3.6
+              image: quay.io/kubescape/kubevuln:v0.3.8
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -4904,8 +4885,6 @@ default capabilities:
       - apiGroups:
           - spdx.softwarecomposition.kubescape.io
         resources:
-          - sbomspdxv2p3s
-          - sbomsummaries
           - sbomsyfts
         verbs:
           - get
@@ -4914,10 +4893,8 @@ default capabilities:
       - apiGroups:
           - spdx.softwarecomposition.kubescape.io
         resources:
-          - sbomspdxv2p3filtereds
           - applicationactivities
           - applicationprofiles
-          - applicationprofilesummaries
           - networkneighborses
           - sbomsyftfiltereds
         verbs:
@@ -4991,7 +4968,7 @@ default capabilities:
             app: node-agent
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/name: node-agent
-            helm.sh/chart: kubescape-operator-1.18.6
+            helm.sh/chart: kubescape-operator-1.18.7
             otel: enabled
             tier: ks-control-plane
         spec:
@@ -5026,7 +5003,7 @@ default capabilities:
                     fieldRef:
                       fieldPath: metadata.name
                 - name: NodeName
-              image: quay.io/kubescape/node-agent:v0.2.12
+              image: quay.io/kubescape/node-agent:v0.2.14
               imagePullPolicy: IfNotPresent
               name: node-agent
               resources:
@@ -5177,13 +5154,8 @@ default capabilities:
       - apiGroups:
           - spdx.softwarecomposition.kubescape.io
         resources:
-          - sbomspdxv2p3s
-          - sbomspdxv2p3filtereds
           - vulnerabilitymanifests
-          - sbomsummaries
-          - vulnerabilitymanifestsummaries
           - workloadconfigurationscans
-          - workloadconfigurationscansummaries
           - openvulnerabilityexchangecontainers
           - sbomsyftfiltereds
           - sbomsyfts
@@ -5259,7 +5231,7 @@ default capabilities:
             app: operator
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/name: operator
-            helm.sh/chart: kubescape-operator-1.18.6
+            helm.sh/chart: kubescape-operator-1.18.7
             otel: enabled
             tier: ks-control-plane
         spec:
@@ -5272,7 +5244,7 @@ default capabilities:
                 - 2>&1
               env:
                 - name: HELM_RELEASE
-                  value: kubescape-operator-1.18.6
+                  value: kubescape-operator-1.18.7
                 - name: GOMEMLIMIT
                   value: 100MiB
                 - name: KS_LOGGER_LEVEL
@@ -5387,7 +5359,7 @@ default capabilities:
   46: |
     apiVersion: v1
     data:
-      cronjobTemplate: "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: kubescape-scheduler\n  namespace: kubescape\n  labels:\n    app: kubescape-scheduler\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\n    armo.tier: \"kubescape-scan\"\nspec:\n  schedule: \"1 2 3 4 5\"\n  successfulJobsHistoryLimit: 3\n  failedJobsHistoryLimit: 1\n  jobTemplate:\n    spec:\n      template:\n        metadata:\n          labels:\n            armo.tier: \"kubescape-scan\"\n        spec:\n          containers:\n          - name: kubescape-scheduler\n            image: \"quay.io/kubescape/http-request:v0.0.14\"\n            imagePullPolicy: IfNotPresent\n            securityContext:\n              allowPrivilegeEscalation: false\n              readOnlyRootFilesystem: true\n              runAsNonRoot: true\n              runAsUser: 100\n            resources:\n              limits:\n                cpu: 10m\n                memory: 20Mi\n              requests:\n                cpu: 1m\n                memory: 10Mi\n            args: \n              - -method=post\n              - -scheme=http\n              - -host=operator:4002\n              - -path=v1/triggerAction\n              - -headers=\"Content-Type:application/json\"\n              - -path-body=/home/ks/request-body.json\n            volumeMounts:\n              - name: \"request-body-volume\"\n                mountPath: /home/ks/request-body.json\n                subPath: request-body.json\n                readOnly: true\n          restartPolicy: Never\n          automountServiceAccountToken: false\n          nodeSelector:\n          affinity:\n          tolerations:\n          volumes:\n            - name: \"request-body-volume\" # placeholder\n              configMap:\n                name: kubescape-scheduler"
+      cronjobTemplate: "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: kubescape-scheduler\n  namespace: kubescape\n  labels:\n    app: kubescape-scheduler\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\n    armo.tier: \"kubescape-scan\"\nspec:\n  schedule: \"1 2 3 4 5\"\n  successfulJobsHistoryLimit: 3\n  failedJobsHistoryLimit: 1\n  jobTemplate:\n    spec:\n      template:\n        metadata:\n          labels:\n            armo.tier: \"kubescape-scan\"\n        spec:\n          containers:\n          - name: kubescape-scheduler\n            image: \"quay.io/kubescape/http-request:v0.2.5\"\n            imagePullPolicy: IfNotPresent\n            securityContext:\n              allowPrivilegeEscalation: false\n              readOnlyRootFilesystem: true\n              runAsNonRoot: true\n              runAsUser: 100\n            resources:\n              limits:\n                cpu: 10m\n                memory: 20Mi\n              requests:\n                cpu: 1m\n                memory: 10Mi\n            args: \n              - -method=post\n              - -scheme=http\n              - -host=operator:4002\n              - -path=v1/triggerAction\n              - -headers=\"Content-Type:application/json\"\n              - -path-body=/home/ks/request-body.json\n            volumeMounts:\n              - name: \"request-body-volume\"\n                mountPath: /home/ks/request-body.json\n                subPath: request-body.json\n                readOnly: true\n          restartPolicy: Never\n          automountServiceAccountToken: false\n          nodeSelector:\n          affinity:\n          tolerations:\n          volumes:\n            - name: \"request-body-volume\" # placeholder\n              configMap:\n                name: kubescape-scheduler"
     kind: ConfigMap
     metadata:
       labels:
@@ -5399,7 +5371,7 @@ default capabilities:
   47: |
     apiVersion: v1
     data:
-      cronjobTemplate: "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: kubevuln-scheduler\n  namespace: kubescape\n  labels:\n    app: kubevuln-scheduler\n    kubescape.io/ignore: \"true\"\n    tier: ks-control-plane\n    armo.tier: \"vuln-scan\"\nspec:\n  schedule: \"1 2 3 4 5\" \n  successfulJobsHistoryLimit: 3\n  failedJobsHistoryLimit: 1\n  jobTemplate:\n    spec:\n      template:\n        metadata:\n          labels:\n            armo.tier: \"vuln-scan\"\n        spec:\n          containers:\n          - name: kubevuln-scheduler\n            image: \"quay.io/kubescape/http-request:v0.0.14\"\n            imagePullPolicy: IfNotPresent\n            securityContext:\n              allowPrivilegeEscalation: false\n              readOnlyRootFilesystem: true\n              runAsNonRoot: true\n              runAsUser: 100\n            resources:\n              limits:\n                cpu: 10m\n                memory: 20Mi\n              requests:\n                cpu: 1m\n                memory: 10Mi\n            args: \n              - -method=post\n              - -scheme=http\n              - -host=operator:4002\n              - -path=v1/triggerAction\n              - -headers=\"Content-Type:application/json\"\n              - -path-body=/home/ks/request-body.json\n            volumeMounts:\n              - name: \"request-body-volume\"\n                mountPath: /home/ks/request-body.json\n                subPath: request-body.json\n                readOnly: true\n          restartPolicy: Never\n          automountServiceAccountToken: false\n          nodeSelector:\n          affinity:\n          tolerations:\n          volumes:\n            - name: \"request-body-volume\" # placeholder\n              configMap:\n                name: kubevuln-scheduler"
+      cronjobTemplate: "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: kubevuln-scheduler\n  namespace: kubescape\n  labels:\n    app: kubevuln-scheduler\n    kubescape.io/ignore: \"true\"\n    tier: ks-control-plane\n    armo.tier: \"vuln-scan\"\nspec:\n  schedule: \"1 2 3 4 5\" \n  successfulJobsHistoryLimit: 3\n  failedJobsHistoryLimit: 1\n  jobTemplate:\n    spec:\n      template:\n        metadata:\n          labels:\n            armo.tier: \"vuln-scan\"\n        spec:\n          containers:\n          - name: kubevuln-scheduler\n            image: \"quay.io/kubescape/http-request:v0.2.5\"\n            imagePullPolicy: IfNotPresent\n            securityContext:\n              allowPrivilegeEscalation: false\n              readOnlyRootFilesystem: true\n              runAsNonRoot: true\n              runAsUser: 100\n            resources:\n              limits:\n                cpu: 10m\n                memory: 20Mi\n              requests:\n                cpu: 1m\n                memory: 10Mi\n            args: \n              - -method=post\n              - -scheme=http\n              - -host=operator:4002\n              - -path=v1/triggerAction\n              - -headers=\"Content-Type:application/json\"\n              - -path-body=/home/ks/request-body.json\n            volumeMounts:\n              - name: \"request-body-volume\"\n                mountPath: /home/ks/request-body.json\n                subPath: request-body.json\n                readOnly: true\n          restartPolicy: Never\n          automountServiceAccountToken: false\n          nodeSelector:\n          affinity:\n          tolerations:\n          volumes:\n            - name: \"request-body-volume\" # placeholder\n              configMap:\n                name: kubevuln-scheduler"
     kind: ConfigMap
     metadata:
       labels:
@@ -5450,7 +5422,7 @@ default capabilities:
   49: |
     apiVersion: v1
     data:
-      cronjobTemplate: "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: registry-scheduler\n  namespace: kubescape\n  labels:\n    app: registry-scheduler\n    kubescape.io/ignore: \"true\"\n    tier: ks-control-plane\n    armo.tier: \"registry-scan\"\nspec:\n  schedule: \"0 0 * * *\"\n  successfulJobsHistoryLimit: 3\n  failedJobsHistoryLimit: 1\n  jobTemplate:\n    spec:\n      template:\n        metadata:\n          labels:\n            armo.tier: \"registry-scan\"\n        spec:\n          containers:\n          - name: registry-scheduler\n            image: \"quay.io/kubescape/http-request:v0.0.14\"\n            imagePullPolicy: IfNotPresent\n            securityContext:\n              allowPrivilegeEscalation: false\n              readOnlyRootFilesystem: true\n              runAsNonRoot: true\n              runAsUser: 100\n            resources:\n              limits:\n                cpu: 10m\n                memory: 20Mi\n              requests:\n                cpu: 1m\n                memory: 10Mi\n            args: \n              - -method=post\n              - -scheme=http\n              - -host=operator:4002\n              - -path=v1/triggerAction\n              - -headers=\"Content-Type:application/json\"\n              - -path-body=/home/ks/request-body.json\n            volumeMounts:\n              - name: \"request-body-volume\"\n                mountPath: /home/ks/request-body.json\n                subPath: request-body.json\n                readOnly: true\n          restartPolicy: Never\n          automountServiceAccountToken: false\n          nodeSelector:\n          affinity:\n          tolerations:\n          volumes:\n            - name: \"request-body-volume\" # placeholder\n              configMap:\n                name: registry-scheduler"
+      cronjobTemplate: "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: registry-scheduler\n  namespace: kubescape\n  labels:\n    app: registry-scheduler\n    kubescape.io/ignore: \"true\"\n    tier: ks-control-plane\n    armo.tier: \"registry-scan\"\nspec:\n  schedule: \"0 0 * * *\"\n  successfulJobsHistoryLimit: 3\n  failedJobsHistoryLimit: 1\n  jobTemplate:\n    spec:\n      template:\n        metadata:\n          labels:\n            armo.tier: \"registry-scan\"\n        spec:\n          containers:\n          - name: registry-scheduler\n            image: \"quay.io/kubescape/http-request:v0.2.5\"\n            imagePullPolicy: IfNotPresent\n            securityContext:\n              allowPrivilegeEscalation: false\n              readOnlyRootFilesystem: true\n              runAsNonRoot: true\n              runAsUser: 100\n            resources:\n              limits:\n                cpu: 10m\n                memory: 20Mi\n              requests:\n                cpu: 1m\n                memory: 10Mi\n            args: \n              - -method=post\n              - -scheme=http\n              - -host=operator:4002\n              - -path=v1/triggerAction\n              - -headers=\"Content-Type:application/json\"\n              - -path-body=/home/ks/request-body.json\n            volumeMounts:\n              - name: \"request-body-volume\"\n                mountPath: /home/ks/request-body.json\n                subPath: request-body.json\n                readOnly: true\n          restartPolicy: Never\n          automountServiceAccountToken: false\n          nodeSelector:\n          affinity:\n          tolerations:\n          volumes:\n            - name: \"request-body-volume\" # placeholder\n              configMap:\n                name: registry-scheduler"
     kind: ConfigMap
     metadata:
       labels:
@@ -5556,7 +5528,7 @@ default capabilities:
         app: otel-collector
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: otel-collector
-        helm.sh/chart: kubescape-operator-1.18.6
+        helm.sh/chart: kubescape-operator-1.18.7
         kubescape.io/ignore: "true"
         tier: ks-control-plane
       name: otel-collector
@@ -5640,7 +5612,7 @@ default capabilities:
     metadata:
       labels:
         app: otel-collector
-        helm.sh/chart: kubescape-operator-1.18.6
+        helm.sh/chart: kubescape-operator-1.18.7
         tier: ks-control-plane
       name: otel-collector
       namespace: kubescape
@@ -5720,7 +5692,7 @@ default capabilities:
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/managed-by: Helm
             app.kubernetes.io/name: service-discovery
-            helm.sh/chart: kubescape-operator-1.18.6
+            helm.sh/chart: kubescape-operator-1.18.7
             otel: enabled
             tier: ks-control-plane
           name: RELEASE-NAME
@@ -5754,7 +5726,7 @@ default capabilities:
                 - -path=api/v2/servicediscovery
                 - -path-output=/data/services.json
               env: null
-              image: quay.io/kubescape/http-request:v0.2.2
+              image: quay.io/kubescape/http-request:v0.2.5
               imagePullPolicy: IfNotPresent
               name: url-discovery
               resources:
@@ -6017,7 +5989,7 @@ default capabilities:
                       name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
-              image: quay.io/kubescape/storage:v0.0.69
+              image: quay.io/kubescape/storage:v0.0.73
               imagePullPolicy: IfNotPresent
               name: apiserver
               resources:
@@ -6339,7 +6311,7 @@ default capabilities:
             app: synchronizer
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/name: synchronizer
-            helm.sh/chart: kubescape-operator-1.18.6
+            helm.sh/chart: kubescape-operator-1.18.7
             otel: enabled
             tier: ks-control-plane
         spec:
@@ -6350,7 +6322,7 @@ default capabilities:
                 - /usr/bin/client
               env:
                 - name: HELM_RELEASE
-                  value: kubescape-operator-1.18.6
+                  value: kubescape-operator-1.18.7
                 - name: GOMEMLIMIT
                   value: 250MiB
                 - name: KS_LOGGER_LEVEL
@@ -6364,7 +6336,7 @@ default capabilities:
                       name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
-              image: quay.io/kubescape/synchronizer:v0.0.68
+              image: quay.io/kubescape/synchronizer:v0.0.70
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -6490,7 +6462,7 @@ default capabilities:
       namespace: kubescape
 minimal capabilities:
   1: |
-    raw: "Thank you for installing kubescape-operator version 1.18.6.\n\n\n\n\nView your image vulnerabilities scan summaries:  \n> kubectl get vulnerabilitymanifestsummaries -A\n\nDetailed reports are also available:  \n> kubectl get vulnerabilitymanifests -A\n\nkubescape-operator generates suggested network policies. To view them:  \n> kubectl get generatednetworkpolicies -n <namespace>\n\n"
+    raw: "Thank you for installing kubescape-operator version 1.18.7.\n\n\n\n\nView your image vulnerabilities:\n> kubectl get vulnerabilitymanifests -A\n\nkubescape-operator generates suggested network policies. To view them:  \n> kubectl get generatednetworkpolicies -n <namespace>\n\n"
   2: |
     apiVersion: v1
     data:
@@ -6546,7 +6518,7 @@ minimal capabilities:
     data:
       capabilities: |
         {
-          "capabilities":{"autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","networkPolicyService":"enable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeObservability":"disable","vexGeneration":"disable","vulnerabilityScan":"enable"},
+          "capabilities":{"autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","networkPolicyService":"enable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeObservability":"enable","vexGeneration":"disable","vulnerabilityScan":"enable"},
           "components":{"cloudSecret":{"create":true,"name":"cloud-secret"},"gateway":{"enabled":false},"hostScanner":{"enabled":true},"kollector":{"enabled":false},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":false},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":false},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":true},"prometheusExporter":{"enabled":false},"serviceDiscovery":{"enabled":false},"storage":{"enabled":true},"synchronizer":{"enabled":false}},
           "configurations":{"otelUrl":"otelCollector:4317","persistence":"enable"}
         }
@@ -6759,7 +6731,6 @@ minimal capabilities:
           - spdx.softwarecomposition.kubescape.io
         resources:
           - workloadconfigurationscans
-          - workloadconfigurationscansummaries
         verbs:
           - create
           - update
@@ -6787,7 +6758,7 @@ minimal capabilities:
         app: kubescape
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape
-        helm.sh/chart: kubescape-operator-1.18.6
+        helm.sh/chart: kubescape-operator-1.18.7
         kubescape.io/ignore: "true"
         tier: ks-control-plane
       name: kubescape
@@ -6815,7 +6786,7 @@ minimal capabilities:
             app: kubescape
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/name: kubescape
-            helm.sh/chart: kubescape-operator-1.18.6
+            helm.sh/chart: kubescape-operator-1.18.7
             otel: enabled
             tier: ks-control-plane
         spec:
@@ -6860,7 +6831,7 @@ minimal capabilities:
                       name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
-              image: quay.io/kubescape/kubescape:v3.0.4
+              image: quay.io/kubescape/kubescape:v3.0.7
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -7107,11 +7078,7 @@ minimal capabilities:
           - spdx.softwarecomposition.kubescape.io
         resources:
           - vulnerabilitymanifests
-          - vulnerabilitymanifestsummaries
-          - sbomsummaries
-          - sbomspdxv2p3s
           - openvulnerabilityexchangecontainers
-          - sbomsyftfiltereds
           - sbomsyfts
         verbs:
           - create
@@ -7123,7 +7090,7 @@ minimal capabilities:
       - apiGroups:
           - spdx.softwarecomposition.kubescape.io
         resources:
-          - sbomspdxv2p3filtereds
+          - sbomsyftfiltereds
         verbs:
           - get
           - watch
@@ -7174,7 +7141,7 @@ minimal capabilities:
             app: kubevuln
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/name: kubevuln
-            helm.sh/chart: kubescape-operator-1.18.6
+            helm.sh/chart: kubescape-operator-1.18.7
             otel: enabled
             tier: ks-control-plane
         spec:
@@ -7203,7 +7170,7 @@ minimal capabilities:
                       name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
-              image: quay.io/kubescape/kubevuln:v0.3.6
+              image: quay.io/kubescape/kubevuln:v0.3.8
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -7344,8 +7311,6 @@ minimal capabilities:
       - apiGroups:
           - spdx.softwarecomposition.kubescape.io
         resources:
-          - sbomspdxv2p3s
-          - sbomsummaries
           - sbomsyfts
         verbs:
           - get
@@ -7354,10 +7319,8 @@ minimal capabilities:
       - apiGroups:
           - spdx.softwarecomposition.kubescape.io
         resources:
-          - sbomspdxv2p3filtereds
           - applicationactivities
           - applicationprofiles
-          - applicationprofilesummaries
           - networkneighborses
           - sbomsyftfiltereds
         verbs:
@@ -7387,7 +7350,7 @@ minimal capabilities:
     data:
       config.json: |
         {
-            "applicationProfileServiceEnabled": false,
+            "applicationProfileServiceEnabled": true,
             "relevantCVEServiceEnabled": true,
             "InitialDelay": "2m",
             "updateDataPeriod": "10m",
@@ -7423,14 +7386,14 @@ minimal capabilities:
           annotations:
             checksum/cloud-config: 52e150fa6ba81b760a262c34545c5f1defc8c2a23d1b4ffd4fc57743dc3cbc5a
             checksum/cloud-secret: baefa7c2a6f06e1afdaffb0829d1caf36ff7428773197f1e5ca4731c132ecb78
-            checksum/node-agent-config: 159d51c48d59bb06af321404ba4a72f108620c410dc56ce7af4af129b5a644c5
+            checksum/node-agent-config: fb53fadca13d78d5e01db68f6ee10efcefc9f19377867d9554fe07c449490244
             container.apparmor.security.beta.kubernetes.io/node-agent: unconfined
           labels:
             alt-name: node-agent
             app: node-agent
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/name: node-agent
-            helm.sh/chart: kubescape-operator-1.18.6
+            helm.sh/chart: kubescape-operator-1.18.7
             otel: enabled
             tier: ks-control-plane
         spec:
@@ -7465,7 +7428,7 @@ minimal capabilities:
                     fieldRef:
                       fieldPath: metadata.name
                 - name: NodeName
-              image: quay.io/kubescape/node-agent:v0.2.12
+              image: quay.io/kubescape/node-agent:v0.2.14
               imagePullPolicy: IfNotPresent
               name: node-agent
               resources:
@@ -7608,13 +7571,8 @@ minimal capabilities:
       - apiGroups:
           - spdx.softwarecomposition.kubescape.io
         resources:
-          - sbomspdxv2p3s
-          - sbomspdxv2p3filtereds
           - vulnerabilitymanifests
-          - sbomsummaries
-          - vulnerabilitymanifestsummaries
           - workloadconfigurationscans
-          - workloadconfigurationscansummaries
           - openvulnerabilityexchangecontainers
           - sbomsyftfiltereds
           - sbomsyfts
@@ -7680,7 +7638,7 @@ minimal capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 12ac1436f8de6e849d5d8beacbb011b923b0fe554c44bf9c15fa8cbdf5f9cd5f
+            checksum/capabilities-config: 0c4f67b4ad704acbaeb33a29f70b96017dcd6d34d4c42995be95c4380b8f97f4
             checksum/cloud-config: 52e150fa6ba81b760a262c34545c5f1defc8c2a23d1b4ffd4fc57743dc3cbc5a
             checksum/cloud-secret: baefa7c2a6f06e1afdaffb0829d1caf36ff7428773197f1e5ca4731c132ecb78
             checksum/matching-rules-config: ac114ef46ae46b2ba220aadc68b8609734da30557e20aebf48182d201ba3d710
@@ -7689,7 +7647,7 @@ minimal capabilities:
             app: operator
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/name: operator
-            helm.sh/chart: kubescape-operator-1.18.6
+            helm.sh/chart: kubescape-operator-1.18.7
             otel: enabled
             tier: ks-control-plane
         spec:
@@ -7702,7 +7660,7 @@ minimal capabilities:
                 - 2>&1
               env:
                 - name: HELM_RELEASE
-                  value: kubescape-operator-1.18.6
+                  value: kubescape-operator-1.18.7
                 - name: GOMEMLIMIT
                   value: 100MiB
                 - name: KS_LOGGER_LEVEL
@@ -7805,7 +7763,7 @@ minimal capabilities:
   28: |
     apiVersion: v1
     data:
-      cronjobTemplate: "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: kubescape-scheduler\n  namespace: kubescape\n  labels:\n    app: kubescape-scheduler\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\n    armo.tier: \"kubescape-scan\"\nspec:\n  schedule: \"1 2 3 4 5\"\n  successfulJobsHistoryLimit: 3\n  failedJobsHistoryLimit: 1\n  jobTemplate:\n    spec:\n      template:\n        metadata:\n          labels:\n            armo.tier: \"kubescape-scan\"\n        spec:\n          containers:\n          - name: kubescape-scheduler\n            image: \"quay.io/kubescape/http-request:v0.0.14\"\n            imagePullPolicy: IfNotPresent\n            securityContext:\n              allowPrivilegeEscalation: false\n              readOnlyRootFilesystem: true\n              runAsNonRoot: true\n              runAsUser: 100\n            resources:\n              limits:\n                cpu: 10m\n                memory: 20Mi\n              requests:\n                cpu: 1m\n                memory: 10Mi\n            args: \n              - -method=post\n              - -scheme=http\n              - -host=operator:4002\n              - -path=v1/triggerAction\n              - -headers=\"Content-Type:application/json\"\n              - -path-body=/home/ks/request-body.json\n            volumeMounts:\n              - name: \"request-body-volume\"\n                mountPath: /home/ks/request-body.json\n                subPath: request-body.json\n                readOnly: true\n          restartPolicy: Never\n          automountServiceAccountToken: false\n          nodeSelector:\n          affinity:\n          tolerations:\n          volumes:\n            - name: \"request-body-volume\" # placeholder\n              configMap:\n                name: kubescape-scheduler"
+      cronjobTemplate: "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: kubescape-scheduler\n  namespace: kubescape\n  labels:\n    app: kubescape-scheduler\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\n    armo.tier: \"kubescape-scan\"\nspec:\n  schedule: \"1 2 3 4 5\"\n  successfulJobsHistoryLimit: 3\n  failedJobsHistoryLimit: 1\n  jobTemplate:\n    spec:\n      template:\n        metadata:\n          labels:\n            armo.tier: \"kubescape-scan\"\n        spec:\n          containers:\n          - name: kubescape-scheduler\n            image: \"quay.io/kubescape/http-request:v0.2.5\"\n            imagePullPolicy: IfNotPresent\n            securityContext:\n              allowPrivilegeEscalation: false\n              readOnlyRootFilesystem: true\n              runAsNonRoot: true\n              runAsUser: 100\n            resources:\n              limits:\n                cpu: 10m\n                memory: 20Mi\n              requests:\n                cpu: 1m\n                memory: 10Mi\n            args: \n              - -method=post\n              - -scheme=http\n              - -host=operator:4002\n              - -path=v1/triggerAction\n              - -headers=\"Content-Type:application/json\"\n              - -path-body=/home/ks/request-body.json\n            volumeMounts:\n              - name: \"request-body-volume\"\n                mountPath: /home/ks/request-body.json\n                subPath: request-body.json\n                readOnly: true\n          restartPolicy: Never\n          automountServiceAccountToken: false\n          nodeSelector:\n          affinity:\n          tolerations:\n          volumes:\n            - name: \"request-body-volume\" # placeholder\n              configMap:\n                name: kubescape-scheduler"
     kind: ConfigMap
     metadata:
       labels:
@@ -7817,7 +7775,7 @@ minimal capabilities:
   29: |
     apiVersion: v1
     data:
-      cronjobTemplate: "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: kubevuln-scheduler\n  namespace: kubescape\n  labels:\n    app: kubevuln-scheduler\n    kubescape.io/ignore: \"true\"\n    tier: ks-control-plane\n    armo.tier: \"vuln-scan\"\nspec:\n  schedule: \"1 2 3 4 5\" \n  successfulJobsHistoryLimit: 3\n  failedJobsHistoryLimit: 1\n  jobTemplate:\n    spec:\n      template:\n        metadata:\n          labels:\n            armo.tier: \"vuln-scan\"\n        spec:\n          containers:\n          - name: kubevuln-scheduler\n            image: \"quay.io/kubescape/http-request:v0.0.14\"\n            imagePullPolicy: IfNotPresent\n            securityContext:\n              allowPrivilegeEscalation: false\n              readOnlyRootFilesystem: true\n              runAsNonRoot: true\n              runAsUser: 100\n            resources:\n              limits:\n                cpu: 10m\n                memory: 20Mi\n              requests:\n                cpu: 1m\n                memory: 10Mi\n            args: \n              - -method=post\n              - -scheme=http\n              - -host=operator:4002\n              - -path=v1/triggerAction\n              - -headers=\"Content-Type:application/json\"\n              - -path-body=/home/ks/request-body.json\n            volumeMounts:\n              - name: \"request-body-volume\"\n                mountPath: /home/ks/request-body.json\n                subPath: request-body.json\n                readOnly: true\n          restartPolicy: Never\n          automountServiceAccountToken: false\n          nodeSelector:\n          affinity:\n          tolerations:\n          volumes:\n            - name: \"request-body-volume\" # placeholder\n              configMap:\n                name: kubevuln-scheduler"
+      cronjobTemplate: "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: kubevuln-scheduler\n  namespace: kubescape\n  labels:\n    app: kubevuln-scheduler\n    kubescape.io/ignore: \"true\"\n    tier: ks-control-plane\n    armo.tier: \"vuln-scan\"\nspec:\n  schedule: \"1 2 3 4 5\" \n  successfulJobsHistoryLimit: 3\n  failedJobsHistoryLimit: 1\n  jobTemplate:\n    spec:\n      template:\n        metadata:\n          labels:\n            armo.tier: \"vuln-scan\"\n        spec:\n          containers:\n          - name: kubevuln-scheduler\n            image: \"quay.io/kubescape/http-request:v0.2.5\"\n            imagePullPolicy: IfNotPresent\n            securityContext:\n              allowPrivilegeEscalation: false\n              readOnlyRootFilesystem: true\n              runAsNonRoot: true\n              runAsUser: 100\n            resources:\n              limits:\n                cpu: 10m\n                memory: 20Mi\n              requests:\n                cpu: 1m\n                memory: 10Mi\n            args: \n              - -method=post\n              - -scheme=http\n              - -host=operator:4002\n              - -path=v1/triggerAction\n              - -headers=\"Content-Type:application/json\"\n              - -path-body=/home/ks/request-body.json\n            volumeMounts:\n              - name: \"request-body-volume\"\n                mountPath: /home/ks/request-body.json\n                subPath: request-body.json\n                readOnly: true\n          restartPolicy: Never\n          automountServiceAccountToken: false\n          nodeSelector:\n          affinity:\n          tolerations:\n          volumes:\n            - name: \"request-body-volume\" # placeholder\n              configMap:\n                name: kubevuln-scheduler"
     kind: ConfigMap
     metadata:
       labels:
@@ -7829,7 +7787,7 @@ minimal capabilities:
   30: |
     apiVersion: v1
     data:
-      cronjobTemplate: "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: registry-scheduler\n  namespace: kubescape\n  labels:\n    app: registry-scheduler\n    kubescape.io/ignore: \"true\"\n    tier: ks-control-plane\n    armo.tier: \"registry-scan\"\nspec:\n  schedule: \"0 0 * * *\"\n  successfulJobsHistoryLimit: 3\n  failedJobsHistoryLimit: 1\n  jobTemplate:\n    spec:\n      template:\n        metadata:\n          labels:\n            armo.tier: \"registry-scan\"\n        spec:\n          containers:\n          - name: registry-scheduler\n            image: \"quay.io/kubescape/http-request:v0.0.14\"\n            imagePullPolicy: IfNotPresent\n            securityContext:\n              allowPrivilegeEscalation: false\n              readOnlyRootFilesystem: true\n              runAsNonRoot: true\n              runAsUser: 100\n            resources:\n              limits:\n                cpu: 10m\n                memory: 20Mi\n              requests:\n                cpu: 1m\n                memory: 10Mi\n            args: \n              - -method=post\n              - -scheme=http\n              - -host=operator:4002\n              - -path=v1/triggerAction\n              - -headers=\"Content-Type:application/json\"\n              - -path-body=/home/ks/request-body.json\n            volumeMounts:\n              - name: \"request-body-volume\"\n                mountPath: /home/ks/request-body.json\n                subPath: request-body.json\n                readOnly: true\n          restartPolicy: Never\n          automountServiceAccountToken: false\n          nodeSelector:\n          affinity:\n          tolerations:\n          volumes:\n            - name: \"request-body-volume\" # placeholder\n              configMap:\n                name: registry-scheduler"
+      cronjobTemplate: "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: registry-scheduler\n  namespace: kubescape\n  labels:\n    app: registry-scheduler\n    kubescape.io/ignore: \"true\"\n    tier: ks-control-plane\n    armo.tier: \"registry-scan\"\nspec:\n  schedule: \"0 0 * * *\"\n  successfulJobsHistoryLimit: 3\n  failedJobsHistoryLimit: 1\n  jobTemplate:\n    spec:\n      template:\n        metadata:\n          labels:\n            armo.tier: \"registry-scan\"\n        spec:\n          containers:\n          - name: registry-scheduler\n            image: \"quay.io/kubescape/http-request:v0.2.5\"\n            imagePullPolicy: IfNotPresent\n            securityContext:\n              allowPrivilegeEscalation: false\n              readOnlyRootFilesystem: true\n              runAsNonRoot: true\n              runAsUser: 100\n            resources:\n              limits:\n                cpu: 10m\n                memory: 20Mi\n              requests:\n                cpu: 1m\n                memory: 10Mi\n            args: \n              - -method=post\n              - -scheme=http\n              - -host=operator:4002\n              - -path=v1/triggerAction\n              - -headers=\"Content-Type:application/json\"\n              - -path-body=/home/ks/request-body.json\n            volumeMounts:\n              - name: \"request-body-volume\"\n                mountPath: /home/ks/request-body.json\n                subPath: request-body.json\n                readOnly: true\n          restartPolicy: Never\n          automountServiceAccountToken: false\n          nodeSelector:\n          affinity:\n          tolerations:\n          volumes:\n            - name: \"request-body-volume\" # placeholder\n              configMap:\n                name: registry-scheduler"
     kind: ConfigMap
     metadata:
       labels:
@@ -7935,7 +7893,7 @@ minimal capabilities:
         app: otel-collector
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: otel-collector
-        helm.sh/chart: kubescape-operator-1.18.6
+        helm.sh/chart: kubescape-operator-1.18.7
         kubescape.io/ignore: "true"
         tier: ks-control-plane
       name: otel-collector
@@ -8213,7 +8171,7 @@ minimal capabilities:
                       name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
-              image: quay.io/kubescape/storage:v0.0.69
+              image: quay.io/kubescape/storage:v0.0.73
               imagePullPolicy: IfNotPresent
               name: apiserver
               resources:
