@@ -1,0 +1,18 @@
+# If prometheus enabled, add prometheus exporter
+{{- if eq .Values.nodeAgent.config.prometheusExporter "enable" }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: runtime-monitor
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    app: runtime-monitor
+spec:
+  namespaceSelector:
+    matchNames:
+      -  {{ .Values.ksNamespace }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.nodeAgent.name }}
+{{ end }}
+
