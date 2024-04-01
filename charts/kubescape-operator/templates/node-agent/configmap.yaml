@@ -23,4 +23,17 @@ data:
           "httpExporterConfig": {{- .Values.nodeAgent.config.httpExporterConfig | toJson }}
         }
     }
+---
+{{- if eq .Values.capabilities.clamav "enable" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.clamav.name }}
+  namespace: {{ .Values.ksNamespace }}
+data:
+  clamd.conf: |-
+{{ .Files.Get "clamav/clamd.conf" | indent 4 }}
+  freshclam.conf: |-
+{{ .Files.Get "clamav/freshclam.conf" | indent 4 }}
+{{- end}}
 {{- end }}

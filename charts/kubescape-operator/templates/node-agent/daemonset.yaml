@@ -50,6 +50,9 @@ spec:
       {{- if .Values.volumes }}
       {{- toYaml .Values.volumes | nindent 8 }}
       {{- end }}
+      {{- if .Values.clamav.volumes }}
+      {{- toYaml .Values.clamav.volumes | nindent 8 }}
+      {{- end }}
         - name: {{ $components.cloudSecret.name }}
           secret:
             secretName: {{ $components.cloudSecret.name }}
@@ -77,6 +80,25 @@ spec:
             secretName: {{ .Values.global.proxySecretName }}
         {{- end }}
       containers:
+        {{- if eq .Values.capabilities.clamav "enable" }}
+        - name: {{ .Values.clamav.name }}
+          image: "{{ .Values.clamav.image.repository }}:{{ .Values.clamav.image.tag }}"
+          imagePullPolicy: {{ .Values.clamav.image.pullPolicy }}
+          livenessProbe:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - "echo 'PING' | nc -w 1 localhost 3310 | grep PONG || exit 1"
+            initialDelaySeconds: 50
+            periodSeconds: 10
+          resources:
+{{ toYaml .Values.clamav.resources | indent 12 }}
+          {{- if .Values.clamav.volumeMounts }}
+          volumeMounts:
+            {{- toYaml .Values.clamav.volumeMounts | nindent 10 }}
+          {{- end }}
+        {{- end }}
         - name: {{ .Values.nodeAgent.name }}
           image: "{{ .Values.nodeAgent.image.repository }}:{{ .Values.nodeAgent.image.tag }}"
           imagePullPolicy: {{ .Values.nodeAgent.image.pullPolicy }}
@@ -94,6 +116,10 @@ spec:
             {{- if $components.otelCollector.enabled }}
             - name: OTEL_COLLECTOR_SVC
               value: "otel-collector:4317"
+            {{- end }}
+            {{- if eq .Values.capabilities.clamav "enable" }}
+            - name: CLAMAV_ADDRESS
+              value: "{{ .Values.clamav.config.address }}"
             {{- end }}
             {{- if ne .Values.global.overrideRuntimePath "" }}
             - name: RUNTIME_PATH
