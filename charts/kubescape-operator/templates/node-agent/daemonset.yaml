@@ -80,13 +80,14 @@ spec:
             secretName: {{ .Values.global.proxySecretName }}
         {{- end }}
       containers:
-        {{- if eq .Values.capabilities.clamav "enable" }}
+        {{- if $checksums.clamAV.enabled }}
         - name: {{ .Values.clamav.name }}
           image: "{{ .Values.clamav.image.repository }}:{{ .Values.clamav.image.tag }}"
           imagePullPolicy: {{ .Values.clamav.image.pullPolicy }}
           securityContext:
-            runAsUser: 0
-            privileged: true
+            capabilities:
+              add:
+                - SYS_PTRACE
           livenessProbe:
             exec:
               command:
@@ -120,9 +121,9 @@ spec:
             - name: OTEL_COLLECTOR_SVC
               value: "otel-collector:4317"
             {{- end }}
-            {{- if eq .Values.capabilities.clamav "enable" }}
+            {{- if $components.clamAV.enabled }}
             - name: CLAMAV_ADDRESS
-              value: "{{ .Values.clamav.config.address }}"
+              value: "127.0.0.1:3310"
             {{- end }}
             {{- if ne .Values.global.overrideRuntimePath "" }}
             - name: RUNTIME_PATH
