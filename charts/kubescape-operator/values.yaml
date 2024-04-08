@@ -78,6 +78,8 @@ capabilities:
   #
   runtimeObservability: enable
   networkPolicyService: enable
+  runtimeDetection: disable
+  malwareDetection: disable
 
   # ====== Other capabilities ======
   #
@@ -90,6 +92,9 @@ capabilities:
 configurations:
   otelUrl: # default is empty
   persistence: enable
+
+  # Enable Prometheus annotations, to allow open-source Prometheus (not operator) to scrape metrics
+  prometheusAnnotations: disable
 
 # -----------------------------------------------------------------------------------------
 # ------------------------ Cloud Providers ------------------------------------------------
@@ -186,10 +191,6 @@ kubescape:
     limits:
       cpu: 600m
       memory: 1Gi
-
-  # Enable prometheus pod annotations,to allow your opensource prometheus (not operator) to scrape metrics
-  prometheusAnnotation:
-    enabled: false
 
   # -- download policies every scan, we recommend it should remain true, you should change to 'false' when running in an air-gapped environment or when scanning with high frequency (when running with Prometheus)
   downloadArtifacts: true
@@ -425,7 +426,7 @@ storage:
   image:
     # -- source code: https://github.com/kubescape/storage
     repository: quay.io/kubescape/storage
-    tag: v0.0.74
+    tag: v0.0.76
     pullPolicy: IfNotPresent
 
   # cleanup interval is a duration string
@@ -451,13 +452,25 @@ nodeAgent:
   image:
     # -- source code: https://github.com/kubescape/node-agent
     repository: quay.io/kubescape/node-agent
-    tag: v0.2.15
+    tag: v0.2.21
     pullPolicy: IfNotPresent
 
   config:
-    maxLearningPeriod: 3h # duration string
+    maxLearningPeriod: 12h # duration string
     learningPeriod: 2m # duration string
     updatePeriod: 10m # duration string
+    prometheusExporter: enable
+    httpExporterConfig: 
+      url: http://synchronizer.kubescape.svc.cluster.local:8089/apis/v1/kubescape.io/v1/runtimealerts
+
+  # prometheus (operator) service monitor
+  serviceMonitor:
+    # -- enable/disable service monitor for prometheus 
+    enabled: false
+
+    # -- Customize prometheus interval and scrapeTimeout
+    interval: 30s
+    scrapeTimeout: 15s
 
   resources:
     requests:
@@ -527,6 +540,55 @@ nodeAgent:
   nodeSelector:
     kubernetes.io/os: linux
 
+# +++++++++++++++++++++++++++++++ ClamAV ++++++++++++++++++++++++++++++++++++++++++++++++
+clamav:
+  name: clamav
+  image:
+    # -- source code: https://github.com/kubescape/node-agent
+    repository: quay.io/armosec/klamav
+    tag: beta5
+    pullPolicy: Always
+
+  resources:
+    limits:
+      cpu: 300m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+  volumeMounts:
+    - mountPath: /var/lib/clamav-tmp
+      name: clamdb
+      readOnly: false
+    - mountPath: /etc/clamav
+      name: etc
+      readOnly: true
+   
+  volumes:
+  - name: clamdb
+    emptyDir: {}
+  - name: etc
+    configMap:
+      name: clamav
+      items:
+      - key: clamd.conf
+        path: clamd.conf
+      - key: freshclam.conf
+        path: freshclam.conf
+
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/os
+                operator: In
+                values:
+                  - linux
+
+  nodeSelector:
+    kubernetes.io/os: linux
 # +++++++++++++++++++++++++++++ Synchronizer ++++++++++++++++++++++++++++++++++++++++++++++++
 
 synchronizer:

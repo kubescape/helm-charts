@@ -28,22 +28,12 @@ kubescape     storage-59567854fd-hg8n8                            1/1     Runnin
 
 The scanning results will be available gradually as the scans are completed.
 
-View your configuration scan summaries:
-```
-kubectl get workloadconfigurationscansummaries -A
-```
-
-Detailed reports are also available:
+View your configuration scan reports:
 ```
 kubectl get workloadconfigurationscans -A
 ```
 
-View your image vulnerabilities scan summaries:
-```
-kubectl get vulnerabilitymanifestsummaries -A
-```
-
-Detailed reports are also available:
+View your image vulnerabilities:
 ```
 kubectl get vulnerabilitymanifests -A
 ```

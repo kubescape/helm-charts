@@ -1,0 +1,24 @@
+# If prometheus enabled, add prometheus exporter
+{{- if .Values.nodeAgent.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: runtime-monitor
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    app: runtime-monitor
+spec:
+  namespaceSelector:
+    matchNames:
+      -  {{ .Values.ksNamespace }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.nodeAgent.name }}
+  endpoints:
+  - port: prometheus
+    path: /metrics
+    scheme: http
+    interval: {{ .Values.nodeAgent.serviceMonitor.interval }}
+    scrapeTimeout: {{ .Values.nodeAgent.serviceMonitor.scrapeTimeout }}
+{{ end }}
+

@@ -8,6 +8,15 @@ on:
         description: What chart do you want to release?
         options: 
         - kubescape-operator
+      HELM_E2E_TEST:
+        required: false
+        default: true
+        type: boolean
+      TESTS_BRANCH:
+        description: 'system tests branch name'
+        required: false
+        default: 'master'
+        type: string
 
   workflow_call:
     inputs:
@@ -17,9 +26,28 @@ on:
       CHARTS_NAME:
         required: true
         type: string
+      HELM_E2E_TEST:
+        required: false
+        default: true
+        type: boolean
+      TESTS_BRANCH:
+        description: 'system tests branch name'
+        required: false
+        default: 'master'
+        type: string
 
 jobs:
+  e2e-test:
+    if: ${{ github.event.inputs.HELM_E2E_TEST }}
+    with:
+      BRANCH: kubescape-operator
+      TESTS_BRANCH: ${{ github.event.inputs.TESTS_BRANCH }}
+      KS_BRANCH: "master"
+    uses: ./.github/workflows/02-e2e-test.yaml
+    secrets: inherit
+
   helm-chart-release:
+    needs: e2e-test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
