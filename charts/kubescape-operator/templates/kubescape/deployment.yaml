@@ -16,12 +16,6 @@ metadata:
     kubescape.io/ignore: "true"
     kubescape.io/tier: "core"
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
-{{- if .Values.kubescape.prometheusAnnotation.enabled }}
-  annotations:
-    prometheus.io/path: /v1/metrics
-    prometheus.io/port: "8080"
-    prometheus.io/scrape: "true"
-{{- end }}
 spec:
   replicas: 1
   revisionHistoryLimit: 2
@@ -43,6 +37,11 @@ spec:
         checksum/cloud-config: {{ $checksums.cloudConfig }}
       {{- if ne .Values.global.proxySecretFile "" }}
         checksum/proxy-config: {{ $checksums.proxySecret }}
+      {{- end }}
+      {{- if eq .Values.configurations.prometheusAnnotations "enable" }}
+        prometheus.io/path: /v1/metrics
+        prometheus.io/port: "8080"
+        prometheus.io/scrape: "true"
       {{- end }}
       labels:
         kubescape.io/tier: "core"
