@@ -1,5 +1,5 @@
 # If prometheus enabled, add prometheus exporter
-{{- if eq .Values.nodeAgent.config.prometheusExporter "enable" }}
+{{- if .Values.nodeAgent.serviceMonitor.enabled }}
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
@@ -14,5 +14,11 @@ spec:
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ .Values.nodeAgent.name }}
+  endpoints:
+  - port: prometheus
+    path: /metrics
+    scheme: http
+    interval: {{ .Values.nodeAgent.serviceMonitor.interval }}
+    scrapeTimeout: {{ .Values.nodeAgent.serviceMonitor.scrapeTimeout }}
 {{ end }}
 
