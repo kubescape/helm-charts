@@ -1,3 +1,8 @@
+{{/* validate alertCRD.scopeClustered and alertCRD.scopeNamespaced are mutual exclusive */}}
+{{- if and .Values.alertCRD.scopeClustered .Values.alertCRD.scopeNamespaced }}
+{{- fail "alertCRD.scopeClustered and alertCRD.scopeNamespaced cannot both be true" }}
+{{- end }}
+
 {{- define "checksums" -}}
 capabilitiesConfig: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.configMapsDirectory "components-configmap.yaml") . | sha256sum }}
 cloudConfig: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.configMapsDirectory "cloudapi-configmap.yaml") . | sha256sum }}
