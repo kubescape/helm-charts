@@ -1,20 +1,10 @@
-{{- if and .Values.alertCRD.installDefault .Values.alertCRD.scopeClustered }}
+{{- if and .Values.alertCRD.installDefault .Values.alertCRD.scopeNamespaced }}
 apiVersion: kubescape.io/v1
 kind: RuntimeRuleAlertBinding
 metadata:
-  name: all-rules-all-pods
+  name: all-rules-default-namespace
+  namespace: {{ .Values.ksNamespace }}
 spec:
-  namespaceSelector:
-    matchExpressions:
-      - key: "kubernetes.io/metadata.name"
-        operator: "NotIn"
-        values:
-        - "kube-system"
-        - "kube-public"
-        - "kube-node-lease"
-        - "kubeconfig"
-        - "gmp-system"
-        - "gmp-public"
   rules:
     - ruleName: "Unexpected process launched"
     - ruleName: "Unexpected file access"
@@ -36,3 +26,4 @@ spec:
     - ruleName: "Crypto Mining Related Port Communication"
     - ruleName: "Crypto Mining Domain Communication"
 {{- end }}
+ 

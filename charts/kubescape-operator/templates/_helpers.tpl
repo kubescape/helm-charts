@@ -1,3 +1,8 @@
+{{/* validate alertCRD.scopeClustered and alertCRD.scopeNamespaced are mutual exclusive */}}
+{{- if and .Values.alertCRD.scopeClustered .Values.alertCRD.scopeNamespaced }}
+{{- fail "alertCRD.scopeClustered and alertCRD.scopeNamespaced cannot both be true" }}
+{{- end }}
+
 {{- define "checksums" -}}
 capabilitiesConfig: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.configMapsDirectory "components-configmap.yaml") . | sha256sum }}
 cloudConfig: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.configMapsDirectory "cloudapi-configmap.yaml") . | sha256sum }}
@@ -53,7 +58,7 @@ kubevuln:
 kubevulnScheduler:
   enabled: {{ and $configurations.submit (eq .Values.capabilities.vulnerabilityScan "enable") }}
 nodeAgent:
-  enabled: {{ (eq .Values.capabilities.relevancy "enable") }}
+  enabled: {{ or (eq .Values.capabilities.relevancy "enable") (eq .Values.capabilities.runtimeObservability "enable") (eq .Values.capabilities.networkPolicyService "enable") }}
 operator:
   enabled: true
 otelCollector:
