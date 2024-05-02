@@ -48,7 +48,7 @@ gateway:
 hostScanner:
   enabled: {{ eq .Values.capabilities.nodeScan "enable" }}
 kollector:
-  enabled: {{ $configurations.submit }}
+  enabled: false
 kubescape:
   enabled: {{ or (eq .Values.capabilities.configurationScan "enable") (eq .Values.capabilities.continuousScan "enable") }}
 kubescapeScheduler:
