@@ -157,6 +157,8 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | imageScanning.privateRegistries.credentials.password | string | `nil` | Password/Token/Client Secret for authentication.|
 | imageScanning.privateRegistries.credentials.skipTlsVerify | bool | `false` | Skip TLS certificate verification |
 | imageScanning.privateRegistries.credentials.insecure | bool | `false` | Use HTTP instead of HTTPS |
+| configurations.priorityClass.enabled | bool | `true` | Add priority class to the installed components |
+| configurations.priorityClass.daemonset | int | 100000100 | PriorityClass of the DaemonSet, this should be higher than the other components so the DaemonSet will schedule on all nodes |
 
 
 # In-cluster components overview

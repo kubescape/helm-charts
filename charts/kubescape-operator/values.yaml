@@ -96,6 +96,11 @@ configurations:
   # Enable Prometheus annotations, to allow open-source Prometheus (not operator) to scrape metrics
   prometheusAnnotations: disable
 
+  priorityClass:
+    enabled: true
+    daemonset: 100000100  # PriorityClass of the DaemonSet, this should be higher than the other components so the DaemonSet will schedule on all nodes
+
+
 # installation of the alertCRD chart
 alertCRD:
   installDefault: false # install the default CRD
@@ -303,9 +308,9 @@ kubevuln:
     limits:
       cpu: 1500m
       memory: 5000Mi
-      ephemeral-storage: 6Gi
+      ephemeral-storage: 10Gi
   config:
-    maxImageSize: 5368709120 # set max image size for scanning, It is recommended to use the same as the requested ephemeral-storage
+    maxImageSize: 5368709120 # set the maximum image size for scanning. This refers to the size of the zipped image. If the size of the non-zipped image is larger, increase the ephemeral-storage limits. It is recommended to use the same size as the requested ephemeral-storage
     scanTimeout: 5m # set timeout for scanning an image
 
   env:
