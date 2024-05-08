@@ -3,7 +3,7 @@
 {{- if $components.nodeAgent.enabled }}
 {{- $no_proxy_envar_list := (include "no_proxy_envar_list" .) -}}
 apiVersion: apps/v1
-kind: DaemonSet
+kind: StatefulSet
 metadata:
   name: {{ .Values.nodeAgent.name }}
   namespace: {{ .Values.ksNamespace }}
@@ -15,6 +15,7 @@ metadata:
     kubescape.io/ignore: "true"
     kubescape.io/tier: "core"
 spec:
+  replicas: 3
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ .Values.nodeAgent.name }}
@@ -82,8 +83,6 @@ spec:
             items:
               - key: "config.json"
                 path: "config.json"
-
-
         {{- if ne .Values.global.proxySecretFile "" }}
         - name: proxy-secret
           secret:
@@ -122,6 +121,8 @@ spec:
           env:
             - name: GOMEMLIMIT
               value: "600MiB"
+            - name: MULTIPLY
+              value: "true"
             - name: HOST_ROOT
               value: "/host"
             - name: KS_LOGGER_LEVEL
