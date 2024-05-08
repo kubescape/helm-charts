@@ -55,6 +55,11 @@ spec:
         volumeMounts:
         - name: shared-data
           mountPath: /data
+        {{- if ne .Values.global.proxySecretFile "" }}
+        - name: proxy-secret
+          mountPath: /etc/ssl/certs/proxy.crt
+          subPath: proxy.crt
+        {{- end }}
       containers:
       - name: {{ .Values.serviceDiscovery.configMapUpdate.name }}
         image: "{{ .Values.serviceDiscovery.configMapUpdate.image.repository }}:{{ .Values.serviceDiscovery.configMapUpdate.image.tag }}"
@@ -71,6 +76,11 @@ spec:
       volumes:
       - name: shared-data
         emptyDir: {}
+      {{- if ne .Values.global.proxySecretFile "" }}
+      - name: proxy-secret
+        secret:
+          secretName: {{ .Values.global.proxySecretName }}
+      {{- end }}
       serviceAccountName: {{ .Values.serviceDiscovery.name }}
       nodeSelector:
       {{- if .Values.serviceDiscovery.nodeSelector }}
