@@ -80,6 +80,7 @@ capabilities:
   networkPolicyService: enable
   runtimeDetection: disable
   malwareDetection: disable
+  nodeProfileService: enable
 
   # ====== Other capabilities ======
   #
@@ -192,7 +193,7 @@ kubescape:
   image:
     # -- source code: https://github.com/kubescape/kubescape/tree/master/httphandler (public repo)
     repository: quay.io/kubescape/kubescape
-    tag: v3.0.9
+    tag: v3.0.10
     pullPolicy: IfNotPresent
 
   resources:
@@ -245,7 +246,7 @@ operator:
   image:
     # -- source code: https://github.com/kubescape/operator
     repository: quay.io/kubescape/operator
-    tag: v0.2.9
+    tag: v0.2.13
     pullPolicy: IfNotPresent
 
   service:
@@ -437,7 +438,7 @@ storage:
   image:
     # -- source code: https://github.com/kubescape/storage
     repository: quay.io/kubescape/storage
-    tag: v0.0.84
+    tag: v0.0.85
     pullPolicy: IfNotPresent
 
   # cleanup interval is a duration string
@@ -447,6 +448,9 @@ storage:
     app.kubernetes.io/name: "storage"
     app.kubernetes.io/component: "apiserver"
     app.kubernetes.io/part-of: "kubescape-storage"
+
+  # GOMEMLIMIT should be lower than the memory limit
+  gomemlimit: 800MiB
 
   resources:
     requests:
@@ -462,18 +466,20 @@ nodeAgent:
   name: node-agent
   image:
     # -- source code: https://github.com/kubescape/node-agent
-    repository: quay.io/kubescape/node-agent
-    tag: v0.2.56
+    repository: quay.io/matthiasb_1/node-agent@sha256
+    tag: 8b4ecc354f291990135e1028ffbb75c4e0b844508f1de6d4c8c685233695ba2e
     pullPolicy: IfNotPresent
 
   config:
-    maxLearningPeriod: 12h # duration string
+    maxLearningPeriod: 24h # duration string
     learningPeriod: 2m # duration string
     updatePeriod: 10m # duration string
+    nodeProfileInterval: 10m # duration string
     prometheusExporter: disable
     httpExporterConfig:
-      url: http://synchronizer:8089/apis/v1/kubescape.io/v1/runtimealerts
+      url: http://synchronizer:8089/apis/v1/kubescape.io
       maxAlertsPerMinute: 1000
+      method: POST
     alertManagerExporterUrls: []
     stdoutExporter: true
     syslogExporterURL: ""
@@ -519,6 +525,9 @@ nodeAgent:
       name: bpffs
     - mountPath: /data
       name: data
+    - mountPath: /clamav
+      name: clamrun
+      readOnly: false
 
   volumes:
     - hostPath:
@@ -559,9 +568,10 @@ nodeAgent:
 clamav:
   name: clamav
   image:
-    repository: quay.io/armosec/klamav
-    tag: beta5
-    pullPolicy: Always
+    # -- source code: https://github.com/kubescape/node-agent/tree/main/clamav
+    repository: quay.io/kubescape/klamav
+    tag: 1.3.1-34_base
+    pullPolicy: IfNotPresent
 
   resources:
     limits:
@@ -575,12 +585,17 @@ clamav:
     - mountPath: /var/lib/clamav-tmp
       name: clamdb
       readOnly: false
+    - mountPath: /run/clamav
+      name: clamrun
+      readOnly: false
     - mountPath: /etc/clamav
       name: etc
       readOnly: true
 
   volumes:
   - name: clamdb
+    emptyDir: {}
+  - name: clamrun
     emptyDir: {}
   - name: etc
     configMap:

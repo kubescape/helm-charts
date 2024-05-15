@@ -99,14 +99,6 @@ spec:
             capabilities:
               add:
                 - SYS_PTRACE
-          livenessProbe:
-            exec:
-              command:
-              - /bin/sh
-              - -c
-              - "echo 'PING' | nc -w 1 localhost 3310 | grep PONG || exit 1"
-            initialDelaySeconds: 50
-            periodSeconds: 10
           resources:
 {{ toYaml .Values.clamav.resources | indent 12 }}
           {{- if .Values.clamav.volumeMounts }}
@@ -130,11 +122,11 @@ spec:
               value: "{{ .Values.logger.name }}"
             {{- if $components.otelCollector.enabled }}
             - name: OTEL_COLLECTOR_SVC
-              value: "otel-collector:4317"
+              value: "otel-collector:4318"
             {{- end }}
             {{- if $components.clamAV.enabled }}
-            - name: CLAMAV_ADDRESS
-              value: "127.0.0.1:3310"
+            - name: CLAMAV_SOCKET
+              value: "/clamav/clamd.sock"
             {{- end }}
             {{- if ne .Values.global.overrideRuntimePath "" }}
             - name: RUNTIME_PATH
