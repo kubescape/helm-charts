@@ -26,21 +26,35 @@ spec:
       {{- end }}
         {{ .Values.storage.labels | toYaml | nindent 8 }}
     spec:
+      hostPID: true
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
       - name: {{ toYaml .Values.imagePullSecrets }}
       {{- end }}
-      serviceAccountName: {{ .Values.storage.name }}
-      securityContext:
-        runAsUser: 65532
-        fsGroup: 65532
+      serviceAccountName: {{ .Values.storage.name }}       
       containers:
+      - name: strace
+        image: quay.io/dwertent/strace:debian-1 
+        securityContext:
+          runAsUser: 0
+          allowPrivilegeEscalation: true
+          runAsNonRoot: false
+          privileged: true
+          capabilities:
+            add:
+            - SYS_PTRACE
+            - SYS_ADMIN
+        volumeMounts:
+        - name: shared
+          mountPath: /shared
       - name: apiserver
         image: "{{ .Values.storage.image.repository }}:{{ .Values.storage.image.tag }}"
         imagePullPolicy: {{ .Values.storage.image.pullPolicy }}
         securityContext:
           allowPrivilegeEscalation: false
           runAsNonRoot: true
+          runAsUser: 65532
+          fsGroup: 65532
         env:
           - name: "CLEANUP_INTERVAL"
             value: "{{ .Values.storage.cleanupInterval }}"
@@ -82,6 +96,8 @@ spec:
       {{- toYaml .Values.customScheduling.tolerations | nindent 8 }}
       {{- end }}
       volumes:
+        - name: shared
+          emptyDir: {}
         - name: "data"
           {{- if eq .Values.configurations.persistence "enable" }}
           persistentVolumeClaim:
