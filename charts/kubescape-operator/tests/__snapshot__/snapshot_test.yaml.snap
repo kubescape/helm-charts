@@ -132,6 +132,7 @@ all capabilities:
           "otelCollector": true,
           "nodeAgent": "true",
           "maxImageSize": 5.36870912e+09,
+          "maxSBOMSize": 2.097152e+07,
           "keepLocal": false,
           "scanTimeout": "5m",
           "vexGeneration": true,
@@ -227,9 +228,9 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: ca5984899e6bdff85ee9c762fd75f715483b862b4eea5990a107581e5f01e21a
+            checksum/cloud-config: c4dc912bbe62b0d5fd4734206c3cae52f56d766cbc20024182a2bcef09c0ae8e
             checksum/cloud-secret: 8665d3f0f7282091716b5fbf7356972eb83a5a9e86eb064218d24e9f66612b99
-            checksum/proxy-config: 1899101b1e9e4f85d94e8f291c44fec0afd3ed60e569f831864d82bddd16d482
+            checksum/proxy-config: 30e81a4193016803b4b7985b92028c4797c1e84d317a4b6b3e3a5406139f8847
           labels:
             app: gateway
             app.kubernetes.io/instance: RELEASE-NAME
@@ -600,9 +601,9 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: ca5984899e6bdff85ee9c762fd75f715483b862b4eea5990a107581e5f01e21a
+            checksum/cloud-config: c4dc912bbe62b0d5fd4734206c3cae52f56d766cbc20024182a2bcef09c0ae8e
             checksum/cloud-secret: 8665d3f0f7282091716b5fbf7356972eb83a5a9e86eb064218d24e9f66612b99
-            checksum/proxy-config: 1899101b1e9e4f85d94e8f291c44fec0afd3ed60e569f831864d82bddd16d482
+            checksum/proxy-config: 30e81a4193016803b4b7985b92028c4797c1e84d317a4b6b3e3a5406139f8847
           labels:
             app: kollector
             app.kubernetes.io/instance: RELEASE-NAME
@@ -1014,10 +1015,10 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: ca5984899e6bdff85ee9c762fd75f715483b862b4eea5990a107581e5f01e21a
+            checksum/cloud-config: c4dc912bbe62b0d5fd4734206c3cae52f56d766cbc20024182a2bcef09c0ae8e
             checksum/cloud-secret: 8665d3f0f7282091716b5fbf7356972eb83a5a9e86eb064218d24e9f66612b99
             checksum/host-scanner-configmap: cb6c9f6c0baf504f7e8b4b5daf0c3a84cdf0cf21e3a098be67e57fdcd2db8ac9
-            checksum/proxy-config: 1899101b1e9e4f85d94e8f291c44fec0afd3ed60e569f831864d82bddd16d482
+            checksum/proxy-config: 30e81a4193016803b4b7985b92028c4797c1e84d317a4b6b3e3a5406139f8847
           labels:
             app: kubescape
             app.kubernetes.io/instance: RELEASE-NAME
@@ -1515,9 +1516,9 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: ca5984899e6bdff85ee9c762fd75f715483b862b4eea5990a107581e5f01e21a
+            checksum/cloud-config: c4dc912bbe62b0d5fd4734206c3cae52f56d766cbc20024182a2bcef09c0ae8e
             checksum/cloud-secret: 8665d3f0f7282091716b5fbf7356972eb83a5a9e86eb064218d24e9f66612b99
-            checksum/proxy-config: 1899101b1e9e4f85d94e8f291c44fec0afd3ed60e569f831864d82bddd16d482
+            checksum/proxy-config: 30e81a4193016803b4b7985b92028c4797c1e84d317a4b6b3e3a5406139f8847
           labels:
             app: kubevuln
             app.kubernetes.io/instance: RELEASE-NAME
@@ -1552,7 +1553,7 @@ all capabilities:
                       name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
-              image: quay.io/kubescape/kubevuln:v0.3.18
+              image: quay.io/kubescape/kubevuln:v0.3.20
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -1864,10 +1865,10 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: ca5984899e6bdff85ee9c762fd75f715483b862b4eea5990a107581e5f01e21a
+            checksum/cloud-config: c4dc912bbe62b0d5fd4734206c3cae52f56d766cbc20024182a2bcef09c0ae8e
             checksum/cloud-secret: 8665d3f0f7282091716b5fbf7356972eb83a5a9e86eb064218d24e9f66612b99
             checksum/node-agent-config: 6ea6df1bfc37931b12c72b42f92f151d537f09e5762a83fa43f872e16eed6e2f
-            checksum/proxy-config: 1899101b1e9e4f85d94e8f291c44fec0afd3ed60e569f831864d82bddd16d482
+            checksum/proxy-config: 30e81a4193016803b4b7985b92028c4797c1e84d317a4b6b3e3a5406139f8847
             container.apparmor.security.beta.kubernetes.io/node-agent: unconfined
           labels:
             alt-name: node-agent
@@ -1941,9 +1942,17 @@ all capabilities:
                     fieldRef:
                       fieldPath: metadata.namespace
                 - name: NodeName
-              image: quay.io/kubescape/node-agent:v0.2.68
+              image: quay.io/kubescape/node-agent:v0.2.70
               imagePullPolicy: IfNotPresent
+              livenessProbe:
+                httpGet:
+                  path: /livez
+                  port: 7888
               name: node-agent
+              readinessProbe:
+                httpGet:
+                  path: /readyz
+                  port: 7888
               resources:
                 limits:
                   cpu: 500m
@@ -2198,11 +2207,11 @@ all capabilities:
         metadata:
           annotations:
             checksum/capabilities-config: 9b2440aea07cc3d6976647cfaa3ae331467388cb70fde2ffa6227556ef29e007
-            checksum/cloud-config: ca5984899e6bdff85ee9c762fd75f715483b862b4eea5990a107581e5f01e21a
+            checksum/cloud-config: c4dc912bbe62b0d5fd4734206c3cae52f56d766cbc20024182a2bcef09c0ae8e
             checksum/cloud-secret: 8665d3f0f7282091716b5fbf7356972eb83a5a9e86eb064218d24e9f66612b99
             checksum/matching-rules-config: 9282b3916f506ac98eccbdfe686271420ff520374de611f7efce8235dcdf8809
             checksum/operator-config: c93475330d0be5d1bc3ae3b0066c6e8c184637451e6037a72aec8ff6c31d161f
-            checksum/proxy-config: 1899101b1e9e4f85d94e8f291c44fec0afd3ed60e569f831864d82bddd16d482
+            checksum/proxy-config: 30e81a4193016803b4b7985b92028c4797c1e84d317a4b6b3e3a5406139f8847
           labels:
             app: operator
             app.kubernetes.io/instance: RELEASE-NAME
@@ -2532,7 +2541,7 @@ all capabilities:
         metadata:
           annotations:
             checksum/otel-config: 58c3ed11c126dfdfb4f9eb16397879693b9ff765f540251bf548ee8d18e30497
-            checksum/proxy-config: 1899101b1e9e4f85d94e8f291c44fec0afd3ed60e569f831864d82bddd16d482
+            checksum/proxy-config: 30e81a4193016803b4b7985b92028c4797c1e84d317a4b6b3e3a5406139f8847
           labels:
             app: otel-collector
             app.kubernetes.io/instance: RELEASE-NAME
@@ -2557,6 +2566,9 @@ all capabilities:
                   value: "80"
               image: docker.io/otel/opentelemetry-collector:0.97.0
               imagePullPolicy: IfNotPresent
+              livenessProbe:
+                tcpSocket:
+                  port: otlp
               name: otel-collector
               ports:
                 - containerPort: 4317
@@ -2565,6 +2577,9 @@ all capabilities:
                 - containerPort: 4318
                   name: otlp-http
                   protocol: TCP
+              readinessProbe:
+                tcpSocket:
+                  port: otlp
               resources:
                 limits:
                   cpu: 1
@@ -2831,6 +2846,10 @@ all capabilities:
       proxy.crt: foo
     kind: Secret
     metadata:
+      annotations:
+        helm.sh/hook: pre-install,pre-upgrade
+        helm.sh/hook-delete-policy: before-hook-creation
+        helm.sh/hook-weight: "0"
       labels:
         kubescape.io/ignore: "true"
       name: kubescape-proxy-certificate
@@ -3168,7 +3187,17 @@ all capabilities:
                   value: otel-collector:4317
               image: quay.io/kubescape/storage:v0.0.85
               imagePullPolicy: IfNotPresent
+              livenessProbe:
+                httpGet:
+                  path: /livez
+                  port: 8443
+                  scheme: HTTPS
               name: apiserver
+              readinessProbe:
+                httpGet:
+                  path: /readyz
+                  port: 8443
+                  scheme: HTTPS
               resources:
                 limits:
                   cpu: 500m
@@ -3572,9 +3601,9 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: ca5984899e6bdff85ee9c762fd75f715483b862b4eea5990a107581e5f01e21a
+            checksum/cloud-config: c4dc912bbe62b0d5fd4734206c3cae52f56d766cbc20024182a2bcef09c0ae8e
             checksum/cloud-secret: 8665d3f0f7282091716b5fbf7356972eb83a5a9e86eb064218d24e9f66612b99
-            checksum/proxy-config: 1899101b1e9e4f85d94e8f291c44fec0afd3ed60e569f831864d82bddd16d482
+            checksum/proxy-config: 30e81a4193016803b4b7985b92028c4797c1e84d317a4b6b3e3a5406139f8847
             checksum/synchronizer-configmap: 0a1812e3544a32ad663a16df7b823f8093c6268ca3f15cbdde223935d9ab0956
           labels:
             app: synchronizer
@@ -3768,6 +3797,7 @@ default capabilities:
           "otelCollector": true,
           "nodeAgent": "true",
           "maxImageSize": 5.36870912e+09,
+          "maxSBOMSize": 2.097152e+07,
           "keepLocal": false,
           "scanTimeout": "5m",
           "vexGeneration": false,
@@ -3863,9 +3893,9 @@ default capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: fb124737ed448255a8e5c3fa8777f93da4ae931e5e7b2e98418924a2528a9230
+            checksum/cloud-config: 98e72a3a1a24264d2cdebc86b61829ee5b941fb590d6ca717ebaa880922046c6
             checksum/cloud-secret: 8665d3f0f7282091716b5fbf7356972eb83a5a9e86eb064218d24e9f66612b99
-            checksum/proxy-config: 1899101b1e9e4f85d94e8f291c44fec0afd3ed60e569f831864d82bddd16d482
+            checksum/proxy-config: 30e81a4193016803b4b7985b92028c4797c1e84d317a4b6b3e3a5406139f8847
           labels:
             app: gateway
             app.kubernetes.io/instance: RELEASE-NAME
@@ -4236,9 +4266,9 @@ default capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: fb124737ed448255a8e5c3fa8777f93da4ae931e5e7b2e98418924a2528a9230
+            checksum/cloud-config: 98e72a3a1a24264d2cdebc86b61829ee5b941fb590d6ca717ebaa880922046c6
             checksum/cloud-secret: 8665d3f0f7282091716b5fbf7356972eb83a5a9e86eb064218d24e9f66612b99
-            checksum/proxy-config: 1899101b1e9e4f85d94e8f291c44fec0afd3ed60e569f831864d82bddd16d482
+            checksum/proxy-config: 30e81a4193016803b4b7985b92028c4797c1e84d317a4b6b3e3a5406139f8847
           labels:
             app: kollector
             app.kubernetes.io/instance: RELEASE-NAME
@@ -4650,10 +4680,10 @@ default capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: fb124737ed448255a8e5c3fa8777f93da4ae931e5e7b2e98418924a2528a9230
+            checksum/cloud-config: 98e72a3a1a24264d2cdebc86b61829ee5b941fb590d6ca717ebaa880922046c6
             checksum/cloud-secret: 8665d3f0f7282091716b5fbf7356972eb83a5a9e86eb064218d24e9f66612b99
             checksum/host-scanner-configmap: cb6c9f6c0baf504f7e8b4b5daf0c3a84cdf0cf21e3a098be67e57fdcd2db8ac9
-            checksum/proxy-config: 1899101b1e9e4f85d94e8f291c44fec0afd3ed60e569f831864d82bddd16d482
+            checksum/proxy-config: 30e81a4193016803b4b7985b92028c4797c1e84d317a4b6b3e3a5406139f8847
           labels:
             app: kubescape
             app.kubernetes.io/instance: RELEASE-NAME
@@ -5151,9 +5181,9 @@ default capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: fb124737ed448255a8e5c3fa8777f93da4ae931e5e7b2e98418924a2528a9230
+            checksum/cloud-config: 98e72a3a1a24264d2cdebc86b61829ee5b941fb590d6ca717ebaa880922046c6
             checksum/cloud-secret: 8665d3f0f7282091716b5fbf7356972eb83a5a9e86eb064218d24e9f66612b99
-            checksum/proxy-config: 1899101b1e9e4f85d94e8f291c44fec0afd3ed60e569f831864d82bddd16d482
+            checksum/proxy-config: 30e81a4193016803b4b7985b92028c4797c1e84d317a4b6b3e3a5406139f8847
           labels:
             app: kubevuln
             app.kubernetes.io/instance: RELEASE-NAME
@@ -5188,7 +5218,7 @@ default capabilities:
                       name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
-              image: quay.io/kubescape/kubevuln:v0.3.18
+              image: quay.io/kubescape/kubevuln:v0.3.20
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -5464,10 +5494,10 @@ default capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: fb124737ed448255a8e5c3fa8777f93da4ae931e5e7b2e98418924a2528a9230
+            checksum/cloud-config: 98e72a3a1a24264d2cdebc86b61829ee5b941fb590d6ca717ebaa880922046c6
             checksum/cloud-secret: 8665d3f0f7282091716b5fbf7356972eb83a5a9e86eb064218d24e9f66612b99
             checksum/node-agent-config: bc9bb37c4ce7c8eee69eee89a27524043a8e9aa02c4b7f102df9d98b34cafff0
-            checksum/proxy-config: 1899101b1e9e4f85d94e8f291c44fec0afd3ed60e569f831864d82bddd16d482
+            checksum/proxy-config: 30e81a4193016803b4b7985b92028c4797c1e84d317a4b6b3e3a5406139f8847
             container.apparmor.security.beta.kubernetes.io/node-agent: unconfined
           labels:
             alt-name: node-agent
@@ -5514,9 +5544,17 @@ default capabilities:
                     fieldRef:
                       fieldPath: metadata.namespace
                 - name: NodeName
-              image: quay.io/kubescape/node-agent:v0.2.68
+              image: quay.io/kubescape/node-agent:v0.2.70
               imagePullPolicy: IfNotPresent
+              livenessProbe:
+                httpGet:
+                  path: /livez
+                  port: 7888
               name: node-agent
+              readinessProbe:
+                httpGet:
+                  path: /readyz
+                  port: 7888
               resources:
                 limits:
                   cpu: 500m
@@ -5771,11 +5809,11 @@ default capabilities:
         metadata:
           annotations:
             checksum/capabilities-config: 5feb506d071526d4b7f4e0c6627cce9942eca2a3ef96a2b9b27b648b26792f2b
-            checksum/cloud-config: fb124737ed448255a8e5c3fa8777f93da4ae931e5e7b2e98418924a2528a9230
+            checksum/cloud-config: 98e72a3a1a24264d2cdebc86b61829ee5b941fb590d6ca717ebaa880922046c6
             checksum/cloud-secret: 8665d3f0f7282091716b5fbf7356972eb83a5a9e86eb064218d24e9f66612b99
             checksum/matching-rules-config: 9282b3916f506ac98eccbdfe686271420ff520374de611f7efce8235dcdf8809
             checksum/operator-config: c93475330d0be5d1bc3ae3b0066c6e8c184637451e6037a72aec8ff6c31d161f
-            checksum/proxy-config: 1899101b1e9e4f85d94e8f291c44fec0afd3ed60e569f831864d82bddd16d482
+            checksum/proxy-config: 30e81a4193016803b4b7985b92028c4797c1e84d317a4b6b3e3a5406139f8847
           labels:
             app: operator
             app.kubernetes.io/instance: RELEASE-NAME
@@ -6105,7 +6143,7 @@ default capabilities:
         metadata:
           annotations:
             checksum/otel-config: 58c3ed11c126dfdfb4f9eb16397879693b9ff765f540251bf548ee8d18e30497
-            checksum/proxy-config: 1899101b1e9e4f85d94e8f291c44fec0afd3ed60e569f831864d82bddd16d482
+            checksum/proxy-config: 30e81a4193016803b4b7985b92028c4797c1e84d317a4b6b3e3a5406139f8847
           labels:
             app: otel-collector
             app.kubernetes.io/instance: RELEASE-NAME
@@ -6130,6 +6168,9 @@ default capabilities:
                   value: "80"
               image: docker.io/otel/opentelemetry-collector:0.97.0
               imagePullPolicy: IfNotPresent
+              livenessProbe:
+                tcpSocket:
+                  port: otlp
               name: otel-collector
               ports:
                 - containerPort: 4317
@@ -6138,6 +6179,9 @@ default capabilities:
                 - containerPort: 4318
                   name: otlp-http
                   protocol: TCP
+              readinessProbe:
+                tcpSocket:
+                  port: otlp
               resources:
                 limits:
                   cpu: 1
@@ -6226,6 +6270,10 @@ default capabilities:
       proxy.crt: foo
     kind: Secret
     metadata:
+      annotations:
+        helm.sh/hook: pre-install,pre-upgrade
+        helm.sh/hook-delete-policy: before-hook-creation
+        helm.sh/hook-weight: "0"
       labels:
         kubescape.io/ignore: "true"
       name: kubescape-proxy-certificate
@@ -6563,7 +6611,17 @@ default capabilities:
                   value: otel-collector:4317
               image: quay.io/kubescape/storage:v0.0.85
               imagePullPolicy: IfNotPresent
+              livenessProbe:
+                httpGet:
+                  path: /livez
+                  port: 8443
+                  scheme: HTTPS
               name: apiserver
+              readinessProbe:
+                httpGet:
+                  path: /readyz
+                  port: 8443
+                  scheme: HTTPS
               resources:
                 limits:
                   cpu: 500m
@@ -6967,9 +7025,9 @@ default capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: fb124737ed448255a8e5c3fa8777f93da4ae931e5e7b2e98418924a2528a9230
+            checksum/cloud-config: 98e72a3a1a24264d2cdebc86b61829ee5b941fb590d6ca717ebaa880922046c6
             checksum/cloud-secret: 8665d3f0f7282091716b5fbf7356972eb83a5a9e86eb064218d24e9f66612b99
-            checksum/proxy-config: 1899101b1e9e4f85d94e8f291c44fec0afd3ed60e569f831864d82bddd16d482
+            checksum/proxy-config: 30e81a4193016803b4b7985b92028c4797c1e84d317a4b6b3e3a5406139f8847
             checksum/synchronizer-configmap: 0a1812e3544a32ad663a16df7b823f8093c6268ca3f15cbdde223935d9ab0956
           labels:
             app: synchronizer
@@ -7163,6 +7221,7 @@ minimal capabilities:
           "otelCollector": true,
           "nodeAgent": "true",
           "maxImageSize": 5.36870912e+09,
+          "maxSBOMSize": 2.097152e+07,
           "keepLocal": true,
           "scanTimeout": "5m",
           "vexGeneration": false,
@@ -7457,7 +7516,7 @@ minimal capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 9f53ca7bef8ac508eb3f7759668ef3db9ce194c142364e1f84151f1b8e538b1d
+            checksum/cloud-config: c8580dbb81fa1c832dc787a966fc068feacfb2ee7f67fdd928c256f4094ad656
             checksum/cloud-secret: baefa7c2a6f06e1afdaffb0829d1caf36ff7428773197f1e5ca4731c132ecb78
             checksum/host-scanner-configmap: cb6c9f6c0baf504f7e8b4b5daf0c3a84cdf0cf21e3a098be67e57fdcd2db8ac9
           labels:
@@ -7818,7 +7877,7 @@ minimal capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 9f53ca7bef8ac508eb3f7759668ef3db9ce194c142364e1f84151f1b8e538b1d
+            checksum/cloud-config: c8580dbb81fa1c832dc787a966fc068feacfb2ee7f67fdd928c256f4094ad656
             checksum/cloud-secret: baefa7c2a6f06e1afdaffb0829d1caf36ff7428773197f1e5ca4731c132ecb78
           labels:
             app: kubevuln
@@ -7854,7 +7913,7 @@ minimal capabilities:
                       name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
-              image: quay.io/kubescape/kubevuln:v0.3.18
+              image: quay.io/kubescape/kubevuln:v0.3.20
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -8090,7 +8149,7 @@ minimal capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 9f53ca7bef8ac508eb3f7759668ef3db9ce194c142364e1f84151f1b8e538b1d
+            checksum/cloud-config: c8580dbb81fa1c832dc787a966fc068feacfb2ee7f67fdd928c256f4094ad656
             checksum/cloud-secret: baefa7c2a6f06e1afdaffb0829d1caf36ff7428773197f1e5ca4731c132ecb78
             checksum/node-agent-config: bc9bb37c4ce7c8eee69eee89a27524043a8e9aa02c4b7f102df9d98b34cafff0
             container.apparmor.security.beta.kubernetes.io/node-agent: unconfined
@@ -8139,9 +8198,17 @@ minimal capabilities:
                     fieldRef:
                       fieldPath: metadata.namespace
                 - name: NodeName
-              image: quay.io/kubescape/node-agent:v0.2.68
+              image: quay.io/kubescape/node-agent:v0.2.70
               imagePullPolicy: IfNotPresent
+              livenessProbe:
+                httpGet:
+                  path: /livez
+                  port: 7888
               name: node-agent
+              readinessProbe:
+                httpGet:
+                  path: /readyz
+                  port: 7888
               resources:
                 limits:
                   cpu: 500m
@@ -8388,7 +8455,7 @@ minimal capabilities:
         metadata:
           annotations:
             checksum/capabilities-config: a38f26706ee8de7094da30bbf12709e5ab6a8c267b0937cbeb629d61218f8cbd
-            checksum/cloud-config: 9f53ca7bef8ac508eb3f7759668ef3db9ce194c142364e1f84151f1b8e538b1d
+            checksum/cloud-config: c8580dbb81fa1c832dc787a966fc068feacfb2ee7f67fdd928c256f4094ad656
             checksum/cloud-secret: baefa7c2a6f06e1afdaffb0829d1caf36ff7428773197f1e5ca4731c132ecb78
             checksum/matching-rules-config: 9282b3916f506ac98eccbdfe686271420ff520374de611f7efce8235dcdf8809
             checksum/operator-config: c93475330d0be5d1bc3ae3b0066c6e8c184637451e6037a72aec8ff6c31d161f
@@ -8694,6 +8761,9 @@ minimal capabilities:
                   value: "80"
               image: docker.io/otel/opentelemetry-collector:0.97.0
               imagePullPolicy: IfNotPresent
+              livenessProbe:
+                tcpSocket:
+                  port: otlp
               name: otel-collector
               ports:
                 - containerPort: 4317
@@ -8702,6 +8772,9 @@ minimal capabilities:
                 - containerPort: 4318
                   name: otlp-http
                   protocol: TCP
+              readinessProbe:
+                tcpSocket:
+                  port: otlp
               resources:
                 limits:
                   cpu: 1
@@ -8938,7 +9011,17 @@ minimal capabilities:
                   value: otel-collector:4317
               image: quay.io/kubescape/storage:v0.0.85
               imagePullPolicy: IfNotPresent
+              livenessProbe:
+                httpGet:
+                  path: /livez
+                  port: 8443
+                  scheme: HTTPS
               name: apiserver
+              readinessProbe:
+                httpGet:
+                  path: /readyz
+                  port: 8443
+                  scheme: HTTPS
               resources:
                 limits:
                   cpu: 500m
