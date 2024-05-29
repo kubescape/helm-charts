@@ -8,11 +8,12 @@ metadata:
   labels:
     app: {{ .Values.operator.name }}
     tier: {{ .Values.global.namespaceTier }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
 spec:
   podSelector:
     matchLabels:
-      app.kubernetes.io/name: {{ .Values.operator.name }}
       app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/name: {{ .Values.operator.name }}
       tier: {{ .Values.global.namespaceTier }}
   policyTypes:
     - Ingress
@@ -30,6 +31,34 @@ spec:
       to:
         - ipBlock:
             cidr: 169.254.169.254/32
+    - ports:
+        - protocol: TCP
+          port: 8080
+      to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: {{ .Release.Name }}
+              app.kubernetes.io/name: {{ .Values.kubescape.name }}
+              tier: {{ .Values.global.namespaceTier }}
+    - ports:
+        - protocol: TCP
+          port: 8001
+      to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: {{ .Release.Name }}
+              app.kubernetes.io/name: {{ .Values.gateway.name }}
+              tier: {{ .Values.global.namespaceTier }}
+    - ports:
+        - protocol: TCP
+          port: 8080
+      to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: {{ .Release.Name }}
+              app.kubernetes.io/name: {{ .Values.kubevuln.name }}
+              tier: {{ .Values.global.namespaceTier }}
+{{ tpl (.Files.Get "assets/common-egress-rules.yaml") . | indent 4 }}
   {{- end }}
   ingress:
     - from:

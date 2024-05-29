@@ -1,24 +1,22 @@
 {{- $components := fromYaml (include "components" .) }}
-{{- if and .Values.global.networkPolicy.enabled $components.prometheusExporter.enabled }}
+{{- if and .Values.global.networkPolicy.enabled .Values.global.networkPolicy.createEgressRules $components.kubevulnScheduler.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: {{ .Values.prometheusExporter.name }}
+  name: {{ .Values.kubevulnScheduler.name }}
   namespace: {{ .Values.ksNamespace }}
   labels:
-    app: {{ .Values.prometheusExporter.name }}
+    app: {{ .Values.kubevulnScheduler.name }}
     tier: {{ .Values.global.namespaceTier }}
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
 spec:
   podSelector:
     matchLabels:
       app.kubernetes.io/instance: {{ .Release.Name }}
-      app.kubernetes.io/name: {{ .Values.prometheusExporter.name }}
+      app.kubernetes.io/name: {{ .Values.kubevulnScheduler.name }}
       tier: {{ .Values.global.namespaceTier }}
   policyTypes:
-    - Ingress
-  ingress:
-    - ports:
-        - port: {{ .Values.prometheusExporter.service.port }}
-          protocol: TCP
+    - Egress
+  egress:
+{{ tpl (.Files.Get "assets/common-egress-rules.yaml") . | indent 4 }}
 {{- end }}

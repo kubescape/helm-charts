@@ -78,5 +78,6 @@ clamAV:
   enabled: {{ eq .Values.capabilities.malwareDetection "enable" }}
 customCaCertificates:
   name: custom-ca-certificates
-
+autoUpdater:
+  enabled: {{ eq .Values.capabilities.autoUpgrading "enable" }}
 {{- end -}}
