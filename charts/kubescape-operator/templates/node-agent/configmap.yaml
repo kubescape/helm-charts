@@ -1,6 +1,12 @@
 {{- $components := fromYaml (include "components" .) }}
 {{- $configurations := fromYaml (include "configurations" .) }}
 {{- if $components.nodeAgent.enabled }}
+{{/* validate that either alertCRD.scopeClustered or alertCRD.scopeNamespaced defined when the capability enabled */}}
+{{- if eq .Values.capabilities.runtimeDetection "enable" }}
+{{- if and (not .Values.alertCRD.scopeNamespaced) (not .Values.alertCRD.scopeClustered) }}
+{{- fail "Runtime detection is enabled, but the Runtime rule alert binding CRD is not configured to be created neither in the cluster scope nor namespace scope (set alertCRD.scopeClustered or alertCRD.scopeNamepaced)" }}
+{{- end }}
+{{- end }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
