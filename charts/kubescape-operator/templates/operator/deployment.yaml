@@ -140,6 +140,11 @@ spec:
               mountPath: /etc/config/config.json
               readOnly: true
               subPath: "config.json"
+            {{- if .Values.global.overrideDefaultCaCertificates.enabled }}
+            - name: custom-ca-certificates
+              mountPath: /etc/ssl/certs/ca-certificates.crt
+              subPath: ca-certificates.crt
+            {{- end }}
 {{- if .Values.volumeMounts }}
 {{ toYaml .Values.volumeMounts | indent 12 }}
 {{- end }}
@@ -159,6 +164,11 @@ spec:
         - name: proxy-secret
           secret:
             secretName: {{ .Values.global.proxySecretName }}
+        {{- end }}
+        {{- if .Values.global.overrideDefaultCaCertificates.enabled }}
+        - name: custom-ca-certificates
+          secret:
+            secretName: {{ $components.customCaCertificates.name }}
         {{- end }}
         - name: tmp-dir
           emptyDir: {}
