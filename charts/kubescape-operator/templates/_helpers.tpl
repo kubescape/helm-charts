@@ -76,5 +76,7 @@ synchronizer:
   enabled: {{ or (and $configurations.submit (eq .Values.capabilities.networkPolicyService "enable")) (and $configurations.submit (eq .Values.capabilities.runtimeObservability "enable")) }}
 clamAV:
   enabled: {{ eq .Values.capabilities.malwareDetection "enable" }}
+customCaCertificates:
+  name: custom-ca-certificates
 
 {{- end -}}

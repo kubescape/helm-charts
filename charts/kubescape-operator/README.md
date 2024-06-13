@@ -45,7 +45,7 @@ You can uninstall this helm chart by running the following command:
 helm uninstall kubescape -n kubescape
 ```
 Then, delete the kubescape namespace:
-```shell  
+```shell
 kubectl delete ns kubescape
 ```
 
@@ -92,6 +92,8 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | global.kubescapePsp.enabled | bool | `false` | Enable all privileges in Pod Security Policies for Kubescape namespace |
 | global.httpsProxy | string | `""` | Set https egress proxy for all components. Must supply also port.  |
 | global.proxySecretFile | string | `""` | Set proxy certificate / RootCA file content (not the file path) for all components to be used for proxy configured in global.httpsProxy |
+| global.overrideDefaultCaCertificates.enabled | bool | `false` | Use to enable custom CA Certificates |
+| global.overrideDefaultCaCertificates.caCertificates | string | `""` | Set the custom CA Certificates file in all container |
 | customScheduling.affinity | yaml |  | Use the `affinity` sub-section to define affinity rules that will apply to all of the workloads managed by the kubescape-operator |
 | customScheduling.nodeSelector | yaml | | Configure `nodeSelector` rules under the nodeSelector sub-section that will apply to all of the workloads managed by the kubescape-operator |
 | customScheduling.tolerations | yaml | | Define `tolerations` in the tolerations sub-section that will apply to all of the workloads managed by the kubescape-operator |
@@ -188,14 +190,14 @@ graph TB
     operator --> k8sApi
     ks --> k8sApi
   end;
-  
+
 subgraph Backend
     er(CloudEndpoint)
-    dashboard(Dashboard) --> masterGw("Master Gateway") 
+    dashboard(Dashboard) --> masterGw("Master Gateway")
     ks --> er
     kubevuln --> er
   end;
-  
+
   classDef k8s fill:#326ce5,stroke:#fff,stroke-width:1px,color:#fff;
   classDef plain fill:#ddd,stroke:#fff,stroke-width:1px,color:#000;
   class k8sApi k8s
@@ -220,7 +222,7 @@ subgraph Backend
 graph TB
   subgraph Backend
    dashboard(Dashboard)
-    masterGw("Gateway (Master)") 
+    masterGw("Gateway (Master)")
   end
    subgraph Cluster N
     gw3("Gateway (In-cluster)")
@@ -230,7 +232,7 @@ graph TB
     gw2("Gateway (In-cluster)")
     operator2(Operator)
   end;
-   
+
 subgraph Cluster 1
     gw1("Gateway (In-cluster)")
     operator1(Operator)
@@ -278,7 +280,7 @@ graph TB
     operator --> k8sApi
     operator --- urlCm
     operator --- recurringTempCm
-  
+
   classDef k8s fill:#326ce5,stroke:#fff,stroke-width:1px,color:#fff;
   classDef plain fill:#ddd,stroke:#fff,stroke-width:1px,color:#000;
   class k8sApi k8s
@@ -297,7 +299,7 @@ graph TB
 graph TB
 
 subgraph Cluster
-    kubevuln(Kubevuln)  
+    kubevuln(Kubevuln)
     k8sApi(Kubernetes API)
     operator(Operator)
     gateway(Gateway)
@@ -309,18 +311,18 @@ subgraph Cluster
 end
 
 masterGateway .- gateway
-gateway .-|Scan Notification| operator 
+gateway .-|Scan Notification| operator
 operator -->|Collect NS, Images|k8sApi
 operator -->|Start Scan| kubevuln
 operator --- urlCm
-urlCm --- kubevuln 
+urlCm --- kubevuln
 recurringTempCm --- operator
 recurringScanCj -->|Scan Notification| operator
 recurringScanCm --- recurringScanCj
 
 subgraph Backend
     er(CloudEndpoint)
-    masterGateway("Master Gateway") 
+    masterGateway("Master Gateway")
     kubevuln -->|Scan Results| er
 end;
 
@@ -356,16 +358,16 @@ subgraph Cluster
 end
 
 masterGateway .- gateway
-gateway .-|Scan Notification| operator 
+gateway .-|Scan Notification| operator
 operator -->|Start Scan| ks
 ks-->|Collect Cluster Info|k8sApi
-ksCm --- ks 
+ksCm --- ks
 recurringTempCm --- operator
 recurringScanCj -->|Scan Notification| operator
 recurringScanCm --- recurringScanCj
 subgraph Backend
     er(CloudEndpoint)
-    masterGateway("Master Gateway") 
+    masterGateway("Master Gateway")
     ks -->|Scan Results| er
 end;
 
@@ -389,11 +391,11 @@ class ksCm,recurringScanCm,operator,er,gateway,masterGateway,recurringScanCj,rec
 graph TD
 subgraph Backend
     er(CloudEndpoint)
-    masterGw("Master Gateway") 
+    masterGw("Master Gateway")
 end;
 
 subgraph Cluster
-    kollector(Kollector) 
+    kollector(Kollector)
     k8sApi(Kubernetes API);
     gw(Gateway)
 end;
@@ -522,13 +524,13 @@ sequenceDiagram
     participant clusterGw as Cluster<br><br>In-Cluster Gateway
     participant operator as Cluster<br><br>Operator
     participant k8sApi as Cluster<br><br>Kubernetes API
-    
+
     user->>dashboard: 1. create scan schedule
     dashboard->>masterGw: 2. build schedule notification
     masterGw->>clusterGw: 3. broadcast notification
     clusterGw->>operator: 4. create recurring scan
     operator->>k8sApi: 5. get namespaces, workloads
-    k8sApi-->>operator: 
+    k8sApi-->>operator:
     operator->>k8sApi: 6. Create cronjob & ConfigMap
 ```
 </details>
@@ -546,7 +548,7 @@ sequenceDiagram
       cronJob->>operator: 1. run image scan
    end
    operator->>k8sApi: 2. list NS, container images
-   k8sApi-->>operator: 
+   k8sApi-->>operator:
    operator->>kubeVuln: 3. scan images
    kubeVuln ->> er: 4. send scan results
 ```
@@ -565,9 +567,9 @@ sequenceDiagram
   loop
       cronJob->>operator: 1. run configuration scan
   end
-  operator->>ks: 2. kubescape scan 
-  ks->>k8sApi: 3. list NS, workloads, RBAC 
-  k8sApi->>ks: 
+  operator->>ks: 2. kubescape scan
+  ks->>k8sApi: 3. list NS, workloads, RBAC
+  k8sApi->>ks:
   ks ->> er: 4. send scan results
 ```
 

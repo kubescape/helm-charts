@@ -1,0 +1,16 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- if .Values.global.overrideDefaultCaCertificates.enabled }}
+kind: Secret
+apiVersion: v1
+metadata:
+  name: {{ $components.customCaCertificates.name }}
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    app: {{ $components.customCaCertificates.name }}
+    tier: {{ .Values.global.namespaceTier }}
+    kubescape.io/infra: credentials
+    kubescape.io/ignore: "true"
+type: Opaque
+data:
+  ca-certificates.crt: "{{ .Values.global.overrideDefaultCaCertificates.caCertificates | default "" | b64enc }}"
+{{- end }}
