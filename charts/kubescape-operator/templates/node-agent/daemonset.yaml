@@ -114,6 +114,18 @@ spec:
         - name: {{ .Values.nodeAgent.name }}
           image: "{{ .Values.nodeAgent.image.repository }}:{{ .Values.nodeAgent.image.tag }}"
           imagePullPolicy: {{ .Values.nodeAgent.image.pullPolicy }}
+          livenessProbe:
+            httpGet:
+              path: /livez
+              port: 7888
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 7888
+            initialDelaySeconds: 3
+            periodSeconds: 3
           resources:
 {{ toYaml .Values.nodeAgent.resources | indent 12 }}
           env:
