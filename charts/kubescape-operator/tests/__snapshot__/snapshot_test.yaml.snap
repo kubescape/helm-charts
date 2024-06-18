@@ -205,7 +205,7 @@ all capabilities:
     data:
       capabilities: |
         {
-          "capabilities":{"autoUpgrading":"enable","configurationScan":"enable","continuousScan":"enable","enableServiceScanResult":false,"malwareDetection":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeScan":"enable","prometheusExporter":"enable","relevancy":"enable","runtimeDetection":"enable","runtimeObservability":"enable","vexGeneration":"enable","vulnerabilityScan":"enable"},
+          "capabilities":{"autoUpgrading":"enable","configurationScan":"enable","continuousScan":"enable","enableServiceScanResult":false,"malwareDetection":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeScan":"enable","prometheusExporter":"enable","relevancy":"enable","runtimeDetection":"enable","runtimeObservability":"enable","seccompProfileService":"enable","vexGeneration":"enable","vulnerabilityScan":"enable"},
           "components":{"autoUpdater":{"enabled":true},"clamAV":{"enabled":true},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"gateway":{"enabled":true},"hostScanner":{"enabled":true},"kollector":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":true},"prometheusExporter":{"enabled":true},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"otelUrl":"otelCollector:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"}
         }
@@ -2036,6 +2036,7 @@ all capabilities:
           - spdx.softwarecomposition.kubescape.io
         resources:
           - sbomsyfts
+          - seccompprofiles
         verbs:
           - get
           - watch
@@ -2089,6 +2090,7 @@ all capabilities:
             "networkServiceEnabled": true,
             "malwareDetectionEnabled": true,
             "nodeProfileServiceEnabled": true,
+            "seccompServiceEnabled": true,
             "initialDelay": "2m",
             "updateDataPeriod": "10m",
             "nodeProfileInterval": "10m",
@@ -2167,7 +2169,7 @@ all capabilities:
           annotations:
             checksum/cloud-config: c4dc912bbe62b0d5fd4734206c3cae52f56d766cbc20024182a2bcef09c0ae8e
             checksum/cloud-secret: 8665d3f0f7282091716b5fbf7356972eb83a5a9e86eb064218d24e9f66612b99
-            checksum/node-agent-config: 9364a39e3684fb9d8972733a7d1cfdec0b821d7f04a824e52bdb45551474feeb
+            checksum/node-agent-config: d612b1b8ca381500ab751bb9e8ffdd9b57c2cda22714720f7caacaa6d45bd117
             checksum/proxy-config: 30e81a4193016803b4b7985b92028c4797c1e84d317a4b6b3e3a5406139f8847
             container.apparmor.security.beta.kubernetes.io/node-agent: unconfined
           labels:
@@ -2246,13 +2248,13 @@ all capabilities:
                     fieldRef:
                       fieldPath: metadata.namespace
                 - name: NodeName
-              image: quay.io/kubescape/node-agent:v0.2.85
+              image: quay.io/kubescape/node-agent:v0.2.87
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
                   path: /livez
                   port: 7888
-                initialDelaySeconds: 3
+                initialDelaySeconds: 60
                 periodSeconds: 3
               name: node-agent
               readinessProbe:
@@ -2573,7 +2575,7 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: ab449458437ca2d45e9d42e2b42edae0bb545a5195e065b5322310e3629f91bd
+            checksum/capabilities-config: 62a907df782569d2efd2b69369d0f2c33b514d80640b3d6bd15d9cc10dfc255b
             checksum/cloud-config: c4dc912bbe62b0d5fd4734206c3cae52f56d766cbc20024182a2bcef09c0ae8e
             checksum/cloud-secret: 8665d3f0f7282091716b5fbf7356972eb83a5a9e86eb064218d24e9f66612b99
             checksum/matching-rules-config: 9282b3916f506ac98eccbdfe686271420ff520374de611f7efce8235dcdf8809
@@ -4442,7 +4444,7 @@ default capabilities:
     data:
       capabilities: |
         {
-          "capabilities":{"autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","enableServiceScanResult":false,"malwareDetection":"disable","networkPolicyService":"enable","nodeProfileService":"disable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","vexGeneration":"disable","vulnerabilityScan":"enable"},
+          "capabilities":{"autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","enableServiceScanResult":false,"malwareDetection":"disable","networkPolicyService":"enable","nodeProfileService":"disable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","seccompProfileService":"enable","vexGeneration":"disable","vulnerabilityScan":"enable"},
           "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"gateway":{"enabled":true},"hostScanner":{"enabled":true},"kollector":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":true},"prometheusExporter":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"otelUrl":"otelCollector:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"}
         }
@@ -6178,6 +6180,7 @@ default capabilities:
           - spdx.softwarecomposition.kubescape.io
         resources:
           - sbomsyfts
+          - seccompprofiles
         verbs:
           - get
           - watch
@@ -6231,6 +6234,7 @@ default capabilities:
             "networkServiceEnabled": true,
             "malwareDetectionEnabled": false,
             "nodeProfileServiceEnabled": false,
+            "seccompServiceEnabled": true,
             "initialDelay": "2m",
             "updateDataPeriod": "10m",
             "nodeProfileInterval": "10m",
@@ -6273,7 +6277,7 @@ default capabilities:
           annotations:
             checksum/cloud-config: 98e72a3a1a24264d2cdebc86b61829ee5b941fb590d6ca717ebaa880922046c6
             checksum/cloud-secret: 8665d3f0f7282091716b5fbf7356972eb83a5a9e86eb064218d24e9f66612b99
-            checksum/node-agent-config: 3ccfb3467579f1c6849389829a0d66deab8589e05e2e05dfdbc4c2b6d64ff16a
+            checksum/node-agent-config: e3a2365c759a38052b86830b55e01e2d3e6196bd10cfff63abf00d87e9211168
             checksum/proxy-config: 30e81a4193016803b4b7985b92028c4797c1e84d317a4b6b3e3a5406139f8847
             container.apparmor.security.beta.kubernetes.io/node-agent: unconfined
           labels:
@@ -6321,13 +6325,13 @@ default capabilities:
                     fieldRef:
                       fieldPath: metadata.namespace
                 - name: NodeName
-              image: quay.io/kubescape/node-agent:v0.2.85
+              image: quay.io/kubescape/node-agent:v0.2.87
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
                   path: /livez
                   port: 7888
-                initialDelaySeconds: 3
+                initialDelaySeconds: 60
                 periodSeconds: 3
               name: node-agent
               readinessProbe:
@@ -6636,7 +6640,7 @@ default capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 105064c9b94c92f3911281b551a69c7d6d9ab7f601b56a7338e22870d21570ee
+            checksum/capabilities-config: d69abd2ecc3a5f1d41c8203167caaf887baa350730532f8115635e0c435e6578
             checksum/cloud-config: 98e72a3a1a24264d2cdebc86b61829ee5b941fb590d6ca717ebaa880922046c6
             checksum/cloud-secret: 8665d3f0f7282091716b5fbf7356972eb83a5a9e86eb064218d24e9f66612b99
             checksum/matching-rules-config: 9282b3916f506ac98eccbdfe686271420ff520374de611f7efce8235dcdf8809
@@ -8260,7 +8264,7 @@ minimal capabilities:
     data:
       capabilities: |
         {
-          "capabilities":{"autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","enableServiceScanResult":false,"malwareDetection":"disable","networkPolicyService":"enable","nodeProfileService":"disable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","vexGeneration":"disable","vulnerabilityScan":"enable"},
+          "capabilities":{"autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","enableServiceScanResult":false,"malwareDetection":"disable","networkPolicyService":"enable","nodeProfileService":"disable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","seccompProfileService":"enable","vexGeneration":"disable","vulnerabilityScan":"enable"},
           "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"gateway":{"enabled":false},"hostScanner":{"enabled":true},"kollector":{"enabled":false},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":false},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":false},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":true},"prometheusExporter":{"enabled":false},"serviceDiscovery":{"enabled":false},"storage":{"enabled":true},"synchronizer":{"enabled":false}},
           "configurations":{"otelUrl":"otelCollector:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"}
         }
@@ -9081,6 +9085,7 @@ minimal capabilities:
           - spdx.softwarecomposition.kubescape.io
         resources:
           - sbomsyfts
+          - seccompprofiles
         verbs:
           - get
           - watch
@@ -9134,6 +9139,7 @@ minimal capabilities:
             "networkServiceEnabled": true,
             "malwareDetectionEnabled": false,
             "nodeProfileServiceEnabled": false,
+            "seccompServiceEnabled": true,
             "initialDelay": "2m",
             "updateDataPeriod": "10m",
             "nodeProfileInterval": "10m",
@@ -9176,7 +9182,7 @@ minimal capabilities:
           annotations:
             checksum/cloud-config: c8580dbb81fa1c832dc787a966fc068feacfb2ee7f67fdd928c256f4094ad656
             checksum/cloud-secret: baefa7c2a6f06e1afdaffb0829d1caf36ff7428773197f1e5ca4731c132ecb78
-            checksum/node-agent-config: 3ccfb3467579f1c6849389829a0d66deab8589e05e2e05dfdbc4c2b6d64ff16a
+            checksum/node-agent-config: e3a2365c759a38052b86830b55e01e2d3e6196bd10cfff63abf00d87e9211168
             container.apparmor.security.beta.kubernetes.io/node-agent: unconfined
           labels:
             alt-name: node-agent
@@ -9223,13 +9229,13 @@ minimal capabilities:
                     fieldRef:
                       fieldPath: metadata.namespace
                 - name: NodeName
-              image: quay.io/kubescape/node-agent:v0.2.85
+              image: quay.io/kubescape/node-agent:v0.2.87
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
                   path: /livez
                   port: 7888
-                initialDelaySeconds: 3
+                initialDelaySeconds: 60
                 periodSeconds: 3
               name: node-agent
               readinessProbe:
@@ -9494,7 +9500,7 @@ minimal capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: f3a9c35fcb5d8b7292ce877e49416ebdc0fab30b444d3c385b19d3110c845d9d
+            checksum/capabilities-config: 04d6d6480df627d00551d3d69dd86c64e9d808cd105aaefe487fa3091ee41019
             checksum/cloud-config: c8580dbb81fa1c832dc787a966fc068feacfb2ee7f67fdd928c256f4094ad656
             checksum/cloud-secret: baefa7c2a6f06e1afdaffb0829d1caf36ff7428773197f1e5ca4731c132ecb78
             checksum/matching-rules-config: 9282b3916f506ac98eccbdfe686271420ff520374de611f7efce8235dcdf8809
