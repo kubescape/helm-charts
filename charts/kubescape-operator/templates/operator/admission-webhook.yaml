@@ -1,12 +1,9 @@
 {{- $components := fromYaml (include "components" .) }}
 {{- if $components.operator.enabled }}
 {{- $svcName := (printf "kubescape-admission-webhook.%s.svc" .Release.Namespace) -}}
-{{- $ca := dict "Key" "mock-ca-key" "Cert" "mock-ca-cert" -}}
-{{- $cert := dict "Key" "mock-cert-key" "Cert" "mock-cert-cert" -}}
-{{- if not .Values.unittest }}
-  {{- $ca := genCA (printf "*.%s.svc" .Release.Namespace) 1024 -}}
-  {{- $cert := genSignedCert $svcName nil (list $svcName) 1024 $ca -}}
-{{- end }}
+{{- $certData := fromYaml (include "admission-certificates" .) -}}
+{{- $ca := $certData.ca -}}
+{{- $cert := $certData.cert -}}
 ---
 apiVersion: v1
 kind: Secret
