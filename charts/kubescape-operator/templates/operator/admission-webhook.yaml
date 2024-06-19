@@ -1,0 +1,42 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- if $components.operator.enabled }}
+{{- if eq .Values.capabilities.admissionController "enable" }}
+{{- $svcName := (printf "kubescape-admission-webhook.%s.svc" .Release.Namespace) -}}
+{{- $certData := fromYaml (include "admission-certificates" .) -}}
+{{- $ca := $certData.ca -}}
+{{- $cert := $certData.cert -}}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ $svcName }}-kubescape-tls-pair
+  namespace: {{ .Values.ksNamespace }}
+type: kubernetes.io/tls
+data:
+  tls.key: {{ $cert.Key | b64enc }}
+  tls.crt: {{ $cert.Cert | b64enc }}
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: validation
+webhooks:
+  - name: validation.kubescape.admission
+    clientConfig:
+      service:
+        name: kubescape-admission-webhook
+        namespace: {{ .Values.ksNamespace }}
+        path: /validate
+        port: 443
+      caBundle: {{ $ca.Cert | b64enc }}
+    admissionReviewVersions: ["v1"]
+    sideEffects: None
+    rules:
+      - operations: ["CREATE", "UPDATE", "DELETE", "CONNECT"]
+        apiGroups: ["*"]
+        apiVersions: ["v1"]
+        resources: ["pods", "pods/exec", "pods/portforward", "pods/attach", "clusterrolebindings", "rolebindings"]
+        scope: "*"
+    failurePolicy: Ignore
+{{- end }}
+{{- end }}
