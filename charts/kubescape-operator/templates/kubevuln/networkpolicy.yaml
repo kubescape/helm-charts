@@ -8,11 +8,12 @@ metadata:
   labels:
     app: {{ .Values.kubevuln.name }}
     tier: {{ .Values.global.namespaceTier }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
 spec:
   podSelector:
     matchLabels:
-      app.kubernetes.io/name: {{ .Values.kubevuln.name }}
       app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/name: {{ .Values.kubevuln.name }}
       tier: {{ .Values.global.namespaceTier }}
   policyTypes:
     - Ingress
@@ -25,14 +26,15 @@ spec:
     - ports:
         - port: 443
           protocol: TCP
+{{ tpl (.Files.Get "assets/common-egress-rules.yaml") . | indent 4 }}
   {{- end }}
   ingress:
     - from:
         - podSelector:
             matchLabels:
-              app.kubernetes.io/instance: kubescape
-              app.kubernetes.io/name: operator
-              tier: ks-control-plane
+              app.kubernetes.io/instance: {{ .Release.Name }}
+              app.kubernetes.io/name: {{ .Values.operator.name }}
+              tier: {{ .Values.global.namespaceTier }}
       ports:
         - port: {{ .Values.kubevuln.service.port }}
           protocol: TCP

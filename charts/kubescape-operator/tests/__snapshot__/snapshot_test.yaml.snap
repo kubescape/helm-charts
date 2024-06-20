@@ -55,6 +55,48 @@ all capabilities:
       schedule: 0 14 * * *
       successfulJobsHistoryLimit: 3
   3: |
+    apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      labels:
+        app: helm-release-upgrader
+        helm.sh/chart: kubescape-operator-1.18.17
+        tier: ks-control-plane
+      name: helm-release-upgrader
+      namespace: kubescape
+    spec:
+      egress:
+        - ports:
+            - port: 53
+              protocol: UDP
+          to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: kube-system
+              podSelector:
+                matchLabels:
+                  k8s-app: kube-dns
+        - ports:
+            - port: 4317
+              protocol: TCP
+          to:
+            - podSelector:
+                matchLabels:
+                  app: otel-collector
+        - ports:
+            - port: 1234
+              protocol: TCP
+          to:
+            - ipBlock:
+                cidr: 1.1.1.1/32
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/instance: RELEASE-NAME
+          app.kubernetes.io/name: helm-release-upgrader
+          tier: ks-control-plane
+      policyTypes:
+        - Egress
+  4: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -70,7 +112,7 @@ all capabilities:
           - '*'
         verbs:
           - '*'
-  4: |
+  5: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -87,7 +129,7 @@ all capabilities:
       - kind: ServiceAccount
         name: helm-release-upgrader
         namespace: kubescape
-  5: |
+  6: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -97,7 +139,7 @@ all capabilities:
         kubescape.io/ignore: "true"
       name: helm-release-upgrader
       namespace: kubescape
-  6: |
+  7: |
     apiVersion: v1
     data:
       accessKey: ZjMwNGQ3M2ItZDQzYy00MTJiLTgyZWEtZTRjODU5NDkzY2U2
@@ -112,7 +154,7 @@ all capabilities:
       name: cloud-secret
       namespace: kubescape
     type: Opaque
-  7: |
+  8: |
     apiVersion: v1
     data:
       clusterData: |
@@ -158,13 +200,13 @@ all capabilities:
         tier: ks-control-plane
       name: ks-cloud-config
       namespace: kubescape
-  8: |
+  9: |
     apiVersion: v1
     data:
       capabilities: |
         {
           "capabilities":{"autoUpgrading":"enable","configurationScan":"enable","continuousScan":"enable","enableServiceAuth":false,"malwareDetection":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeScan":"enable","prometheusExporter":"enable","relevancy":"enable","runtimeDetection":"enable","runtimeObservability":"enable","vexGeneration":"enable","vulnerabilityScan":"enable"},
-          "components":{"clamAV":{"enabled":true},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"gateway":{"enabled":true},"hostScanner":{"enabled":true},"kollector":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":true},"prometheusExporter":{"enabled":true},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
+          "components":{"autoUpdater":{"enabled":true},"clamAV":{"enabled":true},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"gateway":{"enabled":true},"hostScanner":{"enabled":true},"kollector":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":true},"prometheusExporter":{"enabled":true},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"otelUrl":"otelCollector:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"}
         }
     kind: ConfigMap
@@ -176,7 +218,7 @@ all capabilities:
         tier: ks-control-plane
       name: ks-capabilities
       namespace: kubescape
-  9: |
+  10: |
     apiVersion: v1
     data:
       ca-certificates.crt: Zm9v
@@ -190,7 +232,7 @@ all capabilities:
       name: custom-ca-certificates
       namespace: kubescape
     type: Opaque
-  10: |
+  11: |
     apiVersion: v1
     data:
       matchingRules.json: |
@@ -204,7 +246,7 @@ all capabilities:
         tier: ks-control-plane
       name: cs-matching-rules
       namespace: kubescape
-  11: |
+  12: |
     apiVersion: scheduling.k8s.io/v1
     description: This priority class is for node-agent daemonset pods
     globalDefault: false
@@ -212,7 +254,7 @@ all capabilities:
     metadata:
       name: kubescape-critical
     value: 1.000001e+08
-  12: |
+  13: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -277,6 +319,10 @@ all capabilities:
                       name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
+                - name: HTTPS_PROXY
+                  value: https://foo:bar@baz:1234
+                - name: no_proxy
+                  value: gateway,kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1
               image: quay.io/kubescape/gateway:v0.1.23
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -349,7 +395,7 @@ all capabilities:
                     path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
-  13: |
+  14: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -364,11 +410,34 @@ all capabilities:
         - ports:
             - port: 443
               protocol: TCP
+        - ports:
+            - port: 53
+              protocol: UDP
+          to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: kube-system
+              podSelector:
+                matchLabels:
+                  k8s-app: kube-dns
+        - ports:
+            - port: 4317
+              protocol: TCP
+          to:
+            - podSelector:
+                matchLabels:
+                  app: otel-collector
+        - ports:
+            - port: 1234
+              protocol: TCP
+          to:
+            - ipBlock:
+                cidr: 1.1.1.1/32
       ingress:
         - from:
             - podSelector:
                 matchLabels:
-                  app.kubernetes.io/instance: kubescape
+                  app.kubernetes.io/instance: RELEASE-NAME
                   app.kubernetes.io/name: operator
                   tier: ks-control-plane
           ports:
@@ -382,7 +451,7 @@ all capabilities:
       policyTypes:
         - Ingress
         - Egress
-  14: |
+  15: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -404,7 +473,7 @@ all capabilities:
       selector:
         app: gateway
       type: ClusterIP
-  15: |
+  16: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -460,7 +529,7 @@ all capabilities:
                 runAsNonRoot: true
           nodeSelector: null
           tolerations: null
-  16: |
+  17: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -474,7 +543,7 @@ all capabilities:
         - from:
             - podSelector:
                 matchLabels:
-                  app.kubernetes.io/instance: kubescape
+                  app.kubernetes.io/instance: RELEASE-NAME
                   app.kubernetes.io/name: kubevuln
                   tier: ks-control-plane
           ports:
@@ -487,7 +556,7 @@ all capabilities:
           tier: ks-control-plane
       policyTypes:
         - Ingress
-  17: |
+  18: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -504,7 +573,7 @@ all capabilities:
       selector:
         app: grype-offline-db
       type: ClusterIP
-  18: |
+  19: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -545,7 +614,7 @@ all capabilities:
           - get
           - watch
           - list
-  19: |
+  20: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -560,12 +629,13 @@ all capabilities:
       - kind: ServiceAccount
         name: kollector
         namespace: kubescape
-  20: |
+  21: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
       labels:
         app: kollector
+        helm.sh/chart: kubescape-operator-1.18.17
         tier: ks-control-plane
       name: kollector
       namespace: kubescape
@@ -580,6 +650,29 @@ all capabilities:
           to:
             - ipBlock:
                 cidr: 169.254.169.254/32
+        - ports:
+            - port: 53
+              protocol: UDP
+          to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: kube-system
+              podSelector:
+                matchLabels:
+                  k8s-app: kube-dns
+        - ports:
+            - port: 4317
+              protocol: TCP
+          to:
+            - podSelector:
+                matchLabels:
+                  app: otel-collector
+        - ports:
+            - port: 1234
+              protocol: TCP
+          to:
+            - ipBlock:
+                cidr: 1.1.1.1/32
       podSelector:
         matchLabels:
           app.kubernetes.io/instance: RELEASE-NAME
@@ -587,7 +680,7 @@ all capabilities:
           tier: ks-control-plane
       policyTypes:
         - Egress
-  21: |
+  22: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -597,7 +690,7 @@ all capabilities:
         kubescape.io/ignore: "true"
       name: kollector
       namespace: kubescape
-  22: |
+  23: |
     apiVersion: apps/v1
     kind: StatefulSet
     metadata:
@@ -630,6 +723,7 @@ all capabilities:
             app.kubernetes.io/name: kollector
             helm.sh/chart: kubescape-operator-1.18.17
             kubescape.io/tier: core
+            otel: enabled
             tier: ks-control-plane
         spec:
           affinity: null
@@ -657,6 +751,10 @@ all capabilities:
                       name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
+                - name: HTTPS_PROXY
+                  value: https://foo:bar@baz:1234
+                - name: no_proxy
+                  value: gateway,kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1
               image: quay.io/kubescape/kollector:v0.1.36
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -726,7 +824,7 @@ all capabilities:
                     path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
-  23: |
+  24: |
     apiVersion: v1
     data:
       request-body.json: '{"commands":[{"CommandName":"kubescapeScan","args":{"scanV1": {}}}]}'
@@ -739,7 +837,7 @@ all capabilities:
         tier: ks-control-plane
       name: kubescape-scheduler
       namespace: kubescape
-  24: |
+  25: |
     apiVersion: batch/v1
     kind: CronJob
     metadata:
@@ -803,7 +901,49 @@ all capabilities:
                   name: kubescape-scheduler
       schedule: 1 2 3 4 5
       successfulJobsHistoryLimit: 3
-  25: |
+  26: |
+    apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      labels:
+        app: kubescape-scheduler
+        helm.sh/chart: kubescape-operator-1.18.17
+        tier: ks-control-plane
+      name: kubescape-scheduler
+      namespace: kubescape
+    spec:
+      egress:
+        - ports:
+            - port: 53
+              protocol: UDP
+          to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: kube-system
+              podSelector:
+                matchLabels:
+                  k8s-app: kube-dns
+        - ports:
+            - port: 4317
+              protocol: TCP
+          to:
+            - podSelector:
+                matchLabels:
+                  app: otel-collector
+        - ports:
+            - port: 1234
+              protocol: TCP
+          to:
+            - ipBlock:
+                cidr: 1.1.1.1/32
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/instance: RELEASE-NAME
+          app.kubernetes.io/name: kubescape-scheduler
+          tier: ks-control-plane
+      policyTypes:
+        - Egress
+  27: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -1004,7 +1144,7 @@ all capabilities:
           - get
           - watch
           - list
-  26: |
+  28: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -1019,7 +1159,7 @@ all capabilities:
       - kind: ServiceAccount
         name: kubescape
         namespace: kubescape
-  27: |
+  29: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -1103,6 +1243,10 @@ all capabilities:
                       name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
+                - name: HTTPS_PROXY
+                  value: https://foo:bar@baz:1234
+                - name: no_proxy
+                  value: gateway,kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1
               image: quay.io/kubescape/kubescape:v3.0.11
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -1189,7 +1333,7 @@ all capabilities:
               name: results
             - emptyDir: {}
               name: failed
-  28: |
+  30: |
     apiVersion: v1
     data:
       host-scanner-yaml: |-
@@ -1289,7 +1433,7 @@ all capabilities:
         tier: ks-control-plane
       name: host-scanner-definition
       namespace: kubescape
-  29: |
+  31: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -1304,11 +1448,51 @@ all capabilities:
         - ports:
             - port: 443
               protocol: TCP
+        - ports:
+            - port: 80
+              protocol: TCP
+          to:
+            - ipBlock:
+                cidr: 169.254.169.254/32
+        - ports:
+            - port: 443
+              protocol: TCP
+          to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: default
+              podSelector:
+                matchLabels:
+                  component: apiserver
+                  provider: kubernetes
+        - ports:
+            - port: 53
+              protocol: UDP
+          to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: kube-system
+              podSelector:
+                matchLabels:
+                  k8s-app: kube-dns
+        - ports:
+            - port: 4317
+              protocol: TCP
+          to:
+            - podSelector:
+                matchLabels:
+                  app: otel-collector
+        - ports:
+            - port: 1234
+              protocol: TCP
+          to:
+            - ipBlock:
+                cidr: 1.1.1.1/32
       ingress:
         - from:
             - podSelector:
                 matchLabels:
-                  app.kubernetes.io/instance: kubescape
+                  app.kubernetes.io/instance: RELEASE-NAME
                   app.kubernetes.io/name: operator
                   tier: ks-control-plane
           ports:
@@ -1322,7 +1506,7 @@ all capabilities:
       policyTypes:
         - Ingress
         - Egress
-  30: |
+  32: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -1343,7 +1527,7 @@ all capabilities:
           - list
           - patch
           - delete
-  31: |
+  33: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -1359,7 +1543,7 @@ all capabilities:
       - kind: ServiceAccount
         name: kubescape
         namespace: kubescape
-  32: |
+  34: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -1377,7 +1561,7 @@ all capabilities:
       selector:
         app: kubescape
       type: ClusterIP
-  33: |
+  35: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -1387,7 +1571,7 @@ all capabilities:
         kubescape.io/ignore: "true"
       name: kubescape
       namespace: kubescape
-  34: |
+  36: |
     apiVersion: monitoring.coreos.com/v1
     kind: ServiceMonitor
     metadata:
@@ -1408,7 +1592,7 @@ all capabilities:
       selector:
         matchLabels:
           app: kubescape
-  35: |
+  37: |
     apiVersion: v1
     data:
       request-body.json: '{"commands":[{"commandName":"scan","designators":[{"designatorType":"Attributes","attributes":{}}]}]}'
@@ -1421,7 +1605,7 @@ all capabilities:
         tier: ks-control-plane
       name: kubevuln-scheduler
       namespace: kubescape
-  36: |
+  38: |
     apiVersion: batch/v1
     kind: CronJob
     metadata:
@@ -1485,7 +1669,49 @@ all capabilities:
                   name: kubevuln-scheduler
       schedule: 1 2 3 4 5
       successfulJobsHistoryLimit: 3
-  37: |
+  39: |
+    apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      labels:
+        app: kubevuln-scheduler
+        helm.sh/chart: kubescape-operator-1.18.17
+        tier: ks-control-plane
+      name: kubevuln-scheduler
+      namespace: kubescape
+    spec:
+      egress:
+        - ports:
+            - port: 53
+              protocol: UDP
+          to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: kube-system
+              podSelector:
+                matchLabels:
+                  k8s-app: kube-dns
+        - ports:
+            - port: 4317
+              protocol: TCP
+          to:
+            - podSelector:
+                matchLabels:
+                  app: otel-collector
+        - ports:
+            - port: 1234
+              protocol: TCP
+          to:
+            - ipBlock:
+                cidr: 1.1.1.1/32
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/instance: RELEASE-NAME
+          app.kubernetes.io/name: kubevuln-scheduler
+          tier: ks-control-plane
+      policyTypes:
+        - Egress
+  40: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -1515,7 +1741,7 @@ all capabilities:
           - get
           - watch
           - list
-  38: |
+  41: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -1530,7 +1756,7 @@ all capabilities:
       - kind: ServiceAccount
         name: kubevuln
         namespace: kubescape
-  39: |
+  42: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -1593,6 +1819,10 @@ all capabilities:
                       name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
+                - name: HTTPS_PROXY
+                  value: https://foo:bar@baz:1234
+                - name: no_proxy
+                  value: gateway,kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1
               image: quay.io/kubescape/kubevuln:v0.3.25
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -1671,12 +1901,13 @@ all capabilities:
               name: ks-cloud-config
             - emptyDir: {}
               name: grype-db
-  40: |
+  43: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
       labels:
         app: kubevuln
+        helm.sh/chart: kubescape-operator-1.18.17
         tier: ks-control-plane
       name: kubevuln
       namespace: kubescape
@@ -1685,11 +1916,34 @@ all capabilities:
         - ports:
             - port: 443
               protocol: TCP
+        - ports:
+            - port: 53
+              protocol: UDP
+          to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: kube-system
+              podSelector:
+                matchLabels:
+                  k8s-app: kube-dns
+        - ports:
+            - port: 4317
+              protocol: TCP
+          to:
+            - podSelector:
+                matchLabels:
+                  app: otel-collector
+        - ports:
+            - port: 1234
+              protocol: TCP
+          to:
+            - ipBlock:
+                cidr: 1.1.1.1/32
       ingress:
         - from:
             - podSelector:
                 matchLabels:
-                  app.kubernetes.io/instance: kubescape
+                  app.kubernetes.io/instance: RELEASE-NAME
                   app.kubernetes.io/name: operator
                   tier: ks-control-plane
           ports:
@@ -1703,7 +1957,7 @@ all capabilities:
       policyTypes:
         - Ingress
         - Egress
-  41: |
+  44: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -1720,7 +1974,7 @@ all capabilities:
       selector:
         app: kubevuln
       type: ClusterIP
-  42: |
+  45: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -1730,7 +1984,7 @@ all capabilities:
         kubescape.io/ignore: "true"
       name: kubevuln
       namespace: kubescape
-  43: |
+  46: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -1808,7 +2062,7 @@ all capabilities:
         verbs:
           - list
           - watch
-  44: |
+  47: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -1823,7 +2077,7 @@ all capabilities:
       - kind: ServiceAccount
         name: node-agent
         namespace: kubescape
-  45: |
+  48: |
     apiVersion: v1
     data:
       config.json: |
@@ -1853,7 +2107,7 @@ all capabilities:
         kubescape.io/tier: core
       name: node-agent
       namespace: kubescape
-  46: |
+  49: |
     apiVersion: v1
     data:
       clamd.conf: |-
@@ -1889,7 +2143,7 @@ all capabilities:
     metadata:
       name: clamav
       namespace: kubescape
-  47: |
+  50: |
     apiVersion: apps/v1
     kind: DaemonSet
     metadata:
@@ -1975,6 +2229,10 @@ all capabilities:
                   value: otel-collector:4318
                 - name: CLAMAV_SOCKET
                   value: /clamav/clamd.sock
+                - name: HTTPS_PROXY
+                  value: https://foo:bar@baz:1234
+                - name: no_proxy
+                  value: gateway,kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1
                 - name: NODE_NAME
                   valueFrom:
                     fieldRef:
@@ -2121,7 +2379,49 @@ all capabilities:
             - name: custom-ca-certificates
               secret:
                 secretName: custom-ca-certificates
-  48: |
+  51: |
+    apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      labels:
+        app: node-agent
+        helm.sh/chart: kubescape-operator-1.18.17
+        tier: ks-control-plane
+      name: node-agent
+      namespace: kubescape
+    spec:
+      egress:
+        - ports:
+            - port: 53
+              protocol: UDP
+          to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: kube-system
+              podSelector:
+                matchLabels:
+                  k8s-app: kube-dns
+        - ports:
+            - port: 4317
+              protocol: TCP
+          to:
+            - podSelector:
+                matchLabels:
+                  app: otel-collector
+        - ports:
+            - port: 1234
+              protocol: TCP
+          to:
+            - ipBlock:
+                cidr: 1.1.1.1/32
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/instance: RELEASE-NAME
+          app.kubernetes.io/name: node-agent
+          tier: ks-control-plane
+      policyTypes:
+        - Egress
+  52: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -2139,7 +2439,7 @@ all capabilities:
           targetPort: 8080
       selector:
         app.kubernetes.io/name: node-agent
-  49: |
+  53: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -2147,7 +2447,7 @@ all capabilities:
         kubescape.io/ignore: "true"
       name: node-agent
       namespace: kubescape
-  50: |
+  54: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -2214,7 +2514,7 @@ all capabilities:
           - create
           - update
           - delete
-  51: |
+  55: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -2229,7 +2529,7 @@ all capabilities:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  52: |
+  56: |
     apiVersion: v1
     data:
       config.json: |
@@ -2244,7 +2544,7 @@ all capabilities:
         kubescape.io/tier: core
       name: operator
       namespace: kubescape
-  53: |
+  57: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -2273,7 +2573,7 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 7514d3b5697fcc1a8958606dfcf8bcd46df5f31b8560cdffc731cbbe9cb21519
+            checksum/capabilities-config: ebc5e644c56f3fb9ad7386f4f003b3b50853a3482317d6bf7091a5195efdbe33
             checksum/cloud-config: c4dc912bbe62b0d5fd4734206c3cae52f56d766cbc20024182a2bcef09c0ae8e
             checksum/cloud-secret: 8665d3f0f7282091716b5fbf7356972eb83a5a9e86eb064218d24e9f66612b99
             checksum/matching-rules-config: 9282b3916f506ac98eccbdfe686271420ff520374de611f7efce8235dcdf8809
@@ -2306,6 +2606,10 @@ all capabilities:
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
+                - name: HTTPS_PROXY
+                  value: https://foo:bar@baz:1234
+                - name: no_proxy
+                  value: gateway,kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1
               image: quay.io/kubescape/operator:v0.2.13
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -2415,7 +2719,7 @@ all capabilities:
                     path: matchingRules.json
                 name: cs-matching-rules
               name: cs-matching-rules
-  54: |
+  58: |
     apiVersion: v1
     data:
       cronjobTemplate: "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: kubescape-scheduler\n  namespace: kubescape\n  labels:\n    app: kubescape-scheduler\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\n    kubescape.io/tier: \"core\"\n    armo.tier: \"kubescape-scan\"\nspec:\n  schedule: \"1 2 3 4 5\"\n  successfulJobsHistoryLimit: 3\n  failedJobsHistoryLimit: 1\n  jobTemplate:\n    spec:\n      template:\n        metadata:\n          labels:\n            armo.tier: \"kubescape-scan\"\n            kubescape.io/tier: \"core\"\n        spec:\n          containers:\n          - name: kubescape-scheduler\n            image: \"quay.io/kubescape/http-request:v0.2.6\"\n            imagePullPolicy: IfNotPresent\n            securityContext:\n              allowPrivilegeEscalation: false\n              readOnlyRootFilesystem: true\n              runAsNonRoot: true\n              runAsUser: 100\n            resources:\n              limits:\n                cpu: 10m\n                memory: 20Mi\n              requests:\n                cpu: 1m\n                memory: 10Mi\n            args: \n              - -method=post\n              - -scheme=http\n              - -host=operator:4002\n              - -path=v1/triggerAction\n              - -headers=Content-Type:application/json\n              - -path-body=/home/ks/request-body.json\n            volumeMounts:\n              - name: \"request-body-volume\"\n                mountPath: /home/ks/request-body.json\n                subPath: request-body.json\n                readOnly: true\n          restartPolicy: Never\n          automountServiceAccountToken: false\n          nodeSelector:\n          affinity:\n          tolerations:\n          volumes:\n            - name: \"request-body-volume\" # placeholder\n              configMap:\n                name: kubescape-scheduler"
@@ -2428,7 +2732,7 @@ all capabilities:
         tier: ks-control-plane
       name: kubescape-cronjob-template
       namespace: kubescape
-  55: |
+  59: |
     apiVersion: v1
     data:
       cronjobTemplate: "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: kubevuln-scheduler\n  namespace: kubescape\n  labels:\n    app: kubevuln-scheduler\n    kubescape.io/ignore: \"true\"\n    kubescape.io/tier: \"core\"\n    tier: ks-control-plane\n    armo.tier: \"vuln-scan\"\nspec:\n  schedule: \"1 2 3 4 5\" \n  successfulJobsHistoryLimit: 3\n  failedJobsHistoryLimit: 1\n  jobTemplate:\n    spec:\n      template:\n        metadata:\n          labels:\n            armo.tier: \"vuln-scan\"\n            kubescape.io/tier: \"core\"\n        spec:\n          containers:\n          - name: kubevuln-scheduler\n            image: \"quay.io/kubescape/http-request:v0.2.6\"\n            imagePullPolicy: IfNotPresent\n            securityContext:\n              allowPrivilegeEscalation: false\n              readOnlyRootFilesystem: true\n              runAsNonRoot: true\n              runAsUser: 100\n            resources:\n              limits:\n                cpu: 10m\n                memory: 20Mi\n              requests:\n                cpu: 1m\n                memory: 10Mi\n            args: \n              - -method=post\n              - -scheme=http\n              - -host=operator:4002\n              - -path=v1/triggerAction\n              - -headers=Content-Type:application/json\n              - -path-body=/home/ks/request-body.json\n            volumeMounts:\n              - name: \"request-body-volume\"\n                mountPath: /home/ks/request-body.json\n                subPath: request-body.json\n                readOnly: true\n          restartPolicy: Never\n          automountServiceAccountToken: false\n          nodeSelector:\n          affinity:\n          tolerations:\n          volumes:\n            - name: \"request-body-volume\" # placeholder\n              configMap:\n                name: kubevuln-scheduler"
@@ -2441,12 +2745,13 @@ all capabilities:
         tier: ks-control-plane
       name: kubevuln-cronjob-template
       namespace: kubescape
-  56: |
+  60: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
       labels:
         app: operator
+        helm.sh/chart: kubescape-operator-1.18.17
         tier: ks-control-plane
       name: operator
       namespace: kubescape
@@ -2461,6 +2766,56 @@ all capabilities:
           to:
             - ipBlock:
                 cidr: 169.254.169.254/32
+        - ports:
+            - port: 8080
+              protocol: TCP
+          to:
+            - podSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: RELEASE-NAME
+                  app.kubernetes.io/name: kubescape
+                  tier: ks-control-plane
+        - ports:
+            - port: 8001
+              protocol: TCP
+          to:
+            - podSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: RELEASE-NAME
+                  app.kubernetes.io/name: gateway
+                  tier: ks-control-plane
+        - ports:
+            - port: 8080
+              protocol: TCP
+          to:
+            - podSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: RELEASE-NAME
+                  app.kubernetes.io/name: kubevuln
+                  tier: ks-control-plane
+        - ports:
+            - port: 53
+              protocol: UDP
+          to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: kube-system
+              podSelector:
+                matchLabels:
+                  k8s-app: kube-dns
+        - ports:
+            - port: 4317
+              protocol: TCP
+          to:
+            - podSelector:
+                matchLabels:
+                  app: otel-collector
+        - ports:
+            - port: 1234
+              protocol: TCP
+          to:
+            - ipBlock:
+                cidr: 1.1.1.1/32
       ingress:
         - from:
             - podSelector:
@@ -2480,7 +2835,7 @@ all capabilities:
       policyTypes:
         - Ingress
         - Egress
-  57: |
+  61: |
     apiVersion: v1
     data:
       cronjobTemplate: "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: registry-scheduler\n  namespace: kubescape\n  labels:\n    app: registry-scheduler\n    kubescape.io/ignore: \"true\"\n    kubescape.io/tier: \"core\"\n    tier: ks-control-plane\n    armo.tier: \"registry-scan\"\nspec:\n  schedule: \"0 0 * * *\"\n  successfulJobsHistoryLimit: 3\n  failedJobsHistoryLimit: 1\n  jobTemplate:\n    spec:\n      template:\n        metadata:\n          labels:\n            armo.tier: \"registry-scan\"\n            kubescape.io/tier: \"core\"\n        spec:\n          containers:\n          - name: registry-scheduler\n            image: \"quay.io/kubescape/http-request:v0.2.6\"\n            imagePullPolicy: IfNotPresent\n            securityContext:\n              allowPrivilegeEscalation: false\n              readOnlyRootFilesystem: true\n              runAsNonRoot: true\n              runAsUser: 100\n            resources:\n              limits:\n                cpu: 10m\n                memory: 20Mi\n              requests:\n                cpu: 1m\n                memory: 10Mi\n            args: \n              - -method=post\n              - -scheme=http\n              - -host=operator:4002\n              - -path=v1/triggerAction\n              - -headers=Content-Type:application/json\n              - -path-body=/home/ks/request-body.json\n            volumeMounts:\n              - name: \"request-body-volume\"\n                mountPath: /home/ks/request-body.json\n                subPath: request-body.json\n                readOnly: true\n          restartPolicy: Never\n          automountServiceAccountToken: false\n          nodeSelector:\n          affinity:\n          tolerations:\n          volumes:\n            - name: \"request-body-volume\" # placeholder\n              configMap:\n                name: registry-scheduler"
@@ -2493,7 +2848,7 @@ all capabilities:
         tier: ks-control-plane
       name: registry-scan-cronjob-template
       namespace: kubescape
-  58: |
+  62: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -2527,7 +2882,7 @@ all capabilities:
           - list
           - patch
           - delete
-  59: |
+  63: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -2543,7 +2898,7 @@ all capabilities:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  60: |
+  64: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -2560,7 +2915,7 @@ all capabilities:
       selector:
         app: operator
       type: ClusterIP
-  61: |
+  65: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -2570,7 +2925,7 @@ all capabilities:
         kubescape.io/ignore: "true"
       name: operator
       namespace: kubescape
-  62: |
+  66: |
     apiVersion: v1
     data:
       otel-collector-config.yaml: "\n# receivers configure how data gets into the Collector.\nreceivers:\n  otlp:\n    protocols:\n      grpc:\n        endpoint: 0.0.0.0:4317\n      http:\n        endpoint: 0.0.0.0:4318\n  hostmetrics:\n    collection_interval: 30s\n    scrapers:\n      cpu:\n      memory:\n\n# processors specify what happens with the received data.\nprocessors:\n  attributes/ksCloud:\n    actions:\n      - key: account_id\n        value: \"9e6c0c2c-6bd0-4919-815b-55030de7c9a0\"\n        action: upsert\n      - key: cluster_name\n        value: \"kind-kind\"\n        action: upsert\n  batch:\n    send_batch_size: 10000\n    timeout: 10s\n\n# exporters configure how to send processed data to one or more backends.\nexporters:\n  otlp/ksCloud:\n    endpoint: ${env:CLOUD_OTEL_COLLECTOR_URL}\n    tls:\n      insecure: false\n  otlp:\n    endpoint: \"otelCollector:4317\"\n    tls:\n      insecure: true\n    headers:\n      uptrace-dsn: \n\n# service pulls the configured receivers, processors, and exporters together into\n# processing pipelines. Unused receivers/processors/exporters are ignored.\nservice:\n  pipelines:\n    traces:\n      receivers: [otlp]\n      processors: [batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp\n    metrics/2:\n      receivers: [hostmetrics]\n      processors: [attributes/ksCloud, batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp\n    metrics:\n      receivers: [otlp]\n      processors: [attributes/ksCloud, batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp\n    logs:\n      receivers: [otlp]\n      processors: [attributes/ksCloud, batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp"
@@ -2583,7 +2938,7 @@ all capabilities:
         tier: ks-control-plane
       name: otel-collector-config
       namespace: kubescape
-  63: |
+  67: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -2637,6 +2992,10 @@ all capabilities:
                   value: 500MiB
                 - name: GOGC
                   value: "80"
+                - name: HTTPS_PROXY
+                  value: https://foo:bar@baz:1234
+                - name: no_proxy
+                  value: gateway,kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1
               image: docker.io/otel/opentelemetry-collector:0.97.0
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -2680,7 +3039,7 @@ all capabilities:
             - configMap:
                 name: otel-collector-config
               name: otel-collector-config-volume
-  64: |
+  68: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -2697,6 +3056,29 @@ all capabilities:
               protocol: TCP
             - port: 4317
               protocol: TCP
+        - ports:
+            - port: 53
+              protocol: UDP
+          to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: kube-system
+              podSelector:
+                matchLabels:
+                  k8s-app: kube-dns
+        - ports:
+            - port: 4317
+              protocol: TCP
+          to:
+            - podSelector:
+                matchLabels:
+                  app: otel-collector
+        - ports:
+            - port: 1234
+              protocol: TCP
+          to:
+            - ipBlock:
+                cidr: 1.1.1.1/32
       ingress:
         - from:
             - podSelector:
@@ -2713,7 +3095,7 @@ all capabilities:
       policyTypes:
         - Ingress
         - Egress
-  65: |
+  69: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -2735,7 +3117,7 @@ all capabilities:
       selector:
         app: otel-collector
       type: ClusterIP
-  66: |
+  70: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -2752,7 +3134,7 @@ all capabilities:
           - get
           - watch
           - list
-  67: |
+  71: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -2767,7 +3149,7 @@ all capabilities:
       - kind: ServiceAccount
         name: prometheus-exporter
         namespace: kubescape
-  68: |
+  72: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -2850,12 +3232,13 @@ all capabilities:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-  69: |
+  73: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
       labels:
         app: prometheus-exporter
+        helm.sh/chart: kubescape-operator-1.18.17
         tier: ks-control-plane
       name: prometheus-exporter
       namespace: kubescape
@@ -2871,7 +3254,7 @@ all capabilities:
           tier: ks-control-plane
       policyTypes:
         - Ingress
-  70: |
+  74: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -2888,7 +3271,7 @@ all capabilities:
       selector:
         app: prometheus-exporter
       type: null
-  71: |
+  75: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -2898,7 +3281,7 @@ all capabilities:
         kubescape.io/ignore: "true"
       name: prometheus-exporter
       namespace: kubescape
-  72: |
+  76: |
     apiVersion: monitoring.coreos.com/v1
     kind: ServiceMonitor
     metadata:
@@ -2913,7 +3296,7 @@ all capabilities:
       selector:
         matchLabels:
           app: prometheus-exporter
-  73: |
+  77: |
     apiVersion: v1
     data:
       proxy.crt: foo
@@ -2928,7 +3311,7 @@ all capabilities:
       name: kubescape-proxy-certificate
       namespace: kubescape
     type: Opaque
-  74: |
+  78: |
     apiVersion: batch/v1
     kind: Job
     metadata:
@@ -2986,7 +3369,11 @@ all capabilities:
                 - -host=api.armosec.io
                 - -path=api/v2/servicediscovery
                 - -path-output=/data/services.json
-              env: null
+              env:
+                - name: HTTPS_PROXY
+                  value: https://foo:bar@baz:1234
+                - name: no_proxy
+                  value: gateway,kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1
               image: quay.io/kubescape/http-request:v0.2.6
               imagePullPolicy: IfNotPresent
               name: url-discovery
@@ -3013,7 +3400,7 @@ all capabilities:
             - name: proxy-secret
               secret:
                 secretName: kubescape-proxy-certificate
-  75: |
+  79: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -3036,7 +3423,7 @@ all capabilities:
           - patch
           - get
           - list
-  76: |
+  80: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -3055,7 +3442,7 @@ all capabilities:
       - kind: ServiceAccount
         name: service-discovery
         namespace: kubescape
-  77: |
+  81: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -3067,7 +3454,7 @@ all capabilities:
         kubescape.io/ignore: "true"
       name: service-discovery
       namespace: kubescape
-  78: |
+  82: |
     apiVersion: apiregistration.k8s.io/v1
     kind: APIService
     metadata:
@@ -3083,7 +3470,7 @@ all capabilities:
         namespace: kubescape
       version: v1beta1
       versionPriority: 15
-  79: |
+  83: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -3181,7 +3568,7 @@ all capabilities:
           - get
           - watch
           - list
-  80: |
+  84: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -3196,7 +3583,7 @@ all capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  81: |
+  85: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -3209,7 +3596,7 @@ all capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  82: |
+  86: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -3301,7 +3688,60 @@ all capabilities:
                     path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
-  83: |
+  87: |
+    apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      labels:
+        app: storage
+        helm.sh/chart: kubescape-operator-1.18.17
+        tier: ks-control-plane
+      name: storage
+      namespace: kubescape
+    spec:
+      egress:
+        - ports:
+            - port: 443
+              protocol: TCP
+          to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: default
+              podSelector:
+                matchLabels:
+                  component: apiserver
+                  provider: kubernetes
+        - ports:
+            - port: 53
+              protocol: UDP
+          to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: kube-system
+              podSelector:
+                matchLabels:
+                  k8s-app: kube-dns
+        - ports:
+            - port: 4317
+              protocol: TCP
+          to:
+            - podSelector:
+                matchLabels:
+                  app: otel-collector
+        - ports:
+            - port: 1234
+              protocol: TCP
+          to:
+            - ipBlock:
+                cidr: 1.1.1.1/32
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/instance: RELEASE-NAME
+          app.kubernetes.io/name: storage
+          tier: ks-control-plane
+      policyTypes:
+        - Egress
+  88: |
     apiVersion: v1
     kind: PersistentVolumeClaim
     metadata:
@@ -3318,7 +3758,7 @@ all capabilities:
       resources:
         requests:
           storage: 5Gi
-  84: |
+  89: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -3334,7 +3774,7 @@ all capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  85: |
+  90: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -3351,7 +3791,7 @@ all capabilities:
         app.kubernetes.io/component: apiserver
         app.kubernetes.io/name: storage
         app.kubernetes.io/part-of: kubescape-storage
-  86: |
+  91: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -3359,7 +3799,7 @@ all capabilities:
         kubescape.io/ignore: "true"
       name: storage
       namespace: kubescape
-  87: |
+  92: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -3491,7 +3931,7 @@ all capabilities:
           - get
           - watch
           - list
-  88: |
+  93: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -3506,7 +3946,7 @@ all capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  89: |
+  94: |
     apiVersion: v1
     data:
       config.json: |
@@ -3714,7 +4154,7 @@ all capabilities:
         kubescape.io/tier: core
       name: synchronizer
       namespace: kubescape
-  90: |
+  95: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -3774,6 +4214,10 @@ all capabilities:
                       name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4317
+                - name: HTTPS_PROXY
+                  value: https://foo:bar@baz:1234
+                - name: no_proxy
+                  value: gateway,kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1
               image: quay.io/kubescape/synchronizer:v0.0.74
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -3846,26 +4290,51 @@ all capabilities:
                     path: config.json
                 name: synchronizer
               name: config
-  91: |
+  96: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
       labels:
         app: synchronizer
+        helm.sh/chart: kubescape-operator-1.18.17
         tier: ks-control-plane
       name: synchronizer
       namespace: kubescape
     spec:
       egress:
         - ports:
-            - port: 8443
+            - port: 443
               protocol: TCP
+        - ports:
+            - port: 53
+              protocol: UDP
+          to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: kube-system
+              podSelector:
+                matchLabels:
+                  k8s-app: kube-dns
+        - ports:
+            - port: 4317
+              protocol: TCP
+          to:
+            - podSelector:
+                matchLabels:
+                  app: otel-collector
+        - ports:
+            - port: 1234
+              protocol: TCP
+          to:
+            - ipBlock:
+                cidr: 1.1.1.1/32
       ingress:
         - from:
             - podSelector:
                 matchLabels:
-                  app.kubernetes.io/instance: kubecop
-                  app.kubernetes.io/name: kubecop
+                  app.kubernetes.io/instance: RELEASE-NAME
+                  app.kubernetes.io/name: node-agent
+                  tier: ks-control-plane
           ports:
             - port: 8089
               protocol: TCP
@@ -3877,7 +4346,7 @@ all capabilities:
       policyTypes:
         - Ingress
         - Egress
-  92: |
+  97: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -3894,7 +4363,7 @@ all capabilities:
       selector:
         app: synchronizer
       type: ClusterIP
-  93: |
+  98: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -3974,7 +4443,7 @@ default capabilities:
       capabilities: |
         {
           "capabilities":{"autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","enableServiceAuth":false,"malwareDetection":"disable","networkPolicyService":"enable","nodeProfileService":"disable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","vexGeneration":"disable","vulnerabilityScan":"enable"},
-          "components":{"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"gateway":{"enabled":true},"hostScanner":{"enabled":true},"kollector":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":true},"prometheusExporter":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
+          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"gateway":{"enabled":true},"hostScanner":{"enabled":true},"kollector":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":true},"prometheusExporter":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"otelUrl":"otelCollector:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"}
         }
     kind: ConfigMap
@@ -4154,11 +4623,28 @@ default capabilities:
         - ports:
             - port: 443
               protocol: TCP
+        - ports:
+            - port: 53
+              protocol: UDP
+          to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: kube-system
+              podSelector:
+                matchLabels:
+                  k8s-app: kube-dns
+        - ports:
+            - port: 4317
+              protocol: TCP
+          to:
+            - podSelector:
+                matchLabels:
+                  app: otel-collector
       ingress:
         - from:
             - podSelector:
                 matchLabels:
-                  app.kubernetes.io/instance: kubescape
+                  app.kubernetes.io/instance: RELEASE-NAME
                   app.kubernetes.io/name: operator
                   tier: ks-control-plane
           ports:
@@ -4264,7 +4750,7 @@ default capabilities:
         - from:
             - podSelector:
                 matchLabels:
-                  app.kubernetes.io/instance: kubescape
+                  app.kubernetes.io/instance: RELEASE-NAME
                   app.kubernetes.io/name: kubevuln
                   tier: ks-control-plane
           ports:
@@ -4356,6 +4842,7 @@ default capabilities:
     metadata:
       labels:
         app: kollector
+        helm.sh/chart: kubescape-operator-1.18.17
         tier: ks-control-plane
       name: kollector
       namespace: kubescape
@@ -4370,6 +4857,23 @@ default capabilities:
           to:
             - ipBlock:
                 cidr: 169.254.169.254/32
+        - ports:
+            - port: 53
+              protocol: UDP
+          to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: kube-system
+              podSelector:
+                matchLabels:
+                  k8s-app: kube-dns
+        - ports:
+            - port: 4317
+              protocol: TCP
+          to:
+            - podSelector:
+                matchLabels:
+                  app: otel-collector
       podSelector:
         matchLabels:
           app.kubernetes.io/instance: RELEASE-NAME
@@ -4420,6 +4924,7 @@ default capabilities:
             app.kubernetes.io/name: kollector
             helm.sh/chart: kubescape-operator-1.18.17
             kubescape.io/tier: core
+            otel: enabled
             tier: ks-control-plane
         spec:
           affinity: null
@@ -4588,6 +5093,42 @@ default capabilities:
       schedule: 1 2 3 4 5
       successfulJobsHistoryLimit: 3
   20: |
+    apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      labels:
+        app: kubescape-scheduler
+        helm.sh/chart: kubescape-operator-1.18.17
+        tier: ks-control-plane
+      name: kubescape-scheduler
+      namespace: kubescape
+    spec:
+      egress:
+        - ports:
+            - port: 53
+              protocol: UDP
+          to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: kube-system
+              podSelector:
+                matchLabels:
+                  k8s-app: kube-dns
+        - ports:
+            - port: 4317
+              protocol: TCP
+          to:
+            - podSelector:
+                matchLabels:
+                  app: otel-collector
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/instance: RELEASE-NAME
+          app.kubernetes.io/name: kubescape-scheduler
+          tier: ks-control-plane
+      policyTypes:
+        - Egress
+  21: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -4788,7 +5329,7 @@ default capabilities:
           - get
           - watch
           - list
-  21: |
+  22: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -4803,7 +5344,7 @@ default capabilities:
       - kind: ServiceAccount
         name: kubescape
         namespace: kubescape
-  22: |
+  23: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -4967,7 +5508,7 @@ default capabilities:
               name: results
             - emptyDir: {}
               name: failed
-  23: |
+  24: |
     apiVersion: v1
     data:
       host-scanner-yaml: |-
@@ -5067,7 +5608,7 @@ default capabilities:
         tier: ks-control-plane
       name: host-scanner-definition
       namespace: kubescape
-  24: |
+  25: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -5082,11 +5623,40 @@ default capabilities:
         - ports:
             - port: 443
               protocol: TCP
+        - ports:
+            - port: 80
+              protocol: TCP
+          to:
+            - ipBlock:
+                cidr: 169.254.169.254/32
+        - ports:
+            - port: 8443
+              protocol: TCP
+          to:
+            - ipBlock:
+                cidr: 192.168.49.2/32
+        - ports:
+            - port: 53
+              protocol: UDP
+          to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: kube-system
+              podSelector:
+                matchLabels:
+                  k8s-app: kube-dns
+        - ports:
+            - port: 4317
+              protocol: TCP
+          to:
+            - podSelector:
+                matchLabels:
+                  app: otel-collector
       ingress:
         - from:
             - podSelector:
                 matchLabels:
-                  app.kubernetes.io/instance: kubescape
+                  app.kubernetes.io/instance: RELEASE-NAME
                   app.kubernetes.io/name: operator
                   tier: ks-control-plane
           ports:
@@ -5100,7 +5670,7 @@ default capabilities:
       policyTypes:
         - Ingress
         - Egress
-  25: |
+  26: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -5121,7 +5691,7 @@ default capabilities:
           - list
           - patch
           - delete
-  26: |
+  27: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -5137,7 +5707,7 @@ default capabilities:
       - kind: ServiceAccount
         name: kubescape
         namespace: kubescape
-  27: |
+  28: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -5155,7 +5725,7 @@ default capabilities:
       selector:
         app: kubescape
       type: ClusterIP
-  28: |
+  29: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -5165,7 +5735,7 @@ default capabilities:
         kubescape.io/ignore: "true"
       name: kubescape
       namespace: kubescape
-  29: |
+  30: |
     apiVersion: monitoring.coreos.com/v1
     kind: ServiceMonitor
     metadata:
@@ -5186,7 +5756,7 @@ default capabilities:
       selector:
         matchLabels:
           app: kubescape
-  30: |
+  31: |
     apiVersion: v1
     data:
       request-body.json: '{"commands":[{"commandName":"scan","designators":[{"designatorType":"Attributes","attributes":{}}]}]}'
@@ -5199,7 +5769,7 @@ default capabilities:
         tier: ks-control-plane
       name: kubevuln-scheduler
       namespace: kubescape
-  31: |
+  32: |
     apiVersion: batch/v1
     kind: CronJob
     metadata:
@@ -5263,7 +5833,43 @@ default capabilities:
                   name: kubevuln-scheduler
       schedule: 1 2 3 4 5
       successfulJobsHistoryLimit: 3
-  32: |
+  33: |
+    apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      labels:
+        app: kubevuln-scheduler
+        helm.sh/chart: kubescape-operator-1.18.17
+        tier: ks-control-plane
+      name: kubevuln-scheduler
+      namespace: kubescape
+    spec:
+      egress:
+        - ports:
+            - port: 53
+              protocol: UDP
+          to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: kube-system
+              podSelector:
+                matchLabels:
+                  k8s-app: kube-dns
+        - ports:
+            - port: 4317
+              protocol: TCP
+          to:
+            - podSelector:
+                matchLabels:
+                  app: otel-collector
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/instance: RELEASE-NAME
+          app.kubernetes.io/name: kubevuln-scheduler
+          tier: ks-control-plane
+      policyTypes:
+        - Egress
+  34: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -5293,7 +5899,7 @@ default capabilities:
           - get
           - watch
           - list
-  33: |
+  35: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -5308,7 +5914,7 @@ default capabilities:
       - kind: ServiceAccount
         name: kubevuln
         namespace: kubescape
-  34: |
+  36: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -5443,12 +6049,13 @@ default capabilities:
               name: ks-cloud-config
             - emptyDir: {}
               name: grype-db
-  35: |
+  37: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
       labels:
         app: kubevuln
+        helm.sh/chart: kubescape-operator-1.18.17
         tier: ks-control-plane
       name: kubevuln
       namespace: kubescape
@@ -5457,11 +6064,28 @@ default capabilities:
         - ports:
             - port: 443
               protocol: TCP
+        - ports:
+            - port: 53
+              protocol: UDP
+          to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: kube-system
+              podSelector:
+                matchLabels:
+                  k8s-app: kube-dns
+        - ports:
+            - port: 4317
+              protocol: TCP
+          to:
+            - podSelector:
+                matchLabels:
+                  app: otel-collector
       ingress:
         - from:
             - podSelector:
                 matchLabels:
-                  app.kubernetes.io/instance: kubescape
+                  app.kubernetes.io/instance: RELEASE-NAME
                   app.kubernetes.io/name: operator
                   tier: ks-control-plane
           ports:
@@ -5475,7 +6099,7 @@ default capabilities:
       policyTypes:
         - Ingress
         - Egress
-  36: |
+  38: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -5492,7 +6116,7 @@ default capabilities:
       selector:
         app: kubevuln
       type: ClusterIP
-  37: |
+  39: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -5502,7 +6126,7 @@ default capabilities:
         kubescape.io/ignore: "true"
       name: kubevuln
       namespace: kubescape
-  38: |
+  40: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -5580,7 +6204,7 @@ default capabilities:
         verbs:
           - list
           - watch
-  39: |
+  41: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -5595,7 +6219,7 @@ default capabilities:
       - kind: ServiceAccount
         name: node-agent
         namespace: kubescape
-  40: |
+  42: |
     apiVersion: v1
     data:
       config.json: |
@@ -5625,7 +6249,7 @@ default capabilities:
         kubescape.io/tier: core
       name: node-agent
       namespace: kubescape
-  41: |
+  43: |
     apiVersion: apps/v1
     kind: DaemonSet
     metadata:
@@ -5824,7 +6448,43 @@ default capabilities:
             - name: proxy-secret
               secret:
                 secretName: kubescape-proxy-certificate
-  42: |
+  44: |
+    apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      labels:
+        app: node-agent
+        helm.sh/chart: kubescape-operator-1.18.17
+        tier: ks-control-plane
+      name: node-agent
+      namespace: kubescape
+    spec:
+      egress:
+        - ports:
+            - port: 53
+              protocol: UDP
+          to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: kube-system
+              podSelector:
+                matchLabels:
+                  k8s-app: kube-dns
+        - ports:
+            - port: 4317
+              protocol: TCP
+          to:
+            - podSelector:
+                matchLabels:
+                  app: otel-collector
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/instance: RELEASE-NAME
+          app.kubernetes.io/name: node-agent
+          tier: ks-control-plane
+      policyTypes:
+        - Egress
+  45: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -5842,7 +6502,7 @@ default capabilities:
           targetPort: 8080
       selector:
         app.kubernetes.io/name: node-agent
-  43: |
+  46: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -5850,7 +6510,7 @@ default capabilities:
         kubescape.io/ignore: "true"
       name: node-agent
       namespace: kubescape
-  44: |
+  47: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -5917,7 +6577,7 @@ default capabilities:
           - create
           - update
           - delete
-  45: |
+  48: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -5932,7 +6592,7 @@ default capabilities:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  46: |
+  49: |
     apiVersion: v1
     data:
       config.json: |
@@ -5947,7 +6607,7 @@ default capabilities:
         kubescape.io/tier: core
       name: operator
       namespace: kubescape
-  47: |
+  50: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -5976,7 +6636,7 @@ default capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 2bd2ea20adc7bfd3e36a8f54681afb7311d9cc763a9027d918807164d4d74995
+            checksum/capabilities-config: 42ca66a929f6066b8ca57ae06fb14dbae3030ccd6bac1e87518373b14eaed76c
             checksum/cloud-config: 98e72a3a1a24264d2cdebc86b61829ee5b941fb590d6ca717ebaa880922046c6
             checksum/cloud-secret: 8665d3f0f7282091716b5fbf7356972eb83a5a9e86eb064218d24e9f66612b99
             checksum/matching-rules-config: 9282b3916f506ac98eccbdfe686271420ff520374de611f7efce8235dcdf8809
@@ -6112,7 +6772,7 @@ default capabilities:
                     path: matchingRules.json
                 name: cs-matching-rules
               name: cs-matching-rules
-  48: |
+  51: |
     apiVersion: v1
     data:
       cronjobTemplate: "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: kubescape-scheduler\n  namespace: kubescape\n  labels:\n    app: kubescape-scheduler\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\n    kubescape.io/tier: \"core\"\n    armo.tier: \"kubescape-scan\"\nspec:\n  schedule: \"1 2 3 4 5\"\n  successfulJobsHistoryLimit: 3\n  failedJobsHistoryLimit: 1\n  jobTemplate:\n    spec:\n      template:\n        metadata:\n          labels:\n            armo.tier: \"kubescape-scan\"\n            kubescape.io/tier: \"core\"\n        spec:\n          containers:\n          - name: kubescape-scheduler\n            image: \"quay.io/kubescape/http-request:v0.2.6\"\n            imagePullPolicy: IfNotPresent\n            securityContext:\n              allowPrivilegeEscalation: false\n              readOnlyRootFilesystem: true\n              runAsNonRoot: true\n              runAsUser: 100\n            resources:\n              limits:\n                cpu: 10m\n                memory: 20Mi\n              requests:\n                cpu: 1m\n                memory: 10Mi\n            args: \n              - -method=post\n              - -scheme=http\n              - -host=operator:4002\n              - -path=v1/triggerAction\n              - -headers=Content-Type:application/json\n              - -path-body=/home/ks/request-body.json\n            volumeMounts:\n              - name: \"request-body-volume\"\n                mountPath: /home/ks/request-body.json\n                subPath: request-body.json\n                readOnly: true\n          restartPolicy: Never\n          automountServiceAccountToken: false\n          nodeSelector:\n          affinity:\n          tolerations:\n          volumes:\n            - name: \"request-body-volume\" # placeholder\n              configMap:\n                name: kubescape-scheduler"
@@ -6125,7 +6785,7 @@ default capabilities:
         tier: ks-control-plane
       name: kubescape-cronjob-template
       namespace: kubescape
-  49: |
+  52: |
     apiVersion: v1
     data:
       cronjobTemplate: "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: kubevuln-scheduler\n  namespace: kubescape\n  labels:\n    app: kubevuln-scheduler\n    kubescape.io/ignore: \"true\"\n    kubescape.io/tier: \"core\"\n    tier: ks-control-plane\n    armo.tier: \"vuln-scan\"\nspec:\n  schedule: \"1 2 3 4 5\" \n  successfulJobsHistoryLimit: 3\n  failedJobsHistoryLimit: 1\n  jobTemplate:\n    spec:\n      template:\n        metadata:\n          labels:\n            armo.tier: \"vuln-scan\"\n            kubescape.io/tier: \"core\"\n        spec:\n          containers:\n          - name: kubevuln-scheduler\n            image: \"quay.io/kubescape/http-request:v0.2.6\"\n            imagePullPolicy: IfNotPresent\n            securityContext:\n              allowPrivilegeEscalation: false\n              readOnlyRootFilesystem: true\n              runAsNonRoot: true\n              runAsUser: 100\n            resources:\n              limits:\n                cpu: 10m\n                memory: 20Mi\n              requests:\n                cpu: 1m\n                memory: 10Mi\n            args: \n              - -method=post\n              - -scheme=http\n              - -host=operator:4002\n              - -path=v1/triggerAction\n              - -headers=Content-Type:application/json\n              - -path-body=/home/ks/request-body.json\n            volumeMounts:\n              - name: \"request-body-volume\"\n                mountPath: /home/ks/request-body.json\n                subPath: request-body.json\n                readOnly: true\n          restartPolicy: Never\n          automountServiceAccountToken: false\n          nodeSelector:\n          affinity:\n          tolerations:\n          volumes:\n            - name: \"request-body-volume\" # placeholder\n              configMap:\n                name: kubevuln-scheduler"
@@ -6138,12 +6798,13 @@ default capabilities:
         tier: ks-control-plane
       name: kubevuln-cronjob-template
       namespace: kubescape
-  50: |
+  53: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
       labels:
         app: operator
+        helm.sh/chart: kubescape-operator-1.18.17
         tier: ks-control-plane
       name: operator
       namespace: kubescape
@@ -6158,6 +6819,50 @@ default capabilities:
           to:
             - ipBlock:
                 cidr: 169.254.169.254/32
+        - ports:
+            - port: 8080
+              protocol: TCP
+          to:
+            - podSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: RELEASE-NAME
+                  app.kubernetes.io/name: kubescape
+                  tier: ks-control-plane
+        - ports:
+            - port: 8001
+              protocol: TCP
+          to:
+            - podSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: RELEASE-NAME
+                  app.kubernetes.io/name: gateway
+                  tier: ks-control-plane
+        - ports:
+            - port: 8080
+              protocol: TCP
+          to:
+            - podSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: RELEASE-NAME
+                  app.kubernetes.io/name: kubevuln
+                  tier: ks-control-plane
+        - ports:
+            - port: 53
+              protocol: UDP
+          to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: kube-system
+              podSelector:
+                matchLabels:
+                  k8s-app: kube-dns
+        - ports:
+            - port: 4317
+              protocol: TCP
+          to:
+            - podSelector:
+                matchLabels:
+                  app: otel-collector
       ingress:
         - from:
             - podSelector:
@@ -6177,7 +6882,7 @@ default capabilities:
       policyTypes:
         - Ingress
         - Egress
-  51: |
+  54: |
     apiVersion: v1
     data:
       cronjobTemplate: "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: registry-scheduler\n  namespace: kubescape\n  labels:\n    app: registry-scheduler\n    kubescape.io/ignore: \"true\"\n    kubescape.io/tier: \"core\"\n    tier: ks-control-plane\n    armo.tier: \"registry-scan\"\nspec:\n  schedule: \"0 0 * * *\"\n  successfulJobsHistoryLimit: 3\n  failedJobsHistoryLimit: 1\n  jobTemplate:\n    spec:\n      template:\n        metadata:\n          labels:\n            armo.tier: \"registry-scan\"\n            kubescape.io/tier: \"core\"\n        spec:\n          containers:\n          - name: registry-scheduler\n            image: \"quay.io/kubescape/http-request:v0.2.6\"\n            imagePullPolicy: IfNotPresent\n            securityContext:\n              allowPrivilegeEscalation: false\n              readOnlyRootFilesystem: true\n              runAsNonRoot: true\n              runAsUser: 100\n            resources:\n              limits:\n                cpu: 10m\n                memory: 20Mi\n              requests:\n                cpu: 1m\n                memory: 10Mi\n            args: \n              - -method=post\n              - -scheme=http\n              - -host=operator:4002\n              - -path=v1/triggerAction\n              - -headers=Content-Type:application/json\n              - -path-body=/home/ks/request-body.json\n            volumeMounts:\n              - name: \"request-body-volume\"\n                mountPath: /home/ks/request-body.json\n                subPath: request-body.json\n                readOnly: true\n          restartPolicy: Never\n          automountServiceAccountToken: false\n          nodeSelector:\n          affinity:\n          tolerations:\n          volumes:\n            - name: \"request-body-volume\" # placeholder\n              configMap:\n                name: registry-scheduler"
@@ -6190,7 +6895,7 @@ default capabilities:
         tier: ks-control-plane
       name: registry-scan-cronjob-template
       namespace: kubescape
-  52: |
+  55: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -6224,7 +6929,7 @@ default capabilities:
           - list
           - patch
           - delete
-  53: |
+  56: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -6240,7 +6945,7 @@ default capabilities:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  54: |
+  57: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -6257,7 +6962,7 @@ default capabilities:
       selector:
         app: operator
       type: ClusterIP
-  55: |
+  58: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -6267,7 +6972,7 @@ default capabilities:
         kubescape.io/ignore: "true"
       name: operator
       namespace: kubescape
-  56: |
+  59: |
     apiVersion: v1
     data:
       otel-collector-config.yaml: "\n# receivers configure how data gets into the Collector.\nreceivers:\n  otlp:\n    protocols:\n      grpc:\n        endpoint: 0.0.0.0:4317\n      http:\n        endpoint: 0.0.0.0:4318\n  hostmetrics:\n    collection_interval: 30s\n    scrapers:\n      cpu:\n      memory:\n\n# processors specify what happens with the received data.\nprocessors:\n  attributes/ksCloud:\n    actions:\n      - key: account_id\n        value: \"9e6c0c2c-6bd0-4919-815b-55030de7c9a0\"\n        action: upsert\n      - key: cluster_name\n        value: \"kind-kind\"\n        action: upsert\n  batch:\n    send_batch_size: 10000\n    timeout: 10s\n\n# exporters configure how to send processed data to one or more backends.\nexporters:\n  otlp/ksCloud:\n    endpoint: ${env:CLOUD_OTEL_COLLECTOR_URL}\n    tls:\n      insecure: false\n  otlp:\n    endpoint: \"otelCollector:4317\"\n    tls:\n      insecure: true\n    headers:\n      uptrace-dsn: \n\n# service pulls the configured receivers, processors, and exporters together into\n# processing pipelines. Unused receivers/processors/exporters are ignored.\nservice:\n  pipelines:\n    traces:\n      receivers: [otlp]\n      processors: [batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp\n    metrics/2:\n      receivers: [hostmetrics]\n      processors: [attributes/ksCloud, batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp\n    metrics:\n      receivers: [otlp]\n      processors: [attributes/ksCloud, batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp\n    logs:\n      receivers: [otlp]\n      processors: [attributes/ksCloud, batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp"
@@ -6280,7 +6985,7 @@ default capabilities:
         tier: ks-control-plane
       name: otel-collector-config
       namespace: kubescape
-  57: |
+  60: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -6377,7 +7082,7 @@ default capabilities:
             - configMap:
                 name: otel-collector-config
               name: otel-collector-config-volume
-  58: |
+  61: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -6394,6 +7099,23 @@ default capabilities:
               protocol: TCP
             - port: 4317
               protocol: TCP
+        - ports:
+            - port: 53
+              protocol: UDP
+          to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: kube-system
+              podSelector:
+                matchLabels:
+                  k8s-app: kube-dns
+        - ports:
+            - port: 4317
+              protocol: TCP
+          to:
+            - podSelector:
+                matchLabels:
+                  app: otel-collector
       ingress:
         - from:
             - podSelector:
@@ -6410,7 +7132,7 @@ default capabilities:
       policyTypes:
         - Ingress
         - Egress
-  59: |
+  62: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -6432,7 +7154,7 @@ default capabilities:
       selector:
         app: otel-collector
       type: ClusterIP
-  60: |
+  63: |
     apiVersion: v1
     data:
       proxy.crt: foo
@@ -6447,7 +7169,7 @@ default capabilities:
       name: kubescape-proxy-certificate
       namespace: kubescape
     type: Opaque
-  61: |
+  64: |
     apiVersion: batch/v1
     kind: Job
     metadata:
@@ -6532,7 +7254,7 @@ default capabilities:
             - name: proxy-secret
               secret:
                 secretName: kubescape-proxy-certificate
-  62: |
+  65: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -6555,7 +7277,7 @@ default capabilities:
           - patch
           - get
           - list
-  63: |
+  66: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -6574,7 +7296,7 @@ default capabilities:
       - kind: ServiceAccount
         name: service-discovery
         namespace: kubescape
-  64: |
+  67: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -6586,7 +7308,7 @@ default capabilities:
         kubescape.io/ignore: "true"
       name: service-discovery
       namespace: kubescape
-  65: |
+  68: |
     apiVersion: apiregistration.k8s.io/v1
     kind: APIService
     metadata:
@@ -6602,7 +7324,7 @@ default capabilities:
         namespace: kubescape
       version: v1beta1
       versionPriority: 15
-  66: |
+  69: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -6700,7 +7422,7 @@ default capabilities:
           - get
           - watch
           - list
-  67: |
+  70: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -6715,7 +7437,7 @@ default capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  68: |
+  71: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -6728,7 +7450,7 @@ default capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  69: |
+  72: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -6820,7 +7542,49 @@ default capabilities:
                     path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
-  70: |
+  73: |
+    apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      labels:
+        app: storage
+        helm.sh/chart: kubescape-operator-1.18.17
+        tier: ks-control-plane
+      name: storage
+      namespace: kubescape
+    spec:
+      egress:
+        - ports:
+            - port: 8443
+              protocol: TCP
+          to:
+            - ipBlock:
+                cidr: 192.168.49.2/32
+        - ports:
+            - port: 53
+              protocol: UDP
+          to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: kube-system
+              podSelector:
+                matchLabels:
+                  k8s-app: kube-dns
+        - ports:
+            - port: 4317
+              protocol: TCP
+          to:
+            - podSelector:
+                matchLabels:
+                  app: otel-collector
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/instance: RELEASE-NAME
+          app.kubernetes.io/name: storage
+          tier: ks-control-plane
+      policyTypes:
+        - Egress
+  74: |
     apiVersion: v1
     kind: PersistentVolumeClaim
     metadata:
@@ -6837,7 +7601,7 @@ default capabilities:
       resources:
         requests:
           storage: 5Gi
-  71: |
+  75: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -6853,7 +7617,7 @@ default capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  72: |
+  76: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -6870,7 +7634,7 @@ default capabilities:
         app.kubernetes.io/component: apiserver
         app.kubernetes.io/name: storage
         app.kubernetes.io/part-of: kubescape-storage
-  73: |
+  77: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -6878,7 +7642,7 @@ default capabilities:
         kubescape.io/ignore: "true"
       name: storage
       namespace: kubescape
-  74: |
+  78: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -7010,7 +7774,7 @@ default capabilities:
           - get
           - watch
           - list
-  75: |
+  79: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -7025,7 +7789,7 @@ default capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  76: |
+  80: |
     apiVersion: v1
     data:
       config.json: |
@@ -7233,7 +7997,7 @@ default capabilities:
         kubescape.io/tier: core
       name: synchronizer
       namespace: kubescape
-  77: |
+  81: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -7359,26 +8123,45 @@ default capabilities:
                     path: config.json
                 name: synchronizer
               name: config
-  78: |
+  82: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
       labels:
         app: synchronizer
+        helm.sh/chart: kubescape-operator-1.18.17
         tier: ks-control-plane
       name: synchronizer
       namespace: kubescape
     spec:
       egress:
         - ports:
-            - port: 8443
+            - port: 443
               protocol: TCP
+        - ports:
+            - port: 53
+              protocol: UDP
+          to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: kube-system
+              podSelector:
+                matchLabels:
+                  k8s-app: kube-dns
+        - ports:
+            - port: 4317
+              protocol: TCP
+          to:
+            - podSelector:
+                matchLabels:
+                  app: otel-collector
       ingress:
         - from:
             - podSelector:
                 matchLabels:
-                  app.kubernetes.io/instance: kubecop
-                  app.kubernetes.io/name: kubecop
+                  app.kubernetes.io/instance: RELEASE-NAME
+                  app.kubernetes.io/name: node-agent
+                  tier: ks-control-plane
           ports:
             - port: 8089
               protocol: TCP
@@ -7390,7 +8173,7 @@ default capabilities:
       policyTypes:
         - Ingress
         - Egress
-  79: |
+  83: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -7407,7 +8190,7 @@ default capabilities:
       selector:
         app: synchronizer
       type: ClusterIP
-  80: |
+  84: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -7478,7 +8261,7 @@ minimal capabilities:
       capabilities: |
         {
           "capabilities":{"autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","enableServiceAuth":false,"malwareDetection":"disable","networkPolicyService":"enable","nodeProfileService":"disable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","vexGeneration":"disable","vulnerabilityScan":"enable"},
-          "components":{"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"gateway":{"enabled":false},"hostScanner":{"enabled":true},"kollector":{"enabled":false},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":false},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":false},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":true},"prometheusExporter":{"enabled":false},"serviceDiscovery":{"enabled":false},"storage":{"enabled":true},"synchronizer":{"enabled":false}},
+          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"gateway":{"enabled":false},"hostScanner":{"enabled":true},"kollector":{"enabled":false},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":false},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":false},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":true},"prometheusExporter":{"enabled":false},"serviceDiscovery":{"enabled":false},"storage":{"enabled":true},"synchronizer":{"enabled":false}},
           "configurations":{"otelUrl":"otelCollector:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"}
         }
     kind: ConfigMap
@@ -8711,7 +9494,7 @@ minimal capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 0ee9bed1f50680deb878724d7af3fb24d73ec15b329111a82fa85baa6965e206
+            checksum/capabilities-config: 3712097506a8e426352d08719f83902a43c1d72e83b73d88268a320ac022b158
             checksum/cloud-config: c8580dbb81fa1c832dc787a966fc068feacfb2ee7f67fdd928c256f4094ad656
             checksum/cloud-secret: baefa7c2a6f06e1afdaffb0829d1caf36ff7428773197f1e5ca4731c132ecb78
             checksum/matching-rules-config: 9282b3916f506ac98eccbdfe686271420ff520374de611f7efce8235dcdf8809

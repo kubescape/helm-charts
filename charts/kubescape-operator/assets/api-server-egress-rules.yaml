@@ -1,0 +1,16 @@
+- ports:
+    - port: {{ .Values.global.networkPolicy.apiServerPort }}
+      protocol: TCP
+  to:
+{{- if .Values.global.networkPolicy.apiServerIP }}
+    - ipBlock:
+        cidr: {{ .Values.global.networkPolicy.apiServerIP }}/32
+{{- else }}
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: default
+      podSelector:
+        matchLabels:
+          component: apiserver
+          provider: kubernetes
+{{- end -}}

@@ -4,17 +4,17 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: otel-collector
+  name: {{ .Values.otelCollector.name }}
   namespace: {{ .Values.ksNamespace }}
   labels:
-    app: otel-collector
+    app: {{ .Values.otelCollector.name }}
     tier: {{ .Values.global.namespaceTier }}
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
 spec:
   podSelector:
     matchLabels:
-      app.kubernetes.io/name: otel-collector
       app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/name: {{ .Values.otelCollector.name }}
       tier: {{ .Values.global.namespaceTier }}
   policyTypes:
     - Ingress
@@ -23,12 +23,13 @@ spec:
   egress:
       # - otel backend
     - ports:
-      - port: 443
-        protocol: TCP
+        - port: 443
+          protocol: TCP
       {{- if $configurations.otel }}
-      - port: {{ $configurations.otelPort }}
-        protocol: TCP
+        - port: {{ $configurations.otelPort }}
+          protocol: TCP
       {{- end }}
+{{ tpl (.Files.Get "assets/common-egress-rules.yaml") . | indent 4 }}
   {{- end }}
   ingress:
     - from:
@@ -38,4 +39,4 @@ spec:
       ports:
         - port: otlp
           protocol: TCP
-{{ end }}
+{{- end }}
