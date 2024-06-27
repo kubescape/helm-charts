@@ -372,6 +372,8 @@ all capabilities:
                 - mountPath: /etc/ssl/certs/ca-certificates.crt
                   name: custom-ca-certificates
                   subPath: ca-certificates.crt
+          imagePullSecrets:
+            - name: foo
           nodeSelector: null
           securityContext:
             fsGroup: 65532
@@ -527,6 +529,8 @@ all capabilities:
               securityContext:
                 allowPrivilegeEscalation: false
                 runAsNonRoot: true
+          imagePullSecrets:
+            - name: foo
           nodeSelector: null
           tolerations: null
   17: |
@@ -801,6 +805,8 @@ all capabilities:
                 - mountPath: /etc/ssl/certs/ca-certificates.crt
                   name: custom-ca-certificates
                   subPath: ca-certificates.crt
+          imagePullSecrets:
+            - name: foo
           nodeSelector: null
           serviceAccountName: kollector
           tolerations: null
@@ -892,6 +898,8 @@ all capabilities:
                       name: kubescape-scheduler
                       readOnly: true
                       subPath: request-body.json
+              imagePullSecrets:
+                - name: foo
               nodeSelector: null
               restartPolicy: Never
               tolerations: null
@@ -1191,7 +1199,7 @@ all capabilities:
           annotations:
             checksum/cloud-config: c4dc912bbe62b0d5fd4734206c3cae52f56d766cbc20024182a2bcef09c0ae8e
             checksum/cloud-secret: 8665d3f0f7282091716b5fbf7356972eb83a5a9e86eb064218d24e9f66612b99
-            checksum/host-scanner-configmap: cb6c9f6c0baf504f7e8b4b5daf0c3a84cdf0cf21e3a098be67e57fdcd2db8ac9
+            checksum/host-scanner-configmap: 509cf341d64687ae30fd68dc75cbccdabe0c53a694cbd935ee651aa154f2de9e
             checksum/proxy-config: 30e81a4193016803b4b7985b92028c4797c1e84d317a4b6b3e3a5406139f8847
           labels:
             app: kubescape
@@ -1300,6 +1308,8 @@ all capabilities:
                 - mountPath: /etc/ssl/certs/ca-certificates.crt
                   name: custom-ca-certificates
                   subPath: ca-certificates.crt
+          imagePullSecrets:
+            - name: foo
           nodeSelector: null
           securityContext:
             fsGroup: 65532
@@ -1366,6 +1376,8 @@ all capabilities:
                 - effect: NoSchedule
                   key: node-role.kubernetes.io/master
                   operator: Exists
+              imagePullSecrets:
+              - name: foo
               containers:
               - name: host-sensor
                 image: "quay.io/kubescape/host-scanner:v1.0.66"
@@ -1660,6 +1672,8 @@ all capabilities:
                       name: kubevuln-scheduler
                       readOnly: true
                       subPath: request-body.json
+              imagePullSecrets:
+                - name: foo
               nodeSelector: null
               restartPolicy: Never
               tolerations: null
@@ -1871,6 +1885,8 @@ all capabilities:
                 - mountPath: /etc/ssl/certs/ca-certificates.crt
                   name: custom-ca-certificates
                   subPath: ca-certificates.crt
+          imagePullSecrets:
+            - name: foo
           nodeSelector: null
           securityContext:
             fsGroup: 65532
@@ -2320,6 +2336,8 @@ all capabilities:
                   name: custom-ca-certificates
                   subPath: ca-certificates.crt
           hostPID: true
+          imagePullSecrets:
+            - name: foo
           nodeSelector:
             kubernetes.io/os: linux
           priorityClassName: kubescape-critical
@@ -2677,6 +2695,8 @@ all capabilities:
                 - mountPath: /etc/ssl/certs/proxy.crt
                   name: proxy-secret
                   subPath: proxy.crt
+          imagePullSecrets:
+            - name: foo
           nodeSelector: null
           securityContext:
             fsGroup: 65532
@@ -2724,7 +2744,7 @@ all capabilities:
   58: |
     apiVersion: v1
     data:
-      cronjobTemplate: "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: kubescape-scheduler\n  namespace: kubescape\n  labels:\n    app: kubescape-scheduler\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\n    kubescape.io/tier: \"core\"\n    armo.tier: \"kubescape-scan\"\nspec:\n  schedule: \"1 2 3 4 5\"\n  successfulJobsHistoryLimit: 3\n  failedJobsHistoryLimit: 1\n  jobTemplate:\n    spec:\n      template:\n        metadata:\n          labels:\n            armo.tier: \"kubescape-scan\"\n            kubescape.io/tier: \"core\"\n        spec:\n          containers:\n          - name: kubescape-scheduler\n            image: \"quay.io/kubescape/http-request:v0.2.6\"\n            imagePullPolicy: IfNotPresent\n            securityContext:\n              allowPrivilegeEscalation: false\n              readOnlyRootFilesystem: true\n              runAsNonRoot: true\n              runAsUser: 100\n            resources:\n              limits:\n                cpu: 10m\n                memory: 20Mi\n              requests:\n                cpu: 1m\n                memory: 10Mi\n            args: \n              - -method=post\n              - -scheme=http\n              - -host=operator:4002\n              - -path=v1/triggerAction\n              - -headers=Content-Type:application/json\n              - -path-body=/home/ks/request-body.json\n            volumeMounts:\n              - name: \"request-body-volume\"\n                mountPath: /home/ks/request-body.json\n                subPath: request-body.json\n                readOnly: true\n          restartPolicy: Never\n          automountServiceAccountToken: false\n          nodeSelector:\n          affinity:\n          tolerations:\n          volumes:\n            - name: \"request-body-volume\" # placeholder\n              configMap:\n                name: kubescape-scheduler"
+      cronjobTemplate: "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: kubescape-scheduler\n  namespace: kubescape\n  labels:\n    app: kubescape-scheduler\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\n    kubescape.io/tier: \"core\"\n    armo.tier: \"kubescape-scan\"\nspec:\n  schedule: \"1 2 3 4 5\"\n  successfulJobsHistoryLimit: 3\n  failedJobsHistoryLimit: 1\n  jobTemplate:\n    spec:\n      template:\n        metadata:\n          labels:\n            armo.tier: \"kubescape-scan\"\n            kubescape.io/tier: \"core\"\n        spec:\n          imagePullSecrets:\n          - name: foo\n          containers:\n          - name: kubescape-scheduler\n            image: \"quay.io/kubescape/http-request:v0.2.6\"\n            imagePullPolicy: IfNotPresent\n            securityContext:\n              allowPrivilegeEscalation: false\n              readOnlyRootFilesystem: true\n              runAsNonRoot: true\n              runAsUser: 100\n            resources:\n              limits:\n                cpu: 10m\n                memory: 20Mi\n              requests:\n                cpu: 1m\n                memory: 10Mi\n            args: \n              - -method=post\n              - -scheme=http\n              - -host=operator:4002\n              - -path=v1/triggerAction\n              - -headers=Content-Type:application/json\n              - -path-body=/home/ks/request-body.json\n            volumeMounts:\n              - name: \"request-body-volume\"\n                mountPath: /home/ks/request-body.json\n                subPath: request-body.json\n                readOnly: true\n          restartPolicy: Never\n          automountServiceAccountToken: false\n          nodeSelector:\n          affinity:\n          tolerations:\n          volumes:\n            - name: \"request-body-volume\" # placeholder\n              configMap:\n                name: kubescape-scheduler"
     kind: ConfigMap
     metadata:
       labels:
@@ -2737,7 +2757,7 @@ all capabilities:
   59: |
     apiVersion: v1
     data:
-      cronjobTemplate: "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: kubevuln-scheduler\n  namespace: kubescape\n  labels:\n    app: kubevuln-scheduler\n    kubescape.io/ignore: \"true\"\n    kubescape.io/tier: \"core\"\n    tier: ks-control-plane\n    armo.tier: \"vuln-scan\"\nspec:\n  schedule: \"1 2 3 4 5\" \n  successfulJobsHistoryLimit: 3\n  failedJobsHistoryLimit: 1\n  jobTemplate:\n    spec:\n      template:\n        metadata:\n          labels:\n            armo.tier: \"vuln-scan\"\n            kubescape.io/tier: \"core\"\n        spec:\n          containers:\n          - name: kubevuln-scheduler\n            image: \"quay.io/kubescape/http-request:v0.2.6\"\n            imagePullPolicy: IfNotPresent\n            securityContext:\n              allowPrivilegeEscalation: false\n              readOnlyRootFilesystem: true\n              runAsNonRoot: true\n              runAsUser: 100\n            resources:\n              limits:\n                cpu: 10m\n                memory: 20Mi\n              requests:\n                cpu: 1m\n                memory: 10Mi\n            args: \n              - -method=post\n              - -scheme=http\n              - -host=operator:4002\n              - -path=v1/triggerAction\n              - -headers=Content-Type:application/json\n              - -path-body=/home/ks/request-body.json\n            volumeMounts:\n              - name: \"request-body-volume\"\n                mountPath: /home/ks/request-body.json\n                subPath: request-body.json\n                readOnly: true\n          restartPolicy: Never\n          automountServiceAccountToken: false\n          nodeSelector:\n          affinity:\n          tolerations:\n          volumes:\n            - name: \"request-body-volume\" # placeholder\n              configMap:\n                name: kubevuln-scheduler"
+      cronjobTemplate: "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: kubevuln-scheduler\n  namespace: kubescape\n  labels:\n    app: kubevuln-scheduler\n    kubescape.io/ignore: \"true\"\n    kubescape.io/tier: \"core\"\n    tier: ks-control-plane\n    armo.tier: \"vuln-scan\"\nspec:\n  schedule: \"1 2 3 4 5\" \n  successfulJobsHistoryLimit: 3\n  failedJobsHistoryLimit: 1\n  jobTemplate:\n    spec:\n      template:\n        metadata:\n          labels:\n            armo.tier: \"vuln-scan\"\n            kubescape.io/tier: \"core\"\n        spec:\n          imagePullSecrets:\n          - name: foo\n          containers:\n          - name: kubevuln-scheduler\n            image: \"quay.io/kubescape/http-request:v0.2.6\"\n            imagePullPolicy: IfNotPresent\n            securityContext:\n              allowPrivilegeEscalation: false\n              readOnlyRootFilesystem: true\n              runAsNonRoot: true\n              runAsUser: 100\n            resources:\n              limits:\n                cpu: 10m\n                memory: 20Mi\n              requests:\n                cpu: 1m\n                memory: 10Mi\n            args: \n              - -method=post\n              - -scheme=http\n              - -host=operator:4002\n              - -path=v1/triggerAction\n              - -headers=Content-Type:application/json\n              - -path-body=/home/ks/request-body.json\n            volumeMounts:\n              - name: \"request-body-volume\"\n                mountPath: /home/ks/request-body.json\n                subPath: request-body.json\n                readOnly: true\n          restartPolicy: Never\n          automountServiceAccountToken: false\n          nodeSelector:\n          affinity:\n          tolerations:\n          volumes:\n            - name: \"request-body-volume\" # placeholder\n              configMap:\n                name: kubevuln-scheduler"
     kind: ConfigMap
     metadata:
       labels:
@@ -2840,7 +2860,7 @@ all capabilities:
   61: |
     apiVersion: v1
     data:
-      cronjobTemplate: "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: registry-scheduler\n  namespace: kubescape\n  labels:\n    app: registry-scheduler\n    kubescape.io/ignore: \"true\"\n    kubescape.io/tier: \"core\"\n    tier: ks-control-plane\n    armo.tier: \"registry-scan\"\nspec:\n  schedule: \"0 0 * * *\"\n  successfulJobsHistoryLimit: 3\n  failedJobsHistoryLimit: 1\n  jobTemplate:\n    spec:\n      template:\n        metadata:\n          labels:\n            armo.tier: \"registry-scan\"\n            kubescape.io/tier: \"core\"\n        spec:\n          containers:\n          - name: registry-scheduler\n            image: \"quay.io/kubescape/http-request:v0.2.6\"\n            imagePullPolicy: IfNotPresent\n            securityContext:\n              allowPrivilegeEscalation: false\n              readOnlyRootFilesystem: true\n              runAsNonRoot: true\n              runAsUser: 100\n            resources:\n              limits:\n                cpu: 10m\n                memory: 20Mi\n              requests:\n                cpu: 1m\n                memory: 10Mi\n            args: \n              - -method=post\n              - -scheme=http\n              - -host=operator:4002\n              - -path=v1/triggerAction\n              - -headers=Content-Type:application/json\n              - -path-body=/home/ks/request-body.json\n            volumeMounts:\n              - name: \"request-body-volume\"\n                mountPath: /home/ks/request-body.json\n                subPath: request-body.json\n                readOnly: true\n          restartPolicy: Never\n          automountServiceAccountToken: false\n          nodeSelector:\n          affinity:\n          tolerations:\n          volumes:\n            - name: \"request-body-volume\" # placeholder\n              configMap:\n                name: registry-scheduler"
+      cronjobTemplate: "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: registry-scheduler\n  namespace: kubescape\n  labels:\n    app: registry-scheduler\n    kubescape.io/ignore: \"true\"\n    kubescape.io/tier: \"core\"\n    tier: ks-control-plane\n    armo.tier: \"registry-scan\"\nspec:\n  schedule: \"0 0 * * *\"\n  successfulJobsHistoryLimit: 3\n  failedJobsHistoryLimit: 1\n  jobTemplate:\n    spec:\n      template:\n        metadata:\n          labels:\n            armo.tier: \"registry-scan\"\n            kubescape.io/tier: \"core\"\n        spec:\n          imagePullSecrets:\n          - name: foo\n          containers:\n          - name: registry-scheduler\n            image: \"quay.io/kubescape/http-request:v0.2.6\"\n            imagePullPolicy: IfNotPresent\n            securityContext:\n              allowPrivilegeEscalation: false\n              readOnlyRootFilesystem: true\n              runAsNonRoot: true\n              runAsUser: 100\n            resources:\n              limits:\n                cpu: 10m\n                memory: 20Mi\n              requests:\n                cpu: 1m\n                memory: 10Mi\n            args: \n              - -method=post\n              - -scheme=http\n              - -host=operator:4002\n              - -path=v1/triggerAction\n              - -headers=Content-Type:application/json\n              - -path-body=/home/ks/request-body.json\n            volumeMounts:\n              - name: \"request-body-volume\"\n                mountPath: /home/ks/request-body.json\n                subPath: request-body.json\n                readOnly: true\n          restartPolicy: Never\n          automountServiceAccountToken: false\n          nodeSelector:\n          affinity:\n          tolerations:\n          volumes:\n            - name: \"request-body-volume\" # placeholder\n              configMap:\n                name: registry-scheduler"
     kind: ConfigMap
     metadata:
       labels:
@@ -3031,6 +3051,8 @@ all capabilities:
                 - mountPath: /etc/ssl/certs/proxy.crt
                   name: proxy-secret
                   subPath: proxy.crt
+          imagePullSecrets:
+            - name: foo
           nodeSelector: null
           serviceAccountName: default
           tolerations: null
@@ -3221,6 +3243,8 @@ all capabilities:
                 - mountPath: /etc/config
                   name: ks-cloud-config
                   readOnly: true
+          imagePullSecrets:
+            - name: foo
           nodeSelector: null
           securityContext:
             fsGroup: 65532
@@ -3364,6 +3388,8 @@ all capabilities:
               volumeMounts:
                 - mountPath: /data
                   name: shared-data
+          imagePullSecrets:
+            - name: foo
           initContainers:
             - args:
                 - -method=get
@@ -3672,6 +3698,8 @@ all capabilities:
                 - mountPath: /etc/config
                   name: ks-cloud-config
                   readOnly: true
+          imagePullSecrets:
+            - name: foo
           nodeSelector: null
           securityContext:
             fsGroup: 65532
@@ -4262,6 +4290,8 @@ all capabilities:
                 - mountPath: /etc/ssl/certs/proxy.crt
                   name: proxy-secret
                   subPath: proxy.crt
+          imagePullSecrets:
+            - name: foo
           nodeSelector: null
           securityContext:
             fsGroup: 65532
