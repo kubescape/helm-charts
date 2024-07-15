@@ -20,6 +20,11 @@ logger:
   level: info
   name: zap
 
+# Targeted scanning
+# If you wish to exclude specific namespaces from scanning, provide the comma-separated list here
+excludeNamespaces: "kubescape,kube-system,kube-public,kube-node-lease,kubeconfig,gmp-system,gmp-public"
+# If you wish to scan only specific namespaces, provide the comma-separated list here (takes precedence over excludeNamespaces)
+includeNamespaces: ""
 
 # Additional volumes applied to all containers
 volumes: [ ]
@@ -82,6 +87,7 @@ capabilities:
   malwareDetection: disable
   nodeProfileService: disable
   admissionController: disable
+  seccompProfileService: enable
 
   # ====== Other capabilities ======
   #
@@ -91,7 +97,9 @@ capabilities:
   prometheusExporter: disable
   # seccompGenerator: disable
 
-  enableServiceAuth: false
+serviceScanConfig:
+  enabled : false
+  interval: 1h
 
 configurations:
   otelUrl: # default is empty
@@ -166,6 +174,10 @@ global:
   networkPolicy:
     enabled: false
     createEgressRules: false
+    apiServerIP: ""
+    apiServerPort: 443
+    httpsProxyIP: ""
+    httpsProxyPort: ""
   overrideRuntimePath: ""
   overrideDefaultCaCertificates:
     enabled: false
@@ -199,7 +211,7 @@ kubescape:
   image:
     # -- source code: https://github.com/kubescape/kubescape/tree/master/httphandler (public repo)
     repository: quay.io/kubescape/kubescape
-    tag: v3.0.11
+    tag: v3.0.13
     pullPolicy: IfNotPresent
 
   resources:
@@ -215,9 +227,6 @@ kubescape:
 
   # -- skip check for a newer version
   skipUpdateCheck: false
-
-  # -- submit results to the Kubescape cloud: https://cloud.armosec.io/
-  submit: true
 
   service:
     type: ClusterIP
@@ -252,7 +261,8 @@ operator:
   image:
     # -- source code: https://github.com/kubescape/operator
     repository: quay.io/kubescape/operator
-    tag: v0.2.13
+    tag: v0.2.17
+    pullPolicy: IfNotPresent
 
   service:
     type: ClusterIP
@@ -446,7 +456,7 @@ storage:
   image:
     # -- source code: https://github.com/kubescape/storage
     repository: quay.io/kubescape/storage
-    tag: v0.0.85
+    tag: v0.0.89
     pullPolicy: IfNotPresent
 
   # cleanup interval is a duration string
@@ -475,7 +485,7 @@ nodeAgent:
   image:
     # -- source code: https://github.com/kubescape/node-agent
     repository: quay.io/kubescape/node-agent
-    tag: v0.2.81
+    tag: v0.2.101
     pullPolicy: IfNotPresent
 
   config:
@@ -636,7 +646,7 @@ synchronizer:
   image:
     # -- source code: https://github.com/kubescape/synchronizer
     repository: quay.io/kubescape/synchronizer
-    tag: v0.0.72
+    tag: v0.0.74
     pullPolicy: IfNotPresent
   resources:
     requests:
@@ -718,8 +728,11 @@ serviceDiscovery:
     name: url-discovery
     image:
       repository: quay.io/kubescape/http-request
-      tag: v0.2.6
+      tag: v0.2.8
       pullPolicy: IfNotPresent
+
+    # Skip SSL certificate verification
+    insecureSkipTLSVerify: false
 
   configMapCheck:
     name: check-url-configmap
@@ -750,7 +763,7 @@ prometheusExporter:
   name: "prometheus-exporter"
   image:
     repository: quay.io/kubescape/prometheus-exporter
-    tag: v0.0.7
+    tag: v0.0.135
     pullPolicy: IfNotPresent
 
   resources:
@@ -826,8 +839,11 @@ kubescapeScheduler:
   image:
     # -- source code: https://github.com/kubescape/http-request (public repo)
     repository: quay.io/kubescape/http-request
-    tag: v0.2.6
+    tag: v0.2.8
     pullPolicy: IfNotPresent
+
+  # Skip SSL certificate verification
+  insecureSkipTLSVerify: false
 
   # Additional volumes to be mounted on the scan scheduler
   volumes: [ ]
@@ -866,8 +882,11 @@ kubevulnScheduler:
   image:
     # source code - https://github.com/kubescape/http-request
     repository: quay.io/kubescape/http-request
-    tag: v0.2.6
+    tag: v0.2.8
     pullPolicy: IfNotPresent
+
+  # Skip SSL certificate verification
+  insecureSkipTLSVerify: false
 
   # Additional volumes to be mounted on the vuln scan scheduler
   volumes: [ ]
@@ -908,8 +927,11 @@ registryScanScheduler:
   image:
     # -- source code: https://github.com/kubescape/http-request (public repo)
     repository: quay.io/kubescape/http-request
-    tag: v0.2.6
+    tag: v0.2.8
     pullPolicy: IfNotPresent
+
+  # Skip SSL certificate verification
+  insecureSkipTLSVerify: false
 
   # Additional volumes to be mounted on the scan scheduler
   volumes: [ ]

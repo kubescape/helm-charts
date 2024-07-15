@@ -25,10 +25,16 @@ data:
         "networkServiceEnabled": {{ eq .Values.capabilities.networkPolicyService "enable" }},
         "malwareDetectionEnabled": {{ eq .Values.capabilities.malwareDetection "enable" }},
         "nodeProfileServiceEnabled": {{ eq .Values.capabilities.nodeProfileService "enable" }},
+        "seccompServiceEnabled": {{ eq .Values.capabilities.seccompProfileService "enable" }},
         "initialDelay": "{{ .Values.nodeAgent.config.learningPeriod }}",
         "updateDataPeriod": "{{ .Values.nodeAgent.config.updatePeriod }}",
         "nodeProfileInterval": "{{ .Values.nodeAgent.config.nodeProfileInterval }}",
         "maxSniffingTimePerContainer": "{{ .Values.nodeAgent.config.maxLearningPeriod }}",
+        {{- if ne .Values.includeNamespaces "" }}
+        "includeNamespaces": "{{ .Values.includeNamespaces }}",
+        {{- else if ne .Values.excludeNamespaces "" }}
+        "excludeNamespaces": "{{ .Values.excludeNamespaces }}",
+        {{- end }}
         "exporters": {
           "httpExporterConfig": {{- .Values.nodeAgent.config.httpExporterConfig | toJson }},
           "alertManagerExporterUrls": {{- .Values.nodeAgent.config.alertManagerExporterUrls | toJson }},

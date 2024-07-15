@@ -6,15 +6,23 @@ metadata:
 spec:
   namespaceSelector:
     matchExpressions:
+      {{- if ne .Values.includeNamespaces "" }}
+      - key: "kubernetes.io/metadata.name"
+        operator: "In"
+        values:
+          {{- $namespaces := split "," .Values.includeNamespaces }}
+          {{- range $namespaces }}
+          - {{ . | quote }}
+          {{- end }}
+      {{- else if ne .Values.excludeNamespaces "" }}
       - key: "kubernetes.io/metadata.name"
         operator: "NotIn"
         values:
-        - "kube-system"
-        - "kube-public"
-        - "kube-node-lease"
-        - "kubeconfig"
-        - "gmp-system"
-        - "gmp-public"
+          {{- $namespaces := split "," .Values.excludeNamespaces }}
+          {{- range $namespaces }}
+          - {{ . | quote }}
+          {{- end }}
+      {{- end }}
   rules:
     - ruleName: "Unexpected process launched"
     - ruleName: "Unexpected file access"

@@ -12,8 +12,8 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      app.kubernetes.io/name: {{ .Values.kubescape.name }}
       app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/name: {{ .Values.kubescape.name }}
       tier: {{ .Values.global.namespaceTier }}
   policyTypes:
     - Ingress
@@ -23,16 +23,25 @@ spec:
       # - backend api server
       # - GitRegoStore (https://github.com/kubescape/regolibrary/releases/)
     - ports:
-      - port: 443
-        protocol: TCP
+        - port: 443
+          protocol: TCP
+      # Cloud Vendor detection (Instance Metadata Services)
+    - ports:
+        - port: 80
+          protocol: TCP
+      to:
+        - ipBlock:
+            cidr: 169.254.169.254/32
+{{ tpl (.Files.Get "assets/api-server-egress-rules.yaml") . | indent 4 }}
+{{ tpl (.Files.Get "assets/common-egress-rules.yaml") . | indent 4 }}
   {{- end }}
   ingress:
     - from:
         - podSelector:
             matchLabels:
-              app.kubernetes.io/instance: kubescape
-              app.kubernetes.io/name: operator
-              tier: ks-control-plane
+              app.kubernetes.io/instance: {{ .Release.Name }}
+              app.kubernetes.io/name: {{ .Values.operator.name }}
+              tier: {{ .Values.global.namespaceTier }}
       ports:
         - port: http
           protocol: TCP

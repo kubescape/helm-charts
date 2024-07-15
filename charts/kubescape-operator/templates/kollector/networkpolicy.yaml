@@ -8,11 +8,12 @@ metadata:
   labels:
     app: {{ .Values.kollector.name }}
     tier: {{ .Values.global.namespaceTier }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
 spec:
   podSelector:
     matchLabels:
-      app.kubernetes.io/name: {{ .Values.kollector.name }}
       app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/name: {{ .Values.kollector.name }}
       tier: {{ .Values.global.namespaceTier }}
   policyTypes:
     - Egress
@@ -28,4 +29,5 @@ spec:
       to:
         - ipBlock:
             cidr: 169.254.169.254/32
+{{ tpl (.Files.Get "assets/common-egress-rules.yaml") . | indent 4 }}
 {{- end }}

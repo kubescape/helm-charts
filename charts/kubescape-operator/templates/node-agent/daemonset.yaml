@@ -47,6 +47,10 @@ spec:
         otel: enabled
       {{- end }}
     spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+      - name: {{ toYaml .Values.imagePullSecrets }}
+      {{- end }}
       {{- if .Values.configurations.priorityClass.enabled }}
       priorityClassName: kubescape-critical
       {{- end }}
@@ -118,7 +122,7 @@ spec:
             httpGet:
               path: /livez
               port: 7888
-            initialDelaySeconds: 3
+            initialDelaySeconds: 60
             periodSeconds: 3
           readinessProbe:
             httpGet:

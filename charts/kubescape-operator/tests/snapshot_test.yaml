@@ -10,6 +10,8 @@ tests:
       unittest: true
       account: 9e6c0c2c-6bd0-4919-815b-55030de7c9a0
       accessKey: f304d73b-d43c-412b-82ea-e4c859493ce6
+      alertCRD:
+        installDefault: true
       capabilities:
         configurationScan: enable
         continuousScan: enable
@@ -22,20 +24,27 @@ tests:
         runtimeDetection: enable
         malwareDetection: enable
         nodeProfileService: enable
+        seccompProfileService: enable
         autoUpgrading: enable
         prometheusExporter: enable
         admissionController: enable
       server: api.armosec.io
       configurations.otelUrl: "otelCollector:4317"
       clusterName: kind-kind
+      includeNamespaces: "my-namespace"
       global:
+        httpsProxy: "https://foo:bar@baz:1234"
         networkPolicy:
           createEgressRules: true
           enabled: true
+          apiServerPort: 443
+          httpsProxyIP: 1.1.1.1
+          httpsProxyPort: 1234
         proxySecretFile: foo
         overrideDefaultCaCertificates:
           enabled: true
           caCertificates: "foo"
+      imagePullSecrets: "foo"
       grypeOfflineDB.enabled: true
       kubescape.serviceMonitor.enabled: true
       kubescapeScheduler.scanSchedule: "1 2 3 4 5"
@@ -50,8 +59,23 @@ tests:
       unittest: true
       configurations.otelUrl: "otelCollector:4317"
       clusterName: kind-kind
+      excludeNamespaces: ""
+      includeNamespaces: ""
       kubescapeScheduler.scanSchedule: "1 2 3 4 5"
       kubevulnScheduler.scanSchedule: "1 2 3 4 5"
+  - it: disable otel
+    asserts:
+      - matchSnapshot: {}
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      account: 9e6c0c2c-6bd0-4919-815b-55030de7c9a0
+      accessKey: f304d73b-d43c-412b-82ea-e4c859493ce6
+      clusterName: kind-kind
+      kubescapeScheduler.scanSchedule: "1 2 3 4 5"
+      kubevulnScheduler.scanSchedule: "1 2 3 4 5"
+      server: api.armosec.io
   - it: default capabilities
     asserts:
       - matchSnapshot: {}
@@ -62,6 +86,8 @@ tests:
       unittest: true
       account: 9e6c0c2c-6bd0-4919-815b-55030de7c9a0
       accessKey: f304d73b-d43c-412b-82ea-e4c859493ce6
+      alertCRD:
+        installDefault: true
       capabilities:
         configurationScan: enable
         continuousScan: disable
@@ -80,10 +106,13 @@ tests:
       server: api.armosec.io
       configurations.otelUrl: "otelCollector:4317"
       clusterName: kind-kind
+      excludeNamespaces: "kubescape,kube-system,kube-public,kube-node-lease,kubeconfig,gmp-system,gmp-public"
       global:
         networkPolicy:
           createEgressRules: true
           enabled: true
+          apiServerIP: "192.168.49.2"
+          apiServerPort: 8443
         proxySecretFile: foo
       grypeOfflineDB.enabled: true
       kubescape.serviceMonitor.enabled: true
