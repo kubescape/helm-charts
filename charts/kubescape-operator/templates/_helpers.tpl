@@ -19,11 +19,12 @@ synchronizerConfig: {{ include (printf "%s/synchronizer/configmap.yaml" $.Templa
 
 {{- define "configurations" -}}
 {{- $createCloudSecret := (empty .Values.credentials.cloudSecret) -}}
+{{- $ksOtel := empty .Values.otelCollector.disable -}}
 {{- $otel := not (empty .Values.configurations.otelUrl) -}}
 {{- $submit := not (empty .Values.server) -}}
 continuousScan: {{ and (eq .Values.capabilities.continuousScan "enable") (not $submit) }}
 createCloudSecret: {{ $createCloudSecret }}
-ksOtel: {{ $submit }}
+ksOtel: {{ and $ksOtel $submit }}
 otel: {{ $otel }}
 otelPort : {{ if $otel }}{{ splitList ":" .Values.configurations.otelUrl | last }}{{ else }}""{{ end }}
 runtimeObservability: {{ eq .Values.capabilities.runtimeObservability "enable" }}
