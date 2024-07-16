@@ -2,6 +2,7 @@
 {{- $components := fromYaml (include "components" .) }}
 {{- if $components.operator.enabled }}
 {{- $no_proxy_envar_list := (include "no_proxy_envar_list" .) -}}
+{{- $svcName := (printf "kubescape-admission-webhook.%s.svc" .Values.ksNamespace) -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -71,6 +72,11 @@ spec:
             - name: "readiness-port"
               containerPort: 8000
               protocol: TCP
+            {{- if eq .Values.capabilities.admissionController "enable" }}
+            - name: "admission-port"
+              containerPort: 8443
+              protocol: TCP
+            {{- end }}
           livenessProbe:
             httpGet:
               path: /v1/liveness
@@ -145,6 +151,11 @@ spec:
               mountPath: /etc/ssl/certs/ca-certificates.crt
               subPath: ca-certificates.crt
             {{- end }}
+            {{- if eq .Values.capabilities.admissionController "enable" }}
+            - name: tls-certs
+              mountPath: /etc/certs
+              readOnly: true
+            {{- end }}
 {{- if .Values.volumeMounts }}
 {{ toYaml .Values.volumeMounts | indent 12 }}
 {{- end }}
@@ -169,6 +180,11 @@ spec:
         - name: custom-ca-certificates
           secret:
             secretName: {{ $components.customCaCertificates.name }}
+        {{- end }}
+        {{- if eq .Values.capabilities.admissionController "enable" }}
+        - name: tls-certs
+          secret:
+            secretName: {{ $svcName }}-kubescape-tls-pair
         {{- end }}
         - name: tmp-dir
           emptyDir: {}

@@ -1,0 +1,20 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- if $components.operator.enabled }}
+{{- if eq .Values.capabilities.admissionController "enable" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: "kubescape-admission-webhook"
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    app: {{ .Values.operator.name }}
+    kubescape.io/ignore: "true"
+spec:
+  ports:
+    - port: 443
+      targetPort: 8443
+  selector:
+    app: {{ .Values.operator.name }}
+  type: ClusterIP  # Or use LoadBalancer or NodePort if needed
+{{- end }}
+{{- end }}
