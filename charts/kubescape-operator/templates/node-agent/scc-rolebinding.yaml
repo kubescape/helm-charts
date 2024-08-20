@@ -1,0 +1,19 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- if and $components.nodeAgent.enabled .Values.global.openshift.scc.enabled }}
+
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ printf "%s-scc" .Values.nodeAgent.name }}
+  namespace: {{ .Values.ksNamespace }}
+  labels:    
+    kubescape.io/ignore: "true"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:openshift:scc:privileged
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.nodeAgent.name }}
+  namespace: {{ .Values.ksNamespace }}
+{{ end }}
