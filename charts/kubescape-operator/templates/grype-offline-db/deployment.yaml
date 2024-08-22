@@ -5,9 +5,8 @@ metadata:
   name: {{ .Values.grypeOfflineDB.name }}
   namespace: {{ .Values.ksNamespace }}
   labels:
-    app.kubernetes.io/name: {{ .Values.grypeOfflineDB.name }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app: {{ .Values.grypeOfflineDB.name }}
+    {{- include "kubescape-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: {{ .Values.grypeOfflineDB.name }}
     tier: {{ .Values.global.namespaceTier }}
     kubescape.io/ignore: "true"
     kubescape.io/tier: "core"
@@ -21,16 +20,14 @@ spec:
     type: RollingUpdate
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ .Values.grypeOfflineDB.name }}
-      app.kubernetes.io/instance: {{ .Release.Name }}
+      app: {{ .Values.grypeOfflineDB.name }}
       tier: {{ .Values.global.namespaceTier }}
   template:
     metadata:
       labels:
+        {{- include "kubescape-operator.labels" . | nindent 8 }}
+        app.kubernetes.io/component: {{ .Values.grypeOfflineDB.name }}
         kubescape.io/tier: "core"
-        app.kubernetes.io/name: {{ .Values.grypeOfflineDB.name }}
-        app.kubernetes.io/instance: {{ .Release.Name }}
-        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
         tier: {{ .Values.global.namespaceTier }}
         app: {{ .Values.grypeOfflineDB.name }}
     spec:
