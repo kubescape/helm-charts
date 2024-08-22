@@ -8,11 +8,9 @@ metadata:
   name: {{ .Values.gateway.name }}
   namespace: {{ .Values.ksNamespace }}
   labels:
-    app.kubernetes.io/name: {{ .Values.gateway.name }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "kubescape-operator.labels" . | nindent 4 }}
     app: {{ .Values.gateway.name }}
     tier: {{ .Values.global.namespaceTier }}
-    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     kubescape.io/ignore: "true"
     kubescape.io/tier: "core"
 spec:
@@ -25,8 +23,7 @@ spec:
     type: RollingUpdate
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ .Values.gateway.name }}
-      app.kubernetes.io/instance: {{ .Release.Name }}
+      app: {{ .Values.gateway.name }}
       tier: {{ .Values.global.namespaceTier }}
   template:
     metadata:
@@ -38,8 +35,6 @@ spec:
       {{- end }}
       labels:
         kubescape.io/tier: "core"
-        app.kubernetes.io/name: {{ .Values.gateway.name }}
-        app.kubernetes.io/instance: {{ .Release.Name }}
         tier: {{ .Values.global.namespaceTier }}
         app: {{ .Values.gateway.name }}
     spec:
