@@ -7,13 +7,15 @@ metadata:
   namespace: {{ .Values.ksNamespace }}
   labels:
     {{- include "kubescape-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: {{ .Values.gateway.name }}
     app: {{ .Values.gateway.name }}
     tier: {{ .Values.global.namespaceTier }}
 spec:
   podSelector:
     matchLabels:
       app.kubernetes.io/instance: {{ .Release.Name }}
-      app.kubernetes.io/name: {{ .Values.gateway.name }}
+      app.kubernetes.io/component: {{ .Values.gateway.name }}
+      app: {{ .Values.gateway.name }}
       tier: {{ .Values.global.namespaceTier }}
   policyTypes:
     - Ingress
@@ -31,7 +33,7 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/instance: {{ .Release.Name }}
-              app.kubernetes.io/name: {{ .Values.operator.name }}
+              app.kubernetes.io/component: {{ .Values.operator.name }}
               tier: {{ .Values.global.namespaceTier }}
       ports:
         - port: websocket
