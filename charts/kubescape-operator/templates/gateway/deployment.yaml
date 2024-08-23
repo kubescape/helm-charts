@@ -24,7 +24,8 @@ spec:
     type: RollingUpdate
   selector:
     matchLabels:
-      app: {{ .Values.gateway.name }}
+      {{- include "kubescape-operator.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: {{ .Values.gateway.name }}
       tier: {{ .Values.global.namespaceTier }}
   template:
     metadata:
@@ -35,9 +36,10 @@ spec:
         checksum/proxy-config: {{ $checksums.proxySecret }}
       {{- end }}
       labels:
-        kubescape.io/tier: "core"
+        {{- include "kubescape-operator.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: {{ .Values.gateway.name }}
         tier: {{ .Values.global.namespaceTier }}
-        app: {{ .Values.gateway.name }}
+        kubescape.io/tier: "core"
     spec:
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
