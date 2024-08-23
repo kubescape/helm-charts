@@ -5,24 +5,18 @@ metadata:
   name: {{ .Values.grypeOfflineDB.name }}
   namespace: {{ .Values.ksNamespace }}
   labels:
-    {{- include "kubescape-operator.labels" . | nindent 4 }}
-    app.kubernetes.io/component: {{ .Values.grypeOfflineDB.name }}
-    tier: {{ .Values.global.namespaceTier }}
+    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.grypeOfflineDB.name "tier" .Values.global.namespaceTier) | nindent 4 }}
 spec:
   podSelector:
     matchLabels:
-      {{- include "kubescape-operator.selectorLabels" . | nindent 6 }}
-      app.kubernetes.io/component: {{ .Values.grypeOfflineDB.name }}
-      tier: {{ .Values.global.namespaceTier }}
+      {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.grypeOfflineDB.name) | nindent 6 }}
   policyTypes:
     - Ingress
   ingress:
     - from:
         - podSelector:
             matchLabels:
-              {{- include "kubescape-operator.selectorLabels" . | nindent 14 }}
-              app.kubernetes.io/component: {{ .Values.kubevuln.name }}
-              tier: {{ .Values.global.namespaceTier }}
+              {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.kubevuln.name) | nindent 14 }}
       ports:
         - port: 8080
           protocol: TCP

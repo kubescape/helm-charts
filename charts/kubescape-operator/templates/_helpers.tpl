@@ -40,6 +40,8 @@ helm.sh/chart: {{ include "kubescape-operator.chart" . }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
+app: {{ .app }}
+tier: {{ .tier }}
 {{- end }}
 
 {{/*
@@ -48,6 +50,7 @@ Selector labels
 {{- define "kubescape-operator.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "kubescape-operator.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/component: {{ .app }}
 {{- end }}
 
 {{/*

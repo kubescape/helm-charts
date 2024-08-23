@@ -8,10 +8,7 @@ metadata:
   name: {{ .Values.gateway.name }}
   namespace: {{ .Values.ksNamespace }}
   labels:
-    {{- include "kubescape-operator.labels" . | nindent 4 }}
-    app.kubernetes.io/component: {{ .Values.gateway.name }}
-    app: {{ .Values.gateway.name }}
-    tier: {{ .Values.global.namespaceTier }}
+    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.gateway.name "tier" .Values.global.namespaceTier) | nindent 4 }}
     kubescape.io/ignore: "true"
     kubescape.io/tier: "core"
 spec:
@@ -24,9 +21,7 @@ spec:
     type: RollingUpdate
   selector:
     matchLabels:
-      {{- include "kubescape-operator.selectorLabels" . | nindent 6 }}
-      app.kubernetes.io/component: {{ .Values.gateway.name }}
-      tier: {{ .Values.global.namespaceTier }}
+      {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.gateway.name) | nindent 6 }}
   template:
     metadata:
       annotations:
@@ -36,9 +31,7 @@ spec:
         checksum/proxy-config: {{ $checksums.proxySecret }}
       {{- end }}
       labels:
-        {{- include "kubescape-operator.selectorLabels" . | nindent 8 }}
-        app.kubernetes.io/component: {{ .Values.gateway.name }}
-        tier: {{ .Values.global.namespaceTier }}
+        {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.gateway.name "tier" .Values.global.namespaceTier) | nindent 8 }}
         kubescape.io/tier: "core"
     spec:
       {{- if .Values.imagePullSecrets }}
