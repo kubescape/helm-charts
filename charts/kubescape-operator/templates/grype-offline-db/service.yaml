@@ -6,7 +6,7 @@ metadata:
   namespace: {{ .Values.ksNamespace }}
   labels:
     {{- include "kubescape-operator.labels" . | nindent 4 }}
-    app: {{ .Values.grypeOfflineDB.name }}
+    app.kubernetes.io/component: {{ .Values.grypeOfflineDB.name }}
     kubescape.io/ignore: "true"
 spec:
   type: ClusterIP
@@ -15,6 +15,7 @@ spec:
       targetPort: 8080
       protocol: TCP
   selector:
-    app: {{ .Values.grypeOfflineDB.name }}
+    {{- include "kubescape-operator.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: {{ .Values.grypeOfflineDB.name }}
     tier: {{ .Values.global.namespaceTier }}
 {{- end }}
