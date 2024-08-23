@@ -7,13 +7,14 @@ metadata:
   namespace: {{ .Values.ksNamespace }}
   labels:
     {{- include "kubescape-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: {{ .Values.helmReleaseUpgrader.name }}
     app: {{ .Values.helmReleaseUpgrader.name }}
     tier: {{ .Values.global.namespaceTier }}
 spec:
   podSelector:
     matchLabels:
-      app.kubernetes.io/instance: {{ .Release.Name }}
-      app.kubernetes.io/name: {{ .Values.helmReleaseUpgrader.name }}
+      {{- include "kubescape-operator.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: {{ .Values.helmReleaseUpgrader.name }}
       tier: {{ .Values.global.namespaceTier }}
   policyTypes:
     - Egress
