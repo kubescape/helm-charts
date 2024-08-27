@@ -10,20 +10,15 @@ metadata:
   name: {{ .Values.kollector.name }}
   namespace: {{ .Values.ksNamespace }}
   labels:
-    app.kubernetes.io/name: {{ .Values.kollector.name }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.kollector.name "tier" .Values.global.namespaceTier) | nindent 4 }}
     kubescape.io/ignore: "true"
-    app: {{ .Values.kollector.name }}
-    tier: {{ .Values.global.namespaceTier }}
     kubescape.io/tier: "core"
 spec:
   serviceName: ""
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ .Values.kollector.name }}
-      app.kubernetes.io/instance: {{ .Release.Name }}
-      tier: {{ .Values.global.namespaceTier }}
+      {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.kollector.name) | nindent 6 }}
   template:
     metadata:
       annotations:
@@ -33,12 +28,8 @@ spec:
         checksum/proxy-config: {{ $checksums.proxySecret }}
       {{- end }}
       labels:
+        {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.kollector.name "tier" .Values.global.namespaceTier) | nindent 8 }}
         kubescape.io/tier: "core"
-        app.kubernetes.io/name: {{ .Values.kollector.name }}
-        app.kubernetes.io/instance: {{ .Release.Name }}
-        tier: {{ .Values.global.namespaceTier }}
-        app: {{ .Values.kollector.name }}
-        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
       {{- if $components.otelCollector.enabled }}
         otel: enabled
       {{- end }}
