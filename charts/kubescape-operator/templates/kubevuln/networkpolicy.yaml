@@ -6,15 +6,11 @@ metadata:
   name: {{ .Values.kubevuln.name }}
   namespace: {{ .Values.ksNamespace }}
   labels:
-    app: {{ .Values.kubevuln.name }}
-    tier: {{ .Values.global.namespaceTier }}
-    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.kubevuln.name "tier" .Values.global.namespaceTier) | nindent 4 }}
 spec:
   podSelector:
     matchLabels:
-      app.kubernetes.io/instance: {{ .Release.Name }}
-      app.kubernetes.io/name: {{ .Values.kubevuln.name }}
-      tier: {{ .Values.global.namespaceTier }}
+      {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.kubevuln.name) | nindent 6 }}
   policyTypes:
     - Ingress
   {{- if .Values.global.networkPolicy.createEgressRules }}
