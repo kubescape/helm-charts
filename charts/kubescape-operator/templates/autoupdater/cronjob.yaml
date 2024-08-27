@@ -6,7 +6,7 @@ metadata:
   name: {{ .Values.helmReleaseUpgrader.name }}
   namespace: {{ .Values.ksNamespace }}
   labels:
-    kubescape.io/ignore: "true"
+    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.helmReleaseUpgrader.name "tier" .Values.global.namespaceTier) | nindent 4 }}
   annotations:
     "helm.sh/resource-policy": keep
 spec:
@@ -16,6 +16,9 @@ spec:
   jobTemplate:
     spec:
       template:
+        metadata:
+          labels:
+            {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.helmReleaseUpgrader.name "tier" .Values.global.namespaceTier) | nindent 12 }}
         spec:
           serviceAccountName: {{ .Values.helmReleaseUpgrader.name }}
           securityContext:

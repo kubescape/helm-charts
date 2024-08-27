@@ -6,8 +6,7 @@ metadata:
   name: {{ .Values.gateway.name }}
   namespace: {{ .Values.ksNamespace }}
   labels:
-    app: {{ .Values.gateway.name }}
-    kubescape.io/ignore: "true"
+    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.gateway.name "tier" .Values.global.namespaceTier) | nindent 4 }}
 spec:
   type: {{ .Values.gateway.httpService.type }}
   ports:
@@ -20,5 +19,5 @@ spec:
       protocol: {{ .Values.gateway.httpService.protocol }}
       name: "http"
   selector:
-    app: {{ .Values.gateway.name }}
+    {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.gateway.name) | nindent 4 }}
 {{- end }}

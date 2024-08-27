@@ -6,8 +6,7 @@ metadata:
   name: {{ .Values.kubescape.name }}
   namespace: {{ .Values.ksNamespace }}
   labels:
-    app: {{ .Values.kubescape.name }}
-    kubescape.io/ignore: "true"
+    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.kubescape.name "tier" .Values.global.namespaceTier) | nindent 4 }}
 spec:
   type: {{ .Values.kubescape.service.type }}
   ports:
@@ -16,5 +15,5 @@ spec:
       targetPort: 8080
       protocol: TCP
   selector:
-    app: {{ .Values.kubescape.name }}
+    {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.kubescape.name) | nindent 6 }}
 {{ end }}

@@ -9,13 +9,8 @@ metadata:
   name: {{ .Values.kubescape.name }}
   namespace: {{ .Values.ksNamespace }}
   labels:
-    app.kubernetes.io/name: {{ .Values.kubescape.name }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app: {{ .Values.kubescape.name }}
-    tier: {{ .Values.global.namespaceTier }}
-    kubescape.io/ignore: "true"
+    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.kubescape.name "tier" .Values.global.namespaceTier) | nindent 4 }}
     kubescape.io/tier: "core"
-    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
 spec:
   replicas: 1
   revisionHistoryLimit: 2
@@ -26,9 +21,7 @@ spec:
     type: RollingUpdate
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ .Values.kubescape.name }}
-      app.kubernetes.io/instance: {{ .Release.Name }}
-      tier: {{ .Values.global.namespaceTier }}
+      {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.kubescape.name) | nindent 6 }}
   template:
     metadata:
       annotations:
@@ -44,12 +37,8 @@ spec:
         prometheus.io/scrape: "true"
       {{- end }}
       labels:
+        {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.kubescape.name "tier" .Values.global.namespaceTier) | nindent 8 }}
         kubescape.io/tier: "core"
-        app.kubernetes.io/name: {{ .Values.kubescape.name }}
-        app.kubernetes.io/instance: {{ .Release.Name }}
-        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
-        tier: {{ .Values.global.namespaceTier }}
-        app: {{ .Values.kubescape.name }}
       {{- if $components.otelCollector.enabled }}
         otel: enabled
       {{- end }}

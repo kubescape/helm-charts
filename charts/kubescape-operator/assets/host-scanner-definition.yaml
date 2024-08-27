@@ -2,21 +2,19 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: host-scanner
+  name: {{ .Values.hostScanner.name }}
   namespace: {{ .Values.ksNamespace }}
   labels:
-    app: host-scanner
-    k8s-app: kubescape-host-scanner
+    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.hostScanner.name "tier" .Values.global.namespaceTier) | nindent 4 }}
 spec:
   selector:
     matchLabels:
-      name: host-scanner
+      {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.hostScanner.name) | nindent 12 }}
   template:
     metadata:
       labels:
-        kubescape.io/ignore: "true"
+        {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.hostScanner.name "tier" .Values.global.namespaceTier) | nindent 8 }}
         kubescape.io/tier: "core"
-        name: host-scanner
         {{- if $components.otelCollector.enabled }}
         otel: enabled
         {{- end }}
