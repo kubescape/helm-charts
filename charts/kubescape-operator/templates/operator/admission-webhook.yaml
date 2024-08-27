@@ -11,6 +11,8 @@ kind: Secret
 metadata:
   name: {{ $svcName }}-kubescape-tls-pair
   namespace: {{ .Values.ksNamespace }}
+  labels:
+    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.operator.name "tier" .Values.global.namespaceTier) | nindent 4 }}
 type: kubernetes.io/tls
 data:
   tls.key: {{ $cert.Key | b64enc }}
@@ -20,6 +22,8 @@ apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
   name: validation
+  labels:
+    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.operator.name "tier" .Values.global.namespaceTier) | nindent 4 }}
 webhooks:
   - name: validation.kubescape.admission
     clientConfig:

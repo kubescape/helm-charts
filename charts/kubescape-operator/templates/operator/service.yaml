@@ -6,7 +6,7 @@ metadata:
   name: {{ .Values.operator.name }}
   namespace: {{ .Values.ksNamespace }}
   labels:
-    app: {{ .Values.operator.name }}
+    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.operator.name "tier" .Values.global.namespaceTier) | nindent 4 }}
     kubescape.io/ignore: "true"
 spec:
   type: {{ .Values.operator.service.type }}
@@ -15,5 +15,5 @@ spec:
       targetPort: {{ .Values.operator.service.targetPort }}
       protocol: {{ .Values.operator.service.protocol }}
   selector:
-    app: {{ .Values.operator.name }}
+    {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.operator.name) | nindent 6 }}
 {{- end }}
