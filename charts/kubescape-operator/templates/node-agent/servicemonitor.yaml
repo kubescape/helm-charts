@@ -6,14 +6,14 @@ metadata:
   name: runtime-monitor
   namespace: {{ .Values.ksNamespace }}
   labels:
-    app: runtime-monitor
+    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" "runtime-monitor" "tier" .Values.global.namespaceTier) | nindent 4 }}
 spec:
   namespaceSelector:
     matchNames:
       -  {{ .Values.ksNamespace }}
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ .Values.nodeAgent.name }}
+      {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.nodeAgent.name) | nindent 6 }}
   endpoints:
   - port: prometheus
     path: /metrics
@@ -21,4 +21,3 @@ spec:
     interval: {{ .Values.nodeAgent.serviceMonitor.interval }}
     scrapeTimeout: {{ .Values.nodeAgent.serviceMonitor.scrapeTimeout }}
 {{ end }}
-
