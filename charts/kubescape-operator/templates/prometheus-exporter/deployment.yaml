@@ -7,10 +7,7 @@ metadata:
   name: {{ .Values.prometheusExporter.name }}
   namespace: {{ .Values.ksNamespace }}
   labels:
-    app.kubernetes.io/name: {{ .Values.prometheusExporter.name }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app: {{ .Values.prometheusExporter.name }}
-    tier: {{ .Values.global.namespaceTier }}
+    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.prometheusExporter.name "tier" .Values.global.namespaceTier) | nindent 4 }}
     kubescape.io/ignore: "true"
 spec:
   replicas: 1
@@ -19,16 +16,11 @@ spec:
     type: Recreate
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ .Values.prometheusExporter.name }}
-      app.kubernetes.io/instance: {{ .Release.Name }}
-      tier: {{ .Values.global.namespaceTier }}
+      {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.prometheusExporter.name) | nindent 6 }}
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: {{ .Values.prometheusExporter.name }}
-        app.kubernetes.io/instance: {{ .Release.Name }}
-        tier: {{ .Values.global.namespaceTier }}
-        app: {{ .Values.prometheusExporter.name }}
+        {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.prometheusExporter.name "tier" .Values.global.namespaceTier) | nindent 8 }}
     spec:
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
