@@ -74,7 +74,13 @@ spec:
 {{ toYaml .Values.gateway.resources | indent 12 }}
           env:
             - name: GOMEMLIMIT
-              value: "{{ .Values.gateway.resources.requests.memory }}B"
+              valueFrom:
+                resourceFieldRef:
+                  resource: limits.memory
+            - name: GOMAXPROCS
+              valueFrom:
+                resourceFieldRef:
+                  resource: limits.cpu
             - name: KS_LOGGER_LEVEL
               value: "{{ .Values.logger.level }}"
             - name: KS_LOGGER_NAME
