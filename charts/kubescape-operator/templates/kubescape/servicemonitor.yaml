@@ -6,7 +6,7 @@ metadata:
   name: {{ .Values.kubescape.name }}-monitor
   namespace: {{ .Values.kubescape.serviceMonitor.namespace | default .Values.ksNamespace }}
   labels:
-    app: {{ .Values.kubescape.name }}
+    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.kubescape.name "tier" .Values.global.namespaceTier) | nindent 4 }}
     kubescape.io/ignore: "true"
     {{- with .Values.kubescape.labels }}
     {{- toYaml . | nindent 4 }}
@@ -17,7 +17,7 @@ spec:
       -  {{ .Values.ksNamespace }}
   selector:
     matchLabels:
-      app: {{ .Values.kubescape.name }}
+      {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.kubescape.name) | nindent 6 }}
   endpoints:
     - port: http
       path: /v1/metrics
