@@ -29,7 +29,6 @@ spec:
         checksum/cloud-secret: {{ $checksums.cloudSecret }}
         checksum/cloud-config: {{ $checksums.cloudConfig }}
         checksum/capabilities-config: {{ $checksums.capabilitiesConfig }}
-        checksum/matching-rules-config: {{ $checksums.matchingRulesConfig }}
       {{- if ne .Values.global.proxySecretFile "" }}
         checksum/proxy-config: {{ $checksums.proxySecret }}
       {{- end }}
@@ -134,10 +133,6 @@ spec:
               mountPath: /etc/config/capabilities.json
               readOnly: true
               subPath: "capabilities.json"
-            - name: {{ .Values.continuousScanning.configMapName }}
-              mountPath: /etc/config/matchingRules.json
-              readOnly: true
-              subPath: "matchingRules.json"
             - name: config
               mountPath: /etc/config/config.json
               readOnly: true
@@ -206,12 +201,6 @@ spec:
             items:
             - key: "config.json"
               path: "config.json"
-        - name: {{ .Values.continuousScanning.configMapName }}
-          configMap:
-            name: {{ .Values.continuousScanning.configMapName }}
-            items:
-              - key: "matchingRules.json"
-                path: "matchingRules.json"
 {{- if .Values.volumes }}
 {{ toYaml .Values.volumes | indent 8 }}
 {{- end }}
