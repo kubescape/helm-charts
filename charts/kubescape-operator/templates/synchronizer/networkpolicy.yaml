@@ -6,9 +6,7 @@ metadata:
   name: {{ .Values.synchronizer.name }}
   namespace: {{ .Values.ksNamespace }}
   labels:
-    app: {{ .Values.synchronizer.name }}
-    tier: {{ .Values.global.namespaceTier }}
-    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.synchronizer.name "tier" .Values.global.namespaceTier) | nindent 4 }}
 spec:
   podSelector:
     matchLabels:
@@ -30,9 +28,7 @@ spec:
     - from:
         - podSelector:
             matchLabels:
-              app.kubernetes.io/instance: {{ .Release.Name }}
-              app.kubernetes.io/name: {{ .Values.nodeAgent.name }}
-              tier: {{ .Values.global.namespaceTier }}
+              {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.nodeAgent.name) | nindent 14 }}
       ports:
         - port: {{ .Values.synchronizer.service.port }}
           protocol: TCP
