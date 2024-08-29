@@ -72,8 +72,6 @@ capabilities:
   #
   # Default configuration scanning setup
   configurationScan: enable
-  # Continuous Scanning continuously evaluates the security posture of your cluster.
-  continuousScan: disable
   nodeScan: enable
 
   # ====== Image vulnerabilities scanning related capabilities ======
@@ -273,7 +271,7 @@ operator:
   image:
     # -- source code: https://github.com/kubescape/operator
     repository: quay.io/kubescape/operator
-    tag: v0.2.25
+    tag: v0.2.28
     pullPolicy: IfNotPresent
 
   service:
@@ -479,7 +477,7 @@ storage:
   image:
     # -- source code: https://github.com/kubescape/storage
     repository: quay.io/kubescape/storage
-    tag: v0.0.103
+    tag: v0.0.106
     pullPolicy: IfNotPresent
 
   # cleanup interval is a duration string
@@ -487,9 +485,6 @@ storage:
 
   labels:
     app.kubernetes.io/part-of: "kubescape-storage"
-
-  # GOMEMLIMIT should be lower than the memory limit
-  gomemlimit: 1200MiB
 
   resources:
     requests:
@@ -506,7 +501,7 @@ nodeAgent:
   image:
     # -- source code: https://github.com/kubescape/node-agent
     repository: quay.io/kubescape/node-agent
-    tag: v0.2.120
+    tag: v0.2.130
     pullPolicy: IfNotPresent
 
   config:
@@ -540,9 +535,6 @@ nodeAgent:
     limits:
       cpu: 500m
       memory: 700Mi
-
-  # GOMEMLIMIT should be lower than the memory limit
-  gomemlimit: 600MiB
 
   env:
     - name: NodeName
@@ -972,22 +964,3 @@ registryScanScheduler:
 
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 1
-
-# -----------------------------------------------------------------------------------------
-# ------------------------- Configurations ------------------------------------------------
-# -----------------------------------------------------------------------------------------
-
-# Continuous scanning configurations
-continuousScanning:
-  configMapName: cs-matching-rules
-
-  # Matching rules for the monitored resources.
-  # Kubescape will watch resources of every provided GVR across the provided
-  # namespaces.
-  matchingRules:
-    match:
-      - apiGroups: ["apps"]
-        apiVersions: ["v1"]
-        resources: ["deployments"]
-    namespaces:
-      - default

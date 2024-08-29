@@ -64,7 +64,13 @@ spec:
               name: {{ .Values.global.cloudConfig }}
               key: metrics
         - name: GOMEMLIMIT
-          value: "{{ .Values.otelCollector.resources.requests.memory }}B"
+          valueFrom:
+            resourceFieldRef:
+              resource: limits.memory
+        - name: GOMAXPROCS
+          valueFrom:
+            resourceFieldRef:
+              resource: limits.cpu
         - name: GOGC
           value: "80"
         {{- if ne .Values.global.httpsProxy "" }}
