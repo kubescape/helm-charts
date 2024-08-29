@@ -6,7 +6,7 @@ on:
       CHARTS_NAME:
         type: choice
         description: What chart do you want to release?
-        options: 
+        options:
         - kubescape-operator
       HELM_E2E_TEST:
         required: false
@@ -37,17 +37,7 @@ on:
         type: string
 
 jobs:
-  e2e-test:
-    if: ${{ github.event.inputs.HELM_E2E_TEST }}
-    with:
-      BRANCH: main
-      TESTS_BRANCH: ${{ github.event.inputs.TESTS_BRANCH }}
-      KS_BRANCH: "master"
-    uses: ./.github/workflows/02-e2e-test.yaml
-    secrets: inherit
-
   helm-chart-release:
-    needs: e2e-test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -63,7 +53,7 @@ jobs:
         run: |
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
-          
+
       # - name: git checkout to new commit
       #   run: git checkout ${{ inputs.COMMIT_REF }}
 
@@ -74,6 +64,6 @@ jobs:
 
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.4.1
-        env: 
+        env:
           charts_dir: "charts/kubescape-operator"
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
