@@ -21,7 +21,6 @@ synchronizerConfig: {{ include (printf "%s/synchronizer/configmap.yaml" $.Templa
 {{- $ksOtel := empty .Values.otelCollector.disable -}}
 {{- $otel := not (empty .Values.configurations.otelUrl) -}}
 {{- $submit := not (empty .Values.server) -}}
-continuousScan: {{ and (eq .Values.capabilities.continuousScan "enable") (not $submit) }}
 createCloudSecret: {{ $createCloudSecret }}
 ksOtel: {{ and $ksOtel $submit }}
 otel: {{ $otel }}
@@ -50,7 +49,7 @@ hostScanner:
 kollector:
   enabled: {{ $configurations.submit }}
 kubescape:
-  enabled: {{ or (eq .Values.capabilities.configurationScan "enable") (eq .Values.capabilities.continuousScan "enable") }}
+  enabled: {{ eq .Values.capabilities.configurationScan "enable" }}
 kubescapeScheduler:
   enabled: {{ and $configurations.submit (eq .Values.capabilities.configurationScan "enable") }}
 kubevuln:
