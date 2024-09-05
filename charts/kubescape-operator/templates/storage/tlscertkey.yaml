@@ -1,12 +1,20 @@
+{{- if .Values.unittest -}}
+{{- $ca := "mock-ca" -}}
+{{- $_ := set .Values.global "kubescapeCa" $ca -}}
+{{- $cert := "mock-cert" -}}
+{{- $_ := set .Values.global "kubescapeStorageCert" $cert -}}
+{{- $_ := set .Values.global "kubescapeStorageKey" $cert -}}
+{{- else -}}
 {{- $ca := genCA "kubescape-cluster-ca" 3650 }}
 {{- $_ := set .Values.global "kubescapeCa" $ca.Cert -}}
 {{- $cn := .Values.storage.name  }}
 {{- $dns1 := printf "%s.%s" $cn .Values.ksNamespace }}
 {{- $dns2 := printf "%s.%s.svc" $cn .Values.ksNamespace }}
 {{- $dns3 := printf "%s.%s.svc.cluster.local" $cn .Values.ksNamespace }}
-
 {{- $cert := genSignedCert $cn nil (list $dns1 $dns2 $dns3) 3650 $ca }}
-
+{{- $_ := set .Values.global "kubescapeStorageCert" $cert.Cert -}}
+{{- $_ := set .Values.global "kubescapeStorageKey" $cert.Key -}}
+{{- end -}}
 apiVersion: v1
 kind: Secret
 metadata:
@@ -14,6 +22,6 @@ metadata:
   namespace: {{ .Values.ksNamespace }}
 type: Opaque
 data:
-  tls.crt: {{ $cert.Cert | b64enc }}
-  tls.key: {{ $cert.Key | b64enc }}
-  ca.crt: {{ $ca.Cert | b64enc }}
+  tls.crt: {{ .Values.global.kubescapeStorageCert | b64enc }}
+  tls.key: {{ .Values.global.kubescapeStorageKey | b64enc }}
+  ca.crt: {{ .Values.global.kubescapeCa | b64enc }}
