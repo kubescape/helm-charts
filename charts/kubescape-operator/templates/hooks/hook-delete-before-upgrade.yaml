@@ -70,8 +70,8 @@ spec:
       serviceAccountName: {{ $hookName }}
       containers:
         - name: {{ $hookName }}
-          image: "docker.io/bitnami/kubectl:1.30.3"
-          imagePullPolicy: "IfNotPresent"
+          image: "{{ .Values.serviceDiscovery.configMapUpdate.image.repository }}:{{ .Values.serviceDiscovery.configMapUpdate.image.tag }}"
+          imagePullPolicy: {{ .Values.serviceDiscovery.configMapUpdate.image.pullPolicy }}
           command:
             - /bin/sh
             - -e
@@ -84,6 +84,7 @@ spec:
               kubectl -n {{ .Values.ksNamespace }} delete deployment kubevuln --ignore-not-found=true;
               kubectl -n {{ .Values.ksNamespace }} delete deployment operator --ignore-not-found=true;
               kubectl -n {{ .Values.ksNamespace }} delete deployment otel-collector --ignore-not-found=true;
+              kubectl -n {{ .Values.ksNamespace }} delete deployment prometheus-exporter --ignore-not-found=true;
               kubectl -n {{ .Values.ksNamespace }} delete deployment storage --ignore-not-found=true;
               kubectl -n {{ .Values.ksNamespace }} delete deployment synchronizer --ignore-not-found=true;
               kubectl -n {{ .Values.ksNamespace }} delete statefulset kollector --ignore-not-found=true;
