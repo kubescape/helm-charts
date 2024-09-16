@@ -49,12 +49,6 @@ spec:
           tcpSocket:
             port: 8443
         env:
-          - name: TLS_SERVER_CERT_FILE
-            value: "/etc/tls/tls.crt"
-          - name: TLS_SERVER_KEY_FILE
-            value: "/etc/tls/tls.key"
-          - name: TLS_CLIENT_CA_FILE
-            value: "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
           - name: "CLEANUP_INTERVAL"
             value: "{{ .Values.storage.cleanupInterval }}"
           - name: GOMEMLIMIT
@@ -83,9 +77,6 @@ spec:
             mountPath: "/data"
           - name: {{ .Values.global.cloudConfig }}
             mountPath: /etc/config
-            readOnly: true
-          - name: "tls"
-            mountPath: "/etc/tls"
             readOnly: true
         resources:
 {{ toYaml .Values.storage.resources | indent 12 }}
@@ -125,7 +116,4 @@ spec:
             - key: "services"
               path: "services.json"
             {{- end }}
-        - name: "tls"
-          secret:
-            secretName: {{ .Values.storage.name }}
 {{- end }}
