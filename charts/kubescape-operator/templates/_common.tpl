@@ -8,6 +8,7 @@ capabilitiesConfig: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.g
 cloudConfig: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.configMapsDirectory "cloudapi-configmap.yaml") . | sha256sum }}
 cloudSecret: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.configMapsDirectory "cloud-secret.yaml" ) . | sha256sum }}
 hostScannerConfig: {{ include (printf "%s/kubescape/host-scanner-definition-configmap.yaml" $.Template.BasePath ) . | sha256sum }}
+matchingRulesConfig: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.configMapsDirectory "matchingRules-configmap.yaml") . | sha256sum }}
 nodeAgentConfig: {{ include (printf "%s/node-agent/configmap.yaml" $.Template.BasePath) . | sha256sum }}
 operatorConfig: {{ include (printf "%s/operator/configmap.yaml" $.Template.BasePath) . | sha256sum }}
 otelConfig: {{ include (printf "%s/otel-collector/configmap.yaml" $.Template.BasePath) . | sha256sum }}
@@ -21,6 +22,7 @@ synchronizerConfig: {{ include (printf "%s/synchronizer/configmap.yaml" $.Templa
 {{- $ksOtel := empty .Values.otelCollector.disable -}}
 {{- $otel := not (empty .Values.configurations.otelUrl) -}}
 {{- $submit := not (empty .Values.server) -}}
+continuousScan: {{ and (eq .Values.capabilities.continuousScan "enable") (not $submit) }}
 createCloudSecret: {{ $createCloudSecret }}
 ksOtel: {{ and $ksOtel $submit }}
 otel: {{ $otel }}
