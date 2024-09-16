@@ -783,87 +783,6 @@ all capabilities:
       type: ClusterIP
   21: |
     apiVersion: rbac.authorization.k8s.io/v1
-    kind: Role
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded,hook-failed
-        helm.sh/hook-weight: "-20"
-      labels:
-        app: label-selector-force-replace
-      name: label-selector-force-replace
-      namespace: kubescape
-    rules:
-      - apiGroups:
-          - apps
-        resources:
-          - daemonsets
-          - deployments
-          - statefulsets
-        verbs:
-          - delete
-  22: |
-    apiVersion: v1
-    kind: ServiceAccount
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded,hook-failed
-        helm.sh/hook-weight: "-15"
-      labels:
-        app: label-selector-force-replace
-      name: label-selector-force-replace
-      namespace: kubescape
-  23: |
-    apiVersion: rbac.authorization.k8s.io/v1
-    kind: RoleBinding
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded,hook-failed
-        helm.sh/hook-weight: "-14"
-      labels:
-        app: label-selector-force-replace
-      name: label-selector-force-replace
-      namespace: kubescape
-    roleRef:
-      apiGroup: rbac.authorization.k8s.io
-      kind: Role
-      name: label-selector-force-replace
-    subjects:
-      - kind: ServiceAccount
-        name: label-selector-force-replace
-        namespace: kubescape
-  24: |
-    apiVersion: batch/v1
-    kind: Job
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded,hook-failed
-        helm.sh/hook-weight: "-10"
-      labels:
-        app: label-selector-force-replace
-      name: label-selector-force-replace
-      namespace: kubescape
-    spec:
-      backoffLimit: 6
-      template:
-        spec:
-          containers:
-            - command:
-                - /bin/sh
-                - -e
-                - -x
-                - -c
-                - kubectl -n kubescape delete daemonset node-agent --ignore-not-found=true; kubectl -n kubescape delete deployment gateway --ignore-not-found=true; kubectl -n kubescape delete deployment kubescape --ignore-not-found=true; kubectl -n kubescape delete deployment kubevuln --ignore-not-found=true; kubectl -n kubescape delete deployment operator --ignore-not-found=true; kubectl -n kubescape delete deployment otel-collector --ignore-not-found=true; kubectl -n kubescape delete deployment prometheus-exporter --ignore-not-found=true; kubectl -n kubescape delete deployment storage --ignore-not-found=true; kubectl -n kubescape delete deployment synchronizer --ignore-not-found=true; kubectl -n kubescape delete statefulset kollector --ignore-not-found=true;
-              image: docker.io/bitnami/kubectl:1.30.3
-              imagePullPolicy: IfNotPresent
-              name: label-selector-force-replace
-          restartPolicy: Never
-          serviceAccountName: label-selector-force-replace
-  25: |
-    apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
       labels:
@@ -912,7 +831,7 @@ all capabilities:
           - get
           - watch
           - list
-  26: |
+  22: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -935,7 +854,7 @@ all capabilities:
       - kind: ServiceAccount
         name: kollector
         namespace: kubescape
-  27: |
+  23: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -992,7 +911,7 @@ all capabilities:
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
         - Egress
-  28: |
+  24: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -1016,7 +935,7 @@ all capabilities:
       - kind: ServiceAccount
         name: kollector
         namespace: kubescape
-  29: |
+  25: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -1033,7 +952,7 @@ all capabilities:
         tier: ks-control-plane
       name: kollector
       namespace: kubescape
-  30: |
+  26: |
     apiVersion: apps/v1
     kind: StatefulSet
     metadata:
@@ -1183,7 +1102,7 @@ all capabilities:
                     path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
-  31: |
+  27: |
     apiVersion: v1
     data:
       request-body.json: '{"commands":[{"CommandName":"kubescapeScan","args":{"scanV1": {}}}]}'
@@ -1202,7 +1121,7 @@ all capabilities:
         tier: ks-control-plane
       name: kubescape-scheduler
       namespace: kubescape
-  32: |
+  28: |
     apiVersion: batch/v1
     kind: CronJob
     metadata:
@@ -1281,7 +1200,7 @@ all capabilities:
                   name: kubescape-scheduler
       schedule: 1 2 3 4 5
       successfulJobsHistoryLimit: 3
-  33: |
+  29: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -1329,7 +1248,7 @@ all capabilities:
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
         - Egress
-  34: |
+  30: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -1538,7 +1457,7 @@ all capabilities:
           - get
           - watch
           - list
-  35: |
+  31: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -1561,7 +1480,7 @@ all capabilities:
       - kind: ServiceAccount
         name: kubescape
         namespace: kubescape
-  36: |
+  32: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -1752,7 +1671,7 @@ all capabilities:
               name: results
             - emptyDir: {}
               name: failed
-  37: |
+  33: |
     apiVersion: v1
     data:
       host-scanner-yaml: |-
@@ -1878,7 +1797,7 @@ all capabilities:
         tier: ks-control-plane
       name: host-scanner-definition
       namespace: kubescape
-  38: |
+  34: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -1957,7 +1876,7 @@ all capabilities:
       policyTypes:
         - Ingress
         - Egress
-  39: |
+  35: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -1986,7 +1905,7 @@ all capabilities:
           - list
           - patch
           - delete
-  40: |
+  36: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -2010,7 +1929,7 @@ all capabilities:
       - kind: ServiceAccount
         name: kubescape
         namespace: kubescape
-  41: |
+  37: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -2034,7 +1953,7 @@ all capabilities:
       - kind: ServiceAccount
         name: kubescape
         namespace: kubescape
-  42: |
+  38: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -2061,7 +1980,7 @@ all capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  43: |
+  39: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -2078,7 +1997,7 @@ all capabilities:
         tier: ks-control-plane
       name: kubescape
       namespace: kubescape
-  44: |
+  40: |
     apiVersion: monitoring.coreos.com/v1
     kind: ServiceMonitor
     metadata:
@@ -2108,7 +2027,7 @@ all capabilities:
           app.kubernetes.io/component: kubescape
           app.kubernetes.io/instance: RELEASE-NAME
           app.kubernetes.io/name: kubescape-operator
-  45: |
+  41: |
     apiVersion: v1
     data:
       request-body.json: '{"commands":[{"commandName":"scan","designators":[{"designatorType":"Attributes","attributes":{}}]}]}'
@@ -2127,7 +2046,7 @@ all capabilities:
         tier: ks-control-plane
       name: kubevuln-scheduler
       namespace: kubescape
-  46: |
+  42: |
     apiVersion: batch/v1
     kind: CronJob
     metadata:
@@ -2204,7 +2123,7 @@ all capabilities:
                   name: kubevuln-scheduler
       schedule: 1 2 3 4 5
       successfulJobsHistoryLimit: 3
-  47: |
+  43: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -2252,7 +2171,7 @@ all capabilities:
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
         - Egress
-  48: |
+  44: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -2290,7 +2209,7 @@ all capabilities:
           - get
           - watch
           - list
-  49: |
+  45: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -2313,7 +2232,7 @@ all capabilities:
       - kind: ServiceAccount
         name: kubevuln
         namespace: kubescape
-  50: |
+  46: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -2474,7 +2393,7 @@ all capabilities:
               name: ks-cloud-config
             - emptyDir: {}
               name: grype-db
-  51: |
+  47: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -2536,7 +2455,7 @@ all capabilities:
       policyTypes:
         - Ingress
         - Egress
-  52: |
+  48: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -2560,7 +2479,7 @@ all capabilities:
       - kind: ServiceAccount
         name: kubevuln
         namespace: kubescape
-  53: |
+  49: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -2584,7 +2503,7 @@ all capabilities:
       selector:
         app: kubevuln
       type: ClusterIP
-  54: |
+  50: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -2601,7 +2520,7 @@ all capabilities:
         tier: ks-control-plane
       name: kubevuln
       namespace: kubescape
-  55: |
+  51: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -2688,7 +2607,7 @@ all capabilities:
         verbs:
           - list
           - watch
-  56: |
+  52: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -2711,7 +2630,7 @@ all capabilities:
       - kind: ServiceAccount
         name: node-agent
         namespace: kubescape
-  57: |
+  53: |
     apiVersion: v1
     data:
       config.json: |
@@ -2752,7 +2671,7 @@ all capabilities:
         tier: ks-control-plane
       name: node-agent
       namespace: kubescape
-  58: |
+  54: |
     apiVersion: v1
     data:
       clamd.conf: |-
@@ -2788,7 +2707,7 @@ all capabilities:
     metadata:
       name: clamav
       namespace: kubescape
-  59: |
+  55: |
     apiVersion: apps/v1
     kind: DaemonSet
     metadata:
@@ -3041,7 +2960,7 @@ all capabilities:
             - name: custom-ca-certificates
               secret:
                 secretName: custom-ca-certificates
-  60: |
+  56: |
     apiVersion: kubescape.io/v1
     kind: RuntimeRuleAlertBinding
     metadata:
@@ -3095,7 +3014,7 @@ all capabilities:
         - ruleName: Exec to pod
         - ruleName: Port forward
         - ruleName: Unexpected Egress Network Traffic
-  61: |
+  57: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -3143,7 +3062,7 @@ all capabilities:
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
         - Egress
-  62: |
+  58: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -3167,7 +3086,7 @@ all capabilities:
       - kind: ServiceAccount
         name: node-agent
         namespace: kubescape
-  63: |
+  59: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -3191,7 +3110,7 @@ all capabilities:
           targetPort: 8080
       selector:
         app.kubernetes.io/name: node-agent
-  64: |
+  60: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -3207,7 +3126,7 @@ all capabilities:
         tier: ks-control-plane
       name: node-agent
       namespace: kubescape
-  65: |
+  61: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -3232,7 +3151,7 @@ all capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  66: |
+  62: |
     apiVersion: v1
     data:
       tls.crt: bW9jay1jZXJ0LWNlcnQ=
@@ -3252,7 +3171,7 @@ all capabilities:
       name: kubescape-admission-webhook.NAMESPACE.svc-kubescape-tls-pair
       namespace: kubescape
     type: kubernetes.io/tls
-  67: |
+  63: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingWebhookConfiguration
     metadata:
@@ -3298,7 +3217,7 @@ all capabilities:
               - rolebindings
             scope: '*'
         sideEffects: None
-  68: |
+  64: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -3382,7 +3301,7 @@ all capabilities:
           - update
           - delete
           - patch
-  69: |
+  65: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -3405,7 +3324,7 @@ all capabilities:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  70: |
+  66: |
     apiVersion: v1
     data:
       config.json: |
@@ -3431,7 +3350,7 @@ all capabilities:
         tier: ks-control-plane
       name: operator
       namespace: kubescape
-  71: |
+  67: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -3631,7 +3550,7 @@ all capabilities:
                     path: matchingRules.json
                 name: cs-matching-rules
               name: cs-matching-rules
-  72: |
+  68: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -3712,7 +3631,7 @@ all capabilities:
         tier: ks-control-plane
       name: kubescape-cronjob-template
       namespace: kubescape
-  73: |
+  69: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -3793,7 +3712,7 @@ all capabilities:
         tier: ks-control-plane
       name: kubevuln-cronjob-template
       namespace: kubescape
-  74: |
+  70: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -3889,7 +3808,7 @@ all capabilities:
       policyTypes:
         - Ingress
         - Egress
-  75: |
+  71: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -3970,7 +3889,7 @@ all capabilities:
         tier: ks-control-plane
       name: registry-scan-cronjob-template
       namespace: kubescape
-  76: |
+  72: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -4012,7 +3931,7 @@ all capabilities:
           - list
           - patch
           - delete
-  77: |
+  73: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -4036,7 +3955,7 @@ all capabilities:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  78: |
+  74: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -4060,7 +3979,7 @@ all capabilities:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  79: |
+  75: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -4086,7 +4005,7 @@ all capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  80: |
+  76: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -4103,7 +4022,7 @@ all capabilities:
         tier: ks-control-plane
       name: operator
       namespace: kubescape
-  81: |
+  77: |
     apiVersion: v1
     data:
       otel-collector-config.yaml: "\n# receivers configure how data gets into the Collector.\nreceivers:\n  otlp:\n    protocols:\n      grpc:\n        endpoint: 0.0.0.0:4317\n      http:\n        endpoint: 0.0.0.0:4318\n  hostmetrics:\n    collection_interval: 30s\n    scrapers:\n      cpu:\n      memory:\n\n# processors specify what happens with the received data.\nprocessors:\n  attributes/ksCloud:\n    actions:\n      - key: account_id\n        value: \"9e6c0c2c-6bd0-4919-815b-55030de7c9a0\"\n        action: upsert\n      - key: cluster_name\n        value: \"kind-kind\"\n        action: upsert\n  batch:\n    send_batch_size: 10000\n    timeout: 10s\n\n# exporters configure how to send processed data to one or more backends.\nexporters:\n  otlp/ksCloud:\n    endpoint: ${env:CLOUD_OTEL_COLLECTOR_URL}\n    tls:\n      insecure: false\n  otlp:\n    endpoint: \"otelCollector:4317\"\n    tls:\n      insecure: true\n    headers:\n      uptrace-dsn: \n\n# service pulls the configured receivers, processors, and exporters together into\n# processing pipelines. Unused receivers/processors/exporters are ignored.\nservice:\n  pipelines:\n    traces:\n      receivers: [otlp]\n      processors: [batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp\n    metrics/2:\n      receivers: [hostmetrics]\n      processors: [attributes/ksCloud, batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp\n    metrics:\n      receivers: [otlp]\n      processors: [attributes/ksCloud, batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp\n    logs:\n      receivers: [otlp]\n      processors: [attributes/ksCloud, batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp"
@@ -4122,7 +4041,7 @@ all capabilities:
         tier: ks-control-plane
       name: otel-collector-config
       namespace: kubescape
-  82: |
+  78: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -4239,7 +4158,7 @@ all capabilities:
             - configMap:
                 name: otel-collector-config
               name: otel-collector-config-volume
-  83: |
+  79: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -4301,7 +4220,7 @@ all capabilities:
       policyTypes:
         - Ingress
         - Egress
-  84: |
+  80: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -4325,7 +4244,7 @@ all capabilities:
       - kind: ServiceAccount
         name: otel-collector
         namespace: kubescape
-  85: |
+  81: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -4354,7 +4273,7 @@ all capabilities:
       selector:
         app: otel-collector
       type: ClusterIP
-  86: |
+  82: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -4370,7 +4289,7 @@ all capabilities:
         tier: ks-control-plane
       name: otel-collector
       namespace: kubescape
-  87: |
+  83: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -4395,7 +4314,7 @@ all capabilities:
           - get
           - watch
           - list
-  88: |
+  84: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -4418,7 +4337,7 @@ all capabilities:
       - kind: ServiceAccount
         name: prometheus-exporter
         namespace: kubescape
-  89: |
+  85: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -4518,7 +4437,7 @@ all capabilities:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-  90: |
+  86: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -4546,7 +4465,7 @@ all capabilities:
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
         - Ingress
-  91: |
+  87: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -4570,7 +4489,7 @@ all capabilities:
       selector:
         app: prometheus-exporter
       type: null
-  92: |
+  88: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -4587,7 +4506,7 @@ all capabilities:
         tier: ks-control-plane
       name: prometheus-exporter
       namespace: kubescape
-  93: |
+  89: |
     apiVersion: monitoring.coreos.com/v1
     kind: ServiceMonitor
     metadata:
@@ -4616,7 +4535,7 @@ all capabilities:
           app.kubernetes.io/component: prometheus-exporter
           app.kubernetes.io/instance: RELEASE-NAME
           app.kubernetes.io/name: kubescape-operator
-  94: |
+  90: |
     apiVersion: v1
     data:
       proxy.crt: foo
@@ -4639,7 +4558,7 @@ all capabilities:
       name: kubescape-proxy-certificate
       namespace: kubescape
     type: Opaque
-  95: |
+  91: |
     apiVersion: batch/v1
     kind: Job
     metadata:
@@ -4737,7 +4656,7 @@ all capabilities:
             - name: proxy-secret
               secret:
                 secretName: kubescape-proxy-certificate
-  96: |
+  92: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -4768,7 +4687,7 @@ all capabilities:
           - patch
           - get
           - list
-  97: |
+  93: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -4796,7 +4715,7 @@ all capabilities:
       - kind: ServiceAccount
         name: service-discovery
         namespace: kubescape
-  98: |
+  94: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -4816,7 +4735,7 @@ all capabilities:
         tier: ks-control-plane
       name: service-discovery
       namespace: kubescape
-  99: |
+  95: |
     apiVersion: apiregistration.k8s.io/v1
     kind: APIService
     metadata:
@@ -4840,7 +4759,7 @@ all capabilities:
         namespace: kubescape
       version: v1beta1
       versionPriority: 15
-  100: |
+  96: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -4946,7 +4865,7 @@ all capabilities:
           - get
           - watch
           - list
-  101: |
+  97: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -4969,7 +4888,7 @@ all capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  102: |
+  98: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -4992,7 +4911,7 @@ all capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  103: |
+  99: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -5105,7 +5024,7 @@ all capabilities:
                     path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
-  104: |
+  100: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -5164,7 +5083,7 @@ all capabilities:
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
         - Egress
-  105: |
+  101: |
     apiVersion: v1
     kind: PersistentVolumeClaim
     metadata:
@@ -5187,7 +5106,7 @@ all capabilities:
       resources:
         requests:
           storage: 5Gi
-  106: |
+  102: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -5211,7 +5130,7 @@ all capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  107: |
+  103: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -5235,7 +5154,7 @@ all capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  108: |
+  104: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -5260,7 +5179,7 @@ all capabilities:
         app.kubernetes.io/component: storage
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  109: |
+  105: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -5276,7 +5195,7 @@ all capabilities:
         tier: ks-control-plane
       name: storage
       namespace: kubescape
-  110: |
+  106: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -5420,7 +5339,7 @@ all capabilities:
           - get
           - watch
           - list
-  111: |
+  107: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -5443,7 +5362,7 @@ all capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  112: |
+  108: |
     apiVersion: v1
     data:
       config.json: |
@@ -5660,7 +5579,7 @@ all capabilities:
         tier: ks-control-plane
       name: synchronizer
       namespace: kubescape
-  113: |
+  109: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -5813,7 +5732,7 @@ all capabilities:
                     path: config.json
                 name: synchronizer
               name: config
-  114: |
+  110: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -5875,7 +5794,7 @@ all capabilities:
       policyTypes:
         - Ingress
         - Egress
-  115: |
+  111: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -5899,7 +5818,7 @@ all capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  116: |
+  112: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -5923,7 +5842,7 @@ all capabilities:
       selector:
         app: synchronizer
       type: ClusterIP
-  117: |
+  113: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -6474,87 +6393,6 @@ default capabilities:
       type: ClusterIP
   14: |
     apiVersion: rbac.authorization.k8s.io/v1
-    kind: Role
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded,hook-failed
-        helm.sh/hook-weight: "-20"
-      labels:
-        app: label-selector-force-replace
-      name: label-selector-force-replace
-      namespace: kubescape
-    rules:
-      - apiGroups:
-          - apps
-        resources:
-          - daemonsets
-          - deployments
-          - statefulsets
-        verbs:
-          - delete
-  15: |
-    apiVersion: v1
-    kind: ServiceAccount
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded,hook-failed
-        helm.sh/hook-weight: "-15"
-      labels:
-        app: label-selector-force-replace
-      name: label-selector-force-replace
-      namespace: kubescape
-  16: |
-    apiVersion: rbac.authorization.k8s.io/v1
-    kind: RoleBinding
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded,hook-failed
-        helm.sh/hook-weight: "-14"
-      labels:
-        app: label-selector-force-replace
-      name: label-selector-force-replace
-      namespace: kubescape
-    roleRef:
-      apiGroup: rbac.authorization.k8s.io
-      kind: Role
-      name: label-selector-force-replace
-    subjects:
-      - kind: ServiceAccount
-        name: label-selector-force-replace
-        namespace: kubescape
-  17: |
-    apiVersion: batch/v1
-    kind: Job
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded,hook-failed
-        helm.sh/hook-weight: "-10"
-      labels:
-        app: label-selector-force-replace
-      name: label-selector-force-replace
-      namespace: kubescape
-    spec:
-      backoffLimit: 6
-      template:
-        spec:
-          containers:
-            - command:
-                - /bin/sh
-                - -e
-                - -x
-                - -c
-                - kubectl -n kubescape delete daemonset node-agent --ignore-not-found=true; kubectl -n kubescape delete deployment gateway --ignore-not-found=true; kubectl -n kubescape delete deployment kubescape --ignore-not-found=true; kubectl -n kubescape delete deployment kubevuln --ignore-not-found=true; kubectl -n kubescape delete deployment operator --ignore-not-found=true; kubectl -n kubescape delete deployment otel-collector --ignore-not-found=true; kubectl -n kubescape delete deployment prometheus-exporter --ignore-not-found=true; kubectl -n kubescape delete deployment storage --ignore-not-found=true; kubectl -n kubescape delete deployment synchronizer --ignore-not-found=true; kubectl -n kubescape delete statefulset kollector --ignore-not-found=true;
-              image: docker.io/bitnami/kubectl:1.30.3
-              imagePullPolicy: IfNotPresent
-              name: label-selector-force-replace
-          restartPolicy: Never
-          serviceAccountName: label-selector-force-replace
-  18: |
-    apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
       labels:
@@ -6603,7 +6441,7 @@ default capabilities:
           - get
           - watch
           - list
-  19: |
+  15: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -6626,7 +6464,7 @@ default capabilities:
       - kind: ServiceAccount
         name: kollector
         namespace: kubescape
-  20: |
+  16: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -6677,7 +6515,7 @@ default capabilities:
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
         - Egress
-  21: |
+  17: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -6694,7 +6532,7 @@ default capabilities:
         tier: ks-control-plane
       name: kollector
       namespace: kubescape
-  22: |
+  18: |
     apiVersion: apps/v1
     kind: StatefulSet
     metadata:
@@ -6832,7 +6670,7 @@ default capabilities:
                     path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
-  23: |
+  19: |
     apiVersion: v1
     data:
       request-body.json: '{"commands":[{"CommandName":"kubescapeScan","args":{"scanV1": {}}}]}'
@@ -6851,7 +6689,7 @@ default capabilities:
         tier: ks-control-plane
       name: kubescape-scheduler
       namespace: kubescape
-  24: |
+  20: |
     apiVersion: batch/v1
     kind: CronJob
     metadata:
@@ -6928,7 +6766,7 @@ default capabilities:
                   name: kubescape-scheduler
       schedule: 1 2 3 4 5
       successfulJobsHistoryLimit: 3
-  25: |
+  21: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -6970,7 +6808,7 @@ default capabilities:
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
         - Egress
-  26: |
+  22: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -7179,7 +7017,7 @@ default capabilities:
           - get
           - watch
           - list
-  27: |
+  23: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -7202,7 +7040,7 @@ default capabilities:
       - kind: ServiceAccount
         name: kubescape
         namespace: kubescape
-  28: |
+  24: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -7381,7 +7219,7 @@ default capabilities:
               name: results
             - emptyDir: {}
               name: failed
-  29: |
+  25: |
     apiVersion: v1
     data:
       host-scanner-yaml: |-
@@ -7505,7 +7343,7 @@ default capabilities:
         tier: ks-control-plane
       name: host-scanner-definition
       namespace: kubescape
-  30: |
+  26: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -7573,7 +7411,7 @@ default capabilities:
       policyTypes:
         - Ingress
         - Egress
-  31: |
+  27: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -7602,7 +7440,7 @@ default capabilities:
           - list
           - patch
           - delete
-  32: |
+  28: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -7626,7 +7464,7 @@ default capabilities:
       - kind: ServiceAccount
         name: kubescape
         namespace: kubescape
-  33: |
+  29: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -7653,7 +7491,7 @@ default capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  34: |
+  30: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -7670,7 +7508,7 @@ default capabilities:
         tier: ks-control-plane
       name: kubescape
       namespace: kubescape
-  35: |
+  31: |
     apiVersion: monitoring.coreos.com/v1
     kind: ServiceMonitor
     metadata:
@@ -7700,7 +7538,7 @@ default capabilities:
           app.kubernetes.io/component: kubescape
           app.kubernetes.io/instance: RELEASE-NAME
           app.kubernetes.io/name: kubescape-operator
-  36: |
+  32: |
     apiVersion: v1
     data:
       request-body.json: '{"commands":[{"commandName":"scan","designators":[{"designatorType":"Attributes","attributes":{}}]}]}'
@@ -7719,7 +7557,7 @@ default capabilities:
         tier: ks-control-plane
       name: kubevuln-scheduler
       namespace: kubescape
-  37: |
+  33: |
     apiVersion: batch/v1
     kind: CronJob
     metadata:
@@ -7794,7 +7632,7 @@ default capabilities:
                   name: kubevuln-scheduler
       schedule: 1 2 3 4 5
       successfulJobsHistoryLimit: 3
-  38: |
+  34: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -7836,7 +7674,7 @@ default capabilities:
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
         - Egress
-  39: |
+  35: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -7874,7 +7712,7 @@ default capabilities:
           - get
           - watch
           - list
-  40: |
+  36: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -7897,7 +7735,7 @@ default capabilities:
       - kind: ServiceAccount
         name: kubevuln
         namespace: kubescape
-  41: |
+  37: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -8046,7 +7884,7 @@ default capabilities:
               name: ks-cloud-config
             - emptyDir: {}
               name: grype-db
-  42: |
+  38: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -8102,7 +7940,7 @@ default capabilities:
       policyTypes:
         - Ingress
         - Egress
-  43: |
+  39: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -8126,7 +7964,7 @@ default capabilities:
       selector:
         app: kubevuln
       type: ClusterIP
-  44: |
+  40: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -8143,7 +7981,7 @@ default capabilities:
         tier: ks-control-plane
       name: kubevuln
       namespace: kubescape
-  45: |
+  41: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -8230,7 +8068,7 @@ default capabilities:
         verbs:
           - list
           - watch
-  46: |
+  42: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -8253,7 +8091,7 @@ default capabilities:
       - kind: ServiceAccount
         name: node-agent
         namespace: kubescape
-  47: |
+  43: |
     apiVersion: v1
     data:
       config.json: |
@@ -8294,7 +8132,7 @@ default capabilities:
         tier: ks-control-plane
       name: node-agent
       namespace: kubescape
-  48: |
+  44: |
     apiVersion: apps/v1
     kind: DaemonSet
     metadata:
@@ -8506,7 +8344,7 @@ default capabilities:
             - name: proxy-secret
               secret:
                 secretName: kubescape-proxy-certificate
-  49: |
+  45: |
     apiVersion: kubescape.io/v1
     kind: RuntimeRuleAlertBinding
     metadata:
@@ -8566,7 +8404,7 @@ default capabilities:
         - ruleName: Exec to pod
         - ruleName: Port forward
         - ruleName: Unexpected Egress Network Traffic
-  50: |
+  46: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -8608,7 +8446,7 @@ default capabilities:
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
         - Egress
-  51: |
+  47: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -8632,7 +8470,7 @@ default capabilities:
           targetPort: 8080
       selector:
         app.kubernetes.io/name: node-agent
-  52: |
+  48: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -8648,7 +8486,7 @@ default capabilities:
         tier: ks-control-plane
       name: node-agent
       namespace: kubescape
-  53: |
+  49: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -8732,7 +8570,7 @@ default capabilities:
           - update
           - delete
           - patch
-  54: |
+  50: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -8755,7 +8593,7 @@ default capabilities:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  55: |
+  51: |
     apiVersion: v1
     data:
       config.json: |
@@ -8781,7 +8619,7 @@ default capabilities:
         tier: ks-control-plane
       name: operator
       namespace: kubescape
-  56: |
+  52: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -8960,7 +8798,7 @@ default capabilities:
                     path: matchingRules.json
                 name: cs-matching-rules
               name: cs-matching-rules
-  57: |
+  53: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -9039,7 +8877,7 @@ default capabilities:
         tier: ks-control-plane
       name: kubescape-cronjob-template
       namespace: kubescape
-  58: |
+  54: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -9118,7 +8956,7 @@ default capabilities:
         tier: ks-control-plane
       name: kubevuln-cronjob-template
       namespace: kubescape
-  59: |
+  55: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -9208,7 +9046,7 @@ default capabilities:
       policyTypes:
         - Ingress
         - Egress
-  60: |
+  56: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -9287,7 +9125,7 @@ default capabilities:
         tier: ks-control-plane
       name: registry-scan-cronjob-template
       namespace: kubescape
-  61: |
+  57: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -9329,7 +9167,7 @@ default capabilities:
           - list
           - patch
           - delete
-  62: |
+  58: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -9353,7 +9191,7 @@ default capabilities:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  63: |
+  59: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -9379,7 +9217,7 @@ default capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  64: |
+  60: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -9396,7 +9234,7 @@ default capabilities:
         tier: ks-control-plane
       name: operator
       namespace: kubescape
-  65: |
+  61: |
     apiVersion: v1
     data:
       otel-collector-config.yaml: "\n# receivers configure how data gets into the Collector.\nreceivers:\n  otlp:\n    protocols:\n      grpc:\n        endpoint: 0.0.0.0:4317\n      http:\n        endpoint: 0.0.0.0:4318\n  hostmetrics:\n    collection_interval: 30s\n    scrapers:\n      cpu:\n      memory:\n\n# processors specify what happens with the received data.\nprocessors:\n  attributes/ksCloud:\n    actions:\n      - key: account_id\n        value: \"9e6c0c2c-6bd0-4919-815b-55030de7c9a0\"\n        action: upsert\n      - key: cluster_name\n        value: \"kind-kind\"\n        action: upsert\n  batch:\n    send_batch_size: 10000\n    timeout: 10s\n\n# exporters configure how to send processed data to one or more backends.\nexporters:\n  otlp/ksCloud:\n    endpoint: ${env:CLOUD_OTEL_COLLECTOR_URL}\n    tls:\n      insecure: false\n  otlp:\n    endpoint: \"otelCollector:4317\"\n    tls:\n      insecure: true\n    headers:\n      uptrace-dsn: \n\n# service pulls the configured receivers, processors, and exporters together into\n# processing pipelines. Unused receivers/processors/exporters are ignored.\nservice:\n  pipelines:\n    traces:\n      receivers: [otlp]\n      processors: [batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp\n    metrics/2:\n      receivers: [hostmetrics]\n      processors: [attributes/ksCloud, batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp\n    metrics:\n      receivers: [otlp]\n      processors: [attributes/ksCloud, batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp\n    logs:\n      receivers: [otlp]\n      processors: [attributes/ksCloud, batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp"
@@ -9415,7 +9253,7 @@ default capabilities:
         tier: ks-control-plane
       name: otel-collector-config
       namespace: kubescape
-  66: |
+  62: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -9526,7 +9364,7 @@ default capabilities:
             - configMap:
                 name: otel-collector-config
               name: otel-collector-config-volume
-  67: |
+  63: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -9582,7 +9420,7 @@ default capabilities:
       policyTypes:
         - Ingress
         - Egress
-  68: |
+  64: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -9611,7 +9449,7 @@ default capabilities:
       selector:
         app: otel-collector
       type: ClusterIP
-  69: |
+  65: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -9627,7 +9465,7 @@ default capabilities:
         tier: ks-control-plane
       name: otel-collector
       namespace: kubescape
-  70: |
+  66: |
     apiVersion: v1
     data:
       proxy.crt: foo
@@ -9650,7 +9488,7 @@ default capabilities:
       name: kubescape-proxy-certificate
       namespace: kubescape
     type: Opaque
-  71: |
+  67: |
     apiVersion: batch/v1
     kind: Job
     metadata:
@@ -9742,7 +9580,7 @@ default capabilities:
             - name: proxy-secret
               secret:
                 secretName: kubescape-proxy-certificate
-  72: |
+  68: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -9773,7 +9611,7 @@ default capabilities:
           - patch
           - get
           - list
-  73: |
+  69: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -9801,7 +9639,7 @@ default capabilities:
       - kind: ServiceAccount
         name: service-discovery
         namespace: kubescape
-  74: |
+  70: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -9821,7 +9659,7 @@ default capabilities:
         tier: ks-control-plane
       name: service-discovery
       namespace: kubescape
-  75: |
+  71: |
     apiVersion: apiregistration.k8s.io/v1
     kind: APIService
     metadata:
@@ -9845,7 +9683,7 @@ default capabilities:
         namespace: kubescape
       version: v1beta1
       versionPriority: 15
-  76: |
+  72: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -9951,7 +9789,7 @@ default capabilities:
           - get
           - watch
           - list
-  77: |
+  73: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -9974,7 +9812,7 @@ default capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  78: |
+  74: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -9997,7 +9835,7 @@ default capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  79: |
+  75: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -10108,7 +9946,7 @@ default capabilities:
                     path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
-  80: |
+  76: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -10156,7 +9994,7 @@ default capabilities:
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
         - Egress
-  81: |
+  77: |
     apiVersion: v1
     kind: PersistentVolumeClaim
     metadata:
@@ -10179,7 +10017,7 @@ default capabilities:
       resources:
         requests:
           storage: 5Gi
-  82: |
+  78: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -10203,7 +10041,7 @@ default capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  83: |
+  79: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -10228,7 +10066,7 @@ default capabilities:
         app.kubernetes.io/component: storage
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  84: |
+  80: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -10244,7 +10082,7 @@ default capabilities:
         tier: ks-control-plane
       name: storage
       namespace: kubescape
-  85: |
+  81: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -10388,7 +10226,7 @@ default capabilities:
           - get
           - watch
           - list
-  86: |
+  82: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -10411,7 +10249,7 @@ default capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  87: |
+  83: |
     apiVersion: v1
     data:
       config.json: |
@@ -10628,7 +10466,7 @@ default capabilities:
         tier: ks-control-plane
       name: synchronizer
       namespace: kubescape
-  88: |
+  84: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -10769,7 +10607,7 @@ default capabilities:
                     path: config.json
                 name: synchronizer
               name: config
-  89: |
+  85: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -10825,7 +10663,7 @@ default capabilities:
       policyTypes:
         - Ingress
         - Egress
-  90: |
+  86: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -10849,7 +10687,7 @@ default capabilities:
       selector:
         app: synchronizer
       type: ClusterIP
-  91: |
+  87: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -11212,87 +11050,6 @@ disable otel:
       namespace: kubescape
   10: |
     apiVersion: rbac.authorization.k8s.io/v1
-    kind: Role
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded,hook-failed
-        helm.sh/hook-weight: "-20"
-      labels:
-        app: label-selector-force-replace
-      name: label-selector-force-replace
-      namespace: kubescape
-    rules:
-      - apiGroups:
-          - apps
-        resources:
-          - daemonsets
-          - deployments
-          - statefulsets
-        verbs:
-          - delete
-  11: |
-    apiVersion: v1
-    kind: ServiceAccount
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded,hook-failed
-        helm.sh/hook-weight: "-15"
-      labels:
-        app: label-selector-force-replace
-      name: label-selector-force-replace
-      namespace: kubescape
-  12: |
-    apiVersion: rbac.authorization.k8s.io/v1
-    kind: RoleBinding
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded,hook-failed
-        helm.sh/hook-weight: "-14"
-      labels:
-        app: label-selector-force-replace
-      name: label-selector-force-replace
-      namespace: kubescape
-    roleRef:
-      apiGroup: rbac.authorization.k8s.io
-      kind: Role
-      name: label-selector-force-replace
-    subjects:
-      - kind: ServiceAccount
-        name: label-selector-force-replace
-        namespace: kubescape
-  13: |
-    apiVersion: batch/v1
-    kind: Job
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded,hook-failed
-        helm.sh/hook-weight: "-10"
-      labels:
-        app: label-selector-force-replace
-      name: label-selector-force-replace
-      namespace: kubescape
-    spec:
-      backoffLimit: 6
-      template:
-        spec:
-          containers:
-            - command:
-                - /bin/sh
-                - -e
-                - -x
-                - -c
-                - kubectl -n kubescape delete daemonset node-agent --ignore-not-found=true; kubectl -n kubescape delete deployment gateway --ignore-not-found=true; kubectl -n kubescape delete deployment kubescape --ignore-not-found=true; kubectl -n kubescape delete deployment kubevuln --ignore-not-found=true; kubectl -n kubescape delete deployment operator --ignore-not-found=true; kubectl -n kubescape delete deployment otel-collector --ignore-not-found=true; kubectl -n kubescape delete deployment prometheus-exporter --ignore-not-found=true; kubectl -n kubescape delete deployment storage --ignore-not-found=true; kubectl -n kubescape delete deployment synchronizer --ignore-not-found=true; kubectl -n kubescape delete statefulset kollector --ignore-not-found=true;
-              image: docker.io/bitnami/kubectl:1.30.3
-              imagePullPolicy: IfNotPresent
-              name: label-selector-force-replace
-          restartPolicy: Never
-          serviceAccountName: label-selector-force-replace
-  14: |
-    apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
       labels:
@@ -11341,7 +11098,7 @@ disable otel:
           - get
           - watch
           - list
-  15: |
+  11: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -11364,7 +11121,7 @@ disable otel:
       - kind: ServiceAccount
         name: kollector
         namespace: kubescape
-  16: |
+  12: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -11381,7 +11138,7 @@ disable otel:
         tier: ks-control-plane
       name: kollector
       namespace: kubescape
-  17: |
+  13: |
     apiVersion: apps/v1
     kind: StatefulSet
     metadata:
@@ -11512,7 +11269,7 @@ disable otel:
                     path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
-  18: |
+  14: |
     apiVersion: v1
     data:
       request-body.json: '{"commands":[{"CommandName":"kubescapeScan","args":{"scanV1": {}}}]}'
@@ -11531,7 +11288,7 @@ disable otel:
         tier: ks-control-plane
       name: kubescape-scheduler
       namespace: kubescape
-  19: |
+  15: |
     apiVersion: batch/v1
     kind: CronJob
     metadata:
@@ -11608,7 +11365,7 @@ disable otel:
                   name: kubescape-scheduler
       schedule: 1 2 3 4 5
       successfulJobsHistoryLimit: 3
-  20: |
+  16: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -11817,7 +11574,7 @@ disable otel:
           - get
           - watch
           - list
-  21: |
+  17: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -11840,7 +11597,7 @@ disable otel:
       - kind: ServiceAccount
         name: kubescape
         namespace: kubescape
-  22: |
+  18: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -12012,7 +11769,7 @@ disable otel:
               name: results
             - emptyDir: {}
               name: failed
-  23: |
+  19: |
     apiVersion: v1
     data:
       host-scanner-yaml: |-
@@ -12136,7 +11893,7 @@ disable otel:
         tier: ks-control-plane
       name: host-scanner-definition
       namespace: kubescape
-  24: |
+  20: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -12165,7 +11922,7 @@ disable otel:
           - list
           - patch
           - delete
-  25: |
+  21: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -12189,7 +11946,7 @@ disable otel:
       - kind: ServiceAccount
         name: kubescape
         namespace: kubescape
-  26: |
+  22: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -12216,7 +11973,7 @@ disable otel:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  27: |
+  23: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -12233,7 +11990,7 @@ disable otel:
         tier: ks-control-plane
       name: kubescape
       namespace: kubescape
-  28: |
+  24: |
     apiVersion: v1
     data:
       request-body.json: '{"commands":[{"commandName":"scan","designators":[{"designatorType":"Attributes","attributes":{}}]}]}'
@@ -12252,7 +12009,7 @@ disable otel:
         tier: ks-control-plane
       name: kubevuln-scheduler
       namespace: kubescape
-  29: |
+  25: |
     apiVersion: batch/v1
     kind: CronJob
     metadata:
@@ -12327,7 +12084,7 @@ disable otel:
                   name: kubevuln-scheduler
       schedule: 1 2 3 4 5
       successfulJobsHistoryLimit: 3
-  30: |
+  26: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -12365,7 +12122,7 @@ disable otel:
           - get
           - watch
           - list
-  31: |
+  27: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -12388,7 +12145,7 @@ disable otel:
       - kind: ServiceAccount
         name: kubevuln
         namespace: kubescape
-  32: |
+  28: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -12530,7 +12287,7 @@ disable otel:
               name: ks-cloud-config
             - emptyDir: {}
               name: grype-db
-  33: |
+  29: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -12554,7 +12311,7 @@ disable otel:
       selector:
         app: kubevuln
       type: ClusterIP
-  34: |
+  30: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -12571,7 +12328,7 @@ disable otel:
         tier: ks-control-plane
       name: kubevuln
       namespace: kubescape
-  35: |
+  31: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -12658,7 +12415,7 @@ disable otel:
         verbs:
           - list
           - watch
-  36: |
+  32: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -12681,7 +12438,7 @@ disable otel:
       - kind: ServiceAccount
         name: node-agent
         namespace: kubescape
-  37: |
+  33: |
     apiVersion: v1
     data:
       config.json: |
@@ -12722,7 +12479,7 @@ disable otel:
         tier: ks-control-plane
       name: node-agent
       namespace: kubescape
-  38: |
+  34: |
     apiVersion: apps/v1
     kind: DaemonSet
     metadata:
@@ -12927,7 +12684,7 @@ disable otel:
                     path: config.json
                 name: node-agent
               name: config
-  39: |
+  35: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -12951,7 +12708,7 @@ disable otel:
           targetPort: 8080
       selector:
         app.kubernetes.io/name: node-agent
-  40: |
+  36: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -12967,7 +12724,7 @@ disable otel:
         tier: ks-control-plane
       name: node-agent
       namespace: kubescape
-  41: |
+  37: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -13051,7 +12808,7 @@ disable otel:
           - update
           - delete
           - patch
-  42: |
+  38: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -13074,7 +12831,7 @@ disable otel:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  43: |
+  39: |
     apiVersion: v1
     data:
       config.json: |
@@ -13100,7 +12857,7 @@ disable otel:
         tier: ks-control-plane
       name: operator
       namespace: kubescape
-  44: |
+  40: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -13272,7 +13029,7 @@ disable otel:
                     path: matchingRules.json
                 name: cs-matching-rules
               name: cs-matching-rules
-  45: |
+  41: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -13351,7 +13108,7 @@ disable otel:
         tier: ks-control-plane
       name: kubescape-cronjob-template
       namespace: kubescape
-  46: |
+  42: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -13430,7 +13187,7 @@ disable otel:
         tier: ks-control-plane
       name: kubevuln-cronjob-template
       namespace: kubescape
-  47: |
+  43: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -13509,7 +13266,7 @@ disable otel:
         tier: ks-control-plane
       name: registry-scan-cronjob-template
       namespace: kubescape
-  48: |
+  44: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -13551,7 +13308,7 @@ disable otel:
           - list
           - patch
           - delete
-  49: |
+  45: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -13575,7 +13332,7 @@ disable otel:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  50: |
+  46: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -13601,7 +13358,7 @@ disable otel:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  51: |
+  47: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -13618,7 +13375,7 @@ disable otel:
         tier: ks-control-plane
       name: operator
       namespace: kubescape
-  52: |
+  48: |
     apiVersion: v1
     data:
       otel-collector-config.yaml: |2-
@@ -13696,7 +13453,7 @@ disable otel:
         tier: ks-control-plane
       name: otel-collector-config
       namespace: kubescape
-  53: |
+  49: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -13800,7 +13557,7 @@ disable otel:
             - configMap:
                 name: otel-collector-config
               name: otel-collector-config-volume
-  54: |
+  50: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -13829,7 +13586,7 @@ disable otel:
       selector:
         app: otel-collector
       type: ClusterIP
-  55: |
+  51: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -13845,7 +13602,7 @@ disable otel:
         tier: ks-control-plane
       name: otel-collector
       namespace: kubescape
-  56: |
+  52: |
     apiVersion: batch/v1
     kind: Job
     metadata:
@@ -13931,7 +13688,7 @@ disable otel:
           volumes:
             - emptyDir: {}
               name: shared-data
-  57: |
+  53: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -13962,7 +13719,7 @@ disable otel:
           - patch
           - get
           - list
-  58: |
+  54: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -13990,7 +13747,7 @@ disable otel:
       - kind: ServiceAccount
         name: service-discovery
         namespace: kubescape
-  59: |
+  55: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -14010,7 +13767,7 @@ disable otel:
         tier: ks-control-plane
       name: service-discovery
       namespace: kubescape
-  60: |
+  56: |
     apiVersion: apiregistration.k8s.io/v1
     kind: APIService
     metadata:
@@ -14034,7 +13791,7 @@ disable otel:
         namespace: kubescape
       version: v1beta1
       versionPriority: 15
-  61: |
+  57: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -14140,7 +13897,7 @@ disable otel:
           - get
           - watch
           - list
-  62: |
+  58: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -14163,7 +13920,7 @@ disable otel:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  63: |
+  59: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -14186,7 +13943,7 @@ disable otel:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  64: |
+  60: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -14297,7 +14054,7 @@ disable otel:
                     path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
-  65: |
+  61: |
     apiVersion: v1
     kind: PersistentVolumeClaim
     metadata:
@@ -14320,7 +14077,7 @@ disable otel:
       resources:
         requests:
           storage: 5Gi
-  66: |
+  62: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -14344,7 +14101,7 @@ disable otel:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  67: |
+  63: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -14369,7 +14126,7 @@ disable otel:
         app.kubernetes.io/component: storage
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  68: |
+  64: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -14385,7 +14142,7 @@ disable otel:
         tier: ks-control-plane
       name: storage
       namespace: kubescape
-  69: |
+  65: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -14529,7 +14286,7 @@ disable otel:
           - get
           - watch
           - list
-  70: |
+  66: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -14552,7 +14309,7 @@ disable otel:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  71: |
+  67: |
     apiVersion: v1
     data:
       config.json: |
@@ -14769,7 +14526,7 @@ disable otel:
         tier: ks-control-plane
       name: synchronizer
       namespace: kubescape
-  72: |
+  68: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -14903,7 +14660,7 @@ disable otel:
                     path: config.json
                 name: synchronizer
               name: config
-  73: |
+  69: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -14927,7 +14684,7 @@ disable otel:
       selector:
         app: synchronizer
       type: ClusterIP
-  74: |
+  70: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -15087,87 +14844,6 @@ minimal capabilities:
       name: kubescape-critical
     value: 1.000001e+08
   7: |
-    apiVersion: rbac.authorization.k8s.io/v1
-    kind: Role
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded,hook-failed
-        helm.sh/hook-weight: "-20"
-      labels:
-        app: label-selector-force-replace
-      name: label-selector-force-replace
-      namespace: kubescape
-    rules:
-      - apiGroups:
-          - apps
-        resources:
-          - daemonsets
-          - deployments
-          - statefulsets
-        verbs:
-          - delete
-  8: |
-    apiVersion: v1
-    kind: ServiceAccount
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded,hook-failed
-        helm.sh/hook-weight: "-15"
-      labels:
-        app: label-selector-force-replace
-      name: label-selector-force-replace
-      namespace: kubescape
-  9: |
-    apiVersion: rbac.authorization.k8s.io/v1
-    kind: RoleBinding
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded,hook-failed
-        helm.sh/hook-weight: "-14"
-      labels:
-        app: label-selector-force-replace
-      name: label-selector-force-replace
-      namespace: kubescape
-    roleRef:
-      apiGroup: rbac.authorization.k8s.io
-      kind: Role
-      name: label-selector-force-replace
-    subjects:
-      - kind: ServiceAccount
-        name: label-selector-force-replace
-        namespace: kubescape
-  10: |
-    apiVersion: batch/v1
-    kind: Job
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded,hook-failed
-        helm.sh/hook-weight: "-10"
-      labels:
-        app: label-selector-force-replace
-      name: label-selector-force-replace
-      namespace: kubescape
-    spec:
-      backoffLimit: 6
-      template:
-        spec:
-          containers:
-            - command:
-                - /bin/sh
-                - -e
-                - -x
-                - -c
-                - kubectl -n kubescape delete daemonset node-agent --ignore-not-found=true; kubectl -n kubescape delete deployment gateway --ignore-not-found=true; kubectl -n kubescape delete deployment kubescape --ignore-not-found=true; kubectl -n kubescape delete deployment kubevuln --ignore-not-found=true; kubectl -n kubescape delete deployment operator --ignore-not-found=true; kubectl -n kubescape delete deployment otel-collector --ignore-not-found=true; kubectl -n kubescape delete deployment prometheus-exporter --ignore-not-found=true; kubectl -n kubescape delete deployment storage --ignore-not-found=true; kubectl -n kubescape delete deployment synchronizer --ignore-not-found=true; kubectl -n kubescape delete statefulset kollector --ignore-not-found=true;
-              image: docker.io/bitnami/kubectl:1.30.3
-              imagePullPolicy: IfNotPresent
-              name: label-selector-force-replace
-          restartPolicy: Never
-          serviceAccountName: label-selector-force-replace
-  11: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -15376,7 +15052,7 @@ minimal capabilities:
           - get
           - watch
           - list
-  12: |
+  8: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -15399,7 +15075,7 @@ minimal capabilities:
       - kind: ServiceAccount
         name: kubescape
         namespace: kubescape
-  13: |
+  9: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -15567,7 +15243,7 @@ minimal capabilities:
               name: results
             - emptyDir: {}
               name: failed
-  14: |
+  10: |
     apiVersion: v1
     data:
       host-scanner-yaml: |-
@@ -15691,7 +15367,7 @@ minimal capabilities:
         tier: ks-control-plane
       name: host-scanner-definition
       namespace: kubescape
-  15: |
+  11: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -15720,7 +15396,7 @@ minimal capabilities:
           - list
           - patch
           - delete
-  16: |
+  12: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -15744,7 +15420,7 @@ minimal capabilities:
       - kind: ServiceAccount
         name: kubescape
         namespace: kubescape
-  17: |
+  13: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -15771,7 +15447,7 @@ minimal capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  18: |
+  14: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -15788,7 +15464,7 @@ minimal capabilities:
         tier: ks-control-plane
       name: kubescape
       namespace: kubescape
-  19: |
+  15: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -15826,7 +15502,7 @@ minimal capabilities:
           - get
           - watch
           - list
-  20: |
+  16: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -15849,7 +15525,7 @@ minimal capabilities:
       - kind: ServiceAccount
         name: kubevuln
         namespace: kubescape
-  21: |
+  17: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -15989,7 +15665,7 @@ minimal capabilities:
               name: ks-cloud-config
             - emptyDir: {}
               name: grype-db
-  22: |
+  18: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -16013,7 +15689,7 @@ minimal capabilities:
       selector:
         app: kubevuln
       type: ClusterIP
-  23: |
+  19: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -16030,7 +15706,7 @@ minimal capabilities:
         tier: ks-control-plane
       name: kubevuln
       namespace: kubescape
-  24: |
+  20: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -16117,7 +15793,7 @@ minimal capabilities:
         verbs:
           - list
           - watch
-  25: |
+  21: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -16140,7 +15816,7 @@ minimal capabilities:
       - kind: ServiceAccount
         name: node-agent
         namespace: kubescape
-  26: |
+  22: |
     apiVersion: v1
     data:
       config.json: |
@@ -16180,7 +15856,7 @@ minimal capabilities:
         tier: ks-control-plane
       name: node-agent
       namespace: kubescape
-  27: |
+  23: |
     apiVersion: apps/v1
     kind: DaemonSet
     metadata:
@@ -16383,7 +16059,7 @@ minimal capabilities:
                     path: config.json
                 name: node-agent
               name: config
-  28: |
+  24: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -16407,7 +16083,7 @@ minimal capabilities:
           targetPort: 8080
       selector:
         app.kubernetes.io/name: node-agent
-  29: |
+  25: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -16423,7 +16099,7 @@ minimal capabilities:
         tier: ks-control-plane
       name: node-agent
       namespace: kubescape
-  30: |
+  26: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -16507,7 +16183,7 @@ minimal capabilities:
           - update
           - delete
           - patch
-  31: |
+  27: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -16530,7 +16206,7 @@ minimal capabilities:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  32: |
+  28: |
     apiVersion: v1
     data:
       config.json: |
@@ -16555,7 +16231,7 @@ minimal capabilities:
         tier: ks-control-plane
       name: operator
       namespace: kubescape
-  33: |
+  29: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -16721,7 +16397,7 @@ minimal capabilities:
                     path: matchingRules.json
                 name: cs-matching-rules
               name: cs-matching-rules
-  34: |
+  30: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -16800,7 +16476,7 @@ minimal capabilities:
         tier: ks-control-plane
       name: kubescape-cronjob-template
       namespace: kubescape
-  35: |
+  31: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -16879,7 +16555,7 @@ minimal capabilities:
         tier: ks-control-plane
       name: kubevuln-cronjob-template
       namespace: kubescape
-  36: |
+  32: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -16958,7 +16634,7 @@ minimal capabilities:
         tier: ks-control-plane
       name: registry-scan-cronjob-template
       namespace: kubescape
-  37: |
+  33: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -17000,7 +16676,7 @@ minimal capabilities:
           - list
           - patch
           - delete
-  38: |
+  34: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -17024,7 +16700,7 @@ minimal capabilities:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  39: |
+  35: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -17050,7 +16726,7 @@ minimal capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  40: |
+  36: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -17067,7 +16743,7 @@ minimal capabilities:
         tier: ks-control-plane
       name: operator
       namespace: kubescape
-  41: |
+  37: |
     apiVersion: v1
     data:
       otel-collector-config.yaml: "\n# receivers configure how data gets into the Collector.\nreceivers:\n  otlp:\n    protocols:\n      grpc:\n        endpoint: 0.0.0.0:4317\n      http:\n        endpoint: 0.0.0.0:4318\n  hostmetrics:\n    collection_interval: 30s\n    scrapers:\n      cpu:\n      memory:\n\n# processors specify what happens with the received data.\nprocessors:\n  attributes/ksCloud:\n    actions:\n      - key: account_id\n        value: \"\"\n        action: upsert\n      - key: cluster_name\n        value: \"kind-kind\"\n        action: upsert\n  batch:\n    send_batch_size: 10000\n    timeout: 10s\n\n# exporters configure how to send processed data to one or more backends.\nexporters:\n  otlp/ksCloud:\n    endpoint: \"\"\n    tls:\n      insecure: false\n  otlp:\n    endpoint: \"otelCollector:4317\"\n    tls:\n      insecure: true\n    headers:\n      uptrace-dsn: \n\n# service pulls the configured receivers, processors, and exporters together into\n# processing pipelines. Unused receivers/processors/exporters are ignored.\nservice:\n  pipelines:\n    traces:\n      receivers: [otlp]\n      processors: [batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp\n    metrics/2:\n      receivers: [hostmetrics]\n      processors: [attributes/ksCloud, batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp\n    metrics:\n      receivers: [otlp]\n      processors: [attributes/ksCloud, batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp\n    logs:\n      receivers: [otlp]\n      processors: [attributes/ksCloud, batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp"
@@ -17086,7 +16762,7 @@ minimal capabilities:
         tier: ks-control-plane
       name: otel-collector-config
       namespace: kubescape
-  42: |
+  38: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -17190,7 +16866,7 @@ minimal capabilities:
             - configMap:
                 name: otel-collector-config
               name: otel-collector-config-volume
-  43: |
+  39: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -17219,7 +16895,7 @@ minimal capabilities:
       selector:
         app: otel-collector
       type: ClusterIP
-  44: |
+  40: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -17235,7 +16911,7 @@ minimal capabilities:
         tier: ks-control-plane
       name: otel-collector
       namespace: kubescape
-  45: |
+  41: |
     apiVersion: apiregistration.k8s.io/v1
     kind: APIService
     metadata:
@@ -17259,7 +16935,7 @@ minimal capabilities:
         namespace: kubescape
       version: v1beta1
       versionPriority: 15
-  46: |
+  42: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -17365,7 +17041,7 @@ minimal capabilities:
           - get
           - watch
           - list
-  47: |
+  43: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -17388,7 +17064,7 @@ minimal capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  48: |
+  44: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -17411,7 +17087,7 @@ minimal capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  49: |
+  45: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -17520,7 +17196,7 @@ minimal capabilities:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-  50: |
+  46: |
     apiVersion: v1
     kind: PersistentVolumeClaim
     metadata:
@@ -17543,7 +17219,7 @@ minimal capabilities:
       resources:
         requests:
           storage: 5Gi
-  51: |
+  47: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -17567,7 +17243,7 @@ minimal capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  52: |
+  48: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -17592,7 +17268,7 @@ minimal capabilities:
         app.kubernetes.io/component: storage
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  53: |
+  49: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
