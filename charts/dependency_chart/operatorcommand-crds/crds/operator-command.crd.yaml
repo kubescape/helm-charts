@@ -1,0 +1,87 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: operatorcommands.kubescape.io
+spec:
+  group: kubescape.io
+  names:
+    plural: operatorcommands
+    singular: operatorcommand
+    kind: OperatorCommand
+    shortNames:
+      - opcmd
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                guid:
+                  type: string
+                commandType:
+                  type: string
+                commandVersion:
+                  type: string
+                  nullable: true
+                designators:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+                body:
+                  type: string
+                  format: byte
+                  nullable: true
+                ttl:
+                  type: string
+                  format: duration
+                  nullable: true
+                args:
+                  type: object
+                  additionalProperties: true
+                  nullable: true
+                commandIndex:
+                  type: integer
+                  nullable: true
+                commandCount:
+                  type: integer
+                  nullable: true
+            status:
+              type: object
+              properties:
+                started:
+                  type: boolean
+                startedAt:
+                  type: string
+                  format: date-time
+                  nullable: true
+                completed:
+                  type: boolean
+                completedAt:
+                  type: string
+                  format: date-time
+                  nullable: true
+                executer:
+                  type: string
+                  nullable: true
+                error:
+                  type: object
+                  nullable: true
+                  properties:
+                    reason:
+                      type: string
+                      nullable: true
+                    message:
+                      type: string
+                      nullable: true
+                    errorCode:
+                      type: integer
+                      nullable: true
+      subresources:
+        status: {}

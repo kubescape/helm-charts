@@ -8,8 +8,11 @@ metadata:
     {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.nodeAgent.name "tier" .Values.global.namespaceTier) | nindent 4 }}
 rules:
 - apiGroups: [""]
-  resources: ["pods", "nodes", "services", "endpoints", "namespaces"]
+  resources: ["nodes", "services", "endpoints", "namespaces"]
   verbs: ["get", "watch", "list"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "watch", "list", "delete"]
 - apiGroups: [""]
   resources: ["events"]
   verbs: ["get", "watch", "list"]
@@ -28,4 +31,10 @@ rules:
 - apiGroups: ["kubescape.io"]
   resources: ["runtimerulealertbindings"]
   verbs: ["list", "watch"]
+- apiGroups: ["kubescape.io"]
+  resources: ["operatorcommands"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: ["kubescape.io"]
+  resources: ["operatorcommands/status"]
+  verbs: ["get", "watch", "list", "update", "patch"]
 {{- end }}
