@@ -15,4 +15,11 @@ spec:
     - Egress
   egress:
 {{ tpl (.Files.Get "assets/common-egress-rules.yaml") . | indent 4 }}
+    - ports:
+        - protocol: TCP
+          port: 4002
+      to:
+        - podSelector:
+            matchLabels:
+              {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.operator.name) | nindent 14 }}
 {{- end }}

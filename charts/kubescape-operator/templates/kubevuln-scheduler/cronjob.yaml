@@ -11,6 +11,7 @@ metadata:
   namespace: {{ .Values.ksNamespace }}
   labels:
     {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.kubevulnScheduler.name "tier" .Values.global.namespaceTier) | nindent 4 }}
+    armo.tier: "vuln-scan"
     kubescape.io/tier: "core"
 spec:
   schedule: "{{ trimPrefix "\n" (trimSuffix  "\n" $kubevuln_daily_scan_cron_tab) }}"
@@ -22,12 +23,13 @@ spec:
         metadata:
           labels:
             {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.kubevulnScheduler.name "tier" .Values.global.namespaceTier) | nindent 12 }}
+            armo.tier: "vuln-scan"
             kubescape.io/tier: "core"
         spec:
-        {{- if .Values.imagePullSecrets }}
+          {{- if .Values.imagePullSecrets }}
           imagePullSecrets:
           - name: {{ toYaml .Values.imagePullSecrets }}
-        {{- end }}
+          {{- end }}
           containers:
           - name: {{ .Values.kubevulnScheduler.name }}
             image: "{{ .Values.kubevulnScheduler.image.repository }}:{{ .Values.kubevulnScheduler.image.tag }}"
@@ -46,9 +48,9 @@ spec:
               - -path=v1/triggerAction
               - -headers=Content-Type:application/json
               - -path-body=/home/ks/request-body.json
-              {{- if .Values.kubevulnScheduler.insecureSkipTLSVerify }}
+            {{- if .Values.kubevulnScheduler.insecureSkipTLSVerify }}
               - -skip-ssl-verify=true
-              {{- end}}
+            {{- end}}
             volumeMounts:
               - name: {{ .Values.kubevulnScheduler.name }}
                 mountPath: /home/ks/request-body.json
