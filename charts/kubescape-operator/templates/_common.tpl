@@ -4,16 +4,16 @@
 {{- end }}
 
 {{- define "checksums" -}}
-capabilitiesConfig: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.configMapsDirectory "components-configmap.yaml") . | regexReplaceAll .Chart.AppVersion "" | sha256sum }}
-cloudConfig: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.configMapsDirectory "cloudapi-configmap.yaml") . | regexReplaceAll .Chart.AppVersion "" | sha256sum }}
-cloudSecret: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.configMapsDirectory "cloud-secret.yaml" ) . | regexReplaceAll .Chart.AppVersion "" | sha256sum }}
-hostScannerConfig: {{ include (printf "%s/kubescape/host-scanner-definition-configmap.yaml" $.Template.BasePath ) . | regexReplaceAll .Chart.AppVersion "" | sha256sum }}
-matchingRulesConfig: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.configMapsDirectory "matchingRules-configmap.yaml") . | regexReplaceAll .Chart.AppVersion "" | sha256sum }}
-nodeAgentConfig: {{ include (printf "%s/node-agent/configmap.yaml" $.Template.BasePath) . | regexReplaceAll .Chart.AppVersion "" | sha256sum }}
-operatorConfig: {{ include (printf "%s/operator/configmap.yaml" $.Template.BasePath) . | regexReplaceAll .Chart.AppVersion "" | sha256sum }}
-otelConfig: {{ include (printf "%s/otel-collector/configmap.yaml" $.Template.BasePath) . | regexReplaceAll .Chart.AppVersion "" | sha256sum }}
-proxySecret: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.proxySecretDirectory "proxy-secret.yaml") . | regexReplaceAll .Chart.AppVersion "" | sha256sum }}
-synchronizerConfig: {{ include (printf "%s/synchronizer/configmap.yaml" $.Template.BasePath) . | regexReplaceAll .Chart.AppVersion "" | sha256sum }}
+capabilitiesConfig: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.configMapsDirectory "components-configmap.yaml") . | replace .Chart.AppVersion "" | sha256sum }}
+cloudConfig: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.configMapsDirectory "cloudapi-configmap.yaml") . | replace .Chart.AppVersion "" | sha256sum }}
+cloudSecret: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.configMapsDirectory "cloud-secret.yaml" ) . | replace .Chart.AppVersion "" | sha256sum }}
+hostScannerConfig: {{ include (printf "%s/kubescape/host-scanner-definition-configmap.yaml" $.Template.BasePath ) . | replace .Chart.AppVersion "" | sha256sum }}
+matchingRulesConfig: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.configMapsDirectory "matchingRules-configmap.yaml") . | replace .Chart.AppVersion "" | sha256sum }}
+nodeAgentConfig: {{ include (printf "%s/node-agent/configmap.yaml" $.Template.BasePath) . | replace .Chart.AppVersion "" | sha256sum }}
+operatorConfig: {{ include (printf "%s/operator/configmap.yaml" $.Template.BasePath) . | replace .Chart.AppVersion "" | sha256sum }}
+otelConfig: {{ include (printf "%s/otel-collector/configmap.yaml" $.Template.BasePath) . | replace .Chart.AppVersion "" | sha256sum }}
+proxySecret: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.proxySecretDirectory "proxy-secret.yaml") . | replace .Chart.AppVersion "" | sha256sum }}
+synchronizerConfig: {{ include (printf "%s/synchronizer/configmap.yaml" $.Template.BasePath) . | replace .Chart.AppVersion "" | sha256sum }}
 {{- end -}}
 
 
