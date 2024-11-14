@@ -59,7 +59,15 @@ kubevuln:
 kubevulnScheduler:
   enabled: {{ and $configurations.submit (eq .Values.capabilities.vulnerabilityScan "enable") }}
 nodeAgent:
-  enabled: {{ or (eq .Values.capabilities.relevancy "enable") (eq .Values.capabilities.runtimeObservability "enable") (eq .Values.capabilities.networkPolicyService "enable") }}
+  enabled: {{ or
+   (eq .Values.capabilities.relevancy "enable")
+   (eq .Values.capabilities.runtimeObservability "enable")
+   (eq .Values.capabilities.networkPolicyService "enable")
+   (eq .Values.capabilities.runtimeDetection "enable")
+   (eq .Values.capabilities.malwareDetection "enable")
+   (eq .Values.capabilities.nodeProfileService "enable")
+   (eq .Values.capabilities.seccompProfileService "enable")
+  }}
 operator:
   enabled: true
 otelCollector:
@@ -74,7 +82,7 @@ cloudSecret:
   create: {{ $configurations.createCloudSecret }}
   name: {{ if $configurations.createCloudSecret }}"cloud-secret"{{ else }}{{ .Values.credentials.cloudSecret }}{{ end }}
 synchronizer:
-  enabled: {{ or (and $configurations.submit (eq .Values.capabilities.networkPolicyService "enable")) (and $configurations.submit (eq .Values.capabilities.runtimeObservability "enable")) }}
+  enabled: {{ $configurations.submit }}
 clamAV:
   enabled: {{ eq .Values.capabilities.malwareDetection "enable" }}
 customCaCertificates:
