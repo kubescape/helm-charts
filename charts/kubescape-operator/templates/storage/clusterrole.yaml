@@ -8,12 +8,18 @@ metadata:
     {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.storage.name "tier" .Values.global.namespaceTier) | nindent 4 }}
 rules:
 - apiGroups: [""]
-  resources: ["pods", "services"]
-  verbs: ["get", "watch", "list"]
+  resources: ["namespaces", "pods", "services"]
+  verbs: [ "get", "watch", "list" ]
+- apiGroups: [ "admissionregistration.k8s.io" ]
+  resources: [ "mutatingwebhookconfigurations", "validatingwebhookconfigurations" ]
+  verbs: [ "get", "watch", "list" ]
 - apiGroups: ["apps"]
   resources: ["daemonsets", "deployments", "replicasets", "statefulsets"]
   verbs: ["get", "watch", "list"]
 - apiGroups: ["batch"]
   resources: ["cronjobs", "jobs"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: ["flowcontrol.apiserver.k8s.io"]
+  resources: ["prioritylevelconfigurations", "flowschemas"]
   verbs: ["get", "watch", "list"]
 {{- end }}
