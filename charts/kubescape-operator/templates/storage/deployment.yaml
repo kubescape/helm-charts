@@ -1,4 +1,5 @@
 {{- $components := fromYaml (include "components" .) }}
+{{- $configurations := fromYaml (include "configurations" .) }}
 {{- if $components.storage.enabled }}
 apiVersion: apps/v1
 kind: Deployment
@@ -71,6 +72,10 @@ spec:
                 key: account
           - name: OTEL_COLLECTOR_SVC
             value: "otel-collector:4317"
+          {{- end }}
+          {{- if $configurations.submit }}
+          - name: DISABLE_VIRTUAL_CRDS
+            value: "true"
           {{- end }}
         volumeMounts:
           - name: "data"
