@@ -1,4 +1,3 @@
 # Kubescape Helm charts
 
-* [Kubescape operator](https://kubescape.io/docs/install-operator/)
- 
+* [Kubescape operator](charts/kubescape-operator/README.md)
