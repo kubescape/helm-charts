@@ -7,7 +7,6 @@
 The helm chart CICD runs on GitHub Actions, and in most cases will be automatically triggered by one of the in-cluster components:
 * Operator
 * Kubevuln
-* Gateway
 
 You can find more about the automatic process of in-cluster components [here](https://github.com/kubescape/workflows/blob/main/README.md).
 

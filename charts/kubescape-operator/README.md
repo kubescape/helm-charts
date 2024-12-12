@@ -115,11 +115,6 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | kubescapeScheduler.scanSchedule | string | `"0 0 * * *"` | scan schedule frequency |
 | kubescapeScheduler.volumes | object | `[]` | Additional volumes for scan scheduler |
 | kubescapeScheduler.volumeMounts | object | `[]` | Additional volumeMounts for scan scheduler |
-| gateway.affinity | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the deployment |
-| gateway.image.repository | string | `"quay.io/kubescape/gateway"` | [source code](https://github.com/kubescape/gateway) |
-| gateway.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
-| gateway.volumes | object | `[]` | Additional volumes for the notification service |
-| gateway.volumeMounts | object | `[]` | Additional volumeMounts for the notification service |
 | kubevuln.affinity | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the deployment |
 | kubevuln.image.repository | string | `"quay.io/kubescape/kubevuln"` | [source code](https://github.com/kubescape/kubevuln) |
 | kubevuln.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
@@ -539,7 +534,7 @@ kubectl -n kubescape delete pod <pod-name>
 
 When creating a recurring scan, the Operator component will create a `ConfigMap` and a `CronJob` from a recurring template ConfigMap. Each scan type comes with a template.
 
-The CronJob itself does not run the scan directly. When a CronJob is ready to run, it will send a REST API request to the Operator component, which will then trigger the relevant scan (similarly to a request coming from the Gateway).
+The CronJob itself does not run the scan directly. When a CronJob is ready to run, it will send a REST API request to the Operator component, which will then trigger the relevant scan.
 
 The scan results are then sent by each relevant component to the CloudEndpoint.
 

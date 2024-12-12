@@ -46,8 +46,6 @@ submit: {{ $submit }}
 
 {{- define "components" -}}
 {{- $configurations := fromYaml (include "configurations" .) }}
-gateway:
-  enabled: {{ $configurations.submit }}
 hostScanner:
   enabled: {{ eq .Values.capabilities.nodeScan "enable" }}
 kubescape:
