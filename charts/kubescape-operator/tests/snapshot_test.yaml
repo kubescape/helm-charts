@@ -25,6 +25,7 @@ tests:
         httpDetection: enable
         malwareDetection: enable
         nodeProfileService: enable
+        nodeSbomGeneration: enable
         seccompProfileService: enable
         autoUpgrading: enable
         prometheusExporter: enable
@@ -56,6 +57,7 @@ tests:
       kubescapeScheduler.scanSchedule: "1 2 3 4 5"
       kubevulnScheduler.scanSchedule: "1 2 3 4 5"
       nodeAgent.config.skipKernelVersionCheck: true
+      storage.forceVirtualCrds: true
   - it: minimal capabilities
     asserts:
       - matchSnapshot: {}
@@ -175,3 +177,25 @@ tests:
               username: xxx
               password: yyy
               insecure: true
+  - it: with image pull secret generated
+    template: configs/image-pull-secret.yaml
+    documentSelector:
+      path: metadata.name
+      value: quay-secret
+    asserts:
+      - equal:
+          path: metadata.name
+          value: quay-secret
+      - matchSnapshot: {}
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      configurations.otelUrl: "otelCollector:4317"
+      clusterName: kind-kind
+      imagePullSecrets: quay-secret
+      imagePullSecret:
+        server: quay.io
+        username: foo
+        password: xxxxxxx

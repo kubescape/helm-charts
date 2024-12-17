@@ -22,12 +22,14 @@ synchronizerConfig: {{ include (printf "%s/synchronizer/configmap.yaml" $.Templa
 {{- $ksOtel := empty .Values.otelCollector.disable -}}
 {{- $otel := not (empty .Values.configurations.otelUrl) -}}
 {{- $submit := not (empty .Values.server) -}}
+{{- $virtualCrds := not (empty .Values.storage.forceVirtualCrds) -}}
 continuousScan: {{ and (eq .Values.capabilities.continuousScan "enable") (not $submit) }}
 createCloudSecret: {{ $createCloudSecret }}
 ksOtel: {{ and $ksOtel $submit }}
 otel: {{ $otel }}
 otelPort : {{ if $otel }}{{ splitList ":" .Values.configurations.otelUrl | last }}{{ else }}""{{ end }}
 runtimeObservability: {{ eq .Values.capabilities.runtimeObservability "enable" }}
+virtualCrds: {{ or $virtualCrds (not $submit) }}
 submit: {{ $submit }}
   {{- if $submit -}}
     {{- if and (empty .Values.account) $createCloudSecret -}}
@@ -48,8 +50,6 @@ gateway:
   enabled: {{ $configurations.submit }}
 hostScanner:
   enabled: {{ eq .Values.capabilities.nodeScan "enable" }}
-kollector:
-  enabled: {{ $configurations.submit }}
 kubescape:
   enabled: {{ eq .Values.capabilities.configurationScan "enable" }}
 kubescapeScheduler:
@@ -59,7 +59,15 @@ kubevuln:
 kubevulnScheduler:
   enabled: {{ and $configurations.submit (eq .Values.capabilities.vulnerabilityScan "enable") }}
 nodeAgent:
-  enabled: {{ or (eq .Values.capabilities.relevancy "enable") (eq .Values.capabilities.runtimeObservability "enable") (eq .Values.capabilities.networkPolicyService "enable") }}
+  enabled: {{ or
+   (eq .Values.capabilities.relevancy "enable")
+   (eq .Values.capabilities.runtimeObservability "enable")
+   (eq .Values.capabilities.networkPolicyService "enable")
+   (eq .Values.capabilities.runtimeDetection "enable")
+   (eq .Values.capabilities.malwareDetection "enable")
+   (eq .Values.capabilities.nodeProfileService "enable")
+   (eq .Values.capabilities.seccompProfileService "enable")
+  }}
 operator:
   enabled: true
 otelCollector:
@@ -74,7 +82,7 @@ cloudSecret:
   create: {{ $configurations.createCloudSecret }}
   name: {{ if $configurations.createCloudSecret }}"cloud-secret"{{ else }}{{ .Values.credentials.cloudSecret }}{{ end }}
 synchronizer:
-  enabled: {{ or (and $configurations.submit (eq .Values.capabilities.networkPolicyService "enable")) (and $configurations.submit (eq .Values.capabilities.runtimeObservability "enable")) }}
+  enabled: {{ $configurations.submit }}
 clamAV:
   enabled: {{ eq .Values.capabilities.malwareDetection "enable" }}
 customCaCertificates:

@@ -19,13 +19,15 @@ data:
   config.json: |
     {
         "applicationProfileServiceEnabled": {{ $configurations.runtimeObservability }},
-        "relevantCVEServiceEnabled": {{ eq .Values.capabilities.relevancy "enable" }},
         "prometheusExporterEnabled": {{ eq .Values.nodeAgent.config.prometheusExporter "enable" }},
         "runtimeDetectionEnabled": {{ eq .Values.capabilities.runtimeDetection "enable" }},
         "httpDetectionEnabled": {{ eq .Values.capabilities.httpDetection "enable" }},
         "networkServiceEnabled": {{ eq .Values.capabilities.networkPolicyService "enable" }},
         "malwareDetectionEnabled": {{ eq .Values.capabilities.malwareDetection "enable" }},
         "nodeProfileServiceEnabled": {{ eq .Values.capabilities.nodeProfileService "enable" }},
+        "maxImageSize": {{ .Values.kubevuln.config.maxImageSize }},
+        "maxSBOMSize": {{ .Values.kubevuln.config.maxSBOMSize }},
+        "sbomGenerationEnabled": {{ eq .Values.capabilities.nodeSbomGeneration "enable" }},
         "seccompServiceEnabled": {{ eq .Values.capabilities.seccompProfileService "enable" }},
         "initialDelay": "{{ .Values.nodeAgent.config.learningPeriod }}",
         "updateDataPeriod": "{{ .Values.nodeAgent.config.updatePeriod }}",
@@ -37,7 +39,9 @@ data:
         "excludeNamespaces": "{{ .Values.excludeNamespaces }}",
         {{- end }}
         "exporters": {
+          {{- if $components.synchronizer.enabled }}
           "httpExporterConfig": {{- .Values.nodeAgent.config.httpExporterConfig | toJson }},
+          {{- end }}
           "alertManagerExporterUrls": {{- .Values.nodeAgent.config.alertManagerExporterUrls | toJson }},
           "stdoutExporter": {{- .Values.nodeAgent.config.stdoutExporter }},
           "syslogExporterURL": "{{- .Values.nodeAgent.config.syslogExporterURL }}"

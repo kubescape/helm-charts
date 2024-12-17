@@ -99,11 +99,6 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | customScheduling.tolerations | yaml | | Define `tolerations` in the tolerations sub-section that will apply to all of the workloads managed by the kubescape-operator |
 | global.overrideRuntimePath | string | `""` | Override the runtime path for node-agent |
 | credentials.cloudSecret | string | `""` | Leave it blank for the default secret. If you have an existing secret, override with the existing secret name to avoid Helm creating a default one |
-| kollector.affinity | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the StatefulSet |
-| kollector.image.repository | string | `"quay.io/kubescape/kollector"` | [source code](https://github.com/kubescape/kollector) |
-| kollector.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
-| kollector.volumes | object | `[]` | Additional volumes for the collector |
-| kollector.volumeMounts | object | `[]` | Additional volumeMounts for the collector |
 | kubescape.affinity | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the deployment |
 | kubescape.downloadArtifacts | bool | `true` | download policies every scan, we recommend it should remain true, you should change to 'false' when running in an air-gapped environment or when scanning with high frequency (when running with Prometheus) |
 | kubescape.enableHostScan | bool | `true` | enable [host scanner feature](https://hub.armosec.io/docs/host-sensor) |
@@ -177,24 +172,28 @@ Follow the repository link for in-depth information on a specific component.
 graph TB
 
   client([client]) .-> dashboard
-  masterGw  .- gw
+  masterSync .- sync
+  sync --- store
 
   subgraph Cluster
-    gw(Gateway)
+    agent@{shape: procs, label: "Node Agent"}
+    sync(Synchronizer)
     operator(Operator)
     k8sApi(Kubernetes API);
     kubevuln(Kubevuln)
     ks(Kubescape)
-    gw --- operator
+    store(Storage)
+    store --- agent
+    store --- operator
     operator -->|scan cluster| ks
     operator -->|scan images| kubevuln
-    operator --> k8sApi
+    operator --- k8sApi
     ks --> k8sApi
   end;
 
 subgraph Backend
     er(CloudEndpoint)
-    dashboard(Dashboard) --> masterGw("Master Gateway")
+    dashboard(Dashboard) --> bus(Event Bus) --> masterSync("Master Synchronizer")
     ks --> er
     kubevuln --> er
   end;
@@ -202,55 +201,95 @@ subgraph Backend
   classDef k8s fill:#326ce5,stroke:#fff,stroke-width:1px,color:#fff;
   classDef plain fill:#ddd,stroke:#fff,stroke-width:1px,color:#000;
   class k8sApi k8s
-  class ks,operator,gw,masterGw,kollector,kubevuln,er,dashboard plain
+  class agent,ks,operator,sync,masterSync,kollector,kubevuln,er,dashboard,store,bus plain
 ```
 
 ---
 
-## [Gateway](https://github.com/kubescape/gateway)
+## [Synchronizer](https://github.com/kubescape/synchronizer)
 
 * __Resource Kind:__ `Deployment`
-* __Communication:__ REST API, Websocket
-* __Responsibility:__ Broadcasts a message received to its registered clients. When a client registers itself in a Gateway it must provide a set of attributes, which will serve as identification, for message routing purposes.
+* __Communication:__ gRPC, REST API, Websocket
+* __Responsibility:__ This component is an optional part of the Kubescape Operator. It enables users to replicate the Kubernetes objects in the cluster (somewhat like `rsync`) to a remote service. It is used for collecting the Kubescape Operator objects by central services monitoring multiple clusters.
 
-  In our architecture, the Gateway acts both as a server and a client, depending on its running configuration:
-  * Master Gateway: Refers to the instance running in the backend. Broadcasts messages to all of its registered Gateways.
-  * In-cluster Gateway: Refers to the instance running in the cluster. Registered to the Master Gateway using a websocket; Broadcasts messages to the different in-cluster components, this enables executing actions in runtime.
+In our architecture, the Synchronizer acts both as a server and a client, depending on its running configuration:
+* Master Synchronizer: Refers to the instance running in the backend.
+* In-cluster Synchronizer: Refers to the instance running in the cluster.
+  Registered to the Master Synchronizer using a websocket; Synchronizes Kubernetes objects and virtual objects,
+  this enables executing actions in runtime.
 
-  A Master Gateway communicates with multiple in-cluster Gateways, hence it is able to communicate with multiple clusters.
+A Master Synchronizer communicates with multiple in-cluster Synchronizers.
 
 ```mermaid
 graph TB
   subgraph Backend
-   dashboard(Dashboard)
-    masterGw("Gateway (Master)")
+    dashboard(Dashboard)
+    event(Event Bus)
+    masterSync("Synchronizer (Master)")
   end
    subgraph Cluster N
-    gw3("Gateway (In-cluster)")
-    operator3(Operator)
+    sync3("Synchronizer (In-cluster)")
+    store3(Storage)
   end;
   subgraph Cluster 2
-    gw2("Gateway (In-cluster)")
-    operator2(Operator)
+    sync2("Synchronizer (In-cluster)")
+    store2(Storage)
   end;
-
-subgraph Cluster 1
-    gw1("Gateway (In-cluster)")
-    operator1(Operator)
+  subgraph Cluster 1
+    sync1("Synchronizer (In-cluster)")
+    store1(Storage)
   end;
-  dashboard --> masterGw
-   masterGw .- gw2
-   masterGw .- gw3
-       gw1 .- operator1
-    gw2 .- operator2
-    gw3 .- operator3
-   masterGw .- gw1
+  
+  dashboard --> event --> masterSync
+  masterSync .- sync1
+  masterSync .- sync2
+  masterSync .- sync3
+  sync1 --- store1
+  sync2 --- store2
+  sync3 --- store3
 
 
   classDef k8s fill:#326ce5,stroke:#fff,stroke-width:1px,color:#fff;
   classDef plain fill:#ddd,stroke:#fff,stroke-width:1px,color:#000;
   class k8sApi k8s
-  class ks,operator1,dashboard,operator2,operator3 plain
+  class event,ks,store1,dashboard,store2,store3 plain
+```
+
+---
+
+## [Storage](https://github.com/kubescape/storage)
+
+* __Resource Kind:__ `Deployment` (singleton)
+* __Communication:__ gRPC, REST API
+* __Responsibility:__ This component is a Kubernetes [aggregated API extension](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/apiserver-aggregation/) service. It stores the different objects produced by the other components and stores them on a volume as files and SQLite. It is a singleton component in the current implementation and cannot be scaled horizontaly, but it is running in 10k node clusters.
+
+```mermaid
+graph TD
+
+
+subgraph Cluster
+  agent@{shape: procs, label: "Node Agent"}
+  k8sApi(Kubernetes API)
+  etcd(ETCD)
+  file(Files)
+  sqlite(SQLite)
+  store(Storage)
+  sync(Synchronizer)
+end;
+
+  agent .->|Store results| k8sApi --- store <--> file
+  store <--> sqlite
+  k8sApi <--> etcd
+  sync .->|Synchronize| k8sApi
+  kubectl .- k8sApi
+  k9s .- k8sApi
+  Lens .- k8sApi
+  Headlamp .- k8sApi
+
+classDef k8s fill:#326ce5,stroke:#fff,stroke-width:1px,color:#fff;
+classDef plain fill:#ddd,stroke:#fff,stroke-width:1px,color:#000;
+class k8sApi k8s
+class agent,kubectl,Lens,Headlamp,sync,etcd,file,k9s,sqlite plain
 ```
 
 ---
@@ -258,13 +297,14 @@ subgraph Cluster 1
 ## [Operator](https://github.com/kubescape/operator)
 
 * __Resource Kind:__ `Deployment`
-* __Communication:__ REST API, Websocket
-* __Responsibility:__ The Operator component is at the heart of the solution as it is the triggering engine for the different actions in the cluster; It responds to REST API requests and messages received over websocket connection, and triggers the relevant action in the cluster. Such actions could be triggering a configuration scan, image vulnerability scan, defining a recurring scan (by creating CronJobs), etc.
+* __Communication:__ gRPC, REST API
+* __Responsibility:__ This component is in charge of command and control of the scans in the cluster. There are multiple configuration options when and what to scan in the cluster. This component is in charge of orchestrating these activities by triggering the *Kubescape* and the *KubeVuln* components.
 
 ```mermaid
 graph TB
   subgraph Cluster
-    gw(Gateway)
+    store(Storage)
+    sync(Synchronizer)
     operator(Operator)
     k8sApi(Kubernetes API);
     kubevuln(Kubevuln)
@@ -273,8 +313,8 @@ graph TB
     recurringTempCm{{ConfigMap<br>Recur. Scan Template }}
     recurringScanCj{{CronJob<br>Recurring Scan }}
   end;
-   masterGw(Master Gateway) .- gw
-    gw ---> operator
+    masterSync(Master Synchronizer) .- sync --- store
+    store ---> operator
     recurringScanCj ---> operator
     operator -->|scan cluster| ks
     operator -->|scan images| kubevuln
@@ -285,7 +325,7 @@ graph TB
   classDef k8s fill:#326ce5,stroke:#fff,stroke-width:1px,color:#fff;
   classDef plain fill:#ddd,stroke:#fff,stroke-width:1px,color:#000;
   class k8sApi k8s
-  class ks,gw,masterGw,kollector,urlCm,recurringScanCj,recurringTempCm,kubevuln,er,dashboard plain
+  class ks,store,masterSync,kollector,urlCm,recurringScanCj,recurringTempCm,kubevuln,er,dashboard,sync plain
 ```
 
 ---
@@ -293,8 +333,8 @@ graph TB
 ## [Kubevuln](https://github.com/kubescape/kubevuln/)
 
 * __Resource Kind:__ `Deployment`
-* __Communication:__ REST API
-* __Responsibility:__ Scans container images for vulnerabilities, using [Grype](https://github.com/anchore/grype) as its engine.
+* __Communication:__ gRPC, REST API
+* __Responsibility:__ This component is in charge of the image vulnerability scanning. It can either produce SBOM object in the *Storage* and match the SBOM entries with vulnerabilities, or relies on the *Node agent* to generate SBOM objects on the nodes and then produce vulnerability manfiests and VEX. All the results are stored in the *Storage* component via the Kubernetes API and optionally sent to external API endpoints.
 
 ```mermaid
 graph TB
@@ -303,7 +343,8 @@ subgraph Cluster
     kubevuln(Kubevuln)
     k8sApi(Kubernetes API)
     operator(Operator)
-    gateway(Gateway)
+    store(Storage)
+    sync(Synchronizer)
     urlCm{{ConfigMap<br>URLs }}
     recurringScanCj{{CronJob<br>Recurring Scan }}
     recurringScanCm{{ConfigMap<br>Recurring Scan }}
@@ -311,8 +352,8 @@ subgraph Cluster
 
 end
 
-masterGateway .- gateway
-gateway .-|Scan Notification| operator
+masterSync .- sync
+sync .- store .-|Scan Notification| operator
 operator -->|Collect NS, Images|k8sApi
 operator -->|Start Scan| kubevuln
 operator --- urlCm
@@ -323,7 +364,7 @@ recurringScanCm --- recurringScanCj
 
 subgraph Backend
     er(CloudEndpoint)
-    masterGateway("Master Gateway")
+    masterSync("Master Synchronizer")
     kubevuln -->|Scan Results| er
 end;
 
@@ -331,7 +372,7 @@ classDef k8s fill:#326ce5,stroke:#fff,stroke-width:1px,color:#fff;
 classDef plain fill:#ddd,stroke:#fff,stroke-width:1px,color:#000
 
 class k8sApi k8s
-class urlCm,recurringScanCm,operator,er,gateway,masterGateway,recurringScanCj,recurringTempCm plain
+class urlCm,recurringScanCm,operator,er,sync,masterSync,recurringScanCj,recurringTempCm,store plain
 
 
 ```
@@ -341,8 +382,8 @@ class urlCm,recurringScanCm,operator,er,gateway,masterGateway,recurringScanCj,re
 ## [Kubescape](https://github.com/kubescape/kubescape/tree/master/httphandler)
 
 * __Resource Kind:__ `Deployment`
-* __Communication:__ REST API
-* __Responsibility:__ Runs [Kubescape](https://github.com/kubescape/kubescape) for detecting misconfigurations in the cluster; This is microservice uses the same engine as the Kubescape CLI tool.
+* __Communication:__ gRPC, REST API
+* __Responsibility:__ This component is in charge of configuration and host scanning. It is, like the CLI, uses [OPA engine](https://github.com/open-policy-agent/opa) to run the project's own Rego library of rules. It also scans the Kubernetes host to validate their configurations. The output of the scans are stored in the *Storage* component via the Kubernetes API and optionally sent to external API endpoints.
 
 ```mermaid
 graph TB
@@ -351,15 +392,16 @@ subgraph Cluster
     ks(Kubescape)
     k8sApi(Kubernetes API)
     operator(Operator)
-    gateway(Gateway)
+    store(Storage)
+    sync(Synchronizer)
     ksCm{{ConfigMap<br>Kubescape }}
     recurringScanCj{{CronJob<br>Recurring Scan }}
     recurringScanCm{{ConfigMap<br>Recurring Scan }}
     recurringTempCm{{ConfigMap<br>Recurring Scan Template }}
 end
 
-masterGateway .- gateway
-gateway .-|Scan Notification| operator
+masterSync .- sync
+sync .- store .-|Scan Notification| operator
 operator -->|Start Scan| ks
 ks-->|Collect Cluster Info|k8sApi
 ksCm --- ks
@@ -368,7 +410,7 @@ recurringScanCj -->|Scan Notification| operator
 recurringScanCm --- recurringScanCj
 subgraph Backend
     er(CloudEndpoint)
-    masterGateway("Master Gateway")
+    masterSync("Master Synchronizer")
     ks -->|Scan Results| er
 end;
 
@@ -376,73 +418,62 @@ classDef k8s fill:#326ce5,stroke:#fff,stroke-width:1px,color:#fff;
 classDef plain fill:#ddd,stroke:#fff,stroke-width:1px,color:#000
 
 class k8sApi k8s
-class ksCm,recurringScanCm,operator,er,gateway,masterGateway,recurringScanCj,recurringTempCm plain
+class ksCm,recurringScanCm,operator,er,store,masterSync,recurringScanCj,recurringTempCm,sync plain
 
 
 ```
 
 ---
 
-## [Kollector](https://github.com/kubescape/kollector)
+## [Node Agent](https://github.com/kubescape/node-agent)
 
-* __Resource Kind:__ `StatefulSet`
-* __Responsibility:__ Communicates with the Kubernetes API server to collect cluster information and watches for changes in the cluster. Information is reported to the backend via the CloudEndpoint and the Gateway.
+* __Resource Kind:__ `Daemonset`
+* __Communication:__ gRPC, REST API
+* __Responsibility:__ This component has multiple purposes all bound to information available on Kubernetes nodes:
+  * Produces SBOMs from the images avialable on the node (used by *KubeVuln*)
+  * Produces information from the configurations of the Linux host of the Kubernetes node (used by *Kubescape*)
+  * Creates *ApplicationProfile* using [Inspektor Gadget](https://inspektor-gadget.io) and eBPF. These profiles log the behavior of each container on the node (file access, processes launched, capabilities used, system calls done) into *ApplicationProfile* objects stored in the *Storage* component via the Kubernetes API and optionally sent to external API endpoints.
+  * Creates *NetworkNeighborhood* objects using [Inspektor Gadget](https://inspektor-gadget.io) and eBPF. These profiles log the network activity of each container and they stored as objects in the *Storage* component via the Kubernetes API and optionally sent to external API endpoints.
+  * Monitors container activity via eBPF and evaluates them using its own rule engine that combines static detection rules and anomaly detection to produce alerts that can be exported to AlertManager, Syslog, HTTP endpoints, STDOUT stream and other.
 
 ```mermaid
 graph TD
-subgraph Backend
-    er(CloudEndpoint)
-    masterGw("Master Gateway")
-end;
-
 subgraph Cluster
-    kollector(Kollector)
-    k8sApi(Kubernetes API);
-    gw(Gateway)
+  k8sApi(Kubernetes API)
+  subgraph Node1
+    container11 .- linux1
+    container12 .- linux1
+    linux1(Linux Kernel) ---|eBPF| node1(Node Agent)
+  end
+  subgraph Node2
+    container21 .- linux2
+    container22 .- linux2
+    linux2(Linux Kernel) ---|eBPF| node2(Node Agent)
+  end
+  subgraph Node3
+    container31 .- linux3
+    container32 .- linux3
+    linux3(Linux Kernel) ---|eBPF| node3(Node Agent)
+    store(Storage)
+  end
 end;
 
-kollector .->|Scan new image| gw
-masterGw .- gw
-kollector --> er
-kollector --> k8sApi
+node1 --> k8sApi
+node2 --> k8sApi
+node3 --> k8sApi
+k8sApi --> store
 
 classDef k8s fill:#326ce5,stroke:#fff,stroke-width:1px,color:#fff;
 classDef plain fill:#ddd,stroke:#fff,stroke-width:1px,color:#000;
 class k8sApi k8s
-class er,gw,masterGw plain
+class container11,container12,container21,container22,container31,container32,linux1,linux2,linux3,store plain
 ```
-
----
-
-## [URLs ConfigMap](https://github.com/kubescape/helm-charts/blob/master/charts/kubescape-operator/templates/cloudapi-configmap.yaml)
-
-Holds a list of communication URLs. Used by the following components:
-
-* Operator
-* Kubevuln
-* Gateway
-
-<details><summary>Config Example (YAML)</summary>
-
-```yaml
-gatewayWebsocketURL: 127.0.0.1:8001                             # component: in-cluster gateway
-gatewayRestURL: 127.0.0.1:8002                                  # component: in-cluster gateway
-kubevulnURL: 127.0.0.1:8081                                     # component: kubevuln
-kubescapeURL: 127.0.0.1:8080                                    # component: kubescape
-accountID: 1111-aaaaa-4444-555
-clusterName: minikube
-```
-</details>
 
 ---
 
 ## Kubernetes API
 
 Some in-cluster components communicate with the Kubernetes API server for different purposes:
-
-* Kollector
-
-  Watches for changes in namespace, workloads, and nodes. Reports information to the CloudEndpoint. Identifies image-related changes and triggers an image scanning on the new images accordingly (scanning new images functionality is optional).
 
 * Operator
 
@@ -511,70 +542,6 @@ When creating a recurring scan, the Operator component will create a `ConfigMap`
 The CronJob itself does not run the scan directly. When a CronJob is ready to run, it will send a REST API request to the Operator component, which will then trigger the relevant scan (similarly to a request coming from the Gateway).
 
 The scan results are then sent by each relevant component to the CloudEndpoint.
-
-### Main Flows Diagrams
-
-<details><summary>Recurring Scan Creation</summary>
-
-
-```mermaid
-sequenceDiagram
-    actor user
-    participant dashboard as Backend<br><br>Dashboard
-    participant masterGw as Backend<br><br>Master Gateway
-    participant clusterGw as Cluster<br><br>In-Cluster Gateway
-    participant operator as Cluster<br><br>Operator
-    participant k8sApi as Cluster<br><br>Kubernetes API
-
-    user->>dashboard: 1. create scan schedule
-    dashboard->>masterGw: 2. build schedule notification
-    masterGw->>clusterGw: 3. broadcast notification
-    clusterGw->>operator: 4. create recurring scan
-    operator->>k8sApi: 5. get namespaces, workloads
-    k8sApi-->>operator:
-    operator->>k8sApi: 6. Create cronjob & ConfigMap
-```
-</details>
-
-<details><summary>Recurring Image Scan</summary>
-
-```mermaid
-sequenceDiagram
-   participant cronJob as Cluster<br><br>CronJob
-   participant operator as Cluster<br><br>Operator
-   participant k8sApi as Cluster<br><br>Kubernetes API
-   participant kubeVuln as Cluster<br><br>Kubevuln
-   participant er as Backend<br><br>CloudEndpoint
-   loop
-      cronJob->>operator: 1. run image scan
-   end
-   operator->>k8sApi: 2. list NS, container images
-   k8sApi-->>operator:
-   operator->>kubeVuln: 3. scan images
-   kubeVuln ->> er: 4. send scan results
-```
-
-</details>
-
-<details><summary>Recurring Kubescape Scan</summary>
-
-```mermaid
-sequenceDiagram
-  participant cronJob as Cluster<br><br>CronJob
-  participant operator as Cluster<br><br>Operator
-  participant ks as Cluster<br><br>Kubescape
-  participant k8sApi as Cluster<br><br>Kubernetes API
-  participant er as Backend<br><br>CloudEndpoint
-  loop
-      cronJob->>operator: 1. run configuration scan
-  end
-  operator->>ks: 2. kubescape scan
-  ks->>k8sApi: 3. list NS, workloads, RBAC
-  k8sApi->>ks:
-  ks ->> er: 4. send scan results
-```
-
-</details>
 
 ---
 ## Common Issues

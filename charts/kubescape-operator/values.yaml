@@ -47,6 +47,13 @@ customScheduling:
 # -- set the image pull secrets for private registry support
 imagePullSecrets: ""
 
+# -- (optional) generate image pull secret with the provided credentials. Secret name must be provided in the imagePullSecrets field
+imagePullSecret:
+  server: ""
+  username: ""
+  password: ""
+  email: ""
+
 # -----------------------------------------------------------------------------------------
 # ----------------------------- Providers -------------------------------------------------
 # -----------------------------------------------------------------------------------------
@@ -55,7 +62,7 @@ imagePullSecrets: ""
 # Here you can find the list of providers -> https://kubescape.io/docs/providers/#compatible-providers
 server:
 
-# The chart will create a secret with the "account" and "access-key", in case you have a pre-created secret, use "credentials.cloudSecret" instead
+# The chart will create a secret with the "account" and "accessKey", in case you have a pre-created secret, use "credentials.cloudSecret" instead
 account:
 accessKey:
 
@@ -76,6 +83,7 @@ capabilities:
 
   # ====== Image vulnerabilities scanning related capabilities ======
   #
+  nodeSbomGeneration: disable
   vulnerabilityScan: enable
   relevancy: enable
   # Generate VEX documents alongside the image vulnerabilities report (experimental)
@@ -224,7 +232,7 @@ kubescape:
   image:
     # -- source code: https://github.com/kubescape/kubescape/tree/master/httphandler (public repo)
     repository: quay.io/kubescape/kubescape
-    tag: v3.0.18
+    tag: v3.0.22
     pullPolicy: IfNotPresent
 
   resources:
@@ -274,7 +282,7 @@ operator:
   image:
     # -- source code: https://github.com/kubescape/operator
     repository: quay.io/kubescape/operator
-    tag: v0.2.34
+    tag: v0.2.55
     pullPolicy: IfNotPresent
 
   service:
@@ -319,7 +327,7 @@ kubevuln:
   image:
     # -- source code: https://github.com/kubescape/kubevuln
     repository: quay.io/kubescape/kubevuln
-    tag: v0.3.36
+    tag: v0.3.48
     pullPolicy: IfNotPresent
 
   replicaCount: 1
@@ -358,39 +366,6 @@ kubevuln:
   volumes: [ ]
 
   # Additional volumeMounts to be mounted on the vulnerability scanning microservice
-  volumeMounts: [ ]
-
-# +++++++++++++++++++++++++++++++ Kollector ++++++++++++++++++++++++++++++++++++++++++++++++
-
-# kollector will collect the data only in the kubescape namespace and report the data to the Kubescape cloud. This is to enable onDemand scanning and for creating/editing/deleting scheduled scans from the Kubescape cloud
-kollector:
-
-  # kollector SS name
-  name: kollector
-
-  image:
-    # -- source code: https://github.com/kubescape/kollector
-    repository: quay.io/kubescape/kollector
-    tag: v0.1.45
-    pullPolicy: IfNotPresent
-
-  resources:
-    requests:
-      cpu: 10m
-      memory: 100Mi
-    limits:
-      cpu: 500m
-      memory: 500Mi
-
-
-  env: {}
-
-  labels: { }
-
-  # Additional volumes to be mounted on the collector
-  volumes: [ ]
-
-  # Additional volumeMounts to be mounted on the collector
   volumeMounts: [ ]
 
 # +++++++++++++++++++++++++++++++ Gateway ++++++++++++++++++++++++++++++++++++++++++++++++
@@ -482,7 +457,7 @@ storage:
   image:
     # -- source code: https://github.com/kubescape/storage
     repository: quay.io/kubescape/storage
-    tag: v0.0.127
+    tag: v0.0.146
     pullPolicy: IfNotPresent
 
   # cleanup interval is a duration string
@@ -506,7 +481,7 @@ nodeAgent:
   image:
     # -- source code: https://github.com/kubescape/node-agent
     repository: quay.io/kubescape/node-agent
-    tag: v0.2.167
+    tag: v0.2.204
     pullPolicy: IfNotPresent
 
   config:
@@ -555,6 +530,8 @@ nodeAgent:
       name: host
     - mountPath: /run
       name: run
+    - mountPath: /var
+      name: var
     - mountPath: /lib/modules
       name: modules
     - mountPath: /sys/kernel/debug
@@ -576,6 +553,9 @@ nodeAgent:
     - hostPath:
         path: /run
       name: run
+    - hostPath:
+        path: /var
+      name: var
     - hostPath:
         path: /sys/fs/cgroup
       name: cgroup
@@ -665,7 +645,7 @@ synchronizer:
   image:
     # -- source code: https://github.com/kubescape/synchronizer
     repository: quay.io/kubescape/synchronizer
-    tag: v0.0.88
+    tag: v0.0.93
     pullPolicy: IfNotPresent
   resources:
     requests:
@@ -776,7 +756,7 @@ prometheusExporter:
   name: "prometheus-exporter"
   image:
     repository: quay.io/kubescape/prometheus-exporter
-    tag: v0.0.131
+    tag: v0.0.129
     pullPolicy: IfNotPresent
 
   resources:
