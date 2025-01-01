@@ -63,6 +63,10 @@ spec:
               value: "{{ .Values.logger.level }}"
             - name: KS_LOGGER_NAME
               value: "{{ .Values.logger.name }}"
+            {{- if .Values.prometheusExporter.enableWorkloadMetrics }}
+            - name: ENABLE_WORKLOAD_METRICS
+              value: "true"
+            {{- end }}
           volumeMounts:
             - name: {{ .Values.global.cloudConfig }}
               mountPath: /etc/config
@@ -70,8 +74,8 @@ spec:
 {{- if .Values.volumeMounts }}
 {{ toYaml .Values.volumeMounts | indent 12 }}
 {{- end }}
-{{- if .Values.kubevuln.volumeMounts }}
-{{ toYaml .Values.kubevuln.volumeMounts | indent 12 }}
+{{- if .Values.prometheusExporter.volumeMounts }}
+{{ toYaml .Values.prometheusExporter.volumeMounts | indent 12 }}
 {{- end }}
       volumes:
         - name: {{ .Values.global.cloudConfig }}
