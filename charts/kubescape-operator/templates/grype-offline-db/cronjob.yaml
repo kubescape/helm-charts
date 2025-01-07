@@ -1,0 +1,79 @@
+{{- if not (.Capabilities.APIVersions.Has "batch/v1") }}
+  {{- fail "`batch/v1 not supported`" }}
+{{- end }}
+{{- if and .Values.grypeOfflineDB.enabled (eq .Values.grypeOfflineDB.image.tag "latest") }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Values.grypeOfflineDB.name }}
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.grypeOfflineDB.name "tier" .Values.global.namespaceTier) | nindent 4 }}
+    armo.tier: "vuln-scan"
+    kubescape.io/tier: "core"
+spec:
+  schedule: "5 0 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.grypeOfflineDB.name "tier" .Values.global.namespaceTier) | nindent 12 }}
+            armo.tier: "vuln-scan"
+            kubescape.io/tier: "core"
+        spec:
+          {{- if .Values.imagePullSecrets }}
+          imagePullSecrets:
+          - name: {{ toYaml .Values.imagePullSecrets }}
+          {{- end }}
+          containers:
+          - name: {{ .Values.grypeOfflineDB.name }}
+            image: "{{ .Values.serviceDiscovery.configMapUpdate.image.repository }}:{{ .Values.serviceDiscovery.configMapUpdate.image.tag }}"
+            imagePullPolicy: IfNotPresent
+            resources:
+{{ toYaml .Values.serviceDiscovery.resources | indent 14 }}
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              runAsNonRoot: true
+              runAsUser: 100
+            command: ["/bin/sh", "-c"]
+            args:
+              - |
+                kubectl rollout restart deployment -n {{ .Values.ksNamespace }} {{ .Values.grypeOfflineDB.name }}
+{{- if .Values.volumeMounts }}
+{{ toYaml .Values.volumeMounts | indent 14 }}
+{{- end }}
+{{- if .Values.grypeOfflineDB.volumeMounts }}
+{{ toYaml .Values.grypeOfflineDB.volumeMounts | indent 14 }}
+{{- end }}
+          restartPolicy: Never
+          serviceAccountName: {{ .Values.grypeOfflineDB.name }}
+          automountServiceAccountToken: true
+          nodeSelector:
+          {{- if .Values.grypeOfflineDB.nodeSelector }}
+          {{- toYaml .Values.grypeOfflineDB.nodeSelector | nindent 12 }}
+          {{- else if .Values.customScheduling.nodeSelector }}
+          {{- toYaml .Values.customScheduling.nodeSelector | nindent 12 }}
+          {{- end }}
+          affinity:
+          {{- if .Values.grypeOfflineDB.affinity }}
+          {{- toYaml .Values.grypeOfflineDB.affinity | nindent 12 }}
+          {{- else if .Values.customScheduling.affinity }}
+          {{- toYaml .Values.customScheduling.affinity | nindent 12 }}
+          {{- end }}
+          tolerations:
+          {{- if .Values.grypeOfflineDB.tolerations }}
+          {{- toYaml .Values.grypeOfflineDB.tolerations | nindent 12 }}
+          {{- else if .Values.customScheduling.tolerations }}
+          {{- toYaml .Values.customScheduling.tolerations | nindent 12 }}
+          {{- end }}
+{{- if .Values.volumes }}
+{{ toYaml .Values.volumes | indent 10 }}
+{{- end }}
+{{- if .Values.grypeOfflineDB.volumes }}
+{{ toYaml .Values.grypeOfflineDB.volumes | indent 10 }}
+{{- end }}
+{{- end }}
