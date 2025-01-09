@@ -115,7 +115,7 @@ capabilities:
       replicas: 5
 
 serviceScanConfig:
-  enabled : false
+  enabled: false
   interval: 1h
 
 configurations:
@@ -282,7 +282,7 @@ operator:
   image:
     # -- source code: https://github.com/kubescape/operator
     repository: quay.io/kubescape/operator
-    tag: v0.2.55
+    tag: v0.2.63
     pullPolicy: IfNotPresent
 
   service:
@@ -327,7 +327,7 @@ kubevuln:
   image:
     # -- source code: https://github.com/kubescape/kubevuln
     repository: quay.io/kubescape/kubevuln
-    tag: v0.3.48
+    tag: v0.3.52
     pullPolicy: IfNotPresent
 
   replicaCount: 1
@@ -366,48 +366,6 @@ kubevuln:
   volumes: [ ]
 
   # Additional volumeMounts to be mounted on the vulnerability scanning microservice
-  volumeMounts: [ ]
-
-# +++++++++++++++++++++++++++++++ Gateway ++++++++++++++++++++++++++++++++++++++++++++++++
-
-# gateway pass notifications from Kubescape cloud to the Operator microservice. The notifications are the onDemand scanning and the scanning schedule settings
-gateway:
-
-  # gateway Deployment name
-  name: gateway
-
-  websocketService:
-    type: ClusterIP
-    port: 8001
-    targetPort: 8001
-    protocol: TCP
-
-  httpService:
-    type: ClusterIP
-    port: 8002
-    targetPort: 8002
-    protocol: TCP
-  image:
-    # -- source code: https://github.com/kubescape/gateway
-    repository: quay.io/kubescape/gateway
-    tag: v0.1.32
-    pullPolicy: IfNotPresent
-
-  resources:
-    requests:
-      cpu: 10m
-      memory: 30Mi
-    limits:
-      cpu: 100m
-      memory: 50Mi
-
-  env: { }
-  labels: { }
-
-  # Additional volumes to be mounted on the notification-service
-  volumes: [ ]
-
-  # Additional volumeMounts to be mounted on the notification-service
   volumeMounts: [ ]
 
 # +++++++++++++++++++++++++++++++ Host-scanner ++++++++++++++++++++++++++++++++++++++++++++++++
@@ -457,7 +415,7 @@ storage:
   image:
     # -- source code: https://github.com/kubescape/storage
     repository: quay.io/kubescape/storage
-    tag: v0.0.146
+    tag: v0.0.148
     pullPolicy: IfNotPresent
 
   # cleanup interval is a duration string
@@ -481,7 +439,7 @@ nodeAgent:
   image:
     # -- source code: https://github.com/kubescape/node-agent
     repository: quay.io/kubescape/node-agent
-    tag: v0.2.204
+    tag: v0.2.210
     pullPolicy: IfNotPresent
 
   config:
@@ -542,6 +500,8 @@ nodeAgent:
       name: bpffs
     - mountPath: /data
       name: data
+    - mountPath: /boot
+      name: boot
     - mountPath: /clamav
       name: clamrun
       readOnly: false
@@ -568,6 +528,9 @@ nodeAgent:
     - hostPath:
         path: /sys/kernel/debug
       name: debugfs
+    - hostPath:
+        path: /boot
+      name: boot
     - emptyDir:
       name: data
 
@@ -645,7 +608,7 @@ synchronizer:
   image:
     # -- source code: https://github.com/kubescape/synchronizer
     repository: quay.io/kubescape/synchronizer
-    tag: v0.0.93
+    tag: v0.0.98
     pullPolicy: IfNotPresent
   resources:
     requests:
@@ -756,7 +719,7 @@ prometheusExporter:
   name: "prometheus-exporter"
   image:
     repository: quay.io/kubescape/prometheus-exporter
-    tag: v0.0.129
+    tag: v0.2.0
     pullPolicy: IfNotPresent
 
   resources:
@@ -771,6 +734,14 @@ prometheusExporter:
     port: 8080
     targetPort: 8080
     protocol: TCP
+
+  enableWorkloadMetrics: false
+
+  # Additional volumes to be mounted on the prometheus exporter
+  volumes: [ ]
+
+  # Additional volumeMounts to be mounted on the prometheus exporter
+  volumeMounts: [ ]
 
 # +++++++++++++++++++++++++++++ Upgrader ++++++++++++++++++++++++++++++++++++++++++++++++
 
