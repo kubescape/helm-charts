@@ -4476,6 +4476,7 @@ all capabilities:
           - ""
         resources:
           - namespaces
+          - nodes
           - pods
           - services
         verbs:
@@ -4643,13 +4644,6 @@ all capabilities:
               readinessProbe:
                 tcpSocket:
                   port: 8443
-              resources:
-                limits:
-                  cpu: 1500m
-                  memory: 1500Mi
-                requests:
-                  cpu: 100m
-                  memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
                 runAsNonRoot: true
@@ -4659,6 +4653,37 @@ all capabilities:
                 - mountPath: /etc/config
                   name: ks-cloud-config
                   readOnly: true
+            - command:
+                - /pod_nanny
+                - --cpu=300m
+                - --extra-cpu=20m
+                - --memory=200Mi
+                - --extra-memory=10Mi
+                - --threshold=5
+                - --deployment=storage
+                - --container=apiserver
+                - --poll-period=300000
+                - --estimator=exponential
+                - --minClusterSize=10
+              env:
+                - name: MY_POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                - name: MY_POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+              image: registry.k8s.io/autoscaling/addon-resizer:1.8.14
+              imagePullPolicy: IfNotPresent
+              name: pod-nanny
+              resources:
+                limits:
+                  cpu: 40m
+                  memory: 25Mi
+                requests:
+                  cpu: 40m
+                  memory: 25Mi
           imagePullSecrets:
             - name: foo
           nodeSelector: null
@@ -4767,6 +4792,62 @@ all capabilities:
           storage: 5Gi
   95: |
     apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      labels:
+        app: storage
+        app.kubernetes.io/component: storage
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/version: 1.24.2
+        helm.sh/chart: kubescape-operator-1.24.2
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: storage
+      namespace: kubescape
+    rules:
+      - apiGroups:
+          - ""
+        resources:
+          - pods
+        verbs:
+          - get
+      - apiGroups:
+          - apps
+        resourceNames:
+          - storage
+        resources:
+          - deployments
+        verbs:
+          - get
+          - patch
+  96: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      labels:
+        app: storage
+        app.kubernetes.io/component: storage
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/version: 1.24.2
+        helm.sh/chart: kubescape-operator-1.24.2
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: storage
+      namespace: kubescape
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: storage
+    subjects:
+      - kind: ServiceAccount
+        name: storage
+        namespace: kubescape
+  97: |
+    apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
       labels:
@@ -4789,7 +4870,7 @@ all capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  96: |
+  98: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -4813,7 +4894,7 @@ all capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  97: |
+  99: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -4838,7 +4919,7 @@ all capabilities:
         app.kubernetes.io/component: storage
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  98: |
+  100: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -4854,7 +4935,7 @@ all capabilities:
         tier: ks-control-plane
       name: storage
       namespace: kubescape
-  99: |
+  101: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -5079,7 +5160,7 @@ all capabilities:
         verbs:
           - update
           - patch
-  100: |
+  102: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -5102,7 +5183,7 @@ all capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  101: |
+  103: |
     apiVersion: v1
     data:
       config.json: |
@@ -5367,7 +5448,7 @@ all capabilities:
         tier: ks-control-plane
       name: synchronizer
       namespace: kubescape
-  102: |
+  104: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -5520,7 +5601,7 @@ all capabilities:
                     path: config.json
                 name: synchronizer
               name: config
-  103: |
+  105: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -5597,7 +5678,7 @@ all capabilities:
       policyTypes:
         - Ingress
         - Egress
-  104: |
+  106: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -5639,7 +5720,7 @@ all capabilities:
           - list
           - patch
           - delete
-  105: |
+  107: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -5663,7 +5744,7 @@ all capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  106: |
+  108: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -5687,7 +5768,7 @@ all capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  107: |
+  109: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -5713,7 +5794,7 @@ all capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  108: |
+  110: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -9200,6 +9281,7 @@ default capabilities:
           - ""
         resources:
           - namespaces
+          - nodes
           - pods
           - services
         verbs:
@@ -9369,13 +9451,6 @@ default capabilities:
               readinessProbe:
                 tcpSocket:
                   port: 8443
-              resources:
-                limits:
-                  cpu: 1500m
-                  memory: 1500Mi
-                requests:
-                  cpu: 100m
-                  memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
                 runAsNonRoot: true
@@ -9385,6 +9460,37 @@ default capabilities:
                 - mountPath: /etc/config
                   name: ks-cloud-config
                   readOnly: true
+            - command:
+                - /pod_nanny
+                - --cpu=300m
+                - --extra-cpu=20m
+                - --memory=200Mi
+                - --extra-memory=10Mi
+                - --threshold=5
+                - --deployment=storage
+                - --container=apiserver
+                - --poll-period=300000
+                - --estimator=exponential
+                - --minClusterSize=10
+              env:
+                - name: MY_POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                - name: MY_POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+              image: registry.k8s.io/autoscaling/addon-resizer:1.8.14
+              imagePullPolicy: IfNotPresent
+              name: pod-nanny
+              resources:
+                limits:
+                  cpu: 40m
+                  memory: 25Mi
+                requests:
+                  cpu: 40m
+                  memory: 25Mi
           nodeSelector: null
           securityContext:
             fsGroup: 65532
@@ -9480,6 +9586,62 @@ default capabilities:
           storage: 5Gi
   69: |
     apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      labels:
+        app: storage
+        app.kubernetes.io/component: storage
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/version: 1.24.2
+        helm.sh/chart: kubescape-operator-1.24.2
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: storage
+      namespace: kubescape
+    rules:
+      - apiGroups:
+          - ""
+        resources:
+          - pods
+        verbs:
+          - get
+      - apiGroups:
+          - apps
+        resourceNames:
+          - storage
+        resources:
+          - deployments
+        verbs:
+          - get
+          - patch
+  70: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      labels:
+        app: storage
+        app.kubernetes.io/component: storage
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/version: 1.24.2
+        helm.sh/chart: kubescape-operator-1.24.2
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: storage
+      namespace: kubescape
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: storage
+    subjects:
+      - kind: ServiceAccount
+        name: storage
+        namespace: kubescape
+  71: |
+    apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
       labels:
@@ -9502,7 +9664,7 @@ default capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  70: |
+  72: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -9527,7 +9689,7 @@ default capabilities:
         app.kubernetes.io/component: storage
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  71: |
+  73: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -9543,7 +9705,7 @@ default capabilities:
         tier: ks-control-plane
       name: storage
       namespace: kubescape
-  72: |
+  74: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -9708,7 +9870,7 @@ default capabilities:
           - update
           - patch
           - delete
-  73: |
+  75: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -9731,7 +9893,7 @@ default capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  74: |
+  76: |
     apiVersion: v1
     data:
       config.json: |
@@ -9990,7 +10152,7 @@ default capabilities:
         tier: ks-control-plane
       name: synchronizer
       namespace: kubescape
-  75: |
+  77: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -10131,7 +10293,7 @@ default capabilities:
                     path: config.json
                 name: synchronizer
               name: config
-  76: |
+  78: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -10197,7 +10359,7 @@ default capabilities:
       policyTypes:
         - Ingress
         - Egress
-  77: |
+  79: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -10239,7 +10401,7 @@ default capabilities:
           - list
           - patch
           - delete
-  78: |
+  80: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -10263,7 +10425,7 @@ default capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  79: |
+  81: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -10289,7 +10451,7 @@ default capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  80: |
+  82: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -13110,6 +13272,7 @@ disable otel:
           - ""
         resources:
           - namespaces
+          - nodes
           - pods
           - services
         verbs:
@@ -13279,13 +13442,6 @@ disable otel:
               readinessProbe:
                 tcpSocket:
                   port: 8443
-              resources:
-                limits:
-                  cpu: 1500m
-                  memory: 1500Mi
-                requests:
-                  cpu: 100m
-                  memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
                 runAsNonRoot: true
@@ -13295,6 +13451,37 @@ disable otel:
                 - mountPath: /etc/config
                   name: ks-cloud-config
                   readOnly: true
+            - command:
+                - /pod_nanny
+                - --cpu=300m
+                - --extra-cpu=20m
+                - --memory=200Mi
+                - --extra-memory=10Mi
+                - --threshold=5
+                - --deployment=storage
+                - --container=apiserver
+                - --poll-period=300000
+                - --estimator=exponential
+                - --minClusterSize=10
+              env:
+                - name: MY_POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                - name: MY_POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+              image: registry.k8s.io/autoscaling/addon-resizer:1.8.14
+              imagePullPolicy: IfNotPresent
+              name: pod-nanny
+              resources:
+                limits:
+                  cpu: 40m
+                  memory: 25Mi
+                requests:
+                  cpu: 40m
+                  memory: 25Mi
           nodeSelector: null
           securityContext:
             fsGroup: 65532
@@ -13338,6 +13525,62 @@ disable otel:
           storage: 5Gi
   55: |
     apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      labels:
+        app: storage
+        app.kubernetes.io/component: storage
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/version: 1.24.2
+        helm.sh/chart: kubescape-operator-1.24.2
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: storage
+      namespace: kubescape
+    rules:
+      - apiGroups:
+          - ""
+        resources:
+          - pods
+        verbs:
+          - get
+      - apiGroups:
+          - apps
+        resourceNames:
+          - storage
+        resources:
+          - deployments
+        verbs:
+          - get
+          - patch
+  56: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      labels:
+        app: storage
+        app.kubernetes.io/component: storage
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/version: 1.24.2
+        helm.sh/chart: kubescape-operator-1.24.2
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: storage
+      namespace: kubescape
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: storage
+    subjects:
+      - kind: ServiceAccount
+        name: storage
+        namespace: kubescape
+  57: |
+    apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
       labels:
@@ -13360,7 +13603,7 @@ disable otel:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  56: |
+  58: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -13385,7 +13628,7 @@ disable otel:
         app.kubernetes.io/component: storage
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  57: |
+  59: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -13401,7 +13644,7 @@ disable otel:
         tier: ks-control-plane
       name: storage
       namespace: kubescape
-  58: |
+  60: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -13566,7 +13809,7 @@ disable otel:
           - update
           - patch
           - delete
-  59: |
+  61: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -13589,7 +13832,7 @@ disable otel:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  60: |
+  62: |
     apiVersion: v1
     data:
       config.json: |
@@ -13848,7 +14091,7 @@ disable otel:
         tier: ks-control-plane
       name: synchronizer
       namespace: kubescape
-  61: |
+  63: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -13982,7 +14225,7 @@ disable otel:
                     path: config.json
                 name: synchronizer
               name: config
-  62: |
+  64: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -14024,7 +14267,7 @@ disable otel:
           - list
           - patch
           - delete
-  63: |
+  65: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -14048,7 +14291,7 @@ disable otel:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  64: |
+  66: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -14074,7 +14317,7 @@ disable otel:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  65: |
+  67: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -16446,6 +16689,7 @@ minimal capabilities:
           - ""
         resources:
           - namespaces
+          - nodes
           - pods
           - services
         verbs:
@@ -16613,13 +16857,6 @@ minimal capabilities:
               readinessProbe:
                 tcpSocket:
                   port: 8443
-              resources:
-                limits:
-                  cpu: 1500m
-                  memory: 1500Mi
-                requests:
-                  cpu: 100m
-                  memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
                 runAsNonRoot: true
@@ -16629,6 +16866,37 @@ minimal capabilities:
                 - mountPath: /etc/config
                   name: ks-cloud-config
                   readOnly: true
+            - command:
+                - /pod_nanny
+                - --cpu=300m
+                - --extra-cpu=20m
+                - --memory=200Mi
+                - --extra-memory=10Mi
+                - --threshold=5
+                - --deployment=storage
+                - --container=apiserver
+                - --poll-period=300000
+                - --estimator=exponential
+                - --minClusterSize=10
+              env:
+                - name: MY_POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                - name: MY_POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+              image: registry.k8s.io/autoscaling/addon-resizer:1.8.14
+              imagePullPolicy: IfNotPresent
+              name: pod-nanny
+              resources:
+                limits:
+                  cpu: 40m
+                  memory: 25Mi
+                requests:
+                  cpu: 40m
+                  memory: 25Mi
           nodeSelector: null
           securityContext:
             fsGroup: 65532
@@ -16670,6 +16938,62 @@ minimal capabilities:
           storage: 5Gi
   47: |
     apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      labels:
+        app: storage
+        app.kubernetes.io/component: storage
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/version: 1.24.2
+        helm.sh/chart: kubescape-operator-1.24.2
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: storage
+      namespace: kubescape
+    rules:
+      - apiGroups:
+          - ""
+        resources:
+          - pods
+        verbs:
+          - get
+      - apiGroups:
+          - apps
+        resourceNames:
+          - storage
+        resources:
+          - deployments
+        verbs:
+          - get
+          - patch
+  48: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      labels:
+        app: storage
+        app.kubernetes.io/component: storage
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/version: 1.24.2
+        helm.sh/chart: kubescape-operator-1.24.2
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: storage
+      namespace: kubescape
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: storage
+    subjects:
+      - kind: ServiceAccount
+        name: storage
+        namespace: kubescape
+  49: |
+    apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
       labels:
@@ -16692,7 +17016,7 @@ minimal capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  48: |
+  50: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -16717,7 +17041,7 @@ minimal capabilities:
         app.kubernetes.io/component: storage
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  49: |
+  51: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
