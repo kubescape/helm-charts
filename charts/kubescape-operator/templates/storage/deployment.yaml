@@ -83,8 +83,38 @@ spec:
           - name: {{ .Values.global.cloudConfig }}
             mountPath: /etc/config
             readOnly: true
+      - name: pod-nanny
+        image: registry.k8s.io/autoscaling/addon-resizer:1.8.14
+        imagePullPolicy: IfNotPresent
         resources:
-{{ toYaml .Values.storage.resources | indent 12 }}
+          limits:
+            cpu: 40m
+            memory: 25Mi
+          requests:
+            cpu: 40m
+            memory: 25Mi
+        env:
+          - name: MY_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: MY_POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+        command:
+          - /pod_nanny
+          - --cpu=300m
+          - --extra-cpu=20m
+          - --memory=200Mi
+          - --extra-memory=10Mi
+          - --threshold=5
+          - --deployment=storage
+          - --container=apiserver
+          - --poll-period=300000
+          - --estimator=exponential
+          - --minClusterSize=10
+
       nodeSelector:
       {{- if .Values.storage.nodeSelector }}
       {{- toYaml .Values.storage.nodeSelector | nindent 8 }}
