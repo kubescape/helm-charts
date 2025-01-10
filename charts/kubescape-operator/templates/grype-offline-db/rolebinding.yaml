@@ -1,0 +1,17 @@
+{{- if and .Values.grypeOfflineDB.enabled (eq .Values.grypeOfflineDB.image.tag "latest") }}
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ .Values.grypeOfflineDB.name }}
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.grypeOfflineDB.name "tier" .Values.global.namespaceTier) | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ .Values.grypeOfflineDB.name }}
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.grypeOfflineDB.name }}
+  namespace: {{ .Values.ksNamespace }}
+{{- end }}
