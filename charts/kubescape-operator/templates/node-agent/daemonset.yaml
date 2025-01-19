@@ -53,6 +53,19 @@ spec:
       serviceAccountName: {{ .Values.nodeAgent.name }}
       automountServiceAccountToken: true
       hostPID: true
+      {{- if .Values.nodeAgent.initContainer }}
+      initContainers:
+      - name: init-delay
+        image: "busybox:latest"
+        command: 
+        - /bin/sh
+        - -c
+        - |
+          SLEEP_TIME=$(( $RANDOM % 120 ))
+          echo "Pod $(hostname) will sleep for $SLEEP_TIME seconds"
+          sleep $SLEEP_TIME
+          echo "Pod $(hostname) finished sleeping after $SLEEP_TIME seconds"
+      {{- end }}
       volumes:
       {{- if .Values.nodeAgent.volumes }}
       {{- toYaml .Values.nodeAgent.volumes | nindent 8 }}
