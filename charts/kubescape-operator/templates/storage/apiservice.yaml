@@ -7,7 +7,11 @@ metadata:
   labels:
     {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.storage.name "tier" .Values.global.namespaceTier) | nindent 4 }}
 spec:
+  {{- if .Values.storage.mtls.enabled }}
+  insecureSkipTLSVerify: false
+  {{- else }}
   insecureSkipTLSVerify: true
+  {{- end }}
   group: "spdx.softwarecomposition.kubescape.io"
   groupPriorityMinimum: 1000
   versionPriority: 15
@@ -15,4 +19,7 @@ spec:
   service:
     name: {{ .Values.storage.name }}
     namespace: {{ .Values.ksNamespace }}
+  {{- if .Values.storage.mtls.enabled }}
+  caBundle: {{ .Values.global.storageCA.Cert | b64enc }}
+  {{- end }}
 {{- end }}
