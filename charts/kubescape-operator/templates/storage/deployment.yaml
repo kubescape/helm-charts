@@ -64,6 +64,14 @@ spec:
             value: "{{ .Values.logger.level }}"
           - name: KS_LOGGER_NAME
             value: "{{ .Values.logger.name }}"
+          {{- if .Values.storage.mtls.enabled }}
+          - name: TLS_CLIENT_CA_FILE
+            value: "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+          - name: TLS_SERVER_CERT_FILE
+            value: "/etc/storage-ca-certificates/tls.crt"
+          - name: TLS_SERVER_KEY_FILE
+            value: "/etc/storage-ca-certificates/tls.key"
+          {{- end }}
           {{- if $components.otelCollector.enabled }}
           - name: ACCOUNT_ID
             valueFrom:
@@ -83,6 +91,11 @@ spec:
           - name: {{ .Values.global.cloudConfig }}
             mountPath: /etc/config
             readOnly: true
+          {{- if .Values.storage.mtls.enabled }}
+          - name: "ca-certificates"
+            mountPath: /etc/storage-ca-certificates
+            readOnly: true
+          {{- end }}
         resources:
 {{ toYaml .Values.storage.resources | indent 12 }}
       nodeSelector:
@@ -121,4 +134,9 @@ spec:
             - key: "services"
               path: "services.json"
             {{- end }}
+        {{- if .Values.storage.mtls.enabled }}
+        - name: "ca-certificates"
+          secret:
+            secretName: {{ .Values.storage.name }}-ca
+        {{- end }}
 {{- end }}
