@@ -17,7 +17,7 @@ Create the name of the Kubescape Storage Auth Reader RoleBinding to use
 */}}
 {{- define "storage.generateCerts.ca" -}}
 {{- if not .Values.global.storageCA -}}
-{{- $cn := .Values.storage.name -}}
+{{- $cn := printf "%s-%s" .Values.storage.name (randAlphaNum 10) -}}
 {{- $ca := genCA (printf "%s-ca" $cn) (int .Values.storage.mtls.certificateValidityInDays) -}}
 {{- $_ := set .Values.global "storageCA" $ca -}}
 {{- end -}}
@@ -25,9 +25,9 @@ Create the name of the Kubescape Storage Auth Reader RoleBinding to use
 {{- end -}}
 
 {{- define "storage.generateCerts.cert" -}}
-{{- $cn := printf "%s.%s.svc" .Values.storage.name .Release.Namespace -}}
+{{- $cn := printf "%s.%s.svc-%s" .Values.storage.name .Release.Namespace (randAlphaNum 10) -}}
 {{- $ca := .Values.global.storageCA -}}
-{{- $dnsNames := list $cn (printf "%s.%s.svc" .Values.storage.name .Release.Namespace) (printf "%s.%s.svc.cluster.local" .Values.storage.name .Release.Namespace) -}}
+{{- $dnsNames := list (printf "%s.%s.svc" .Values.storage.name .Release.Namespace) (printf "%s.%s.svc.cluster.local" .Values.storage.name .Release.Namespace) -}}
 {{- $cert := genSignedCert $cn nil $dnsNames (int .Values.storage.mtls.certificateValidityInDays) $ca -}}
 {{- $cert | toJson -}}
 {{- end -}}
