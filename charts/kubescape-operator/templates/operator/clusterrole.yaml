@@ -8,8 +8,13 @@ metadata:
     {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.operator.name "tier" .Values.global.namespaceTier) | nindent 4 }}
 rules:
   - apiGroups: [""]
-    resources: ["pods", "nodes", "namespaces", "configmaps", "secrets", "services"]
+    resources: ["pods", "nodes", "namespaces", "configmaps", "services"]
     verbs: ["get", "watch", "list"]
+  {{- if .Values.global.enableClusterWideSecretAccess }}
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "watch", "list"]
+  {{- end }}
   - apiGroups: ["batch"]
     resources: ["jobs", "cronjobs"]
     verbs: ["get", "watch", "list", "create", "update", "delete" ,"patch"]

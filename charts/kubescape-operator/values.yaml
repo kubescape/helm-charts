@@ -83,7 +83,7 @@ capabilities:
 
   # ====== Image vulnerabilities scanning related capabilities ======
   #
-  nodeSbomGeneration: disable
+  nodeSbomGeneration: disable  # Warning: When disabled along with enableClusterWideSecretAccess: false, vulnerability scanning capabilities will be limited
   vulnerabilityScan: enable
   relevancy: enable
   # Generate VEX documents alongside the image vulnerabilities report (experimental)
@@ -182,6 +182,7 @@ global:
   noProxy: ""
   proxySecretFile: ""  # file content (not file path), e.g. `global.proxySecretFile=(cat /path/to/file)`
   proxySecretName: kubescape-proxy-certificate
+  enableClusterWideSecretAccess: true
   namespaceTier: ks-control-plane
   cloudConfig: ks-cloud-config
   proxySecretDirectory: proxy-support
@@ -770,7 +771,7 @@ helmReleaseUpgrader:
   resources:
     # Requests and Limits are the same to make the CronJob Burstable
     requests:
-      # Setting a higher CPU request helps with the Job runtime. If you don’t
+      # Setting a higher CPU request helps with the Job runtime. If you don't
       # care about job execution speed and want to save on resources, feel free
       # to lower this
       cpu: 500m
@@ -780,7 +781,7 @@ helmReleaseUpgrader:
       # Keep the memory limit sufficiently high.
       #
       # The updating CronJob runs an image that runs `helm upgrade`. It renders
-      # the chart and that can require a lot of memory. If you don’t want your
+      # the chart and that can require a lot of memory. If you don't want your
       # updating job to be OOM Killed, keep this at 256 MiB or higher depending
       # on the size of your cluster.
       memory: 256Mi
@@ -951,3 +952,5 @@ continuousScanning:
         resources: ["deployments"]
     namespaces:
       - default
+
+

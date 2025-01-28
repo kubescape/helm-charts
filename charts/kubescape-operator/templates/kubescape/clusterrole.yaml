@@ -8,8 +8,13 @@ metadata:
     {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.kubescape.name "tier" .Values.global.namespaceTier) | nindent 4 }}
 rules:
 - apiGroups: [""]
-  resources: ["pods", "pods/proxy", "namespaces", "secrets", "nodes", "configmaps", "services", "serviceaccounts", "endpoints", "persistentvolumeclaims", "persistentvolumes", "limitranges", "replicationcontrollers", "podtemplates", "resourcequotas", "events"]
+  resources: ["pods", "pods/proxy", "namespaces", "nodes", "configmaps", "services", "serviceaccounts", "endpoints", "persistentvolumeclaims", "persistentvolumes", "limitranges", "replicationcontrollers", "podtemplates", "resourcequotas", "events"]
   verbs: ["get", "watch", "list"]
+{{- if .Values.global.enableClusterWideSecretAccess }}
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "watch", "list"]
+{{- end }}
 - apiGroups: ["admissionregistration.k8s.io"]
   resources: ["mutatingwebhookconfigurations", "validatingwebhookconfigurations"]
   verbs: ["get", "watch", "list"]
