@@ -33,3 +33,13 @@ Detailed reports are also available:
 {{ .Chart.Name }} generates suggested network policies. To view them:
 > kubectl get generatednetworkpolicies -n <namespace>
 {{- end }}
+
+{{- if and (eq .Values.capabilities.nodeSbomGeneration "disable") (not .Values.global.enableClusterWideSecretAccess) }}
+
+WARNING: Both nodeSbomGeneration and enableClusterWideSecretAccess are disabled.
+This means vulnerability scanning will be limited to images from public repositories only, since Kubescape cannot access image pull secrets.
+To enable scanning of private images, either:
+- Enable nodeSbomGeneration (recommended): Set capabilities.nodeSbomGeneration: "enable"
+- Enable cluster-wide secret access: Set global.enableClusterWideSecretAccess: true
+{{- end }}
+
