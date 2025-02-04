@@ -112,6 +112,11 @@ spec:
               mountPath: /etc/ssl/certs/ca-certificates.crt
               subPath: ca-certificates.crt
             {{- end }}
+            {{- if .Values.global.extraCaCertificates.enabled }}
+            - name: extra-ca-certificates
+              mountPath: /etc/ssl/certs/
+              subPath: {{ .Values.global.extraCaCertificates.secretName }}
+            {{- end }}
             - name: config
               mountPath: /etc/config/config.json
               readOnly: true
@@ -140,6 +145,11 @@ spec:
         - name: custom-ca-certificates
           secret:
             secretName: {{ $components.customCaCertificates.name }}
+      {{- end }}
+      {{- if .Values.global.extraCaCertificates.enabled }}
+        - name: extra-ca-certificates
+          secret:
+            secretName: {{ .Values.global.extraCaCertificates.secretName }}
       {{- end }}
         - name: {{ .Values.global.cloudConfig }}
           configMap:

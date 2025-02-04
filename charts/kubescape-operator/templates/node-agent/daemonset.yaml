@@ -57,7 +57,7 @@ spec:
       initContainers:
       - name: startup-jitter
         image: "busybox:latest"
-        command: 
+        command:
         - /bin/sh
         - -c
         - |
@@ -106,6 +106,11 @@ spec:
         - name: custom-ca-certificates
           secret:
             secretName: {{ $components.customCaCertificates.name }}
+        {{- end }}
+        {{- if .Values.global.extraCaCertificates.enabled }}
+        - name: extra-ca-certificates
+          secret:
+            secretName: {{ .Values.global.extraCaCertificates.secretName }}
         {{- end }}
       containers:
         {{- if $components.clamAV.enabled }}
@@ -241,6 +246,11 @@ spec:
           - name: custom-ca-certificates
             mountPath: /etc/ssl/certs/ca-certificates.crt
             subPath: ca-certificates.crt
+          {{- end }}
+          {{- if .Values.global.extraCaCertificates.enabled }}
+          - name: extra-ca-certificates
+            mountPath: /etc/ssl/certs/
+            subPath: {{ .Values.global.extraCaCertificates.secretName }}
           {{- end }}
       nodeSelector:
       {{- if .Values.nodeAgent.nodeSelector }}
