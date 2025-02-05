@@ -290,7 +290,7 @@ all capabilities:
     data:
       capabilities: |
         {
-          "capabilities":{"admissionController":"enable","autoUpgrading":"enable","configurationScan":"enable","continuousScan":"enable","httpDetection":"enable","malwareDetection":"enable","manageWorkloads":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","prometheusExporter":"enable","relevancy":"enable","runtimeDetection":"enable","runtimeObservability":"enable","seccompProfileService":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"enable","vulnerabilityScan":"enable"},
+          "capabilities":{"admissionController":"enable","autoUpgrading":"enable","configurationScan":"enable","continuousScan":"enable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"enable","manageWorkloads":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","prometheusExporter":"enable","relevancy":"enable","runtimeDetection":"enable","runtimeObservability":"enable","seccompProfileService":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"enable","vulnerabilityScan":"enable"},
           "components":{"autoUpdater":{"enabled":true},"clamAV":{"enabled":true},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":true},"prometheusExporter":{"enabled":true},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"otelUrl":"otelCollector:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
@@ -694,7 +694,7 @@ all capabilities:
                     - -path=v1/triggerAction
                     - -headers=Content-Type:application/json
                     - -path-body=/home/ks/request-body.json
-                  image: quay.io/kubescape/http-request:v0.2.9
+                  image: quay.io/kubescape/http-request:v0.2.11
                   imagePullPolicy: IfNotPresent
                   name: kubescape-scheduler
                   resources:
@@ -1197,7 +1197,7 @@ all capabilities:
                 - mountPath: /etc/credentials
                   name: cloud-secret
                   readOnly: true
-                - mountPath: /home/nonroot/.kubescape/config.json
+                - mountPath: /home/nonroot/.kubescape
                   name: kubescape-volume
                   subPath: config.json
                 - mountPath: /home/nonroot/.kubescape/host-scanner.yaml
@@ -1677,7 +1677,7 @@ all capabilities:
                     - -path=v1/triggerAction
                     - -headers=Content-Type:application/json
                     - -path-body=/home/ks/request-body.json
-                  image: quay.io/kubescape/http-request:v0.2.9
+                  image: quay.io/kubescape/http-request:v0.2.11
                   imagePullPolicy: IfNotPresent
                   name: kubevuln-scheduler
                   resources:
@@ -3089,7 +3089,7 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 1fa4fbbf3d357c08d09770f44e3b82e81fb855589e3f3aca69e97f05d6e20f4a
+            checksum/capabilities-config: 6de047b9fb82f3d94b66b77a16b5af4902212c717141b483791c13f8cb3fc178
             checksum/cloud-config: c1f0dc8ff00eb07abf64badead35ad9c9865b493a9b983d017161664bfc7c458
             checksum/cloud-secret: cf2e73d4ff0ce943730b3ed5bd4740f0bd8c4386e5843870f51c302b41df8da9
             checksum/matching-rules-config: 4244067153661f0c2577cba49b0dba63db5f77acf9904663ca06610953f55e17
@@ -3132,7 +3132,7 @@ all capabilities:
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
                   value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/operator:v0.2.68
+              image: quay.io/kubescape/operator:v0.2.69
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -3282,7 +3282,7 @@ all capabilities:
                   - name: foo
                   containers:
                   - name: kubescape-scheduler
-                    image: "quay.io/kubescape/http-request:v0.2.9"
+                    image: "quay.io/kubescape/http-request:v0.2.11"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
@@ -3363,7 +3363,7 @@ all capabilities:
                   - name: foo
                   containers:
                   - name: kubevuln-scheduler
-                    image: "quay.io/kubescape/http-request:v0.2.9"
+                    image: "quay.io/kubescape/http-request:v0.2.11"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
@@ -3546,7 +3546,7 @@ all capabilities:
                   - name: foo
                   containers:
                   - name: registry-scheduler
-                    image: "quay.io/kubescape/http-request:v0.2.9"
+                    image: "quay.io/kubescape/http-request:v0.2.11"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
@@ -4352,7 +4352,7 @@ all capabilities:
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
                   value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/http-request:v0.2.9
+              image: quay.io/kubescape/http-request:v0.2.11
               imagePullPolicy: IfNotPresent
               name: url-discovery
               resources:
@@ -5856,7 +5856,7 @@ default capabilities:
     data:
       capabilities: |
         {
-          "capabilities":{"admissionController":"disable","autoUpgrading":"disable","configurationScan":"enable","httpDetection":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkPolicyService":"enable","nodeProfileService":"disable","nodeSbomGeneration":"disable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","seccompProfileService":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
+          "capabilities":{"admissionController":"disable","autoUpgrading":"disable","configurationScan":"enable","httpDetection":"disable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkPolicyService":"enable","nodeProfileService":"disable","nodeSbomGeneration":"disable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","seccompProfileService":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
           "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":true},"prometheusExporter":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"otelUrl":"otelCollector:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
@@ -6104,7 +6104,7 @@ default capabilities:
                     - -path=v1/triggerAction
                     - -headers=Content-Type:application/json
                     - -path-body=/home/ks/request-body.json
-                  image: quay.io/kubescape/http-request:v0.2.9
+                  image: quay.io/kubescape/http-request:v0.2.11
                   imagePullPolicy: IfNotPresent
                   name: kubescape-scheduler
                   resources:
@@ -7030,7 +7030,7 @@ default capabilities:
                     - -path=v1/triggerAction
                     - -headers=Content-Type:application/json
                     - -path-body=/home/ks/request-body.json
-                  image: quay.io/kubescape/http-request:v0.2.9
+                  image: quay.io/kubescape/http-request:v0.2.11
                   imagePullPolicy: IfNotPresent
                   name: kubevuln-scheduler
                   resources:
@@ -8194,7 +8194,7 @@ default capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: d05ca000eb2ee6279d1edbff8383652425595eb097b9e8a262f04f22ded60d15
+            checksum/capabilities-config: a3884b3485c43ed1603dca5d383c5da264de1a0631add04eced7efa580b3850d
             checksum/cloud-config: 37311949e32a133a70f465c9091dc3addf733af749455321e03f5525703a5063
             checksum/cloud-secret: cf2e73d4ff0ce943730b3ed5bd4740f0bd8c4386e5843870f51c302b41df8da9
             checksum/matching-rules-config: 4244067153661f0c2577cba49b0dba63db5f77acf9904663ca06610953f55e17
@@ -8233,7 +8233,7 @@ default capabilities:
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4318
-              image: quay.io/kubescape/operator:v0.2.68
+              image: quay.io/kubescape/operator:v0.2.69
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -8364,7 +8364,7 @@ default capabilities:
                 spec:
                   containers:
                   - name: kubescape-scheduler
-                    image: "quay.io/kubescape/http-request:v0.2.9"
+                    image: "quay.io/kubescape/http-request:v0.2.11"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
@@ -8443,7 +8443,7 @@ default capabilities:
                 spec:
                   containers:
                   - name: kubevuln-scheduler
-                    image: "quay.io/kubescape/http-request:v0.2.9"
+                    image: "quay.io/kubescape/http-request:v0.2.11"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
@@ -8613,7 +8613,7 @@ default capabilities:
                 spec:
                   containers:
                   - name: registry-scheduler
-                    image: "quay.io/kubescape/http-request:v0.2.9"
+                    image: "quay.io/kubescape/http-request:v0.2.11"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
@@ -9101,7 +9101,7 @@ default capabilities:
                 - -path=api/v2/servicediscovery
                 - -path-output=/data/services.json
               env: null
-              image: quay.io/kubescape/http-request:v0.2.9
+              image: quay.io/kubescape/http-request:v0.2.11
               imagePullPolicy: IfNotPresent
               name: url-discovery
               resources:
@@ -10456,7 +10456,7 @@ disable otel:
     data:
       capabilities: |
         {
-          "capabilities":{"admissionController":"disable","autoUpgrading":"disable","configurationScan":"enable","httpDetection":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkPolicyService":"enable","nodeProfileService":"disable","nodeSbomGeneration":"disable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","seccompProfileService":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
+          "capabilities":{"admissionController":"disable","autoUpgrading":"disable","configurationScan":"enable","httpDetection":"disable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkPolicyService":"enable","nodeProfileService":"disable","nodeSbomGeneration":"disable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","seccompProfileService":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
           "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":true},"prometheusExporter":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"otelUrl":null,"persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
@@ -10580,7 +10580,7 @@ disable otel:
                     - -path=v1/triggerAction
                     - -headers=Content-Type:application/json
                     - -path-body=/home/ks/request-body.json
-                  image: quay.io/kubescape/http-request:v0.2.9
+                  image: quay.io/kubescape/http-request:v0.2.11
                   imagePullPolicy: IfNotPresent
                   name: kubescape-scheduler
                   resources:
@@ -11342,7 +11342,7 @@ disable otel:
                     - -path=v1/triggerAction
                     - -headers=Content-Type:application/json
                     - -path-body=/home/ks/request-body.json
-                  image: quay.io/kubescape/http-request:v0.2.9
+                  image: quay.io/kubescape/http-request:v0.2.11
                   imagePullPolicy: IfNotPresent
                   name: kubevuln-scheduler
                   resources:
@@ -12258,7 +12258,7 @@ disable otel:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 46f28cfeabce548d6bce6f72f157d046401b2e56872e92b39ba65a7acbd4b6ba
+            checksum/capabilities-config: 198343087606bc5b88772499d7f7bd1dadd0ee8c8373ab1282e566e7dec9ac4c
             checksum/cloud-config: 4ae906fd9cea940360abb72cb088bd6f82d009b1748dbeab14a85eef05efd049
             checksum/cloud-secret: cf2e73d4ff0ce943730b3ed5bd4740f0bd8c4386e5843870f51c302b41df8da9
             checksum/matching-rules-config: 4244067153661f0c2577cba49b0dba63db5f77acf9904663ca06610953f55e17
@@ -12296,7 +12296,7 @@ disable otel:
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4318
-              image: quay.io/kubescape/operator:v0.2.68
+              image: quay.io/kubescape/operator:v0.2.69
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -12421,7 +12421,7 @@ disable otel:
                 spec:
                   containers:
                   - name: kubescape-scheduler
-                    image: "quay.io/kubescape/http-request:v0.2.9"
+                    image: "quay.io/kubescape/http-request:v0.2.11"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
@@ -12500,7 +12500,7 @@ disable otel:
                 spec:
                   containers:
                   - name: kubevuln-scheduler
-                    image: "quay.io/kubescape/http-request:v0.2.9"
+                    image: "quay.io/kubescape/http-request:v0.2.11"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
@@ -12579,7 +12579,7 @@ disable otel:
                 spec:
                   containers:
                   - name: registry-scheduler
-                    image: "quay.io/kubescape/http-request:v0.2.9"
+                    image: "quay.io/kubescape/http-request:v0.2.11"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
@@ -13034,7 +13034,7 @@ disable otel:
                 - -path=api/v2/servicediscovery
                 - -path-output=/data/services.json
               env: null
-              image: quay.io/kubescape/http-request:v0.2.9
+              image: quay.io/kubescape/http-request:v0.2.11
               imagePullPolicy: IfNotPresent
               name: url-discovery
               resources:
@@ -14242,7 +14242,7 @@ minimal capabilities:
     data:
       capabilities: |
         {
-          "capabilities":{"admissionController":"disable","autoUpgrading":"disable","configurationScan":"enable","httpDetection":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkPolicyService":"enable","nodeProfileService":"disable","nodeSbomGeneration":"disable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","seccompProfileService":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
+          "capabilities":{"admissionController":"disable","autoUpgrading":"disable","configurationScan":"enable","httpDetection":"disable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkPolicyService":"enable","nodeProfileService":"disable","nodeSbomGeneration":"disable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","seccompProfileService":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
           "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":false},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":false},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":true},"prometheusExporter":{"enabled":false},"serviceDiscovery":{"enabled":false},"storage":{"enabled":true},"synchronizer":{"enabled":false}},
           "configurations":{"otelUrl":"otelCollector:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
@@ -15841,7 +15841,7 @@ minimal capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 3bd17bfa7829be49dd8e6d04b110ff841e513cf3e34b49199a1cb414347992e2
+            checksum/capabilities-config: e875e47f1704778aa8415c5219fc93d71710d205eafd22a547da584126fdce49
             checksum/cloud-config: 78e0d35288b7978bc95dc0f93426b1f2677459278ad27ddd867f13661142717b
             checksum/cloud-secret: f1356b6dba8ba4a01197f4030346928c33c7dab7b123a2aecaffb0630352929c
             checksum/matching-rules-config: 4244067153661f0c2577cba49b0dba63db5f77acf9904663ca06610953f55e17
@@ -15879,7 +15879,7 @@ minimal capabilities:
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4318
-              image: quay.io/kubescape/operator:v0.2.68
+              image: quay.io/kubescape/operator:v0.2.69
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -15998,7 +15998,7 @@ minimal capabilities:
                 spec:
                   containers:
                   - name: kubescape-scheduler
-                    image: "quay.io/kubescape/http-request:v0.2.9"
+                    image: "quay.io/kubescape/http-request:v0.2.11"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
@@ -16077,7 +16077,7 @@ minimal capabilities:
                 spec:
                   containers:
                   - name: kubevuln-scheduler
-                    image: "quay.io/kubescape/http-request:v0.2.9"
+                    image: "quay.io/kubescape/http-request:v0.2.11"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
@@ -16156,7 +16156,7 @@ minimal capabilities:
                 spec:
                   containers:
                   - name: registry-scheduler
-                    image: "quay.io/kubescape/http-request:v0.2.9"
+                    image: "quay.io/kubescape/http-request:v0.2.11"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false

@@ -163,6 +163,10 @@ spec:
         - name: KS_EXCLUDE_NAMESPACES
           value: "{{ .Values.excludeNamespaces }}"
         {{- end }}
+        {{- if eq .Values.capabilities.kubescapeOffline "enable" }}
+        - name: KS_OFFLINE
+          value: "true"
+        {{- end }}
         command:
         - ksserver
         resources:
@@ -172,7 +176,7 @@ spec:
           mountPath: /etc/credentials
           readOnly: true
         - name: kubescape-volume
-{{- if and .Values.grypeOfflineDB.enabled (eq .Values.grypeOfflineDB.image.tag "latest") }}
+{{- if eq .Values.capabilities.kubescapeOffline "enable" }}
           mountPath: /home/nonroot/.kubescape/config.json
 {{- else }}
           mountPath: /home/nonroot/.kubescape
