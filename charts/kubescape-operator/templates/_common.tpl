@@ -90,11 +90,11 @@ autoUpdater:
 {{- end -}}
 
 {{- define "admission-certificates" -}}
-{{- $svcName := (printf "kubescape-admission-webhook.%s.svc" .Release.Namespace) -}}
+{{- $svcName := (printf "kubescape-admission-webhook.%s.svc" .Values.ksNamespace) -}}
 {{- $ca := dict "Key" "mock-ca-key" "Cert" "mock-ca-cert" -}}
 {{- $cert := dict "Key" "mock-cert-key" "Cert" "mock-cert-cert" -}}
 {{- if not .Values.unittest }}
-  {{- $generatedCA := genCA (printf "*.%s.svc" .Release.Namespace) 1024 -}}
+  {{- $generatedCA := genCA (printf "*.%s.svc" .Values.ksNamespace) 1024 -}}
   {{- $generatedCert := genSignedCert $svcName nil (list $svcName) 1024 $generatedCA -}}
   {{- $_ := set $ca "Key" $generatedCA.Key -}}
   {{- $_ := set $ca "Cert" $generatedCA.Cert -}}
