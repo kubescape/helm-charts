@@ -113,9 +113,11 @@ spec:
               subPath: ca-certificates.crt
             {{- end }}
             {{- if .Values.global.extraCaCertificates.enabled }}
+            {{- range $key, $value := (lookup "v1" "Secret" .Release.Namespace .Values.global.extraCaCertificates.secretName).data }}
             - name: extra-ca-certificates
-              mountPath: /etc/ssl/certs/
-              subPath: {{ .Values.global.extraCaCertificates.secretName }}
+              mountPath: /etc/ssl/certs/{{ $key }}
+              subPath: {{ $key }}
+            {{- end }}
             {{- end }}
             - name: config
               mountPath: /etc/config/config.json
