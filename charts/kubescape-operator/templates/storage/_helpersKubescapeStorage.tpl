@@ -25,9 +25,9 @@ Create the name of the Kubescape Storage Auth Reader RoleBinding to use
 {{- end -}}
 
 {{- define "storage.generateCerts.cert" -}}
-{{- $cn := printf "%s.%s.svc-%s" .Values.storage.name .Release.Namespace (randAlphaNum 10) -}}
+{{- $cn := printf "%s.%s.svc-%s" .Values.storage.name .Values.ksNamespace (randAlphaNum 10) -}}
 {{- $ca := .Values.global.storageCA -}}
-{{- $dnsNames := list (printf "%s.%s.svc" .Values.storage.name .Release.Namespace) (printf "%s.%s.svc.cluster.local" .Values.storage.name .Release.Namespace) -}}
+{{- $dnsNames := list (printf "%s.%s.svc" .Values.storage.name .Values.ksNamespace) (printf "%s.%s.svc.cluster.local" .Values.storage.name .Values.ksNamespace) -}}
 {{- $cert := genSignedCert $cn nil $dnsNames (int .Values.storage.mtls.certificateValidityInDays) $ca -}}
 {{- $cert | toJson -}}
 {{- end -}}

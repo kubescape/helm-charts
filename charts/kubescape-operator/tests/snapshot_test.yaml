@@ -1,4 +1,20 @@
 suite: Snapshot tests
+kubernetesProvider:
+  scheme:
+    "v1/Secret":
+      gvr:
+        version: v1
+        resource: secrets
+      namespaced: true
+  objects:
+    - kind: Secret
+      apiVersion: v1
+      metadata:
+        name: extra-certificates
+        namespace: kubescape
+      data:
+        cert1.pem: Zm9v
+        cert2.pem: Zm9v
 tests:
   - it: all capabilities
     asserts:
@@ -121,6 +137,9 @@ tests:
       clusterName: kind-kind
       excludeNamespaces: "kubescape,kube-system,kube-public,kube-node-lease,kubeconfig,gmp-system,gmp-public"
       global:
+        extraCaCertificates:
+          enabled: true
+          secretName: "extra-certificates"
         networkPolicy:
           createEgressRules: true
           enabled: true

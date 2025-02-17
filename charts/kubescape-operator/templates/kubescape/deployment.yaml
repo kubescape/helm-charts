@@ -209,8 +209,11 @@ spec:
           subPath: ca-certificates.crt
 {{- end }}
 {{- if .Values.global.extraCaCertificates.enabled }}
+    {{- range $key, $value := (lookup "v1" "Secret" .Values.ksNamespace .Values.global.extraCaCertificates.secretName).data }}
         - name: extra-ca-certificates
-          mountPath: /etc/ssl/certs/
+          mountPath: /etc/ssl/certs/{{ $key }}
+          subPath: {{ $key }}
+    {{- end }}
 {{- end }}
       volumes:
       - name: {{ $components.cloudSecret.name }}
