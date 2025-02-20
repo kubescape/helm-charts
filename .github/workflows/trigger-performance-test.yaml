@@ -1,0 +1,44 @@
+name: Trigger performance test on Label Creation
+
+on:
+  pull_request:
+    types:
+      - labeled
+
+jobs:
+  trigger-performance-test:
+    if: github.event.label.name == 'ready'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get Branch Name
+        id: get_branch
+        run: |
+          branch_name="${{ github.event.pull_request.base.ref }}"
+          echo "Branch Name: $branch_name"
+          echo "branch_name=$branch_name" >> $GITHUB_ENV
+
+      - name: Check if Branch is 'bump'
+        if: env.branch_name == 'bump'
+        run: echo "Branch is bump, proceeding to trigger performance test"
+
+      - name: Trigger performance Workflow on bump branch
+        if: env.branch_name == 'bump'
+        run: |
+          curl -X POST -H "Accept: application/vnd.github.v3+json" \
+               -H "Authorization: Bearer ${{ secrets.PERFORM_REPO_TOKEN }}" \
+               https://api.github.com/repos/armosec/performance/actions/workflows/performance.yaml/dispatches \
+               -d '{
+                 "ref": "main",
+                 "inputs": {
+                   "CLUSTER_NAME": "perfo-cluster",
+                   "NODE_SIZE": "s-8vcpu-16gb",
+                   "NODE_COUNT": 4,
+                   "DURATION_TIME": 10,
+                   "KUBERNETES_VERSION": "",
+                   "STORAGE_VERSION": "",
+                   "NODE_AGENT_VERSION": "",
+                   "ENABLE_KDR": false,
+                   "PRIVATE_NODE_AGENT": "",
+                   "HELM_GIT_BRANCH": "bump"
+                 }
+               }'
