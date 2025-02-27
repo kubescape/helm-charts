@@ -5865,7 +5865,7 @@ default capabilities:
     data:
       capabilities: |
         {
-          "capabilities":{"admissionController":"disable","autoUpgrading":"disable","configurationScan":"enable","httpDetection":"disable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkPolicyService":"enable","nodeProfileService":"disable","nodeSbomGeneration":"disable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","seccompProfileService":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
+          "capabilities":{"admissionController":"disable","autoUpgrading":"disable","configurationScan":"enable","httpDetection":"disable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkPolicyService":"enable","nodeProfileService":"disable","nodeSbomGeneration":"enable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","seccompProfileService":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
           "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":true},"prometheusExporter":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"otelUrl":"otelCollector:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
@@ -7608,7 +7608,7 @@ default capabilities:
             "applicationProfileServiceEnabled": true,
             "prometheusExporterEnabled": false,
             "runtimeDetectionEnabled": false,
-            "httpDetectionEnabled": false,
+            "httpDetectionEnabled": true,
             "networkServiceEnabled": true,
             "malwareDetectionEnabled": false,
             "hostMalwareSensorEnabled": false,
@@ -7616,7 +7616,7 @@ default capabilities:
             "nodeProfileServiceEnabled": false,
             "maxImageSize": 5.36870912e+09,
             "maxSBOMSize": 2.097152e+07,
-            "sbomGenerationEnabled": false,
+            "sbomGenerationEnabled": true,
             "seccompServiceEnabled": true,
             "initialDelay": "2m",
             "updateDataPeriod": "10m",
@@ -7673,7 +7673,7 @@ default capabilities:
           annotations:
             checksum/cloud-config: 678e2b8c5497a211b7bc4ac427a61762f142ef6ddb5480f24c6ffe552f874eee
             checksum/cloud-secret: cf2e73d4ff0ce943730b3ed5bd4740f0bd8c4386e5843870f51c302b41df8da9
-            checksum/node-agent-config: 76fceafb522a36b967bccf444e302c5fed634dc2aa81d23eaeed3411720a20b9
+            checksum/node-agent-config: c6c6854af7a7457e50553cc36f9ec990c62c76526b7dd97bee7f8bb1f32ba9ad
             checksum/proxy-config: 3669c08e51ef779cd00a107f19592b34195c3ebdb60bedaf8ebf1491a3f2a747
             container.apparmor.security.beta.kubernetes.io/node-agent: unconfined
           labels:
@@ -8237,7 +8237,7 @@ default capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: a3884b3485c43ed1603dca5d383c5da264de1a0631add04eced7efa580b3850d
+            checksum/capabilities-config: 382e83556a71673e7d391fc49157f4400bb4d6ac28a947ebb761ab721c9c230f
             checksum/cloud-config: 678e2b8c5497a211b7bc4ac427a61762f142ef6ddb5480f24c6ffe552f874eee
             checksum/cloud-secret: cf2e73d4ff0ce943730b3ed5bd4740f0bd8c4386e5843870f51c302b41df8da9
             checksum/matching-rules-config: 4244067153661f0c2577cba49b0dba63db5f77acf9904663ca06610953f55e17
@@ -9274,15 +9274,37 @@ default capabilities:
         tier: ks-control-plane
       name: v1beta1.spdx.softwarecomposition.kubescape.io
     spec:
+      caBundle: bW9jay1jYS1jZXJ0
       group: spdx.softwarecomposition.kubescape.io
       groupPriorityMinimum: 1000
-      insecureSkipTLSVerify: true
+      insecureSkipTLSVerify: false
       service:
         name: storage
         namespace: kubescape
       version: v1beta1
       versionPriority: 15
   63: |
+    apiVersion: v1
+    data:
+      ca.crt: bW9jay1jYS1jZXJ0
+      tls.crt: bW9jay1jZXJ0LWNlcnQ=
+      tls.key: bW9jay1jZXJ0LWtleQ==
+    kind: Secret
+    metadata:
+      labels:
+        app: storage
+        app.kubernetes.io/component: storage
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/version: 1.25.7
+        helm.sh/chart: kubescape-operator-1.25.7
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: storage-ca
+      namespace: kubescape
+    type: kubernetes.io/tls
+  64: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -9346,7 +9368,7 @@ default capabilities:
           - get
           - watch
           - list
-  64: |
+  65: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -9369,7 +9391,7 @@ default capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  65: |
+  66: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -9392,7 +9414,7 @@ default capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  66: |
+  67: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -9453,6 +9475,12 @@ default capabilities:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
+                - name: TLS_CLIENT_CA_FILE
+                  value: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+                - name: TLS_SERVER_CERT_FILE
+                  value: /etc/storage-ca-certificates/tls.crt
+                - name: TLS_SERVER_KEY_FILE
+                  value: /etc/storage-ca-certificates/tls.key
                 - name: ACCOUNT_ID
                   valueFrom:
                     secretKeyRef:
@@ -9487,6 +9515,9 @@ default capabilities:
                 - mountPath: /etc/config
                   name: ks-cloud-config
                   readOnly: true
+                - mountPath: /etc/storage-ca-certificates
+                  name: ca-certificates
+                  readOnly: true
           nodeSelector: null
           securityContext:
             fsGroup: 65532
@@ -9505,7 +9536,10 @@ default capabilities:
                     path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
-  67: |
+            - name: ca-certificates
+              secret:
+                secretName: storage-ca
+  68: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -9557,7 +9591,7 @@ default capabilities:
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
         - Egress
-  68: |
+  69: |
     apiVersion: v1
     kind: PersistentVolumeClaim
     metadata:
@@ -9580,7 +9614,7 @@ default capabilities:
       resources:
         requests:
           storage: 5Gi
-  69: |
+  70: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -9604,7 +9638,7 @@ default capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  70: |
+  71: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -9629,7 +9663,7 @@ default capabilities:
         app.kubernetes.io/component: storage
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  71: |
+  72: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -9645,7 +9679,7 @@ default capabilities:
         tier: ks-control-plane
       name: storage
       namespace: kubescape
-  72: |
+  73: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -9810,7 +9844,7 @@ default capabilities:
           - update
           - patch
           - delete
-  73: |
+  74: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -9833,7 +9867,7 @@ default capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  74: |
+  75: |
     apiVersion: v1
     data:
       config.json: |
@@ -10092,7 +10126,7 @@ default capabilities:
         tier: ks-control-plane
       name: synchronizer
       namespace: kubescape
-  75: |
+  76: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -10242,7 +10276,7 @@ default capabilities:
                     path: config.json
                 name: synchronizer
               name: config
-  76: |
+  77: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -10308,7 +10342,7 @@ default capabilities:
       policyTypes:
         - Ingress
         - Egress
-  77: |
+  78: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -10350,7 +10384,7 @@ default capabilities:
           - list
           - patch
           - delete
-  78: |
+  79: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -10374,7 +10408,7 @@ default capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  79: |
+  80: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -10400,7 +10434,7 @@ default capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  80: |
+  81: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -10518,7 +10552,7 @@ disable otel:
     data:
       capabilities: |
         {
-          "capabilities":{"admissionController":"disable","autoUpgrading":"disable","configurationScan":"enable","httpDetection":"disable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkPolicyService":"enable","nodeProfileService":"disable","nodeSbomGeneration":"disable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","seccompProfileService":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
+          "capabilities":{"admissionController":"enable","autoUpgrading":"disable","configurationScan":"enable","httpDetection":"disable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkPolicyService":"enable","nodeProfileService":"disable","nodeSbomGeneration":"enable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","seccompProfileService":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
           "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":true},"prometheusExporter":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"otelUrl":null,"persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
@@ -11833,7 +11867,7 @@ disable otel:
             "applicationProfileServiceEnabled": true,
             "prometheusExporterEnabled": false,
             "runtimeDetectionEnabled": false,
-            "httpDetectionEnabled": false,
+            "httpDetectionEnabled": true,
             "networkServiceEnabled": true,
             "malwareDetectionEnabled": false,
             "hostMalwareSensorEnabled": false,
@@ -11841,7 +11875,7 @@ disable otel:
             "nodeProfileServiceEnabled": false,
             "maxImageSize": 5.36870912e+09,
             "maxSBOMSize": 2.097152e+07,
-            "sbomGenerationEnabled": false,
+            "sbomGenerationEnabled": true,
             "seccompServiceEnabled": true,
             "initialDelay": "2m",
             "updateDataPeriod": "10m",
@@ -11898,7 +11932,7 @@ disable otel:
           annotations:
             checksum/cloud-config: def218dd594c1e48747f476d985fab8a3abdca0a14402e4dee0675f6fc4b393f
             checksum/cloud-secret: cf2e73d4ff0ce943730b3ed5bd4740f0bd8c4386e5843870f51c302b41df8da9
-            checksum/node-agent-config: 76fceafb522a36b967bccf444e302c5fed634dc2aa81d23eaeed3411720a20b9
+            checksum/node-agent-config: c6c6854af7a7457e50553cc36f9ec990c62c76526b7dd97bee7f8bb1f32ba9ad
             container.apparmor.security.beta.kubernetes.io/node-agent: unconfined
           labels:
             app: node-agent
@@ -12128,6 +12162,97 @@ disable otel:
       name: node-agent
       namespace: kubescape
   30: |
+    apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        app: operator
+        app.kubernetes.io/component: operator
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/version: 1.25.7
+        helm.sh/chart: kubescape-operator-1.25.7
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: kubescape-admission-webhook
+      namespace: kubescape
+    spec:
+      ports:
+        - port: 443
+          targetPort: 8443
+      selector:
+        app.kubernetes.io/component: operator
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/name: kubescape-operator
+      type: ClusterIP
+  31: |
+    apiVersion: v1
+    data:
+      tls.crt: bW9jay1jZXJ0LWNlcnQ=
+      tls.key: bW9jay1jZXJ0LWtleQ==
+    kind: Secret
+    metadata:
+      labels:
+        app: operator
+        app.kubernetes.io/component: operator
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/version: 1.25.7
+        helm.sh/chart: kubescape-operator-1.25.7
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: kubescape-admission-webhook.kubescape.svc-kubescape-tls-pair
+      namespace: kubescape
+    type: kubernetes.io/tls
+  32: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingWebhookConfiguration
+    metadata:
+      labels:
+        app: operator
+        app.kubernetes.io/component: operator
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/version: 1.25.7
+        helm.sh/chart: kubescape-operator-1.25.7
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: validation
+    webhooks:
+      - admissionReviewVersions:
+          - v1
+        clientConfig:
+          caBundle: bW9jay1jYS1jZXJ0
+          service:
+            name: kubescape-admission-webhook
+            namespace: kubescape
+            path: /validate
+            port: 443
+        failurePolicy: Ignore
+        name: validation.kubescape.admission
+        rules:
+          - apiGroups:
+              - '*'
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+              - DELETE
+              - CONNECT
+            resources:
+              - pods
+              - pods/exec
+              - pods/portforward
+              - pods/attach
+              - clusterrolebindings
+              - rolebindings
+            scope: '*'
+        sideEffects: None
+  33: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -12240,7 +12365,7 @@ disable otel:
           - list
           - update
           - patch
-  31: |
+  34: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -12263,7 +12388,7 @@ disable otel:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  32: |
+  35: |
     apiVersion: v1
     data:
       config.json: |
@@ -12289,7 +12414,7 @@ disable otel:
         tier: ks-control-plane
       name: operator
       namespace: kubescape
-  33: |
+  36: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -12322,7 +12447,7 @@ disable otel:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 198343087606bc5b88772499d7f7bd1dadd0ee8c8373ab1282e566e7dec9ac4c
+            checksum/capabilities-config: b8b930f582308c710402d0eaf519424dcded098c7483afb5dfae1e7ca69f5e87
             checksum/cloud-config: def218dd594c1e48747f476d985fab8a3abdca0a14402e4dee0675f6fc4b393f
             checksum/cloud-secret: cf2e73d4ff0ce943730b3ed5bd4740f0bd8c4386e5843870f51c302b41df8da9
             checksum/matching-rules-config: 4244067153661f0c2577cba49b0dba63db5f77acf9904663ca06610953f55e17
@@ -12376,6 +12501,9 @@ disable otel:
                 - containerPort: 8000
                   name: readiness-port
                   protocol: TCP
+                - containerPort: 8443
+                  name: admission-port
+                  protocol: TCP
               readinessProbe:
                 httpGet:
                   path: /v1/readiness
@@ -12419,6 +12547,9 @@ disable otel:
                   name: config
                   readOnly: true
                   subPath: config.json
+                - mountPath: /etc/certs
+                  name: tls-certs
+                  readOnly: true
           nodeSelector: null
           securityContext:
             fsGroup: 65532
@@ -12429,6 +12560,9 @@ disable otel:
             - name: cloud-secret
               secret:
                 secretName: cloud-secret
+            - name: tls-certs
+              secret:
+                secretName: kubescape-admission-webhook.kubescape.svc-kubescape-tls-pair
             - emptyDir: {}
               name: tmp-dir
             - configMap:
@@ -12457,7 +12591,7 @@ disable otel:
                     path: matchingRules.json
                 name: cs-matching-rules
               name: cs-matching-rules
-  34: |
+  37: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -12536,7 +12670,7 @@ disable otel:
         tier: ks-control-plane
       name: kubescape-cronjob-template
       namespace: kubescape
-  35: |
+  38: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -12615,7 +12749,7 @@ disable otel:
         tier: ks-control-plane
       name: kubevuln-cronjob-template
       namespace: kubescape
-  36: |
+  39: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -12694,7 +12828,7 @@ disable otel:
         tier: ks-control-plane
       name: registry-scan-cronjob-template
       namespace: kubescape
-  37: |
+  40: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -12736,7 +12870,7 @@ disable otel:
           - list
           - patch
           - delete
-  38: |
+  41: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -12760,7 +12894,7 @@ disable otel:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  39: |
+  42: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -12786,7 +12920,7 @@ disable otel:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  40: |
+  43: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -12803,7 +12937,7 @@ disable otel:
         tier: ks-control-plane
       name: operator
       namespace: kubescape
-  41: |
+  44: |
     apiVersion: v1
     data:
       otel-collector-config.yaml: |2-
@@ -12881,7 +13015,7 @@ disable otel:
         tier: ks-control-plane
       name: otel-collector-config
       namespace: kubescape
-  42: |
+  45: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -12985,7 +13119,7 @@ disable otel:
             - configMap:
                 name: otel-collector-config
               name: otel-collector-config-volume
-  43: |
+  46: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -13016,7 +13150,7 @@ disable otel:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  44: |
+  47: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -13032,7 +13166,7 @@ disable otel:
         tier: ks-control-plane
       name: otel-collector
       namespace: kubescape
-  45: |
+  48: |
     apiVersion: batch/v1
     kind: Job
     metadata:
@@ -13118,7 +13252,7 @@ disable otel:
           volumes:
             - emptyDir: {}
               name: shared-data
-  46: |
+  49: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -13149,7 +13283,7 @@ disable otel:
           - patch
           - get
           - list
-  47: |
+  50: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -13177,7 +13311,7 @@ disable otel:
       - kind: ServiceAccount
         name: service-discovery
         namespace: kubescape
-  48: |
+  51: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -13197,7 +13331,7 @@ disable otel:
         tier: ks-control-plane
       name: service-discovery
       namespace: kubescape
-  49: |
+  52: |
     apiVersion: apiregistration.k8s.io/v1
     kind: APIService
     metadata:
@@ -13213,15 +13347,37 @@ disable otel:
         tier: ks-control-plane
       name: v1beta1.spdx.softwarecomposition.kubescape.io
     spec:
+      caBundle: bW9jay1jYS1jZXJ0
       group: spdx.softwarecomposition.kubescape.io
       groupPriorityMinimum: 1000
-      insecureSkipTLSVerify: true
+      insecureSkipTLSVerify: false
       service:
         name: storage
         namespace: kubescape
       version: v1beta1
       versionPriority: 15
-  50: |
+  53: |
+    apiVersion: v1
+    data:
+      ca.crt: bW9jay1jYS1jZXJ0
+      tls.crt: bW9jay1jZXJ0LWNlcnQ=
+      tls.key: bW9jay1jZXJ0LWtleQ==
+    kind: Secret
+    metadata:
+      labels:
+        app: storage
+        app.kubernetes.io/component: storage
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/version: 1.25.7
+        helm.sh/chart: kubescape-operator-1.25.7
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: storage-ca
+      namespace: kubescape
+    type: kubernetes.io/tls
+  54: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -13285,7 +13441,7 @@ disable otel:
           - get
           - watch
           - list
-  51: |
+  55: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -13308,7 +13464,7 @@ disable otel:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  52: |
+  56: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -13331,7 +13487,7 @@ disable otel:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  53: |
+  57: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -13392,6 +13548,12 @@ disable otel:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
+                - name: TLS_CLIENT_CA_FILE
+                  value: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+                - name: TLS_SERVER_CERT_FILE
+                  value: /etc/storage-ca-certificates/tls.crt
+                - name: TLS_SERVER_KEY_FILE
+                  value: /etc/storage-ca-certificates/tls.key
                 - name: ACCOUNT_ID
                   valueFrom:
                     secretKeyRef:
@@ -13426,6 +13588,9 @@ disable otel:
                 - mountPath: /etc/config
                   name: ks-cloud-config
                   readOnly: true
+                - mountPath: /etc/storage-ca-certificates
+                  name: ca-certificates
+                  readOnly: true
           nodeSelector: null
           securityContext:
             fsGroup: 65532
@@ -13444,7 +13609,10 @@ disable otel:
                     path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
-  54: |
+            - name: ca-certificates
+              secret:
+                secretName: storage-ca
+  58: |
     apiVersion: v1
     kind: PersistentVolumeClaim
     metadata:
@@ -13467,7 +13635,7 @@ disable otel:
       resources:
         requests:
           storage: 5Gi
-  55: |
+  59: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -13491,7 +13659,7 @@ disable otel:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  56: |
+  60: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -13516,7 +13684,7 @@ disable otel:
         app.kubernetes.io/component: storage
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  57: |
+  61: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -13532,7 +13700,7 @@ disable otel:
         tier: ks-control-plane
       name: storage
       namespace: kubescape
-  58: |
+  62: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -13697,7 +13865,7 @@ disable otel:
           - update
           - patch
           - delete
-  59: |
+  63: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -13720,7 +13888,7 @@ disable otel:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  60: |
+  64: |
     apiVersion: v1
     data:
       config.json: |
@@ -13979,7 +14147,7 @@ disable otel:
         tier: ks-control-plane
       name: synchronizer
       namespace: kubescape
-  61: |
+  65: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -14113,7 +14281,7 @@ disable otel:
                     path: config.json
                 name: synchronizer
               name: config
-  62: |
+  66: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -14155,7 +14323,7 @@ disable otel:
           - list
           - patch
           - delete
-  63: |
+  67: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -14179,7 +14347,7 @@ disable otel:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  64: |
+  68: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -14205,7 +14373,7 @@ disable otel:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  65: |
+  69: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -14307,7 +14475,7 @@ minimal capabilities:
     data:
       capabilities: |
         {
-          "capabilities":{"admissionController":"disable","autoUpgrading":"disable","configurationScan":"enable","httpDetection":"disable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkPolicyService":"enable","nodeProfileService":"disable","nodeSbomGeneration":"disable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","seccompProfileService":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
+          "capabilities":{"admissionController":"enable","autoUpgrading":"disable","configurationScan":"enable","httpDetection":"disable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkPolicyService":"enable","nodeProfileService":"disable","nodeSbomGeneration":"enable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","seccompProfileService":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
           "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":false},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":false},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":true},"prometheusExporter":{"enabled":false},"serviceDiscovery":{"enabled":false},"storage":{"enabled":true},"synchronizer":{"enabled":false}},
           "configurations":{"otelUrl":"otelCollector:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
@@ -15424,7 +15592,7 @@ minimal capabilities:
             "applicationProfileServiceEnabled": true,
             "prometheusExporterEnabled": false,
             "runtimeDetectionEnabled": false,
-            "httpDetectionEnabled": false,
+            "httpDetectionEnabled": true,
             "networkServiceEnabled": true,
             "malwareDetectionEnabled": false,
             "hostMalwareSensorEnabled": false,
@@ -15432,7 +15600,7 @@ minimal capabilities:
             "nodeProfileServiceEnabled": false,
             "maxImageSize": 5.36870912e+09,
             "maxSBOMSize": 2.097152e+07,
-            "sbomGenerationEnabled": false,
+            "sbomGenerationEnabled": true,
             "seccompServiceEnabled": true,
             "initialDelay": "2m",
             "updateDataPeriod": "10m",
@@ -15487,7 +15655,7 @@ minimal capabilities:
           annotations:
             checksum/cloud-config: 9e8579a8978574318fbe7cbea9a471f1a26154673dfc8384fb7bab97fec56852
             checksum/cloud-secret: f1356b6dba8ba4a01197f4030346928c33c7dab7b123a2aecaffb0630352929c
-            checksum/node-agent-config: a7d1aa7e114c06c5cc185571f42a84a25f6c50d0c95ab89e3226b2d57cfab6ae
+            checksum/node-agent-config: 5c04a7da679bba531614e064ab1b48367089278cb1093d6d56cbfec695e385f9
             container.apparmor.security.beta.kubernetes.io/node-agent: unconfined
           labels:
             app: node-agent
@@ -15715,6 +15883,97 @@ minimal capabilities:
       name: node-agent
       namespace: kubescape
   26: |
+    apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        app: operator
+        app.kubernetes.io/component: operator
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/version: 1.25.7
+        helm.sh/chart: kubescape-operator-1.25.7
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: kubescape-admission-webhook
+      namespace: kubescape
+    spec:
+      ports:
+        - port: 443
+          targetPort: 8443
+      selector:
+        app.kubernetes.io/component: operator
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/name: kubescape-operator
+      type: ClusterIP
+  27: |
+    apiVersion: v1
+    data:
+      tls.crt: bW9jay1jZXJ0LWNlcnQ=
+      tls.key: bW9jay1jZXJ0LWtleQ==
+    kind: Secret
+    metadata:
+      labels:
+        app: operator
+        app.kubernetes.io/component: operator
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/version: 1.25.7
+        helm.sh/chart: kubescape-operator-1.25.7
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: kubescape-admission-webhook.kubescape.svc-kubescape-tls-pair
+      namespace: kubescape
+    type: kubernetes.io/tls
+  28: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingWebhookConfiguration
+    metadata:
+      labels:
+        app: operator
+        app.kubernetes.io/component: operator
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/version: 1.25.7
+        helm.sh/chart: kubescape-operator-1.25.7
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: validation
+    webhooks:
+      - admissionReviewVersions:
+          - v1
+        clientConfig:
+          caBundle: bW9jay1jYS1jZXJ0
+          service:
+            name: kubescape-admission-webhook
+            namespace: kubescape
+            path: /validate
+            port: 443
+        failurePolicy: Ignore
+        name: validation.kubescape.admission
+        rules:
+          - apiGroups:
+              - '*'
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+              - DELETE
+              - CONNECT
+            resources:
+              - pods
+              - pods/exec
+              - pods/portforward
+              - pods/attach
+              - clusterrolebindings
+              - rolebindings
+            scope: '*'
+        sideEffects: None
+  29: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -15827,7 +16086,7 @@ minimal capabilities:
           - list
           - update
           - patch
-  27: |
+  30: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -15850,7 +16109,7 @@ minimal capabilities:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  28: |
+  31: |
     apiVersion: v1
     data:
       config.json: |
@@ -15875,7 +16134,7 @@ minimal capabilities:
         tier: ks-control-plane
       name: operator
       namespace: kubescape
-  29: |
+  32: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -15908,7 +16167,7 @@ minimal capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: e875e47f1704778aa8415c5219fc93d71710d205eafd22a547da584126fdce49
+            checksum/capabilities-config: 6ebaa02fce75e1d6a6607beb655b5dcbfafb604d9497824381552f36fa4b5a52
             checksum/cloud-config: 9e8579a8978574318fbe7cbea9a471f1a26154673dfc8384fb7bab97fec56852
             checksum/cloud-secret: f1356b6dba8ba4a01197f4030346928c33c7dab7b123a2aecaffb0630352929c
             checksum/matching-rules-config: 4244067153661f0c2577cba49b0dba63db5f77acf9904663ca06610953f55e17
@@ -15962,6 +16221,9 @@ minimal capabilities:
                 - containerPort: 8000
                   name: readiness-port
                   protocol: TCP
+                - containerPort: 8443
+                  name: admission-port
+                  protocol: TCP
               readinessProbe:
                 httpGet:
                   path: /v1/readiness
@@ -16001,6 +16263,9 @@ minimal capabilities:
                   name: config
                   readOnly: true
                   subPath: config.json
+                - mountPath: /etc/certs
+                  name: tls-certs
+                  readOnly: true
           nodeSelector: null
           securityContext:
             fsGroup: 65532
@@ -16011,6 +16276,9 @@ minimal capabilities:
             - name: cloud-secret
               secret:
                 secretName: cloud-secret
+            - name: tls-certs
+              secret:
+                secretName: kubescape-admission-webhook.kubescape.svc-kubescape-tls-pair
             - emptyDir: {}
               name: tmp-dir
             - configMap:
@@ -16037,7 +16305,7 @@ minimal capabilities:
                     path: matchingRules.json
                 name: cs-matching-rules
               name: cs-matching-rules
-  30: |
+  33: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -16116,7 +16384,7 @@ minimal capabilities:
         tier: ks-control-plane
       name: kubescape-cronjob-template
       namespace: kubescape
-  31: |
+  34: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -16195,7 +16463,7 @@ minimal capabilities:
         tier: ks-control-plane
       name: kubevuln-cronjob-template
       namespace: kubescape
-  32: |
+  35: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -16274,7 +16542,7 @@ minimal capabilities:
         tier: ks-control-plane
       name: registry-scan-cronjob-template
       namespace: kubescape
-  33: |
+  36: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -16316,7 +16584,7 @@ minimal capabilities:
           - list
           - patch
           - delete
-  34: |
+  37: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -16340,7 +16608,7 @@ minimal capabilities:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  35: |
+  38: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -16366,7 +16634,7 @@ minimal capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  36: |
+  39: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -16383,7 +16651,7 @@ minimal capabilities:
         tier: ks-control-plane
       name: operator
       namespace: kubescape
-  37: |
+  40: |
     apiVersion: v1
     data:
       otel-collector-config.yaml: "\n# receivers configure how data gets into the Collector.\nreceivers:\n  otlp:\n    protocols:\n      grpc:\n        endpoint: 0.0.0.0:4317\n      http:\n        endpoint: 0.0.0.0:4318\n  hostmetrics:\n    collection_interval: 30s\n    scrapers:\n      cpu:\n      memory:\n\n# processors specify what happens with the received data.\nprocessors:\n  attributes/ksCloud:\n    actions:\n      - key: account_id\n        value: \"\"\n        action: upsert\n      - key: cluster_name\n        value: \"kind-kind\"\n        action: upsert\n  batch:\n    send_batch_size: 10000\n    timeout: 10s\n\n# exporters configure how to send processed data to one or more backends.\nexporters:\n  otlp/ksCloud:\n    endpoint: \"\"\n    tls:\n      insecure: false\n  otlp:\n    endpoint: \"otelCollector:4317\"\n    tls:\n      insecure: true\n    headers:\n      uptrace-dsn: \n\n# service pulls the configured receivers, processors, and exporters together into\n# processing pipelines. Unused receivers/processors/exporters are ignored.\nservice:\n  pipelines:\n    traces:\n      receivers: [otlp]\n      processors: [batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp\n    metrics/2:\n      receivers: [hostmetrics]\n      processors: [attributes/ksCloud, batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp\n    metrics:\n      receivers: [otlp]\n      processors: [attributes/ksCloud, batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp\n    logs:\n      receivers: [otlp]\n      processors: [attributes/ksCloud, batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp"
@@ -16402,7 +16670,7 @@ minimal capabilities:
         tier: ks-control-plane
       name: otel-collector-config
       namespace: kubescape
-  38: |
+  41: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -16506,7 +16774,7 @@ minimal capabilities:
             - configMap:
                 name: otel-collector-config
               name: otel-collector-config-volume
-  39: |
+  42: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -16537,7 +16805,7 @@ minimal capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  40: |
+  43: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -16553,7 +16821,7 @@ minimal capabilities:
         tier: ks-control-plane
       name: otel-collector
       namespace: kubescape
-  41: |
+  44: |
     apiVersion: apiregistration.k8s.io/v1
     kind: APIService
     metadata:
@@ -16569,15 +16837,37 @@ minimal capabilities:
         tier: ks-control-plane
       name: v1beta1.spdx.softwarecomposition.kubescape.io
     spec:
+      caBundle: bW9jay1jYS1jZXJ0
       group: spdx.softwarecomposition.kubescape.io
       groupPriorityMinimum: 1000
-      insecureSkipTLSVerify: true
+      insecureSkipTLSVerify: false
       service:
         name: storage
         namespace: kubescape
       version: v1beta1
       versionPriority: 15
-  42: |
+  45: |
+    apiVersion: v1
+    data:
+      ca.crt: bW9jay1jYS1jZXJ0
+      tls.crt: bW9jay1jZXJ0LWNlcnQ=
+      tls.key: bW9jay1jZXJ0LWtleQ==
+    kind: Secret
+    metadata:
+      labels:
+        app: storage
+        app.kubernetes.io/component: storage
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/version: 1.25.7
+        helm.sh/chart: kubescape-operator-1.25.7
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: storage-ca
+      namespace: kubescape
+    type: kubernetes.io/tls
+  46: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -16641,7 +16931,7 @@ minimal capabilities:
           - get
           - watch
           - list
-  43: |
+  47: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -16664,7 +16954,7 @@ minimal capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  44: |
+  48: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -16687,7 +16977,7 @@ minimal capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  45: |
+  49: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -16748,6 +17038,12 @@ minimal capabilities:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
+                - name: TLS_CLIENT_CA_FILE
+                  value: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+                - name: TLS_SERVER_CERT_FILE
+                  value: /etc/storage-ca-certificates/tls.crt
+                - name: TLS_SERVER_KEY_FILE
+                  value: /etc/storage-ca-certificates/tls.key
                 - name: ACCOUNT_ID
                   valueFrom:
                     secretKeyRef:
@@ -16780,6 +17076,9 @@ minimal capabilities:
                 - mountPath: /etc/config
                   name: ks-cloud-config
                   readOnly: true
+                - mountPath: /etc/storage-ca-certificates
+                  name: ca-certificates
+                  readOnly: true
           nodeSelector: null
           securityContext:
             fsGroup: 65532
@@ -16796,7 +17095,10 @@ minimal capabilities:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-  46: |
+            - name: ca-certificates
+              secret:
+                secretName: storage-ca
+  50: |
     apiVersion: v1
     kind: PersistentVolumeClaim
     metadata:
@@ -16819,7 +17121,7 @@ minimal capabilities:
       resources:
         requests:
           storage: 5Gi
-  47: |
+  51: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -16843,7 +17145,7 @@ minimal capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  48: |
+  52: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -16868,7 +17170,7 @@ minimal capabilities:
         app.kubernetes.io/component: storage
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  49: |
+  53: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
