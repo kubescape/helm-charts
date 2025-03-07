@@ -69,7 +69,7 @@ nodeAgent:
 operator:
   enabled: true
 otelCollector:
-  enabled: {{ or $configurations.ksOtel $configurations.otel }}
+  enabled: {{ and $configurations.ksOtel (not $configurations.otel) }}
 serviceDiscovery:
   enabled: {{ $configurations.submit }}
 storage:
