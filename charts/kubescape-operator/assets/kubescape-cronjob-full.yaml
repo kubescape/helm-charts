@@ -22,7 +22,13 @@ apiVersion: batch/v1
             spec:
               {{- if .Values.imagePullSecrets }}
               imagePullSecrets:
-              - name: {{ toYaml .Values.imagePullSecrets }}
+              {{- if kindIs "string" .Values.imagePullSecrets }}
+              - name: {{ .Values.imagePullSecrets }}
+              {{- else }}
+              {{- range .Values.imagePullSecrets }}
+              - name: {{ . }}
+              {{- end }}
+              {{- end }}
               {{- end }}
               containers:
               - name: {{ .Values.kubescapeScheduler.name }}
