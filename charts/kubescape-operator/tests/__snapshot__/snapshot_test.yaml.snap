@@ -253,7 +253,7 @@ all capabilities:
           "namespace": "kubescape",
           "imageVulnerabilitiesScanningEnabled": true,
           "postureScanEnabled": true,
-          "otelCollector": true,
+          "otelCollector": false,
           "nodeAgent": "true",
           "maxImageSize": 5.36870912e+09,
           "maxSBOMSize": 2.097152e+07,
@@ -296,8 +296,8 @@ all capabilities:
       capabilities: |
         {
           "capabilities":{"admissionController":"enable","autoUpgrading":"enable","configurationScan":"enable","continuousScan":"enable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"enable","manageWorkloads":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","prometheusExporter":"enable","relevancy":"enable","runtimeDetection":"enable","runtimeObservability":"enable","seccompProfileService":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"enable","vulnerabilityScan":"enable"},
-          "components":{"autoUpdater":{"enabled":true},"clamAV":{"enabled":true},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":true},"prometheusExporter":{"enabled":true},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
-          "configurations":{"otelUrl":"otelCollector:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
+          "components":{"autoUpdater":{"enabled":true},"clamAV":{"enabled":true},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":true},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
+          "configurations":{"otelUrl":"otelCollector.svc.monitoring:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
         }
     kind: ConfigMap
@@ -1101,9 +1101,9 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: d6f711c907ac404868d836f559972d6b753ab085a3cf4ed47a079db75cd206fa
+            checksum/cloud-config: 8bea5d145a96091c24141adb7776bf4c9b39dcb8164118d61e28a41e0271d2bb
             checksum/cloud-secret: cf2e73d4ff0ce943730b3ed5bd4740f0bd8c4386e5843870f51c302b41df8da9
-            checksum/host-scanner-configmap: 4102763b42f043f91a266372f06dc4b061da6b86a50d6ace883233941c83bf4f
+            checksum/host-scanner-configmap: 62514db45c269f7c0ac784efe8f7bfcd1ced7c39a81b965345579ca4feb4ed27
             checksum/proxy-config: 3669c08e51ef779cd00a107f19592b34195c3ebdb60bedaf8ebf1491a3f2a747
           labels:
             app: kubescape
@@ -1115,7 +1115,6 @@ all capabilities:
             helm.sh/chart: kubescape-operator-1.26.2
             kubescape.io/ignore: "true"
             kubescape.io/tier: core
-            otel: enabled
             tier: ks-control-plane
         spec:
           affinity: null
@@ -1158,13 +1157,8 @@ all capabilities:
                   value: /home/nonroot/.kubescape/host-scanner.yaml
                 - name: LARGE_CLUSTER_SIZE
                   value: "1500"
-                - name: ACCOUNT_ID
-                  valueFrom:
-                    secretKeyRef:
-                      key: account
-                      name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
-                  value: otel-collector:4318
+                  value: otelCollector.svc.monitoring:4317
                 - name: HTTPS_PROXY
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
@@ -1299,7 +1293,6 @@ all capabilities:
                 kubescape.io/ignore: "true"
                 kubescape.io/tier: "core"
                 name: host-scanner
-                otel: enabled
             spec:
               nodeSelector:
                 kubernetes.io/os: linux
@@ -1327,15 +1320,8 @@ all capabilities:
                   value: "info"
                 - name: KS_LOGGER_NAME
                   value: "zap"
-                - name: ACCOUNT_ID
-                  valueFrom:
-                    secretKeyRef:
-                      name: cloud-secret
-                      key: account
-                - name: CLUSTER_NAME
-                  value: "kind-kind"
                 - name: OTEL_COLLECTOR_SVC
-                  value: "otel-collector.kubescape.svc:4318"
+                  value: otelCollector.svc.monitoring:4317
                 ports:
                   - name: scanner # Do not change port name
                     containerPort: 7888
@@ -1872,7 +1858,7 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: d6f711c907ac404868d836f559972d6b753ab085a3cf4ed47a079db75cd206fa
+            checksum/cloud-config: 8bea5d145a96091c24141adb7776bf4c9b39dcb8164118d61e28a41e0271d2bb
             checksum/cloud-secret: cf2e73d4ff0ce943730b3ed5bd4740f0bd8c4386e5843870f51c302b41df8da9
             checksum/proxy-config: 3669c08e51ef779cd00a107f19592b34195c3ebdb60bedaf8ebf1491a3f2a747
           labels:
@@ -1885,7 +1871,6 @@ all capabilities:
             helm.sh/chart: kubescape-operator-1.26.2
             kubescape.io/ignore: "true"
             kubescape.io/tier: core
-            otel: enabled
             tier: ks-control-plane
         spec:
           affinity: null
@@ -1912,13 +1897,8 @@ all capabilities:
                   value: ""
                 - name: CA_MAX_VULN_SCAN_ROUTINES
                   value: "1"
-                - name: ACCOUNT_ID
-                  valueFrom:
-                    secretKeyRef:
-                      key: account
-                      name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
-                  value: otel-collector:4318
+                  value: otelCollector.svc.monitoring:4317
                 - name: HTTPS_PROXY
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
@@ -2390,7 +2370,7 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: d6f711c907ac404868d836f559972d6b753ab085a3cf4ed47a079db75cd206fa
+            checksum/cloud-config: 8bea5d145a96091c24141adb7776bf4c9b39dcb8164118d61e28a41e0271d2bb
             checksum/cloud-secret: cf2e73d4ff0ce943730b3ed5bd4740f0bd8c4386e5843870f51c302b41df8da9
             checksum/node-agent-config: dce50ffdaefa9085520f1ffa39bb559a8ebf90721c765aef9414dcb244a512bf
             checksum/proxy-config: 3669c08e51ef779cd00a107f19592b34195c3ebdb60bedaf8ebf1491a3f2a747
@@ -2405,7 +2385,6 @@ all capabilities:
             helm.sh/chart: kubescape-operator-1.26.2
             kubescape.io/ignore: "true"
             kubescape.io/tier: core
-            otel: enabled
             tier: ks-control-plane
         spec:
           affinity:
@@ -2460,7 +2439,7 @@ all capabilities:
                 - name: KS_LOGGER_NAME
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
-                  value: otel-collector:4318
+                  value: otelCollector.svc.monitoring:4317
                 - name: CLAMAV_SOCKET
                   value: /clamav/clamd.sock
                 - name: HTTPS_PROXY
@@ -3108,8 +3087,8 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 6de047b9fb82f3d94b66b77a16b5af4902212c717141b483791c13f8cb3fc178
-            checksum/cloud-config: d6f711c907ac404868d836f559972d6b753ab085a3cf4ed47a079db75cd206fa
+            checksum/capabilities-config: 8798d2a880ebc9f6f932c8386c0f3078fcf01d2424fc56108b9df1d781b102ed
+            checksum/cloud-config: 8bea5d145a96091c24141adb7776bf4c9b39dcb8164118d61e28a41e0271d2bb
             checksum/cloud-secret: cf2e73d4ff0ce943730b3ed5bd4740f0bd8c4386e5843870f51c302b41df8da9
             checksum/matching-rules-config: 4244067153661f0c2577cba49b0dba63db5f77acf9904663ca06610953f55e17
             checksum/operator-config: c5e8d0f30f026bfd6059b9ae0a4232211488f34a55d1257c386631e5e8d0935f
@@ -3124,7 +3103,6 @@ all capabilities:
             helm.sh/chart: kubescape-operator-1.26.2
             kubescape.io/ignore: "true"
             kubescape.io/tier: core
-            otel: enabled
             tier: ks-control-plane
         spec:
           affinity: null
@@ -3146,7 +3124,7 @@ all capabilities:
                 - name: KS_LOGGER_NAME
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
-                  value: otel-collector:4318
+                  value: otelCollector.svc.monitoring:4317
                 - name: HTTPS_PROXY
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
@@ -3754,281 +3732,6 @@ all capabilities:
       name: operator
       namespace: kubescape
   70: |
-    apiVersion: v1
-    data:
-      otel-collector-config.yaml: "\n# receivers configure how data gets into the Collector.\nreceivers:\n  otlp:\n    protocols:\n      grpc:\n        endpoint: 0.0.0.0:4317\n      http:\n        endpoint: 0.0.0.0:4318\n  hostmetrics:\n    collection_interval: 30s\n    scrapers:\n      cpu:\n      memory:\n\n# processors specify what happens with the received data.\nprocessors:\n  attributes/ksCloud:\n    actions:\n      - key: account_id\n        value: \"9e6c0c2c-6bd0-4919-815b-55030de7c9a0\"\n        action: upsert\n      - key: cluster_name\n        value: \"kind-kind\"\n        action: upsert\n  batch:\n    send_batch_size: 10000\n    timeout: 10s\n\n# exporters configure how to send processed data to one or more backends.\nexporters:\n  otlp/ksCloud:\n    endpoint: ${env:CLOUD_OTEL_COLLECTOR_URL}\n    tls:\n      insecure: false\n  otlp:\n    endpoint: \"otelCollector:4317\"\n    tls:\n      insecure: true\n    headers:\n      uptrace-dsn: \n\n# service pulls the configured receivers, processors, and exporters together into\n# processing pipelines. Unused receivers/processors/exporters are ignored.\nservice:\n  pipelines:\n    traces:\n      receivers: [otlp]\n      processors: [batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp\n    metrics/2:\n      receivers: [hostmetrics]\n      processors: [attributes/ksCloud, batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp\n    metrics:\n      receivers: [otlp]\n      processors: [attributes/ksCloud, batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp"
-    kind: ConfigMap
-    metadata:
-      labels:
-        app: ks-cloud-config
-        app.kubernetes.io/component: ks-cloud-config
-        app.kubernetes.io/instance: RELEASE-NAME
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: kubescape-operator
-        app.kubernetes.io/version: 1.26.2
-        helm.sh/chart: kubescape-operator-1.26.2
-        kubescape.io/ignore: "true"
-        kubescape.io/tier: core
-        tier: ks-control-plane
-      name: otel-collector-config
-      namespace: kubescape
-  71: |
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      labels:
-        app: otel-collector
-        app.kubernetes.io/component: otel-collector
-        app.kubernetes.io/instance: RELEASE-NAME
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: kubescape-operator
-        app.kubernetes.io/version: 1.26.2
-        helm.sh/chart: kubescape-operator-1.26.2
-        kubescape.io/ignore: "true"
-        kubescape.io/tier: core
-        tier: ks-control-plane
-      name: otel-collector
-      namespace: kubescape
-    spec:
-      replicas: 1
-      revisionHistoryLimit: 2
-      selector:
-        matchLabels:
-          app.kubernetes.io/component: otel-collector
-          app.kubernetes.io/instance: RELEASE-NAME
-          app.kubernetes.io/name: kubescape-operator
-      strategy:
-        rollingUpdate:
-          maxSurge: 0%
-          maxUnavailable: 100%
-        type: RollingUpdate
-      template:
-        metadata:
-          annotations:
-            checksum/otel-config: 026759b4560d4eb7ad8f834400a5b6445ed57639724d95ea27704c9ea642e6bc
-            checksum/proxy-config: 3669c08e51ef779cd00a107f19592b34195c3ebdb60bedaf8ebf1491a3f2a747
-          labels:
-            app: otel-collector
-            app.kubernetes.io/component: otel-collector
-            app.kubernetes.io/instance: RELEASE-NAME
-            app.kubernetes.io/managed-by: Helm
-            app.kubernetes.io/name: kubescape-operator
-            app.kubernetes.io/version: 1.26.2
-            helm.sh/chart: kubescape-operator-1.26.2
-            kubescape.io/ignore: "true"
-            kubescape.io/tier: core
-            tier: ks-control-plane
-        spec:
-          affinity: null
-          containers:
-            - command:
-                - /otelcol
-                - --config=/conf/otel-collector-config.yaml
-              env:
-                - name: CLOUD_OTEL_COLLECTOR_URL
-                  valueFrom:
-                    configMapKeyRef:
-                      key: metrics
-                      name: ks-cloud-config
-                - name: GOMEMLIMIT
-                  valueFrom:
-                    resourceFieldRef:
-                      resource: limits.memory
-                - name: GOMAXPROCS
-                  valueFrom:
-                    resourceFieldRef:
-                      resource: limits.cpu
-                - name: GOGC
-                  value: "80"
-                - name: HTTPS_PROXY
-                  value: https://foo:bar@baz:1234
-                - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: docker.io/otel/opentelemetry-collector:0.108.0
-              imagePullPolicy: IfNotPresent
-              livenessProbe:
-                tcpSocket:
-                  port: otlp
-              name: otel-collector
-              ports:
-                - containerPort: 4317
-                  name: otlp
-                  protocol: TCP
-                - containerPort: 4318
-                  name: otlp-http
-                  protocol: TCP
-              readinessProbe:
-                tcpSocket:
-                  port: otlp
-              resources:
-                limits:
-                  cpu: 1
-                  memory: 1Gi
-                requests:
-                  cpu: 100m
-                  memory: 500Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                runAsNonRoot: true
-                runAsUser: 100
-              volumeMounts:
-                - mountPath: /conf
-                  name: otel-collector-config-volume
-                - mountPath: /etc/ssl/certs/proxy.crt
-                  name: proxy-secret
-                  subPath: proxy.crt
-          imagePullSecrets:
-            - name: foo
-          nodeSelector: null
-          serviceAccountName: otel-collector
-          tolerations: null
-          volumes:
-            - name: proxy-secret
-              secret:
-                secretName: kubescape-proxy-certificate
-            - configMap:
-                name: otel-collector-config
-              name: otel-collector-config-volume
-  72: |
-    apiVersion: networking.k8s.io/v1
-    kind: NetworkPolicy
-    metadata:
-      labels:
-        app: otel-collector
-        app.kubernetes.io/component: otel-collector
-        app.kubernetes.io/instance: RELEASE-NAME
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: kubescape-operator
-        app.kubernetes.io/version: 1.26.2
-        helm.sh/chart: kubescape-operator-1.26.2
-        kubescape.io/ignore: "true"
-        tier: ks-control-plane
-      name: otel-collector
-      namespace: kubescape
-    spec:
-      egress:
-        - ports:
-            - port: 443
-              protocol: TCP
-            - port: 4317
-              protocol: TCP
-        - ports:
-            - port: 53
-              protocol: UDP
-          to:
-            - namespaceSelector:
-                matchLabels:
-                  kubernetes.io/metadata.name: kube-system
-              podSelector:
-                matchLabels:
-                  k8s-app: kube-dns
-        - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
-        - ports:
-            - port: 1234
-              protocol: TCP
-          to:
-            - ipBlock:
-                cidr: 1.1.1.1/32
-      ingress:
-        - from:
-            - podSelector:
-                matchLabels:
-                  otel: enabled
-          ports:
-            - port: otlp
-              protocol: TCP
-            - port: otlp-http
-              protocol: TCP
-      podSelector:
-        matchLabels:
-          app.kubernetes.io/component: otel-collector
-          app.kubernetes.io/instance: RELEASE-NAME
-          app.kubernetes.io/name: kubescape-operator
-      policyTypes:
-        - Ingress
-        - Egress
-  73: |
-    apiVersion: rbac.authorization.k8s.io/v1
-    kind: RoleBinding
-    metadata:
-      labels:
-        app: otel-collector
-        app.kubernetes.io/component: otel-collector
-        app.kubernetes.io/instance: RELEASE-NAME
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: kubescape-operator
-        app.kubernetes.io/version: 1.26.2
-        helm.sh/chart: kubescape-operator-1.26.2
-        kubescape.io/ignore: "true"
-        tier: ks-control-plane
-      name: otel-collector-scc
-      namespace: kubescape
-    roleRef:
-      apiGroup: rbac.authorization.k8s.io
-      kind: ClusterRole
-      name: system:openshift:scc:nonroot-v2
-    subjects:
-      - kind: ServiceAccount
-        name: otel-collector
-        namespace: kubescape
-  74: |
-    apiVersion: v1
-    kind: Service
-    metadata:
-      labels:
-        app: otel-collector
-        app.kubernetes.io/component: otel-collector
-        app.kubernetes.io/instance: RELEASE-NAME
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: kubescape-operator
-        app.kubernetes.io/version: 1.26.2
-        helm.sh/chart: kubescape-operator-1.26.2
-        kubescape.io/ignore: "true"
-        tier: ks-control-plane
-      name: otel-collector
-      namespace: kubescape
-    spec:
-      ports:
-        - name: otlp
-          port: 4317
-          protocol: TCP
-          targetPort: 4317
-        - name: otlp-http
-          port: 4318
-          protocol: TCP
-          targetPort: 4318
-      selector:
-        app.kubernetes.io/component: otel-collector
-        app.kubernetes.io/instance: RELEASE-NAME
-        app.kubernetes.io/name: kubescape-operator
-      type: ClusterIP
-  75: |
-    apiVersion: v1
-    kind: ServiceAccount
-    metadata:
-      labels:
-        app: otel-collector
-        app.kubernetes.io/component: otel-collector
-        app.kubernetes.io/instance: RELEASE-NAME
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: kubescape-operator
-        app.kubernetes.io/version: 1.26.2
-        helm.sh/chart: kubescape-operator-1.26.2
-        kubescape.io/ignore: "true"
-        tier: ks-control-plane
-      name: otel-collector
-      namespace: kubescape
-  76: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -4055,7 +3758,7 @@ all capabilities:
           - get
           - watch
           - list
-  77: |
+  71: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -4078,7 +3781,7 @@ all capabilities:
       - kind: ServiceAccount
         name: prometheus-exporter
         namespace: kubescape
-  78: |
+  72: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -4181,7 +3884,7 @@ all capabilities:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-  79: |
+  73: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -4209,7 +3912,7 @@ all capabilities:
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
         - Ingress
-  80: |
+  74: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -4235,7 +3938,7 @@ all capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: null
-  81: |
+  75: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -4252,7 +3955,7 @@ all capabilities:
         tier: ks-control-plane
       name: prometheus-exporter
       namespace: kubescape
-  82: |
+  76: |
     apiVersion: monitoring.coreos.com/v1
     kind: ServiceMonitor
     metadata:
@@ -4281,7 +3984,7 @@ all capabilities:
           app.kubernetes.io/component: prometheus-exporter
           app.kubernetes.io/instance: RELEASE-NAME
           app.kubernetes.io/name: kubescape-operator
-  83: |
+  77: |
     apiVersion: v1
     data:
       proxy.crt: foo
@@ -4304,7 +4007,7 @@ all capabilities:
       name: kubescape-proxy-certificate
       namespace: kubescape
     type: Opaque
-  84: |
+  78: |
     apiVersion: batch/v1
     kind: Job
     metadata:
@@ -4337,7 +4040,6 @@ all capabilities:
             app.kubernetes.io/version: 1.26.2
             helm.sh/chart: kubescape-operator-1.26.2
             kubescape.io/ignore: "true"
-            otel: enabled
             tier: ks-control-plane
           name: RELEASE-NAME
         spec:
@@ -4403,7 +4105,7 @@ all capabilities:
             - name: proxy-secret
               secret:
                 secretName: kubescape-proxy-certificate
-  85: |
+  79: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -4434,7 +4136,7 @@ all capabilities:
           - patch
           - get
           - list
-  86: |
+  80: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -4462,7 +4164,7 @@ all capabilities:
       - kind: ServiceAccount
         name: service-discovery
         namespace: kubescape
-  87: |
+  81: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -4482,7 +4184,7 @@ all capabilities:
         tier: ks-control-plane
       name: service-discovery
       namespace: kubescape
-  88: |
+  82: |
     apiVersion: apiregistration.k8s.io/v1
     kind: APIService
     metadata:
@@ -4506,7 +4208,7 @@ all capabilities:
         namespace: kubescape
       version: v1beta1
       versionPriority: 15
-  89: |
+  83: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -4570,7 +4272,7 @@ all capabilities:
           - get
           - watch
           - list
-  90: |
+  84: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -4593,7 +4295,7 @@ all capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  91: |
+  85: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -4616,7 +4318,7 @@ all capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  92: |
+  86: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -4657,7 +4359,6 @@ all capabilities:
             helm.sh/chart: kubescape-operator-1.26.2
             kubescape.io/ignore: "true"
             kubescape.io/tier: core
-            otel: enabled
             tier: ks-control-plane
         spec:
           affinity: null
@@ -4677,13 +4378,8 @@ all capabilities:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-                - name: ACCOUNT_ID
-                  valueFrom:
-                    secretKeyRef:
-                      key: account
-                      name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
-                  value: otel-collector:4318
+                  value: otelCollector.svc.monitoring:4317
               image: quay.io/kubescape/storage:v0.0.161
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -4730,7 +4426,7 @@ all capabilities:
                     path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
-  93: |
+  87: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -4793,7 +4489,7 @@ all capabilities:
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
         - Egress
-  94: |
+  88: |
     apiVersion: v1
     kind: PersistentVolumeClaim
     metadata:
@@ -4816,7 +4512,7 @@ all capabilities:
       resources:
         requests:
           storage: 5Gi
-  95: |
+  89: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -4840,7 +4536,7 @@ all capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  96: |
+  90: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -4864,7 +4560,7 @@ all capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  97: |
+  91: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -4889,7 +4585,7 @@ all capabilities:
         app.kubernetes.io/component: storage
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  98: |
+  92: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -4905,7 +4601,7 @@ all capabilities:
         tier: ks-control-plane
       name: storage
       namespace: kubescape
-  99: |
+  93: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -5130,7 +4826,7 @@ all capabilities:
         verbs:
           - update
           - patch
-  100: |
+  94: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -5153,7 +4849,7 @@ all capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  101: |
+  95: |
     apiVersion: v1
     data:
       config.json: |
@@ -5418,7 +5114,7 @@ all capabilities:
         tier: ks-control-plane
       name: synchronizer
       namespace: kubescape
-  102: |
+  96: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -5448,7 +5144,7 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: d6f711c907ac404868d836f559972d6b753ab085a3cf4ed47a079db75cd206fa
+            checksum/cloud-config: 8bea5d145a96091c24141adb7776bf4c9b39dcb8164118d61e28a41e0271d2bb
             checksum/cloud-secret: cf2e73d4ff0ce943730b3ed5bd4740f0bd8c4386e5843870f51c302b41df8da9
             checksum/proxy-config: 3669c08e51ef779cd00a107f19592b34195c3ebdb60bedaf8ebf1491a3f2a747
             checksum/synchronizer-configmap: ce6e6cd13005cb016ce932c4b8343330c199b0d85bfed657684cb413093e6493
@@ -5462,7 +5158,6 @@ all capabilities:
             helm.sh/chart: kubescape-operator-1.26.2
             kubescape.io/ignore: "true"
             kubescape.io/tier: core
-            otel: enabled
             tier: ks-control-plane
         spec:
           affinity: null
@@ -5485,13 +5180,8 @@ all capabilities:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-                - name: ACCOUNT_ID
-                  valueFrom:
-                    secretKeyRef:
-                      key: account
-                      name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
-                  value: otel-collector:4318
+                  value: otelCollector.svc.monitoring:4317
                 - name: HTTPS_PROXY
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
@@ -5572,7 +5262,7 @@ all capabilities:
                     path: config.json
                 name: synchronizer
               name: config
-  103: |
+  97: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -5649,7 +5339,7 @@ all capabilities:
       policyTypes:
         - Ingress
         - Egress
-  104: |
+  98: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -5691,7 +5381,7 @@ all capabilities:
           - list
           - patch
           - delete
-  105: |
+  99: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -5715,7 +5405,7 @@ all capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  106: |
+  100: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -5739,7 +5429,7 @@ all capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  107: |
+  101: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -5765,7 +5455,7 @@ all capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  108: |
+  102: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -5886,7 +5576,7 @@ default capabilities:
         {
           "capabilities":{"admissionController":"disable","autoUpgrading":"disable","configurationScan":"enable","httpDetection":"disable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkPolicyService":"enable","nodeProfileService":"disable","nodeSbomGeneration":"disable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","seccompProfileService":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
           "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":true},"prometheusExporter":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
-          "configurations":{"otelUrl":"otelCollector:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
+          "configurations":{"otelUrl":null,"persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
         }
     kind: ConfigMap
@@ -8262,7 +7952,7 @@ default capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: a3884b3485c43ed1603dca5d383c5da264de1a0631add04eced7efa580b3850d
+            checksum/capabilities-config: 198343087606bc5b88772499d7f7bd1dadd0ee8c8373ab1282e566e7dec9ac4c
             checksum/cloud-config: 678e2b8c5497a211b7bc4ac427a61762f142ef6ddb5480f24c6ffe552f874eee
             checksum/cloud-secret: cf2e73d4ff0ce943730b3ed5bd4740f0bd8c4386e5843870f51c302b41df8da9
             checksum/matching-rules-config: 4244067153661f0c2577cba49b0dba63db5f77acf9904663ca06610953f55e17
@@ -8857,7 +8547,61 @@ default capabilities:
   52: |
     apiVersion: v1
     data:
-      otel-collector-config.yaml: "\n# receivers configure how data gets into the Collector.\nreceivers:\n  otlp:\n    protocols:\n      grpc:\n        endpoint: 0.0.0.0:4317\n      http:\n        endpoint: 0.0.0.0:4318\n  hostmetrics:\n    collection_interval: 30s\n    scrapers:\n      cpu:\n      memory:\n\n# processors specify what happens with the received data.\nprocessors:\n  attributes/ksCloud:\n    actions:\n      - key: account_id\n        value: \"9e6c0c2c-6bd0-4919-815b-55030de7c9a0\"\n        action: upsert\n      - key: cluster_name\n        value: \"kind-kind\"\n        action: upsert\n  batch:\n    send_batch_size: 10000\n    timeout: 10s\n\n# exporters configure how to send processed data to one or more backends.\nexporters:\n  otlp/ksCloud:\n    endpoint: ${env:CLOUD_OTEL_COLLECTOR_URL}\n    tls:\n      insecure: false\n  otlp:\n    endpoint: \"otelCollector:4317\"\n    tls:\n      insecure: true\n    headers:\n      uptrace-dsn: \n\n# service pulls the configured receivers, processors, and exporters together into\n# processing pipelines. Unused receivers/processors/exporters are ignored.\nservice:\n  pipelines:\n    traces:\n      receivers: [otlp]\n      processors: [batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp\n    metrics/2:\n      receivers: [hostmetrics]\n      processors: [attributes/ksCloud, batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp\n    metrics:\n      receivers: [otlp]\n      processors: [attributes/ksCloud, batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp"
+      otel-collector-config.yaml: |2-
+        # receivers configure how data gets into the Collector.
+        receivers:
+          otlp:
+            protocols:
+              grpc:
+                endpoint: 0.0.0.0:4317
+              http:
+                endpoint: 0.0.0.0:4318
+          hostmetrics:
+            collection_interval: 30s
+            scrapers:
+              cpu:
+              memory:
+
+        # processors specify what happens with the received data.
+        processors:
+          attributes/ksCloud:
+            actions:
+              - key: account_id
+                value: "9e6c0c2c-6bd0-4919-815b-55030de7c9a0"
+                action: upsert
+              - key: cluster_name
+                value: "kind-kind"
+                action: upsert
+          batch:
+            send_batch_size: 10000
+            timeout: 10s
+
+        # exporters configure how to send processed data to one or more backends.
+        exporters:
+          otlp/ksCloud:
+            endpoint: ${env:CLOUD_OTEL_COLLECTOR_URL}
+            tls:
+              insecure: false
+
+        # service pulls the configured receivers, processors, and exporters together into
+        # processing pipelines. Unused receivers/processors/exporters are ignored.
+        service:
+          pipelines:
+            traces:
+              receivers: [otlp]
+              processors: [batch]
+              exporters:
+                - otlp/ksCloud
+            metrics/2:
+              receivers: [hostmetrics]
+              processors: [attributes/ksCloud, batch]
+              exporters:
+                - otlp/ksCloud
+            metrics:
+              receivers: [otlp]
+              processors: [attributes/ksCloud, batch]
+              exporters:
+                - otlp/ksCloud
     kind: ConfigMap
     metadata:
       labels:
@@ -8906,7 +8650,7 @@ default capabilities:
       template:
         metadata:
           annotations:
-            checksum/otel-config: 026759b4560d4eb7ad8f834400a5b6445ed57639724d95ea27704c9ea642e6bc
+            checksum/otel-config: 8a1e37e09cb696e8f8e797b73826c5342432714510487f981514cc3e985ff563
             checksum/proxy-config: 3669c08e51ef779cd00a107f19592b34195c3ebdb60bedaf8ebf1491a3f2a747
           labels:
             app: otel-collector
@@ -9004,8 +8748,6 @@ default capabilities:
       egress:
         - ports:
             - port: 443
-              protocol: TCP
-            - port: 4317
               protocol: TCP
         - ports:
             - port: 53
@@ -14479,7 +14221,7 @@ minimal capabilities:
           "namespace": "kubescape",
           "imageVulnerabilitiesScanningEnabled": true,
           "postureScanEnabled": true,
-          "otelCollector": true,
+          "otelCollector": false,
           "nodeAgent": "true",
           "maxImageSize": 5.36870912e+09,
           "maxSBOMSize": 2.097152e+07,
@@ -14513,8 +14255,8 @@ minimal capabilities:
       capabilities: |
         {
           "capabilities":{"admissionController":"enable","autoUpgrading":"disable","configurationScan":"enable","httpDetection":"disable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkPolicyService":"enable","nodeProfileService":"disable","nodeSbomGeneration":"disable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","seccompProfileService":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
-          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":false},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":false},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":true},"prometheusExporter":{"enabled":false},"serviceDiscovery":{"enabled":false},"storage":{"enabled":true},"synchronizer":{"enabled":false}},
-          "configurations":{"otelUrl":"otelCollector:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
+          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":false},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":false},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":false},"serviceDiscovery":{"enabled":false},"storage":{"enabled":true},"synchronizer":{"enabled":false}},
+          "configurations":{"otelUrl":"otelCollector.svc.monitoring:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
         }
     kind: ConfigMap
@@ -14876,9 +14618,9 @@ minimal capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 9e8579a8978574318fbe7cbea9a471f1a26154673dfc8384fb7bab97fec56852
+            checksum/cloud-config: 37717b7e625803bab3013cdc4da4b55266da7ca5d84789cb1e8be6415c42f9c7
             checksum/cloud-secret: f1356b6dba8ba4a01197f4030346928c33c7dab7b123a2aecaffb0630352929c
-            checksum/host-scanner-configmap: d14d3bae196da15905c50422e69bf25d8dcce59a4048f54241bc441c4eb6c446
+            checksum/host-scanner-configmap: b8a1928207cfd0c84b9973eb764dea012ff066955ffcf69965432710cd543717
           labels:
             app: kubescape
             app.kubernetes.io/component: kubescape
@@ -14889,7 +14631,6 @@ minimal capabilities:
             helm.sh/chart: kubescape-operator-1.26.2
             kubescape.io/ignore: "true"
             kubescape.io/tier: core
-            otel: enabled
             tier: ks-control-plane
         spec:
           affinity: null
@@ -14932,13 +14673,8 @@ minimal capabilities:
                   value: /home/nonroot/.kubescape/host-scanner.yaml
                 - name: LARGE_CLUSTER_SIZE
                   value: "1500"
-                - name: ACCOUNT_ID
-                  valueFrom:
-                    secretKeyRef:
-                      key: account
-                      name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
-                  value: otel-collector:4318
+                  value: otelCollector.svc.monitoring:4317
               image: quay.io/kubescape/kubescape:v3.0.30
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -15051,7 +14787,6 @@ minimal capabilities:
                 kubescape.io/ignore: "true"
                 kubescape.io/tier: "core"
                 name: host-scanner
-                otel: enabled
             spec:
               nodeSelector:
                 kubernetes.io/os: linux
@@ -15077,15 +14812,8 @@ minimal capabilities:
                   value: "info"
                 - name: KS_LOGGER_NAME
                   value: "zap"
-                - name: ACCOUNT_ID
-                  valueFrom:
-                    secretKeyRef:
-                      name: cloud-secret
-                      key: account
-                - name: CLUSTER_NAME
-                  value: "kind-kind"
                 - name: OTEL_COLLECTOR_SVC
-                  value: "otel-collector.kubescape.svc:4318"
+                  value: otelCollector.svc.monitoring:4317
                 ports:
                   - name: scanner # Do not change port name
                     containerPort: 7888
@@ -15325,7 +15053,7 @@ minimal capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 9e8579a8978574318fbe7cbea9a471f1a26154673dfc8384fb7bab97fec56852
+            checksum/cloud-config: 37717b7e625803bab3013cdc4da4b55266da7ca5d84789cb1e8be6415c42f9c7
             checksum/cloud-secret: f1356b6dba8ba4a01197f4030346928c33c7dab7b123a2aecaffb0630352929c
           labels:
             app: kubevuln
@@ -15337,7 +15065,6 @@ minimal capabilities:
             helm.sh/chart: kubescape-operator-1.26.2
             kubescape.io/ignore: "true"
             kubescape.io/tier: core
-            otel: enabled
             tier: ks-control-plane
         spec:
           affinity: null
@@ -15364,13 +15091,8 @@ minimal capabilities:
                   value: ""
                 - name: CA_MAX_VULN_SCAN_ROUTINES
                   value: "1"
-                - name: ACCOUNT_ID
-                  valueFrom:
-                    secretKeyRef:
-                      key: account
-                      name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
-                  value: otel-collector:4318
+                  value: otelCollector.svc.monitoring:4317
               image: quay.io/kubescape/kubevuln:v0.3.65
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -15693,7 +15415,7 @@ minimal capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 9e8579a8978574318fbe7cbea9a471f1a26154673dfc8384fb7bab97fec56852
+            checksum/cloud-config: 37717b7e625803bab3013cdc4da4b55266da7ca5d84789cb1e8be6415c42f9c7
             checksum/cloud-secret: f1356b6dba8ba4a01197f4030346928c33c7dab7b123a2aecaffb0630352929c
             checksum/node-agent-config: 9d1c483009c0bc0377bbac6dae855a763db8cef8618685a4a551b389481ddd4f
             container.apparmor.security.beta.kubernetes.io/node-agent: unconfined
@@ -15707,7 +15429,6 @@ minimal capabilities:
             helm.sh/chart: kubescape-operator-1.26.2
             kubescape.io/ignore: "true"
             kubescape.io/tier: core
-            otel: enabled
             tier: ks-control-plane
         spec:
           affinity:
@@ -15737,7 +15458,7 @@ minimal capabilities:
                 - name: KS_LOGGER_NAME
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
-                  value: otel-collector:4318
+                  value: otelCollector.svc.monitoring:4317
                 - name: NODE_NAME
                   valueFrom:
                     fieldRef:
@@ -16207,8 +15928,8 @@ minimal capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 367b896404dfaaa375df394d55af1f4e951f3a71e82dc004bf0ac271b8b6d558
-            checksum/cloud-config: 9e8579a8978574318fbe7cbea9a471f1a26154673dfc8384fb7bab97fec56852
+            checksum/capabilities-config: 28373eca26feb0d582a8a180b7561385d7a6ddfa15bf07062bfd8d602444c1e2
+            checksum/cloud-config: 37717b7e625803bab3013cdc4da4b55266da7ca5d84789cb1e8be6415c42f9c7
             checksum/cloud-secret: f1356b6dba8ba4a01197f4030346928c33c7dab7b123a2aecaffb0630352929c
             checksum/matching-rules-config: 4244067153661f0c2577cba49b0dba63db5f77acf9904663ca06610953f55e17
             checksum/operator-config: b718f34adae5893e4846bb4cce1e40b300355a2e4b3b3fb996cb39e567319f6f
@@ -16222,7 +15943,6 @@ minimal capabilities:
             helm.sh/chart: kubescape-operator-1.26.2
             kubescape.io/ignore: "true"
             kubescape.io/tier: core
-            otel: enabled
             tier: ks-control-plane
         spec:
           affinity: null
@@ -16244,7 +15964,7 @@ minimal capabilities:
                 - name: KS_LOGGER_NAME
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
-                  value: otel-collector:4318
+                  value: otelCollector.svc.monitoring:4317
               image: quay.io/kubescape/operator:v0.2.74
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -16696,176 +16416,6 @@ minimal capabilities:
       name: operator
       namespace: kubescape
   40: |
-    apiVersion: v1
-    data:
-      otel-collector-config.yaml: "\n# receivers configure how data gets into the Collector.\nreceivers:\n  otlp:\n    protocols:\n      grpc:\n        endpoint: 0.0.0.0:4317\n      http:\n        endpoint: 0.0.0.0:4318\n  hostmetrics:\n    collection_interval: 30s\n    scrapers:\n      cpu:\n      memory:\n\n# processors specify what happens with the received data.\nprocessors:\n  attributes/ksCloud:\n    actions:\n      - key: account_id\n        value: \"\"\n        action: upsert\n      - key: cluster_name\n        value: \"kind-kind\"\n        action: upsert\n  batch:\n    send_batch_size: 10000\n    timeout: 10s\n\n# exporters configure how to send processed data to one or more backends.\nexporters:\n  otlp/ksCloud:\n    endpoint: \"\"\n    tls:\n      insecure: false\n  otlp:\n    endpoint: \"otelCollector:4317\"\n    tls:\n      insecure: true\n    headers:\n      uptrace-dsn: \n\n# service pulls the configured receivers, processors, and exporters together into\n# processing pipelines. Unused receivers/processors/exporters are ignored.\nservice:\n  pipelines:\n    traces:\n      receivers: [otlp]\n      processors: [batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp\n    metrics/2:\n      receivers: [hostmetrics]\n      processors: [attributes/ksCloud, batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp\n    metrics:\n      receivers: [otlp]\n      processors: [attributes/ksCloud, batch]\n      exporters:\n        - otlp/ksCloud\n        - otlp"
-    kind: ConfigMap
-    metadata:
-      labels:
-        app: ks-cloud-config
-        app.kubernetes.io/component: ks-cloud-config
-        app.kubernetes.io/instance: RELEASE-NAME
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: kubescape-operator
-        app.kubernetes.io/version: 1.26.2
-        helm.sh/chart: kubescape-operator-1.26.2
-        kubescape.io/ignore: "true"
-        kubescape.io/tier: core
-        tier: ks-control-plane
-      name: otel-collector-config
-      namespace: kubescape
-  41: |
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      labels:
-        app: otel-collector
-        app.kubernetes.io/component: otel-collector
-        app.kubernetes.io/instance: RELEASE-NAME
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: kubescape-operator
-        app.kubernetes.io/version: 1.26.2
-        helm.sh/chart: kubescape-operator-1.26.2
-        kubescape.io/ignore: "true"
-        kubescape.io/tier: core
-        tier: ks-control-plane
-      name: otel-collector
-      namespace: kubescape
-    spec:
-      replicas: 1
-      revisionHistoryLimit: 2
-      selector:
-        matchLabels:
-          app.kubernetes.io/component: otel-collector
-          app.kubernetes.io/instance: RELEASE-NAME
-          app.kubernetes.io/name: kubescape-operator
-      strategy:
-        rollingUpdate:
-          maxSurge: 0%
-          maxUnavailable: 100%
-        type: RollingUpdate
-      template:
-        metadata:
-          annotations:
-            checksum/otel-config: 6ffed2fb4532a1efc7c087c0b99fb208ce152cf15ac5feb6338117d1d9c5cd12
-          labels:
-            app: otel-collector
-            app.kubernetes.io/component: otel-collector
-            app.kubernetes.io/instance: RELEASE-NAME
-            app.kubernetes.io/managed-by: Helm
-            app.kubernetes.io/name: kubescape-operator
-            app.kubernetes.io/version: 1.26.2
-            helm.sh/chart: kubescape-operator-1.26.2
-            kubescape.io/ignore: "true"
-            kubescape.io/tier: core
-            tier: ks-control-plane
-        spec:
-          affinity: null
-          containers:
-            - command:
-                - /otelcol
-                - --config=/conf/otel-collector-config.yaml
-              env:
-                - name: CLOUD_OTEL_COLLECTOR_URL
-                  valueFrom:
-                    configMapKeyRef:
-                      key: metrics
-                      name: ks-cloud-config
-                - name: GOMEMLIMIT
-                  valueFrom:
-                    resourceFieldRef:
-                      resource: limits.memory
-                - name: GOMAXPROCS
-                  valueFrom:
-                    resourceFieldRef:
-                      resource: limits.cpu
-                - name: GOGC
-                  value: "80"
-              image: docker.io/otel/opentelemetry-collector:0.108.0
-              imagePullPolicy: IfNotPresent
-              livenessProbe:
-                tcpSocket:
-                  port: otlp
-              name: otel-collector
-              ports:
-                - containerPort: 4317
-                  name: otlp
-                  protocol: TCP
-                - containerPort: 4318
-                  name: otlp-http
-                  protocol: TCP
-              readinessProbe:
-                tcpSocket:
-                  port: otlp
-              resources:
-                limits:
-                  cpu: 1
-                  memory: 1Gi
-                requests:
-                  cpu: 100m
-                  memory: 500Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                runAsNonRoot: true
-                runAsUser: 100
-              volumeMounts:
-                - mountPath: /conf
-                  name: otel-collector-config-volume
-          nodeSelector: null
-          serviceAccountName: otel-collector
-          tolerations: null
-          volumes:
-            - configMap:
-                name: otel-collector-config
-              name: otel-collector-config-volume
-  42: |
-    apiVersion: v1
-    kind: Service
-    metadata:
-      labels:
-        app: otel-collector
-        app.kubernetes.io/component: otel-collector
-        app.kubernetes.io/instance: RELEASE-NAME
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: kubescape-operator
-        app.kubernetes.io/version: 1.26.2
-        helm.sh/chart: kubescape-operator-1.26.2
-        kubescape.io/ignore: "true"
-        tier: ks-control-plane
-      name: otel-collector
-      namespace: kubescape
-    spec:
-      ports:
-        - name: otlp
-          port: 4317
-          protocol: TCP
-          targetPort: 4317
-        - name: otlp-http
-          port: 4318
-          protocol: TCP
-          targetPort: 4318
-      selector:
-        app.kubernetes.io/component: otel-collector
-        app.kubernetes.io/instance: RELEASE-NAME
-        app.kubernetes.io/name: kubescape-operator
-      type: ClusterIP
-  43: |
-    apiVersion: v1
-    kind: ServiceAccount
-    metadata:
-      labels:
-        app: otel-collector
-        app.kubernetes.io/component: otel-collector
-        app.kubernetes.io/instance: RELEASE-NAME
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: kubescape-operator
-        app.kubernetes.io/version: 1.26.2
-        helm.sh/chart: kubescape-operator-1.26.2
-        kubescape.io/ignore: "true"
-        tier: ks-control-plane
-      name: otel-collector
-      namespace: kubescape
-  44: |
     apiVersion: apiregistration.k8s.io/v1
     kind: APIService
     metadata:
@@ -16889,7 +16439,7 @@ minimal capabilities:
         namespace: kubescape
       version: v1beta1
       versionPriority: 15
-  45: |
+  41: |
     apiVersion: v1
     data:
       ca.crt: bW9jay1jYS1jZXJ0
@@ -16910,7 +16460,7 @@ minimal capabilities:
       name: storage-ca
       namespace: kubescape
     type: kubernetes.io/tls
-  46: |
+  42: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -16974,7 +16524,7 @@ minimal capabilities:
           - get
           - watch
           - list
-  47: |
+  43: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -16997,7 +16547,7 @@ minimal capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  48: |
+  44: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -17020,7 +16570,7 @@ minimal capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  49: |
+  45: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -17061,7 +16611,6 @@ minimal capabilities:
             helm.sh/chart: kubescape-operator-1.26.2
             kubescape.io/ignore: "true"
             kubescape.io/tier: core
-            otel: enabled
             tier: ks-control-plane
         spec:
           affinity: null
@@ -17087,13 +16636,8 @@ minimal capabilities:
                   value: /etc/storage-ca-certificates/tls.crt
                 - name: TLS_SERVER_KEY_FILE
                   value: /etc/storage-ca-certificates/tls.key
-                - name: ACCOUNT_ID
-                  valueFrom:
-                    secretKeyRef:
-                      key: account
-                      name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
-                  value: otel-collector:4318
+                  value: otelCollector.svc.monitoring:4317
               image: quay.io/kubescape/storage:v0.0.161
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -17142,7 +16686,7 @@ minimal capabilities:
             - name: ca-certificates
               secret:
                 secretName: storage-ca
-  50: |
+  46: |
     apiVersion: v1
     kind: PersistentVolumeClaim
     metadata:
@@ -17165,7 +16709,7 @@ minimal capabilities:
       resources:
         requests:
           storage: 5Gi
-  51: |
+  47: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -17189,7 +16733,7 @@ minimal capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  52: |
+  48: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -17214,7 +16758,7 @@ minimal capabilities:
         app.kubernetes.io/component: storage
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  53: |
+  49: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
