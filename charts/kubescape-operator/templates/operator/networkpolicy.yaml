@@ -45,6 +45,11 @@ spec:
 {{ tpl (.Files.Get "assets/common-egress-rules.yaml") . | indent 4 }}
   {{- end }}
   ingress:
+    {{- if eq .Values.capabilities.admissionController "enable" }}
+    - ports:
+      - port: admission-port
+        protocol: TCP
+    {{- end }}
     - from:
         - podSelector:
             matchLabels:
