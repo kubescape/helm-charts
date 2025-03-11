@@ -30,6 +30,10 @@ processors:
 
 # exporters configure how to send processed data to one or more backends.
 exporters:
+  debug/noop:
+    verbosity: basic
+    sampling_initial: 0
+    sampling_thereafter: 0
   otlp/ksCloud:
     {{- if $configurations.ksOtel }}
     endpoint: ${env:CLOUD_OTEL_COLLECTOR_URL}
@@ -81,3 +85,8 @@ service:
       {{- if $configurations.otel }}
         - otlp
       {{- end }}
+    logs:
+      receivers: [otlp]
+      processors: [attributes/ksCloud, batch]
+      exporters:
+        - debug/noop
