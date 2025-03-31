@@ -20,6 +20,9 @@ spec:
         otel: enabled
         {{- end }}
     spec:
+      securityContext:
+        seccompProfile:
+          type: Unconfined
       nodeSelector:
       {{- if .Values.hostScanner.nodeSelector }}
       {{- toYaml .Values.hostScanner.nodeSelector | nindent 8 }}
@@ -40,7 +43,13 @@ spec:
       {{- end }}
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
-      - name: {{ toYaml .Values.imagePullSecrets }}
+      {{- if kindIs "string" .Values.imagePullSecrets }}
+      - name: {{ .Values.imagePullSecrets }}
+      {{- else }}
+      {{- range .Values.imagePullSecrets }}
+      - name: {{ . }}
+      {{- end }}
+      {{- end }}
       {{- end }}
       containers:
       - name: host-sensor

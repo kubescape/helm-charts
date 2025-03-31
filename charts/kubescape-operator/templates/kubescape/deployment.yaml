@@ -45,9 +45,17 @@ spec:
     spec:
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
-      - name: {{ toYaml .Values.imagePullSecrets }}
+      {{- if kindIs "string" .Values.imagePullSecrets }}
+      - name: {{ .Values.imagePullSecrets }}
+      {{- else }}
+      {{- range .Values.imagePullSecrets }}
+      - name: {{ . }}
+      {{- end }}
+      {{- end }}
       {{- end }}
       securityContext:
+        seccompProfile:
+          type: RuntimeDefault
         runAsUser: 65532
         fsGroup: 65532
       containers:
