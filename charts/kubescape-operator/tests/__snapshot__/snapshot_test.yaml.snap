@@ -297,7 +297,7 @@ all capabilities:
     data:
       capabilities: |
         {
-          "capabilities":{"admissionController":"enable","autoUpgrading":"enable","configurationScan":"enable","continuousScan":"enable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"enable","manageWorkloads":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","prometheusExporter":"enable","relevancy":"enable","runtimeDetection":"enable","runtimeObservability":"enable","seccompProfileService":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"enable","vulnerabilityScan":"enable"},
+          "capabilities":{"admissionController":"enable","autoUpgrading":"enable","configurationScan":"enable","continuousScan":"enable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"enable","manageWorkloads":"enable","networkPolicyService":"enable","networkStreaming":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","prometheusExporter":"enable","relevancy":"enable","runtimeDetection":"enable","runtimeObservability":"enable","seccompProfileService":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"enable","vulnerabilityScan":"enable"},
           "components":{"autoUpdater":{"enabled":true},"clamAV":{"enabled":true},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":true},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"otelUrl":"otelCollector.svc.monitoring:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
@@ -2306,6 +2306,7 @@ all capabilities:
             "hostMalwareSensorEnabled": false,
             "hostNetworkSensorEnabled": false,
             "nodeProfileServiceEnabled": true,
+            "networkStreamingEnabled": true,
             "maxImageSize": 5.36870912e+09,
             "maxSBOMSize": 2.097152e+07,
             "sbomGenerationEnabled": true,
@@ -2402,7 +2403,7 @@ all capabilities:
           annotations:
             checksum/cloud-config: 8bea5d145a96091c24141adb7776bf4c9b39dcb8164118d61e28a41e0271d2bb
             checksum/cloud-secret: cf2e73d4ff0ce943730b3ed5bd4740f0bd8c4386e5843870f51c302b41df8da9
-            checksum/node-agent-config: dce50ffdaefa9085520f1ffa39bb559a8ebf90721c765aef9414dcb244a512bf
+            checksum/node-agent-config: e299be64a083aa962498b3c850e1b55718b1f4cebeeee0917584a8959f791e51
             checksum/proxy-config: 3669c08e51ef779cd00a107f19592b34195c3ebdb60bedaf8ebf1491a3f2a747
             container.apparmor.security.beta.kubernetes.io/node-agent: unconfined
           labels:
@@ -2493,7 +2494,7 @@ all capabilities:
                     fieldRef:
                       fieldPath: metadata.namespace
                 - name: NodeName
-              image: quay.io/kubescape/node-agent:v0.2.282
+              image: quay.io/kubescape/node-agent:test-e538eeb
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -3135,7 +3136,7 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 8798d2a880ebc9f6f932c8386c0f3078fcf01d2424fc56108b9df1d781b102ed
+            checksum/capabilities-config: fbfc851b37ede76f35cb8102d887cdf5b76ad156a1c75ff214223cd866c0c1f4
             checksum/cloud-config: 8bea5d145a96091c24141adb7776bf4c9b39dcb8164118d61e28a41e0271d2bb
             checksum/cloud-secret: cf2e73d4ff0ce943730b3ed5bd4740f0bd8c4386e5843870f51c302b41df8da9
             checksum/matching-rules-config: 4244067153661f0c2577cba49b0dba63db5f77acf9904663ca06610953f55e17
@@ -5163,6 +5164,12 @@ all capabilities:
               {
                 "group": "kubescape.io",
                 "version": "v1",
+                "resource": "networkstreams",
+                "strategy": "copy"
+              },
+              {
+                "group": "kubescape.io",
+                "version": "v1",
                 "resource": "nodeprofiles",
                 "strategy": "copy"
               },
@@ -5229,7 +5236,7 @@ all capabilities:
             checksum/cloud-config: 8bea5d145a96091c24141adb7776bf4c9b39dcb8164118d61e28a41e0271d2bb
             checksum/cloud-secret: cf2e73d4ff0ce943730b3ed5bd4740f0bd8c4386e5843870f51c302b41df8da9
             checksum/proxy-config: 3669c08e51ef779cd00a107f19592b34195c3ebdb60bedaf8ebf1491a3f2a747
-            checksum/synchronizer-configmap: 3efac6bfab85906d93a2247393a82c7a031aee61508602e32083fbba7edf1e26
+            checksum/synchronizer-configmap: b2afdc5bc1c17faff9e51693eec71ceb7338747a5bb11bbea8389b6e20c21eab
           labels:
             app: synchronizer
             app.kubernetes.io/component: synchronizer
@@ -5661,7 +5668,7 @@ default capabilities:
     data:
       capabilities: |
         {
-          "capabilities":{"admissionController":"disable","autoUpgrading":"disable","configurationScan":"enable","httpDetection":"disable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkPolicyService":"enable","nodeProfileService":"disable","nodeSbomGeneration":"disable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","seccompProfileService":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
+          "capabilities":{"admissionController":"disable","autoUpgrading":"disable","configurationScan":"enable","httpDetection":"disable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkPolicyService":"enable","networkStreaming":"disable","nodeProfileService":"disable","nodeSbomGeneration":"disable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","seccompProfileService":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
           "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":true},"prometheusExporter":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"otelUrl":null,"persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
@@ -7434,6 +7441,7 @@ default capabilities:
             "hostMalwareSensorEnabled": false,
             "hostNetworkSensorEnabled": false,
             "nodeProfileServiceEnabled": false,
+            "networkStreamingEnabled": false,
             "maxImageSize": 5.36870912e+09,
             "maxSBOMSize": 2.097152e+07,
             "sbomGenerationEnabled": false,
@@ -7493,7 +7501,7 @@ default capabilities:
           annotations:
             checksum/cloud-config: 678e2b8c5497a211b7bc4ac427a61762f142ef6ddb5480f24c6ffe552f874eee
             checksum/cloud-secret: cf2e73d4ff0ce943730b3ed5bd4740f0bd8c4386e5843870f51c302b41df8da9
-            checksum/node-agent-config: c8c5127ec7d8a8cc31a16746bd69c847812be2d76e4f41e827d51aa99682d067
+            checksum/node-agent-config: 10dd3a29c2382812096f44e58f4798887e6bda7c62c7174356e44dfd783fd5c9
             checksum/proxy-config: 3669c08e51ef779cd00a107f19592b34195c3ebdb60bedaf8ebf1491a3f2a747
             container.apparmor.security.beta.kubernetes.io/node-agent: unconfined
           labels:
@@ -7552,7 +7560,7 @@ default capabilities:
                     fieldRef:
                       fieldPath: metadata.namespace
                 - name: NodeName
-              image: quay.io/kubescape/node-agent:v0.2.282
+              image: quay.io/kubescape/node-agent:test-e538eeb
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -8074,7 +8082,7 @@ default capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 198343087606bc5b88772499d7f7bd1dadd0ee8c8373ab1282e566e7dec9ac4c
+            checksum/capabilities-config: eb321afccd859a9ac1f5f327fac41ed705eebaa44ef4948dfc9b342a818d4f6e
             checksum/cloud-config: 678e2b8c5497a211b7bc4ac427a61762f142ef6ddb5480f24c6ffe552f874eee
             checksum/cloud-secret: cf2e73d4ff0ce943730b3ed5bd4740f0bd8c4386e5843870f51c302b41df8da9
             checksum/matching-rules-config: 4244067153661f0c2577cba49b0dba63db5f77acf9904663ca06610953f55e17
@@ -10021,6 +10029,12 @@ default capabilities:
               {
                 "group": "kubescape.io",
                 "version": "v1",
+                "resource": "networkstreams",
+                "strategy": "copy"
+              },
+              {
+                "group": "kubescape.io",
+                "version": "v1",
                 "resource": "nodeprofiles",
                 "strategy": "copy"
               },
@@ -10087,7 +10101,7 @@ default capabilities:
             checksum/cloud-config: 678e2b8c5497a211b7bc4ac427a61762f142ef6ddb5480f24c6ffe552f874eee
             checksum/cloud-secret: cf2e73d4ff0ce943730b3ed5bd4740f0bd8c4386e5843870f51c302b41df8da9
             checksum/proxy-config: 3669c08e51ef779cd00a107f19592b34195c3ebdb60bedaf8ebf1491a3f2a747
-            checksum/synchronizer-configmap: 71135fc55f15f3567253084a14da11ff24319325b222b79cf76c2251ce6a150b
+            checksum/synchronizer-configmap: 6d5cbf92b65882a62c9c07d1b10f705cc15d0e85acda5f61b1cd67f0a377ea07
           labels:
             app: synchronizer
             app.kubernetes.io/component: synchronizer
@@ -10485,7 +10499,7 @@ disable otel:
     data:
       capabilities: |
         {
-          "capabilities":{"admissionController":"enable","autoUpgrading":"disable","configurationScan":"enable","httpDetection":"disable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkPolicyService":"enable","nodeProfileService":"disable","nodeSbomGeneration":"disable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","seccompProfileService":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
+          "capabilities":{"admissionController":"enable","autoUpgrading":"disable","configurationScan":"enable","httpDetection":"disable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkPolicyService":"enable","networkStreaming":"disable","nodeProfileService":"disable","nodeSbomGeneration":"disable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","seccompProfileService":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
           "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":true},"prometheusExporter":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"otelUrl":null,"persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
@@ -11826,6 +11840,7 @@ disable otel:
             "hostMalwareSensorEnabled": false,
             "hostNetworkSensorEnabled": false,
             "nodeProfileServiceEnabled": false,
+            "networkStreamingEnabled": false,
             "maxImageSize": 5.36870912e+09,
             "maxSBOMSize": 2.097152e+07,
             "sbomGenerationEnabled": false,
@@ -11885,7 +11900,7 @@ disable otel:
           annotations:
             checksum/cloud-config: def218dd594c1e48747f476d985fab8a3abdca0a14402e4dee0675f6fc4b393f
             checksum/cloud-secret: cf2e73d4ff0ce943730b3ed5bd4740f0bd8c4386e5843870f51c302b41df8da9
-            checksum/node-agent-config: c8c5127ec7d8a8cc31a16746bd69c847812be2d76e4f41e827d51aa99682d067
+            checksum/node-agent-config: 10dd3a29c2382812096f44e58f4798887e6bda7c62c7174356e44dfd783fd5c9
             container.apparmor.security.beta.kubernetes.io/node-agent: unconfined
           labels:
             app: node-agent
@@ -11943,7 +11958,7 @@ disable otel:
                     fieldRef:
                       fieldPath: metadata.namespace
                 - name: NodeName
-              image: quay.io/kubescape/node-agent:v0.2.282
+              image: quay.io/kubescape/node-agent:test-e538eeb
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -12405,7 +12420,7 @@ disable otel:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 806214dce394bb3ee2ca274a5f1cdc4de2197275e738cdedd6cf173f819adb16
+            checksum/capabilities-config: c83db255ff01e2641559e94dd77dea56b25c74fa30b236354077c7829d06f882
             checksum/cloud-config: def218dd594c1e48747f476d985fab8a3abdca0a14402e4dee0675f6fc4b393f
             checksum/cloud-secret: cf2e73d4ff0ce943730b3ed5bd4740f0bd8c4386e5843870f51c302b41df8da9
             checksum/matching-rules-config: 4244067153661f0c2577cba49b0dba63db5f77acf9904663ca06610953f55e17
@@ -14106,6 +14121,12 @@ disable otel:
               {
                 "group": "kubescape.io",
                 "version": "v1",
+                "resource": "networkstreams",
+                "strategy": "copy"
+              },
+              {
+                "group": "kubescape.io",
+                "version": "v1",
                 "resource": "nodeprofiles",
                 "strategy": "copy"
               },
@@ -14171,7 +14192,7 @@ disable otel:
           annotations:
             checksum/cloud-config: def218dd594c1e48747f476d985fab8a3abdca0a14402e4dee0675f6fc4b393f
             checksum/cloud-secret: cf2e73d4ff0ce943730b3ed5bd4740f0bd8c4386e5843870f51c302b41df8da9
-            checksum/synchronizer-configmap: 71135fc55f15f3567253084a14da11ff24319325b222b79cf76c2251ce6a150b
+            checksum/synchronizer-configmap: 6d5cbf92b65882a62c9c07d1b10f705cc15d0e85acda5f61b1cd67f0a377ea07
           labels:
             app: synchronizer
             app.kubernetes.io/component: synchronizer
@@ -14472,7 +14493,7 @@ minimal capabilities:
     data:
       capabilities: |
         {
-          "capabilities":{"admissionController":"enable","autoUpgrading":"disable","configurationScan":"enable","httpDetection":"disable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkPolicyService":"enable","nodeProfileService":"disable","nodeSbomGeneration":"disable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","seccompProfileService":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
+          "capabilities":{"admissionController":"enable","autoUpgrading":"disable","configurationScan":"enable","httpDetection":"disable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkPolicyService":"enable","networkStreaming":"disable","nodeProfileService":"disable","nodeSbomGeneration":"disable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","seccompProfileService":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
           "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":false},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":false},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":false},"serviceDiscovery":{"enabled":false},"storage":{"enabled":true},"synchronizer":{"enabled":false}},
           "configurations":{"otelUrl":"otelCollector.svc.monitoring:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
@@ -15587,6 +15608,7 @@ minimal capabilities:
             "hostMalwareSensorEnabled": false,
             "hostNetworkSensorEnabled": false,
             "nodeProfileServiceEnabled": false,
+            "networkStreamingEnabled": false,
             "maxImageSize": 5.36870912e+09,
             "maxSBOMSize": 2.097152e+07,
             "sbomGenerationEnabled": false,
@@ -15644,7 +15666,7 @@ minimal capabilities:
           annotations:
             checksum/cloud-config: 37717b7e625803bab3013cdc4da4b55266da7ca5d84789cb1e8be6415c42f9c7
             checksum/cloud-secret: f1356b6dba8ba4a01197f4030346928c33c7dab7b123a2aecaffb0630352929c
-            checksum/node-agent-config: 9d1c483009c0bc0377bbac6dae855a763db8cef8618685a4a551b389481ddd4f
+            checksum/node-agent-config: 4e25d7fbf18cc40502c1107153541bb6c0f775652029e0fa789c6dba6a09e34a
             container.apparmor.security.beta.kubernetes.io/node-agent: unconfined
           labels:
             app: node-agent
@@ -15701,7 +15723,7 @@ minimal capabilities:
                     fieldRef:
                       fieldPath: metadata.namespace
                 - name: NodeName
-              image: quay.io/kubescape/node-agent:v0.2.282
+              image: quay.io/kubescape/node-agent:test-e538eeb
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -16160,7 +16182,7 @@ minimal capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 28373eca26feb0d582a8a180b7561385d7a6ddfa15bf07062bfd8d602444c1e2
+            checksum/capabilities-config: 194e7db26a34f5397acf5d68608141f91f65ce00b9b6d154273423936f6fafe3
             checksum/cloud-config: 37717b7e625803bab3013cdc4da4b55266da7ca5d84789cb1e8be6415c42f9c7
             checksum/cloud-secret: f1356b6dba8ba4a01197f4030346928c33c7dab7b123a2aecaffb0630352929c
             checksum/matching-rules-config: 4244067153661f0c2577cba49b0dba63db5f77acf9904663ca06610953f55e17
@@ -17107,7 +17129,7 @@ relevancy only:
     data:
       capabilities: |
         {
-          "capabilities":{"admissionController":"disable","autoUpgrading":"disable","configurationScan":"enable","httpDetection":"disable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkPolicyService":"disable","nodeProfileService":"disable","nodeSbomGeneration":"disable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"disable","seccompProfileService":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
+          "capabilities":{"admissionController":"disable","autoUpgrading":"disable","configurationScan":"enable","httpDetection":"disable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkPolicyService":"disable","networkStreaming":"disable","nodeProfileService":"disable","nodeSbomGeneration":"disable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"disable","seccompProfileService":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
           "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":false},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":false},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":false},"serviceDiscovery":{"enabled":false},"storage":{"enabled":true},"synchronizer":{"enabled":false}},
           "configurations":{"otelUrl":"otelCollector.svc.monitoring:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
@@ -18222,6 +18244,7 @@ relevancy only:
             "hostMalwareSensorEnabled": false,
             "hostNetworkSensorEnabled": false,
             "nodeProfileServiceEnabled": false,
+            "networkStreamingEnabled": false,
             "maxImageSize": 5.36870912e+09,
             "maxSBOMSize": 2.097152e+07,
             "sbomGenerationEnabled": false,
@@ -18279,7 +18302,7 @@ relevancy only:
           annotations:
             checksum/cloud-config: 37717b7e625803bab3013cdc4da4b55266da7ca5d84789cb1e8be6415c42f9c7
             checksum/cloud-secret: f1356b6dba8ba4a01197f4030346928c33c7dab7b123a2aecaffb0630352929c
-            checksum/node-agent-config: 3912d5fead0f16ac39da496b1fc9f9232a77aafce05384d3b4e4e6f25623ff1b
+            checksum/node-agent-config: b93fb4bc83277eb3eb5ab8162b64427c1a31dc4ccee3b11f08b48e21f9e46e8a
             container.apparmor.security.beta.kubernetes.io/node-agent: unconfined
           labels:
             app: node-agent
@@ -18336,7 +18359,7 @@ relevancy only:
                     fieldRef:
                       fieldPath: metadata.namespace
                 - name: NodeName
-              image: quay.io/kubescape/node-agent:v0.2.282
+              image: quay.io/kubescape/node-agent:test-e538eeb
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -18704,7 +18727,7 @@ relevancy only:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 55bd50ebba110a4f4285f04c03cc6854f86ce4a0a9843f36f92ca549f62c2b43
+            checksum/capabilities-config: d9ba782698c9d99b986781671b0f1bf46d4afc0f71f1662072cfde84837688f8
             checksum/cloud-config: 37717b7e625803bab3013cdc4da4b55266da7ca5d84789cb1e8be6415c42f9c7
             checksum/cloud-secret: f1356b6dba8ba4a01197f4030346928c33c7dab7b123a2aecaffb0630352929c
             checksum/matching-rules-config: 4244067153661f0c2577cba49b0dba63db5f77acf9904663ca06610953f55e17
