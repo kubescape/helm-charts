@@ -40,9 +40,13 @@ helm.sh/chart: {{ include "kubescape-operator.chart" . }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
+app.kubernetes.io/part-of: kubescape
 app: {{ .app }}
 tier: {{ .tier }}
 kubescape.io/ignore: "true"
+{{- if .Values.additionalLabels }}
+{{ toYaml .Values.additionalLabels }}
+{{- end }}
 {{- end }}
 
 {{/*
