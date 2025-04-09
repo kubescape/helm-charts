@@ -44,6 +44,9 @@ app.kubernetes.io/part-of: kubescape
 app: {{ .app }}
 tier: {{ .tier }}
 kubescape.io/ignore: "true"
+{{- if .Values.additionalLabels }}
+{{ toYaml .Values.additionalLabels }}
+{{- end }}
 {{- end }}
 
 {{/*
