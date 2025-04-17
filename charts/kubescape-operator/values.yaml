@@ -18,6 +18,9 @@ clusterName: "cluster"
 ksNamespace: kubescape
 ksLabel: kubescape
 
+# Additional labels that should be applied to all resources
+additionalLabels: {}
+
 # global logger name and level
 # the logger level and name are mapped to environment variables in each component
 logger:
@@ -83,7 +86,7 @@ capabilities:
 
   # ====== Image vulnerabilities scanning related capabilities ======
   #
-  nodeSbomGeneration: disable  # Warning: When disabled along with enableClusterWideSecretAccess: false, vulnerability scanning capabilities will be limited
+  nodeSbomGeneration: enable  # Warning: When disabled along with enableClusterWideSecretAccess: false, vulnerability scanning capabilities will be limited
   vulnerabilityScan: enable
   relevancy: enable
   # Generate VEX documents alongside the image vulnerabilities report (experimental)
@@ -97,9 +100,10 @@ capabilities:
   malwareDetection: disable
   nodeProfileService: disable # this should only be enabled when using a backend service that supports node profiles
   admissionController: enable
-  httpDetection: disable # this is automatically enabled when runtimeObservability or runtimeDetection is enabled
+  httpDetection: enable
   seccompProfileService: enable
   manageWorkloads: disable
+  syncSBOM: disable
 
   # ====== Other capabilities ======
   #
@@ -273,6 +277,9 @@ kubescape:
     # If needed the service monitor can be deployed to a different namespace than the one kubescape is in
     #namespace: my-namespace
 
+    # Additional labels, e.g. setting a label for service monitor selector as set in prometheus
+    additionalLabels: {}
+
   # Additional volumes to be mounted on Kubescape
   volumes: [ ]
 
@@ -290,7 +297,7 @@ operator:
   image:
     # -- source code: https://github.com/kubescape/operator
     repository: quay.io/kubescape/operator
-    tag: v0.2.81
+    tag: v0.2.84
     pullPolicy: IfNotPresent
 
   nodeSelector:
@@ -338,7 +345,7 @@ kubevuln:
   image:
     # -- source code: https://github.com/kubescape/kubevuln
     repository: quay.io/kubescape/kubevuln
-    tag: v0.3.69
+    tag: v0.3.72
     pullPolicy: IfNotPresent
 
   nodeSelector:
@@ -446,9 +453,6 @@ storage:
   # cleanup interval is a duration string
   cleanupInterval: "6h"
 
-  labels:
-    app.kubernetes.io/part-of: "kubescape-storage"
-
   resources:
     requests:
       cpu: 100m
@@ -463,8 +467,8 @@ nodeAgent:
   name: node-agent
   image:
     # -- source code: https://github.com/kubescape/node-agent
-    repository: quay.io/kubescape/node-agent
-    tag: test-da00eeb
+    repository: quay.io/armosec/node-agent
+    tag: test-ns
     pullPolicy: IfNotPresent
 
   config:
@@ -494,13 +498,16 @@ nodeAgent:
     interval: 30s
     scrapeTimeout: 15s
 
+    # Additional labels, e.g. setting a label for service monitor selector as set in prometheus
+    additionalLabels: {}
+
   resources:
     requests:
       cpu: 100m
       memory: 180Mi
     limits:
       cpu: 500m
-      memory: 700Mi
+      memory: 1400Mi
 
   env:
     - name: NodeName
@@ -642,7 +649,7 @@ synchronizer:
   image:
     # -- source code: https://github.com/kubescape/synchronizer
     repository: quay.io/kubescape/synchronizer
-    tag: v0.0.104
+    tag: v0.0.107
     pullPolicy: IfNotPresent
   nodeSelector:
     kubernetes.io/os: linux

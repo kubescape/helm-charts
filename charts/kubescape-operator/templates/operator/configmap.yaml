@@ -20,5 +20,14 @@ data:
       "triggersecurityframework": {{ .Values.operator.triggerSecurityFramework }},
       "podScanGuardTime": "{{ .Values.operator.podScanGuardTime }}",
       "httpExporterConfig": {{- .Values.nodeAgent.config.httpExporterConfig | toJson }}
+        {{- if and .Values.imageScanning.privateRegistries.credentials (gt (len .Values.imageScanning.privateRegistries.credentials) 0) }}
+        {{- $cred := index .Values.imageScanning.privateRegistries.credentials 0 }}
+        {{- if $cred.skipTlsVerify }},
+      "registryScanningSkipTlsVerify": {{ $cred.skipTlsVerify }}
+        {{- end }}
+        {{- if $cred.insecure }},
+      "registryScanningInsecure": {{ $cred.insecure }}
+        {{- end }}
+        {{- end }}
     }
 {{- end }}
