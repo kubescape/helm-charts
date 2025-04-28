@@ -270,7 +270,7 @@ all capabilities:
           "scanTimeout": "5m",
           "vexGeneration": true,
           "useDefaultMatchers": true,
-          "storeFilteredSbom": false,
+          "storeFilteredSbom": true,
           "continuousPostureScan": false,
           "listingURL": "http://grype-offline-db:80/listing.json",
           "relevantImageVulnerabilitiesConfiguration": "enable"
@@ -305,7 +305,7 @@ all capabilities:
     data:
       capabilities: |
         {
-          "capabilities":{"admissionController":"enable","autoUpgrading":"enable","configurationScan":"enable","continuousScan":"enable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"enable","manageWorkloads":"enable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","prometheusExporter":"enable","relevancy":"enable","runtimeDetection":"enable","runtimeObservability":"enable","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"enable","vulnerabilityScan":"enable"},
+          "capabilities":{"admissionController":"enable","autoUpgrading":"enable","configurationScan":"enable","continuousScan":"enable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"enable","manageWorkloads":"enable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","prometheusExporter":"enable","relevancy":"enable","runtimeDetection":"enable","runtimeObservability":"enable","seccompProfileService":"enable","syncSBOM":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"enable","vulnerabilityScan":"enable"},
           "components":{"autoUpdater":{"enabled":true},"clamAV":{"enabled":true},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":true},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"otelUrl":"otelCollector.svc.monitoring:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
@@ -1143,7 +1143,7 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 69b9bac0613fa9b7e4d003cbedcb9a83e5fb4dfe97f388d2528514088b14ee54
+            checksum/cloud-config: 17243fe92b525f5622708990332043dab65c5d996b902c981352850a5609ed4a
             checksum/cloud-secret: a14d37289c371366e6754c99095a7322784a9c92424c61f376d0884a54ffa711
             checksum/host-scanner-configmap: f4a5d1a491dac8f5a8171d2828d328a11ab1226f118c69a9947df20b52b3b99c
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
@@ -1932,7 +1932,7 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 69b9bac0613fa9b7e4d003cbedcb9a83e5fb4dfe97f388d2528514088b14ee54
+            checksum/cloud-config: 17243fe92b525f5622708990332043dab65c5d996b902c981352850a5609ed4a
             checksum/cloud-secret: a14d37289c371366e6754c99095a7322784a9c92424c61f376d0884a54ffa711
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
           labels:
@@ -2458,7 +2458,7 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 69b9bac0613fa9b7e4d003cbedcb9a83e5fb4dfe97f388d2528514088b14ee54
+            checksum/cloud-config: 17243fe92b525f5622708990332043dab65c5d996b902c981352850a5609ed4a
             checksum/cloud-secret: a14d37289c371366e6754c99095a7322784a9c92424c61f376d0884a54ffa711
             checksum/node-agent-config: fc3a085b1c1e53b28a2ff202bfb14ca56da5e6e9a5b3cdd1d4eb39b15ffeac74
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
@@ -3207,8 +3207,8 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 34627dde79562b21061ed0086263e47b1e8e6af00fe22eb96740bf6c93b68f14
-            checksum/cloud-config: 69b9bac0613fa9b7e4d003cbedcb9a83e5fb4dfe97f388d2528514088b14ee54
+            checksum/capabilities-config: 5bb3ac50c36d8702606343fee9c7fa8b5a04bae2cb2f57c1d1d16cce481c58c7
+            checksum/cloud-config: 17243fe92b525f5622708990332043dab65c5d996b902c981352850a5609ed4a
             checksum/cloud-secret: a14d37289c371366e6754c99095a7322784a9c92424c61f376d0884a54ffa711
             checksum/matching-rules-config: d1f1dbfe5d9ac5fa097e56e47f3222d1f15ce96b4061a683f29e051f9ea73374
             checksum/operator-config: 4995e200111a0cb528bf94d6db30db5ec744ce761062b5682baeb19b9ee55fbc
@@ -4960,6 +4960,15 @@ all capabilities:
       - apiGroups:
           - spdx.softwarecomposition.kubescape.io
         resources:
+          - sbomsyfts
+          - sbomsyftfiltereds
+        verbs:
+          - get
+          - watch
+          - list
+      - apiGroups:
+          - spdx.softwarecomposition.kubescape.io
+        resources:
           - seccompprofiles
         verbs:
           - get
@@ -5202,6 +5211,18 @@ all capabilities:
               {
                 "group": "spdx.softwarecomposition.kubescape.io",
                 "version": "v1beta1",
+                "resource": "sbomsyfts",
+                "strategy": "copy"
+              },
+              {
+                "group": "spdx.softwarecomposition.kubescape.io",
+                "version": "v1beta1",
+                "resource": "sbomsyftfiltereds",
+                "strategy": "copy"
+              },
+              {
+                "group": "spdx.softwarecomposition.kubescape.io",
+                "version": "v1beta1",
                 "resource": "seccompprofiles",
                 "strategy": "copy"
               },
@@ -5344,10 +5365,10 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 69b9bac0613fa9b7e4d003cbedcb9a83e5fb4dfe97f388d2528514088b14ee54
+            checksum/cloud-config: 17243fe92b525f5622708990332043dab65c5d996b902c981352850a5609ed4a
             checksum/cloud-secret: a14d37289c371366e6754c99095a7322784a9c92424c61f376d0884a54ffa711
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
-            checksum/synchronizer-configmap: 0c5eebec97f4d3101571bba3f8d8b7a5e28985c752ca21eab2b7c18a04326b5e
+            checksum/synchronizer-configmap: eeb955b7c6d089fdce2a625d974b3a519996ff251da245bc58114b5abc069583
           labels:
             app: synchronizer
             app.kubernetes.io/component: synchronizer
