@@ -30,6 +30,9 @@ spec:
       {{- if ne .Values.global.proxySecretFile "" }}
         checksum/proxy-config: {{ $checksums.proxySecret }}
       {{- end }}
+      {{- if lt (.Capabilities.KubeVersion.Minor | int) 29 }}
+        container.apparmor.security.beta.kubernetes.io/{{ .Values.nodeAgent.name }}: unconfined
+      {{- end }}
       {{- if eq .Values.configurations.prometheusAnnotations "enable" }}
         prometheus.io/path: /metrics
         prometheus.io/port: "8080"
@@ -43,8 +46,10 @@ spec:
       {{- end }}
     spec:
       securityContext:
+        {{- if ge (.Capabilities.KubeVersion.Minor | int) 29 }}
         appArmorProfile:
           type: Unconfined
+        {{- end }}
         seccompProfile:
           type: Unconfined
       {{- if .Values.imagePullSecrets }}
