@@ -123,34 +123,100 @@ spec:
         - name: {{ .name }}
           value: "{{ .value }}"
         {{- end }}
-        {{- if .Values.cloudProviderMetadata.cloudRegion }}
+
+        {{- /* Check configuration to use a Secret if provided */}}
+        {{- if .Values.cloudProviderMetadata.secretRef }}
+
+          {{- if .Values.cloudProviderMetadata.secretRef.cloudRegionKey }}
+        - name: KS_CLOUD_REGION
+          valueFrom:
+            secretKeyRef:
+              name: "{{ .Values.cloudProviderMetadata.secretRef.name }}"
+              key: "{{ .Values.cloudProviderMetadata.secretRef.cloudRegionKey }}"
+          {{- end }}
+
+          {{- if .Values.cloudProviderMetadata.secretRef.gkeProjectKey }}
+        - name: KS_GKE_PROJECT
+          valueFrom:
+            secretKeyRef:
+              name: "{{ .Values.cloudProviderMetadata.secretRef.name }}"
+              key: "{{ .Values.cloudProviderMetadata.secretRef.gkeProjectKey }}"
+          {{- end }}
+
+          {{- if .Values.cloudProviderMetadata.secretRef.subscriptionIdKey }}
+        - name: AZURE_SUBSCRIPTION_ID
+          valueFrom:
+            secretKeyRef:
+              name: "{{ .Values.cloudProviderMetadata.secretRef.name }}"
+              key: "{{ .Values.cloudProviderMetadata.secretRef.subscriptionIdKey }}"
+          {{- end }}
+
+          {{- if .Values.cloudProviderMetadata.secretRef.clientIdKey }}
+        - name: AZURE_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: "{{ .Values.cloudProviderMetadata.secretRef.name }}"
+              key: "{{ .Values.cloudProviderMetadata.secretRef.clientIdKey }}"
+          {{- end }}
+
+          {{- if .Values.cloudProviderMetadata.secretRef.clientSecretKey }}
+        - name: AZURE_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: "{{ .Values.cloudProviderMetadata.secretRef.name }}"
+              key: "{{ .Values.cloudProviderMetadata.secretRef.clientSecretKey }}"
+          {{- end }}
+
+          {{- if .Values.cloudProviderMetadata.secretRef.tenantIdKey }}
+        - name: AZURE_TENANT_ID
+          valueFrom:
+            secretKeyRef:
+              name: "{{ .Values.cloudProviderMetadata.secretRef.name }}"
+              key: "{{ .Values.cloudProviderMetadata.secretRef.tenantIdKey }}"
+          {{- end }}
+
+          {{- if .Values.cloudProviderMetadata.secretRef.resourceGroupKey }}
+        - name: AZURE_RESOURCE_GROUP
+          valueFrom:
+            secretKeyRef:
+              name: "{{ .Values.cloudProviderMetadata.secretRef.name }}"
+              key: "{{ .Values.cloudProviderMetadata.secretRef.resourceGroupKey }}"
+          {{- end }}
+
+        {{- /* Fallback: If not using secretRef, use direct values (original method) */}}
+        {{- else }}
+
+          {{- if .Values.cloudProviderMetadata.cloudRegion }}
         - name: KS_CLOUD_REGION
           value: "{{ .Values.cloudProviderMetadata.cloudRegion }}"
-        {{- end }}
-        {{- if .Values.cloudProviderMetadata.gkeProject }}
+          {{- end }}
+          {{- if .Values.cloudProviderMetadata.gkeProject }}
         - name: KS_GKE_PROJECT
           value: "{{ .Values.cloudProviderMetadata.gkeProject }}"
-        {{- end }}
-        {{- if .Values.cloudProviderMetadata.aksSubscriptionID }}
+          {{- end }}
+          {{- if .Values.cloudProviderMetadata.aksSubscriptionID }}
         - name: AZURE_SUBSCRIPTION_ID
           value: "{{ .Values.cloudProviderMetadata.aksSubscriptionID }}"
-        {{- end }}
-        {{- if .Values.cloudProviderMetadata.aksClientID }}
+          {{- end }}
+          {{- if .Values.cloudProviderMetadata.aksClientID }}
         - name: AZURE_CLIENT_ID
           value: "{{ .Values.cloudProviderMetadata.aksClientID }}"
-        {{- end }}
-        {{- if .Values.cloudProviderMetadata.aksClientSecret }}
+          {{- end }}
+          {{- if .Values.cloudProviderMetadata.aksClientSecret }}
         - name: AZURE_CLIENT_SECRET
           value: "{{ .Values.cloudProviderMetadata.aksClientSecret }}"
-        {{- end }}
-        {{- if .Values.cloudProviderMetadata.aksTenantID }}
+          {{- end }}
+          {{- if .Values.cloudProviderMetadata.aksTenantID }}
         - name: AZURE_TENANT_ID
           value: "{{ .Values.cloudProviderMetadata.aksTenantID }}"
-        {{- end }}
-        {{- if .Values.cloudProviderMetadata.aksResourceGroup }}
+          {{- end }}
+          {{- if .Values.cloudProviderMetadata.aksResourceGroup }}
         - name: AZURE_RESOURCE_GROUP
           value: "{{ .Values.cloudProviderMetadata.aksResourceGroup }}"
-        {{- end }}
+          {{- end }}
+
+        {{- end }} {{- /* End of if/else for secretRef vs direct values */}}
+
         {{- if $components.otelCollector.enabled }}
         - name: ACCOUNT_ID
           valueFrom:
