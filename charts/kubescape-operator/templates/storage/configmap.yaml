@@ -1,0 +1,25 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- $configurations := fromYaml (include "configurations" .) }}
+  {{- if $components.storage.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.storage.name }}
+  namespace: {{ .Values.ksNamespace }}
+  labels:
+    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.storage.name "tier" .Values.global.namespaceTier) | nindent 4 }}
+    kubescape.io/tier: "core"
+data:
+  config.json: |
+    {
+      "cleanupInterval": "{{ .Values.storage.cleanupInterval }}",
+      "disableVirtualCRDs": {{ not $configurations.virtualCrds }},
+      "excludeJsonPaths": {{ .Values.configurations.excludeJsonPaths | toJson }},
+      {{- if .Values.storage.mtls.enabled }}
+      "tlsClientCaFile": "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
+      "tlsServerCertFile": "/etc/storage-ca-certificates/tls.crt",
+      "tlsServerKeyFile": "/etc/storage-ca-certificates/tls.key",
+      {{- end }}
+      "serverBindPort": "{{ .Values.storage.serverPort }}"
+    }
+{{- end }}

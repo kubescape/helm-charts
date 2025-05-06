@@ -305,7 +305,7 @@ all capabilities:
         {
           "capabilities":{"admissionController":"enable","autoUpgrading":"enable","configurationScan":"enable","continuousScan":"enable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"enable","manageWorkloads":"enable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","prometheusExporter":"enable","relevancy":"enable","runtimeDetection":"enable","runtimeObservability":"enable","seccompProfileService":"enable","syncSBOM":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"enable","vulnerabilityScan":"enable"},
           "components":{"autoUpdater":{"enabled":true},"clamAV":{"enabled":true},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":true},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
-          "configurations":{"otelUrl":"otelCollector.svc.monitoring:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
+          "configurations":{"excludeJsonPaths":[".containers[*].env[?(@.name==\"KUBECONFIG\")]"],"otelUrl":"otelCollector.svc.monitoring:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
         }
     kind: ConfigMap
@@ -2371,7 +2371,8 @@ all capabilities:
               "alertManagerExporterUrls":[],
               "stdoutExporter":true,
               "syslogExporterURL": ""
-            }
+            },
+            "excludeJsonPaths":[".containers[*].env[?(@.name==\"KUBECONFIG\")]"]
         }
     kind: ConfigMap
     metadata:
@@ -2455,7 +2456,7 @@ all capabilities:
           annotations:
             checksum/cloud-config: 17243fe92b525f5622708990332043dab65c5d996b902c981352850a5609ed4a
             checksum/cloud-secret: a14d37289c371366e6754c99095a7322784a9c92424c61f376d0884a54ffa711
-            checksum/node-agent-config: fc3a085b1c1e53b28a2ff202bfb14ca56da5e6e9a5b3cdd1d4eb39b15ffeac74
+            checksum/node-agent-config: 3ef1818f59d54efee1995d24feb33a835915a86cbb25a126860b5a45d203d2f2
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
             container.apparmor.security.beta.kubernetes.io/node-agent: unconfined
           labels:
@@ -2548,7 +2549,7 @@ all capabilities:
                     fieldRef:
                       fieldPath: metadata.namespace
                 - name: NodeName
-              image: quay.io/kubescape/node-agent:v0.2.306
+              image: quay.io/kubescape/node-agent:v0.2.318
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -3180,6 +3181,7 @@ all capabilities:
           "namespace": "kubescape",
           "triggersecurityframework": true,
           "podScanGuardTime": "1h",
+          "excludeJsonPaths":[".containers[*].env[?(@.name==\"KUBECONFIG\")]"],
           "httpExporterConfig":{"maxAlertsPerMinute":1000,"method":"POST","url":"http://synchronizer:8089/apis/v1/kubescape.io"}
         }
     kind: ConfigMap
@@ -3232,11 +3234,11 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 5bb3ac50c36d8702606343fee9c7fa8b5a04bae2cb2f57c1d1d16cce481c58c7
+            checksum/capabilities-config: 54ee3eec2fdceb2cd3fddd538f7463c7aa25fd625884c5e90977f1ce35cbd308
             checksum/cloud-config: 17243fe92b525f5622708990332043dab65c5d996b902c981352850a5609ed4a
             checksum/cloud-secret: a14d37289c371366e6754c99095a7322784a9c92424c61f376d0884a54ffa711
             checksum/matching-rules-config: d1f1dbfe5d9ac5fa097e56e47f3222d1f15ce96b4061a683f29e051f9ea73374
-            checksum/operator-config: 4995e200111a0cb528bf94d6db30db5ec744ce761062b5682baeb19b9ee55fbc
+            checksum/operator-config: 49a88b8d50b97040c20b487f5327fedad5492076a78e583f23db0fd05e8d7af7
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
           labels:
             app: operator
@@ -3277,7 +3279,7 @@ all capabilities:
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
                   value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/operator:v0.2.86
+              image: quay.io/kubescape/operator:v0.2.88
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -4521,6 +4523,32 @@ all capabilities:
         name: storage
         namespace: kubescape
   86: |
+    apiVersion: v1
+    data:
+      config.json: |
+        {
+          "cleanupInterval": "6h",
+          "disableVirtualCRDs": false,
+          "excludeJsonPaths": [".containers[*].env[?(@.name==\"KUBECONFIG\")]"],
+          "serverBindPort": "8443"
+        }
+    kind: ConfigMap
+    metadata:
+      labels:
+        app: storage
+        app.kubernetes.io/component: storage
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.27.5
+        helm.sh/chart: kubescape-operator-1.27.5
+        kubescape.io/ignore: "true"
+        kubescape.io/tier: core
+        tier: ks-control-plane
+      name: storage
+      namespace: kubescape
+  87: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -4566,10 +4594,6 @@ all capabilities:
           affinity: null
           containers:
             - env:
-                - name: SERVER_BIND_PORT
-                  value: "8443"
-                - name: CLEANUP_INTERVAL
-                  value: 6h
                 - name: GOMEMLIMIT
                   valueFrom:
                     resourceFieldRef:
@@ -4586,7 +4610,7 @@ all capabilities:
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
                   value: otelCollector.svc.monitoring:4317
-              image: quay.io/kubescape/storage:v0.0.178
+              image: quay.io/kubescape/storage:v0.0.182
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 tcpSocket:
@@ -4608,9 +4632,14 @@ all capabilities:
               volumeMounts:
                 - mountPath: /data
                   name: data
-                - mountPath: /etc/config
+                - mountPath: /etc/config/clusterData.json
                   name: ks-cloud-config
                   readOnly: true
+                  subPath: clusterData.json
+                - mountPath: /etc/config/config.json
+                  name: config
+                  readOnly: true
+                  subPath: config.json
           imagePullSecrets:
             - name: foo
             - name: bar
@@ -4635,7 +4664,13 @@ all capabilities:
                     path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
-  87: |
+            - configMap:
+                items:
+                  - key: config.json
+                    path: config.json
+                name: storage
+              name: config
+  88: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -4699,7 +4734,7 @@ all capabilities:
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
         - Egress
-  88: |
+  89: |
     apiVersion: v1
     kind: PersistentVolumeClaim
     metadata:
@@ -4722,7 +4757,7 @@ all capabilities:
       resources:
         requests:
           storage: 5Gi
-  89: |
+  90: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -4747,7 +4782,7 @@ all capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  90: |
+  91: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -4772,7 +4807,7 @@ all capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  91: |
+  92: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -4799,7 +4834,7 @@ all capabilities:
         app.kubernetes.io/component: storage
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  92: |
+  93: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -4816,7 +4851,7 @@ all capabilities:
         tier: ks-control-plane
       name: storage
       namespace: kubescape
-  93: |
+  94: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -5051,7 +5086,7 @@ all capabilities:
         verbs:
           - update
           - patch
-  94: |
+  95: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -5075,7 +5110,7 @@ all capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  95: |
+  96: |
     apiVersion: v1
     data:
       config.json: |
@@ -5359,7 +5394,7 @@ all capabilities:
         tier: ks-control-plane
       name: synchronizer
       namespace: kubescape
-  96: |
+  97: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -5514,7 +5549,7 @@ all capabilities:
                     path: config.json
                 name: synchronizer
               name: config
-  97: |
+  98: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -5592,7 +5627,7 @@ all capabilities:
       policyTypes:
         - Ingress
         - Egress
-  98: |
+  99: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -5635,7 +5670,7 @@ all capabilities:
           - list
           - patch
           - delete
-  99: |
+  100: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -5660,7 +5695,7 @@ all capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  100: |
+  101: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -5685,7 +5720,7 @@ all capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  101: |
+  102: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -5712,7 +5747,7 @@ all capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  102: |
+  103: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -5836,7 +5871,7 @@ default capabilities:
         {
           "capabilities":{"admissionController":"disable","autoUpgrading":"disable","configurationScan":"enable","httpDetection":"disable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"disable","networkPolicyService":"enable","nodeProfileService":"disable","nodeSbomGeneration":"enable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
           "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":true},"prometheusExporter":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
-          "configurations":{"otelUrl":null,"persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
+          "configurations":{"excludeJsonPaths":null,"otelUrl":null,"persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
         }
     kind: ConfigMap
@@ -7658,7 +7693,8 @@ default capabilities:
               "alertManagerExporterUrls":[],
               "stdoutExporter":true,
               "syslogExporterURL": ""
-            }
+            },
+            "excludeJsonPaths":null
         }
     kind: ConfigMap
     metadata:
@@ -7705,7 +7741,7 @@ default capabilities:
           annotations:
             checksum/cloud-config: 5918e32f69e2de8d4bf585a26128e0b74f674fd61330b86a2fae0c9e40fff857
             checksum/cloud-secret: a14d37289c371366e6754c99095a7322784a9c92424c61f376d0884a54ffa711
-            checksum/node-agent-config: 686fc30c7541fe5a38eb1dbde21cfec62008d91e33d86f8ed191598d831c226e
+            checksum/node-agent-config: 4c4c54cf77470c45c3665e9ebf5f1252e6f418be246eb476b968b2bf319819fb
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
           labels:
             app: node-agent
@@ -7764,7 +7800,7 @@ default capabilities:
                     fieldRef:
                       fieldPath: metadata.namespace
                 - name: NodeName
-              image: quay.io/kubescape/node-agent:v0.2.306
+              image: quay.io/kubescape/node-agent:v0.2.318
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -8275,6 +8311,7 @@ default capabilities:
           "namespace": "kubescape",
           "triggersecurityframework": true,
           "podScanGuardTime": "1h",
+          "excludeJsonPaths":null,
           "httpExporterConfig":{"maxAlertsPerMinute":1000,"method":"POST","url":"http://synchronizer:8089/apis/v1/kubescape.io"}
         }
     kind: ConfigMap
@@ -8327,11 +8364,11 @@ default capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: d897bb1ac56b5db5d6526c2674b4d14231104835604943bb281888073f7824a7
+            checksum/capabilities-config: 0550711d48eb51c36f568d5c6d63842d7942eab53060223dcd2e770b69021695
             checksum/cloud-config: 5918e32f69e2de8d4bf585a26128e0b74f674fd61330b86a2fae0c9e40fff857
             checksum/cloud-secret: a14d37289c371366e6754c99095a7322784a9c92424c61f376d0884a54ffa711
             checksum/matching-rules-config: d1f1dbfe5d9ac5fa097e56e47f3222d1f15ce96b4061a683f29e051f9ea73374
-            checksum/operator-config: 13cce0be91a3828e9781d3e1d859670a755fea3748373421acb4cfe838654c60
+            checksum/operator-config: b9dcda4d22d0b426d92c62cb4be1bcc1bb6fec7a80f2119538676fcf7bb4b59a
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
           labels:
             app: operator
@@ -8369,7 +8406,7 @@ default capabilities:
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4318
-              image: quay.io/kubescape/operator:v0.2.86
+              image: quay.io/kubescape/operator:v0.2.88
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -9617,6 +9654,35 @@ default capabilities:
         name: storage
         namespace: kubescape
   67: |
+    apiVersion: v1
+    data:
+      config.json: |
+        {
+          "cleanupInterval": "6h",
+          "disableVirtualCRDs": true,
+          "excludeJsonPaths": null,
+          "tlsClientCaFile": "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
+          "tlsServerCertFile": "/etc/storage-ca-certificates/tls.crt",
+          "tlsServerKeyFile": "/etc/storage-ca-certificates/tls.key",
+          "serverBindPort": "8443"
+        }
+    kind: ConfigMap
+    metadata:
+      labels:
+        app: storage
+        app.kubernetes.io/component: storage
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.27.5
+        helm.sh/chart: kubescape-operator-1.27.5
+        kubescape.io/ignore: "true"
+        kubescape.io/tier: core
+        tier: ks-control-plane
+      name: storage
+      namespace: kubescape
+  68: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -9663,10 +9729,6 @@ default capabilities:
           affinity: null
           containers:
             - env:
-                - name: SERVER_BIND_PORT
-                  value: "8443"
-                - name: CLEANUP_INTERVAL
-                  value: 6h
                 - name: GOMEMLIMIT
                   valueFrom:
                     resourceFieldRef:
@@ -9681,22 +9743,9 @@ default capabilities:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-                - name: TLS_CLIENT_CA_FILE
-                  value: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-                - name: TLS_SERVER_CERT_FILE
-                  value: /etc/storage-ca-certificates/tls.crt
-                - name: TLS_SERVER_KEY_FILE
-                  value: /etc/storage-ca-certificates/tls.key
-                - name: ACCOUNT_ID
-                  valueFrom:
-                    secretKeyRef:
-                      key: account
-                      name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4318
-                - name: DISABLE_VIRTUAL_CRDS
-                  value: "true"
-              image: quay.io/kubescape/storage:v0.0.178
+              image: quay.io/kubescape/storage:v0.0.182
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 tcpSocket:
@@ -9718,9 +9767,14 @@ default capabilities:
               volumeMounts:
                 - mountPath: /data
                   name: data
-                - mountPath: /etc/config
+                - mountPath: /etc/config/clusterData.json
                   name: ks-cloud-config
                   readOnly: true
+                  subPath: clusterData.json
+                - mountPath: /etc/config/config.json
+                  name: config
+                  readOnly: true
+                  subPath: config.json
                 - mountPath: /etc/storage-ca-certificates
                   name: ca-certificates
                   readOnly: true
@@ -9745,10 +9799,16 @@ default capabilities:
                     path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
+            - configMap:
+                items:
+                  - key: config.json
+                    path: config.json
+                name: storage
+              name: config
             - name: ca-certificates
               secret:
                 secretName: storage-ca
-  68: |
+  69: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -9801,7 +9861,7 @@ default capabilities:
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
         - Egress
-  69: |
+  70: |
     apiVersion: v1
     kind: PersistentVolumeClaim
     metadata:
@@ -9824,7 +9884,7 @@ default capabilities:
       resources:
         requests:
           storage: 5Gi
-  70: |
+  71: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -9849,7 +9909,7 @@ default capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  71: |
+  72: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -9876,7 +9936,7 @@ default capabilities:
         app.kubernetes.io/component: storage
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  72: |
+  73: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -9893,7 +9953,7 @@ default capabilities:
         tier: ks-control-plane
       name: storage
       namespace: kubescape
-  73: |
+  74: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -10059,7 +10119,7 @@ default capabilities:
           - update
           - patch
           - delete
-  74: |
+  75: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -10083,7 +10143,7 @@ default capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  75: |
+  76: |
     apiVersion: v1
     data:
       config.json: |
@@ -10349,7 +10409,7 @@ default capabilities:
         tier: ks-control-plane
       name: synchronizer
       namespace: kubescape
-  76: |
+  77: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -10506,7 +10566,7 @@ default capabilities:
                     path: config.json
                 name: synchronizer
               name: config
-  77: |
+  78: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -10573,7 +10633,7 @@ default capabilities:
       policyTypes:
         - Ingress
         - Egress
-  78: |
+  79: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -10616,7 +10676,7 @@ default capabilities:
           - list
           - patch
           - delete
-  79: |
+  80: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -10641,7 +10701,7 @@ default capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  80: |
+  81: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -10668,7 +10728,7 @@ default capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  81: |
+  82: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -10791,7 +10851,7 @@ disable otel:
         {
           "capabilities":{"admissionController":"enable","autoUpgrading":"disable","configurationScan":"enable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"disable","networkPolicyService":"enable","nodeProfileService":"disable","nodeSbomGeneration":"enable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
           "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":true},"prometheusExporter":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
-          "configurations":{"otelUrl":null,"persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
+          "configurations":{"excludeJsonPaths":null,"otelUrl":null,"persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
         }
     kind: ConfigMap
@@ -12172,7 +12232,8 @@ disable otel:
               "alertManagerExporterUrls":[],
               "stdoutExporter":true,
               "syslogExporterURL": ""
-            }
+            },
+            "excludeJsonPaths":null
         }
     kind: ConfigMap
     metadata:
@@ -12219,7 +12280,7 @@ disable otel:
           annotations:
             checksum/cloud-config: e03661b20f1c1dd0612ce5e97c5d6c0e6fb194dba398f56e66ed6301ad89a115
             checksum/cloud-secret: a14d37289c371366e6754c99095a7322784a9c92424c61f376d0884a54ffa711
-            checksum/node-agent-config: 686fc30c7541fe5a38eb1dbde21cfec62008d91e33d86f8ed191598d831c226e
+            checksum/node-agent-config: 4c4c54cf77470c45c3665e9ebf5f1252e6f418be246eb476b968b2bf319819fb
             container.apparmor.security.beta.kubernetes.io/node-agent: unconfined
           labels:
             app: node-agent
@@ -12278,7 +12339,7 @@ disable otel:
                     fieldRef:
                       fieldPath: metadata.namespace
                 - name: NodeName
-              image: quay.io/kubescape/node-agent:v0.2.306
+              image: quay.io/kubescape/node-agent:v0.2.318
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -12704,6 +12765,7 @@ disable otel:
           "namespace": "kubescape",
           "triggersecurityframework": true,
           "podScanGuardTime": "1h",
+          "excludeJsonPaths":null,
           "httpExporterConfig":{"maxAlertsPerMinute":1000,"method":"POST","url":"http://synchronizer:8089/apis/v1/kubescape.io"}
         }
     kind: ConfigMap
@@ -12756,11 +12818,11 @@ disable otel:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 75ade6cb3a1546a164dc5bf3a041fad448a9e4f3b505f86033d841bc452cab7c
+            checksum/capabilities-config: ba014b53f1cf9b25e02f300861172276293e14cca23759569ce33b04d4b16a69
             checksum/cloud-config: e03661b20f1c1dd0612ce5e97c5d6c0e6fb194dba398f56e66ed6301ad89a115
             checksum/cloud-secret: a14d37289c371366e6754c99095a7322784a9c92424c61f376d0884a54ffa711
             checksum/matching-rules-config: d1f1dbfe5d9ac5fa097e56e47f3222d1f15ce96b4061a683f29e051f9ea73374
-            checksum/operator-config: 13cce0be91a3828e9781d3e1d859670a755fea3748373421acb4cfe838654c60
+            checksum/operator-config: b9dcda4d22d0b426d92c62cb4be1bcc1bb6fec7a80f2119538676fcf7bb4b59a
           labels:
             app: operator
             app.kubernetes.io/component: operator
@@ -12797,7 +12859,7 @@ disable otel:
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4318
-              image: quay.io/kubescape/operator:v0.2.86
+              image: quay.io/kubescape/operator:v0.2.88
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -13849,6 +13911,35 @@ disable otel:
         name: storage
         namespace: kubescape
   57: |
+    apiVersion: v1
+    data:
+      config.json: |
+        {
+          "cleanupInterval": "6h",
+          "disableVirtualCRDs": true,
+          "excludeJsonPaths": null,
+          "tlsClientCaFile": "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
+          "tlsServerCertFile": "/etc/storage-ca-certificates/tls.crt",
+          "tlsServerKeyFile": "/etc/storage-ca-certificates/tls.key",
+          "serverBindPort": "8443"
+        }
+    kind: ConfigMap
+    metadata:
+      labels:
+        app: storage
+        app.kubernetes.io/component: storage
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.27.5
+        helm.sh/chart: kubescape-operator-1.27.5
+        kubescape.io/ignore: "true"
+        kubescape.io/tier: core
+        tier: ks-control-plane
+      name: storage
+      namespace: kubescape
+  58: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -13895,10 +13986,6 @@ disable otel:
           affinity: null
           containers:
             - env:
-                - name: SERVER_BIND_PORT
-                  value: "8443"
-                - name: CLEANUP_INTERVAL
-                  value: 6h
                 - name: GOMEMLIMIT
                   valueFrom:
                     resourceFieldRef:
@@ -13913,22 +14000,9 @@ disable otel:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-                - name: TLS_CLIENT_CA_FILE
-                  value: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-                - name: TLS_SERVER_CERT_FILE
-                  value: /etc/storage-ca-certificates/tls.crt
-                - name: TLS_SERVER_KEY_FILE
-                  value: /etc/storage-ca-certificates/tls.key
-                - name: ACCOUNT_ID
-                  valueFrom:
-                    secretKeyRef:
-                      key: account
-                      name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4318
-                - name: DISABLE_VIRTUAL_CRDS
-                  value: "true"
-              image: quay.io/kubescape/storage:v0.0.178
+              image: quay.io/kubescape/storage:v0.0.182
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 tcpSocket:
@@ -13950,9 +14024,14 @@ disable otel:
               volumeMounts:
                 - mountPath: /data
                   name: data
-                - mountPath: /etc/config
+                - mountPath: /etc/config/clusterData.json
                   name: ks-cloud-config
                   readOnly: true
+                  subPath: clusterData.json
+                - mountPath: /etc/config/config.json
+                  name: config
+                  readOnly: true
+                  subPath: config.json
                 - mountPath: /etc/storage-ca-certificates
                   name: ca-certificates
                   readOnly: true
@@ -13977,10 +14056,16 @@ disable otel:
                     path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
+            - configMap:
+                items:
+                  - key: config.json
+                    path: config.json
+                name: storage
+              name: config
             - name: ca-certificates
               secret:
                 secretName: storage-ca
-  58: |
+  59: |
     apiVersion: v1
     kind: PersistentVolumeClaim
     metadata:
@@ -14003,7 +14088,7 @@ disable otel:
       resources:
         requests:
           storage: 5Gi
-  59: |
+  60: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -14028,7 +14113,7 @@ disable otel:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  60: |
+  61: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -14055,7 +14140,7 @@ disable otel:
         app.kubernetes.io/component: storage
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  61: |
+  62: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -14072,7 +14157,7 @@ disable otel:
         tier: ks-control-plane
       name: storage
       namespace: kubescape
-  62: |
+  63: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -14238,7 +14323,7 @@ disable otel:
           - update
           - patch
           - delete
-  63: |
+  64: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -14262,7 +14347,7 @@ disable otel:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  64: |
+  65: |
     apiVersion: v1
     data:
       config.json: |
@@ -14528,7 +14613,7 @@ disable otel:
         tier: ks-control-plane
       name: synchronizer
       namespace: kubescape
-  65: |
+  66: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -14669,7 +14754,7 @@ disable otel:
                     path: config.json
                 name: synchronizer
               name: config
-  66: |
+  67: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -14712,7 +14797,7 @@ disable otel:
           - list
           - patch
           - delete
-  67: |
+  68: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -14737,7 +14822,7 @@ disable otel:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  68: |
+  69: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -14764,7 +14849,7 @@ disable otel:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  69: |
+  70: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -14871,7 +14956,7 @@ minimal capabilities:
         {
           "capabilities":{"admissionController":"enable","autoUpgrading":"disable","configurationScan":"enable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"disable","networkPolicyService":"enable","nodeProfileService":"disable","nodeSbomGeneration":"enable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
           "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":false},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":false},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":false},"serviceDiscovery":{"enabled":false},"storage":{"enabled":true},"synchronizer":{"enabled":false}},
-          "configurations":{"otelUrl":"otelCollector.svc.monitoring:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
+          "configurations":{"excludeJsonPaths":null,"otelUrl":"otelCollector.svc.monitoring:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
         }
     kind: ConfigMap
@@ -16018,7 +16103,8 @@ minimal capabilities:
               "alertManagerExporterUrls":[],
               "stdoutExporter":true,
               "syslogExporterURL": ""
-            }
+            },
+            "excludeJsonPaths":null
         }
     kind: ConfigMap
     metadata:
@@ -16065,7 +16151,7 @@ minimal capabilities:
           annotations:
             checksum/cloud-config: fe0c3e082da3b21108728d9dab64b87bb0a2bda46032581bf42b5a6bb8084a46
             checksum/cloud-secret: f831ecac02578238602f964484a78ba9c12e785ca161d1faf96057ef115ef66f
-            checksum/node-agent-config: 583f56aa0876e179dc02d42b1fbdd0011e7c16c718da8feccfe2a373bbcc9a5f
+            checksum/node-agent-config: d310bba6238225f87bfdc61e187b1bffcdb6e4bd691b976538cf4951e0800237
             container.apparmor.security.beta.kubernetes.io/node-agent: unconfined
           labels:
             app: node-agent
@@ -16123,7 +16209,7 @@ minimal capabilities:
                     fieldRef:
                       fieldPath: metadata.namespace
                 - name: NodeName
-              image: quay.io/kubescape/node-agent:v0.2.306
+              image: quay.io/kubescape/node-agent:v0.2.318
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -16546,6 +16632,7 @@ minimal capabilities:
           "namespace": "kubescape",
           "triggersecurityframework": true,
           "podScanGuardTime": "1h",
+          "excludeJsonPaths":null,
           "httpExporterConfig":{"maxAlertsPerMinute":1000,"method":"POST","url":"http://synchronizer:8089/apis/v1/kubescape.io"}
         }
     kind: ConfigMap
@@ -16598,11 +16685,11 @@ minimal capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: ac43be5249fda95973f8f4d0f22bd4508b10d307a824c2e3ab7aaf14c08fa60c
+            checksum/capabilities-config: 10bfc06eb5ce16f917643afdb1f2b1a102a6b5acd9d000f387232bcd66e5168b
             checksum/cloud-config: fe0c3e082da3b21108728d9dab64b87bb0a2bda46032581bf42b5a6bb8084a46
             checksum/cloud-secret: f831ecac02578238602f964484a78ba9c12e785ca161d1faf96057ef115ef66f
             checksum/matching-rules-config: d1f1dbfe5d9ac5fa097e56e47f3222d1f15ce96b4061a683f29e051f9ea73374
-            checksum/operator-config: c86a86287674a6d5572194529d88d5bcbb660eeec44c0291d9f86eb99b6adaa4
+            checksum/operator-config: b2445b7891908107388e2e04913abded0dd400d2e7b73edc91dc03de67a9d106
           labels:
             app: operator
             app.kubernetes.io/component: operator
@@ -16638,7 +16725,7 @@ minimal capabilities:
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
                   value: otelCollector.svc.monitoring:4317
-              image: quay.io/kubescape/operator:v0.2.86
+              image: quay.io/kubescape/operator:v0.2.88
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -17267,6 +17354,35 @@ minimal capabilities:
         name: storage
         namespace: kubescape
   45: |
+    apiVersion: v1
+    data:
+      config.json: |
+        {
+          "cleanupInterval": "6h",
+          "disableVirtualCRDs": false,
+          "excludeJsonPaths": null,
+          "tlsClientCaFile": "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
+          "tlsServerCertFile": "/etc/storage-ca-certificates/tls.crt",
+          "tlsServerKeyFile": "/etc/storage-ca-certificates/tls.key",
+          "serverBindPort": "8443"
+        }
+    kind: ConfigMap
+    metadata:
+      labels:
+        app: storage
+        app.kubernetes.io/component: storage
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.27.5
+        helm.sh/chart: kubescape-operator-1.27.5
+        kubescape.io/ignore: "true"
+        kubescape.io/tier: core
+        tier: ks-control-plane
+      name: storage
+      namespace: kubescape
+  46: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -17312,10 +17428,6 @@ minimal capabilities:
           affinity: null
           containers:
             - env:
-                - name: SERVER_BIND_PORT
-                  value: "8443"
-                - name: CLEANUP_INTERVAL
-                  value: 6h
                 - name: GOMEMLIMIT
                   valueFrom:
                     resourceFieldRef:
@@ -17330,15 +17442,9 @@ minimal capabilities:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-                - name: TLS_CLIENT_CA_FILE
-                  value: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-                - name: TLS_SERVER_CERT_FILE
-                  value: /etc/storage-ca-certificates/tls.crt
-                - name: TLS_SERVER_KEY_FILE
-                  value: /etc/storage-ca-certificates/tls.key
                 - name: OTEL_COLLECTOR_SVC
                   value: otelCollector.svc.monitoring:4317
-              image: quay.io/kubescape/storage:v0.0.178
+              image: quay.io/kubescape/storage:v0.0.182
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 tcpSocket:
@@ -17360,9 +17466,14 @@ minimal capabilities:
               volumeMounts:
                 - mountPath: /data
                   name: data
-                - mountPath: /etc/config
+                - mountPath: /etc/config/clusterData.json
                   name: ks-cloud-config
                   readOnly: true
+                  subPath: clusterData.json
+                - mountPath: /etc/config/config.json
+                  name: config
+                  readOnly: true
+                  subPath: config.json
                 - mountPath: /etc/storage-ca-certificates
                   name: ca-certificates
                   readOnly: true
@@ -17385,10 +17496,16 @@ minimal capabilities:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
+            - configMap:
+                items:
+                  - key: config.json
+                    path: config.json
+                name: storage
+              name: config
             - name: ca-certificates
               secret:
                 secretName: storage-ca
-  46: |
+  47: |
     apiVersion: v1
     kind: PersistentVolumeClaim
     metadata:
@@ -17411,7 +17528,7 @@ minimal capabilities:
       resources:
         requests:
           storage: 5Gi
-  47: |
+  48: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -17436,7 +17553,7 @@ minimal capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  48: |
+  49: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -17463,7 +17580,7 @@ minimal capabilities:
         app.kubernetes.io/component: storage
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  49: |
+  50: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -17568,7 +17685,7 @@ relevancy only:
         {
           "capabilities":{"admissionController":"disable","autoUpgrading":"disable","configurationScan":"enable","httpDetection":"disable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"disable","networkPolicyService":"disable","nodeProfileService":"disable","nodeSbomGeneration":"disable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"disable","seccompProfileService":"disable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
           "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":false},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":false},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":false},"serviceDiscovery":{"enabled":false},"storage":{"enabled":true},"synchronizer":{"enabled":false}},
-          "configurations":{"otelUrl":"otelCollector.svc.monitoring:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
+          "configurations":{"excludeJsonPaths":null,"otelUrl":"otelCollector.svc.monitoring:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
         }
     kind: ConfigMap
@@ -18715,7 +18832,8 @@ relevancy only:
               "alertManagerExporterUrls":[],
               "stdoutExporter":true,
               "syslogExporterURL": ""
-            }
+            },
+            "excludeJsonPaths":null
         }
     kind: ConfigMap
     metadata:
@@ -18762,7 +18880,7 @@ relevancy only:
           annotations:
             checksum/cloud-config: fe0c3e082da3b21108728d9dab64b87bb0a2bda46032581bf42b5a6bb8084a46
             checksum/cloud-secret: f831ecac02578238602f964484a78ba9c12e785ca161d1faf96057ef115ef66f
-            checksum/node-agent-config: 009119b19b9764f80c55217cc94fc2a5196cd1f67aa160ac4f422aebe3fabfc6
+            checksum/node-agent-config: 290ea566321d56ce803d2320b4d8ecab62eca22520ee22d6dea402813530b7fa
           labels:
             app: node-agent
             app.kubernetes.io/component: node-agent
@@ -18819,7 +18937,7 @@ relevancy only:
                     fieldRef:
                       fieldPath: metadata.namespace
                 - name: NodeName
-              image: quay.io/kubescape/node-agent:v0.2.306
+              image: quay.io/kubescape/node-agent:v0.2.318
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -19150,6 +19268,7 @@ relevancy only:
           "namespace": "kubescape",
           "triggersecurityframework": true,
           "podScanGuardTime": "1h",
+          "excludeJsonPaths":null,
           "httpExporterConfig":{"maxAlertsPerMinute":1000,"method":"POST","url":"http://synchronizer:8089/apis/v1/kubescape.io"}
         }
     kind: ConfigMap
@@ -19202,11 +19321,11 @@ relevancy only:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 5a16b05780004bf04d8ba027ef1f42255ceb36daf6b614cf1126b5ab8fd6bf1e
+            checksum/capabilities-config: 683c8da20a94b19ac831698580c5010ea3e4ff2bc32e69f7bca3e9c1251d287c
             checksum/cloud-config: fe0c3e082da3b21108728d9dab64b87bb0a2bda46032581bf42b5a6bb8084a46
             checksum/cloud-secret: f831ecac02578238602f964484a78ba9c12e785ca161d1faf96057ef115ef66f
             checksum/matching-rules-config: d1f1dbfe5d9ac5fa097e56e47f3222d1f15ce96b4061a683f29e051f9ea73374
-            checksum/operator-config: c86a86287674a6d5572194529d88d5bcbb660eeec44c0291d9f86eb99b6adaa4
+            checksum/operator-config: b2445b7891908107388e2e04913abded0dd400d2e7b73edc91dc03de67a9d106
           labels:
             app: operator
             app.kubernetes.io/component: operator
@@ -19242,7 +19361,7 @@ relevancy only:
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
                   value: otelCollector.svc.monitoring:4317
-              image: quay.io/kubescape/operator:v0.2.86
+              image: quay.io/kubescape/operator:v0.2.88
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -19862,6 +19981,35 @@ relevancy only:
         name: storage
         namespace: kubescape
   42: |
+    apiVersion: v1
+    data:
+      config.json: |
+        {
+          "cleanupInterval": "6h",
+          "disableVirtualCRDs": false,
+          "excludeJsonPaths": null,
+          "tlsClientCaFile": "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
+          "tlsServerCertFile": "/etc/storage-ca-certificates/tls.crt",
+          "tlsServerKeyFile": "/etc/storage-ca-certificates/tls.key",
+          "serverBindPort": "8443"
+        }
+    kind: ConfigMap
+    metadata:
+      labels:
+        app: storage
+        app.kubernetes.io/component: storage
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.27.5
+        helm.sh/chart: kubescape-operator-1.27.5
+        kubescape.io/ignore: "true"
+        kubescape.io/tier: core
+        tier: ks-control-plane
+      name: storage
+      namespace: kubescape
+  43: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -19907,10 +20055,6 @@ relevancy only:
           affinity: null
           containers:
             - env:
-                - name: SERVER_BIND_PORT
-                  value: "8443"
-                - name: CLEANUP_INTERVAL
-                  value: 6h
                 - name: GOMEMLIMIT
                   valueFrom:
                     resourceFieldRef:
@@ -19925,15 +20069,9 @@ relevancy only:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-                - name: TLS_CLIENT_CA_FILE
-                  value: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-                - name: TLS_SERVER_CERT_FILE
-                  value: /etc/storage-ca-certificates/tls.crt
-                - name: TLS_SERVER_KEY_FILE
-                  value: /etc/storage-ca-certificates/tls.key
                 - name: OTEL_COLLECTOR_SVC
                   value: otelCollector.svc.monitoring:4317
-              image: quay.io/kubescape/storage:v0.0.178
+              image: quay.io/kubescape/storage:v0.0.182
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 tcpSocket:
@@ -19955,9 +20093,14 @@ relevancy only:
               volumeMounts:
                 - mountPath: /data
                   name: data
-                - mountPath: /etc/config
+                - mountPath: /etc/config/clusterData.json
                   name: ks-cloud-config
                   readOnly: true
+                  subPath: clusterData.json
+                - mountPath: /etc/config/config.json
+                  name: config
+                  readOnly: true
+                  subPath: config.json
                 - mountPath: /etc/storage-ca-certificates
                   name: ca-certificates
                   readOnly: true
@@ -19980,10 +20123,16 @@ relevancy only:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
+            - configMap:
+                items:
+                  - key: config.json
+                    path: config.json
+                name: storage
+              name: config
             - name: ca-certificates
               secret:
                 secretName: storage-ca
-  43: |
+  44: |
     apiVersion: v1
     kind: PersistentVolumeClaim
     metadata:
@@ -20006,7 +20155,7 @@ relevancy only:
       resources:
         requests:
           storage: 5Gi
-  44: |
+  45: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -20031,7 +20180,7 @@ relevancy only:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  45: |
+  46: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -20058,7 +20207,7 @@ relevancy only:
         app.kubernetes.io/component: storage
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  46: |
+  47: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
