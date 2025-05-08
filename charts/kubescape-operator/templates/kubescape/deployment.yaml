@@ -8,6 +8,8 @@ kind: Deployment
 metadata:
   name: {{ .Values.kubescape.name }}
   namespace: {{ .Values.ksNamespace }}
+  annotations:
+    {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
   labels:
     {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.kubescape.name "tier" .Values.global.namespaceTier) | nindent 4 }}
     kubescape.io/tier: "core"
@@ -25,6 +27,7 @@ spec:
   template:
     metadata:
       annotations:
+        {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
         checksum/host-scanner-configmap: {{ $checksums.hostScannerConfig }}
         checksum/cloud-secret: {{ $checksums.cloudSecret }}
         checksum/cloud-config: {{ $checksums.cloudConfig }}
