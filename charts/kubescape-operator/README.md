@@ -136,14 +136,15 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | hostScanner.volumes | object | `[]` | Additional volumes for the host scanner |
 | hostScanner.volumeMounts | object | `[]` | Additional volumeMounts for the host scanner |
 | awsIamRoleArn | string | `nil` | AWS IAM arn role |
-| cloudProviderMetadata.cloudRegion | string | `nil` | cloud region |
-| cloudProviderMetadata.gkeProject | string | `nil` | GKE project |
+| cloudProviderMetadata.secretRef.name | string | `nil` | secret name to define values for the provider's metadata |
+| cloudProviderMetadata.cloudRegion | string or through `cloudProviderMetadata.secretRef.cloudRegionKey` if `cloudProviderMetadata.secretRef.name` is set | `nil` | cloud region |
+| cloudProviderMetadata.gkeProject | string or through `cloudProviderMetadata.secretRef.gkeProjectKey` if `cloudProviderMetadata.secretRef.name` is set | `nil` | GKE project |
 | cloudProviderMetadata.gkeServiceAccount | string | `nil` | GKE service account |
-| cloudProviderMetadata.aksSubscriptionID | string | `nil` | AKS subscription ID |
-| cloudProviderMetadata.aksResourceGroup | string | `nil` | AKS resource group |
-| cloudProviderMetadata.aksClientID | string | `nil` | AKS client ID |
-| cloudProviderMetadata.aksClientSecret | string | `nil` | AKS client secret |
-| cloudProviderMetadata.aksTenantID | string | `nil` | AKS tenant ID |
+| cloudProviderMetadata.aksSubscriptionID | string or through `cloudProviderMetadata.secretRef.subscriptionIdKey` if `cloudProviderMetadata.secretRef.name` is set | `nil` | AKS subscription ID |
+| cloudProviderMetadata.aksResourceGroup | string or through `cloudProviderMetadata.secretRef.resourceGroupKey` if `cloudProviderMetadata.secretRef.name` is set | `nil` | AKS resource group |
+| cloudProviderMetadata.aksClientID | string or through `cloudProviderMetadata.secretRef.clientIdKey` if `cloudProviderMetadata.secretRef.name` is set | `nil` | AKS client ID |
+| cloudProviderMetadata.aksClientSecret | string or through `cloudProviderMetadata.secretRef.clientSecretKey` if `cloudProviderMetadata.secretRef.name` is set | `nil` | AKS client secret |
+| cloudProviderMetadata.aksTenantID | string or through `cloudProviderMetadata.secretRef.tenantIdKey` if `cloudProviderMetadata.secretRef.name` is set | `nil` | AKS tenant ID |
 | volumes | object | `[]` | Additional volumes for all containers |
 | volumeMounts | object | `[]` | Additional volumeMounts for all containers |
 | imageScanning.privateRegistries.credentials | object | `[]` | Credentials for scanning images pulled from private container registries. This configuration is not needed when using `imagePullSecrets`|
