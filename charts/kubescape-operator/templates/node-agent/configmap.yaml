@@ -12,6 +12,8 @@ kind: ConfigMap
 metadata:
   name: {{ .Values.nodeAgent.name }}
   namespace: {{ .Values.ksNamespace }}
+  annotations:
+    {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
   labels:
     {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.nodeAgent.name "tier" .Values.global.namespaceTier) | nindent 4 }}
     kubescape.io/tier: "core"
@@ -49,7 +51,8 @@ data:
           "alertManagerExporterUrls": {{- .Values.nodeAgent.config.alertManagerExporterUrls | toJson }},
           "stdoutExporter": {{- .Values.nodeAgent.config.stdoutExporter }},
           "syslogExporterURL": "{{- .Values.nodeAgent.config.syslogExporterURL }}"
-        }
+        },
+        "excludeJsonPaths": {{- .Values.configurations.excludeJsonPaths | toJson }}
     }
 ---
 {{- if $components.clamAV.enabled }}

@@ -18,7 +18,8 @@ clusterName: "cluster"
 ksNamespace: kubescape
 ksLabel: kubescape
 
-# Additional labels that should be applied to all resources
+# Additional annotations and labels that should be applied to all resources
+additionalAnnotations: {}
 additionalLabels: {}
 
 # global logger name and level
@@ -133,7 +134,12 @@ configurations:
 
   priorityClass:
     enabled: true
-    daemonset: 100000100 # PriorityClass of the DaemonSet, this should be higher than the other components so the DaemonSet will schedule on all nodes
+    daemonset: 100000100  # PriorityClass of the DaemonSet, this should be higher than the other components so the DaemonSet will schedule on all nodes
+
+  # List of json paths to exclude from the pod spec hash computation - used for aggregating CronJob generated CRDs
+  excludeJsonPaths:
+    # - ".containers[*].env[?(@.name==\"DD_INJECT_ID\")]"
+
 
 # installation of the alertCRD chart
 alertCRD:
@@ -159,6 +165,15 @@ cloudProviderMetadata:
 
   # -- GKE project
   gkeProject:
+
+  # Provider Metada can also be pulled from a kubernetes secret like
+  # secretRef:
+  #   name: kubescape-secret
+  #   subscriptionIdKey: aksSubscriptionID
+  #   clientIdKey: aksClientID
+  #   clientSecretKey: aksClientSecret
+  #   tenantIdKey: aksTenantID
+  #   resourceGroupKey: aksResourceGroup
 
 # -----------------------------------------------------------------------------------------
 # ------------------------- Configurations ------------------------------------------------
@@ -295,7 +310,7 @@ operator:
   image:
     # -- source code: https://github.com/kubescape/operator
     repository: quay.io/kubescape/operator
-    tag: v0.2.86
+    tag: v0.2.88
     pullPolicy: IfNotPresent
 
   nodeSelector:
@@ -446,7 +461,7 @@ storage:
   image:
     # -- source code: https://github.com/kubescape/storage
     repository: quay.io/kubescape/storage
-    tag: v0.0.178
+    tag: v0.0.183
     pullPolicy: IfNotPresent
 
   nodeSelector:
@@ -472,7 +487,7 @@ nodeAgent:
   image:
     # -- source code: https://github.com/kubescape/node-agent
     repository: quay.io/kubescape/node-agent
-    tag: v0.2.306
+    tag: v0.2.318
     pullPolicy: IfNotPresent
 
   config:
@@ -669,7 +684,7 @@ synchronizer:
   image:
     # -- source code: https://github.com/kubescape/synchronizer
     repository: quay.io/kubescape/synchronizer
-    tag: v0.0.109
+    tag: v0.0.110
     pullPolicy: IfNotPresent
   nodeSelector:
     kubernetes.io/os: linux

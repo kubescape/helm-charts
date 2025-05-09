@@ -28,6 +28,14 @@ tests:
       accessKey: f304d73b-d43c-412b-82ea-e4c859493ce6
       alertCRD:
         installDefault: true
+      cloudProviderMetadata:
+        secretRef:
+          name: kubescape-secret
+          subscriptionIdKey: aksSubscriptionID
+          clientIdKey: aksClientID
+          clientSecretKey: aksClientSecret
+          tenantIdKey: aksTenantID
+          resourceGroupKey: aksResourceGroup
       capabilities:
         configurationScan: enable
         continuousScan: enable
@@ -50,7 +58,10 @@ tests:
         networkEventsStreaming: enable
         syncSBOM: enable
       server: api.armosec.io
-      configurations.otelUrl: "otelCollector.svc.monitoring:4317"
+      configurations:
+        otelUrl: "otelCollector.svc.monitoring:4317"
+        excludeJsonPaths:
+          - ".containers[*].env[?(@.name==\"KUBECONFIG\")]"
       clusterName: kind-kind
       includeNamespaces: "my-namespace"
       global:
