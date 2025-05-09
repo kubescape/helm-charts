@@ -34,10 +34,10 @@ excludeNamespaces: "kubescape,kube-system,kube-public,kube-node-lease,kubeconfig
 includeNamespaces: ""
 
 # Additional volumes applied to all containers
-volumes: [ ]
+volumes: []
 
 # Additional volumeMounts applied to all containers
-volumeMounts: [ ]
+volumeMounts: []
 
 customScheduling:
   affinity:
@@ -86,7 +86,7 @@ capabilities:
 
   # ====== Image vulnerabilities scanning related capabilities ======
   #
-  nodeSbomGeneration: enable  # Warning: When disabled along with enableClusterWideSecretAccess: false, vulnerability scanning capabilities will be limited
+  nodeSbomGeneration: enable # Warning: When disabled along with enableClusterWideSecretAccess: false, vulnerability scanning capabilities will be limited
   vulnerabilityScan: enable
   relevancy: enable
   # Generate VEX documents alongside the image vulnerabilities report (experimental)
@@ -133,8 +133,7 @@ configurations:
 
   priorityClass:
     enabled: true
-    daemonset: 100000100  # PriorityClass of the DaemonSet, this should be higher than the other components so the DaemonSet will schedule on all nodes
-
+    daemonset: 100000100 # PriorityClass of the DaemonSet, this should be higher than the other components so the DaemonSet will schedule on all nodes
 
 # installation of the alertCRD chart
 alertCRD:
@@ -149,7 +148,6 @@ alertCRD:
 # It is recommended to setup the cloud info when installing the chart on a managed cluster, this will enable to check the related settings
 # cloud support
 cloudProviderMetadata:
-
   # -- cloud region
   cloudRegion:
 
@@ -168,7 +166,6 @@ cloudProviderMetadata:
 
 # Enable persistence using Persistent Volume Claims
 persistence:
-
   # -- persistence storage class
   #    ref: https://kubernetes.io/docs/concepts/storage/storage-classes/
   #    note: set to "-" (dash) for default storage class
@@ -186,7 +183,7 @@ persistence:
 global:
   httpsProxy: ""
   noProxy: ""
-  proxySecretFile: ""  # file content (not file path), e.g. `global.proxySecretFile=(cat /path/to/file)`
+  proxySecretFile: "" # file content (not file path), e.g. `global.proxySecretFile=(cat /path/to/file)`
   proxySecretName: kubescape-proxy-certificate
   enableClusterWideSecretAccess: true
   namespaceTier: ks-control-plane
@@ -236,7 +233,6 @@ imageScanning:
 
 # kubescape scanner - https://github.com/kubescape/kubescape
 kubescape:
-
   name: kubescape
 
   image:
@@ -255,6 +251,8 @@ kubescape:
     limits:
       cpu: 600m
       memory: 1Gi
+
+  podAnnotations: {}
 
   # -- download policies every scan, we recommend it should remain true, you should change to 'false' when running in an air-gapped environment or when scanning with high frequency (when running with Prometheus)
   downloadArtifacts: true
@@ -282,16 +280,15 @@ kubescape:
     additionalLabels: {}
 
   # Additional volumes to be mounted on Kubescape
-  volumes: [ ]
+  volumes: []
 
   # Additional volumeMounts to be mounted on Kubescape
-  volumeMounts: [ ]
+  volumeMounts: []
 
 # +++++++++++++++++++++++++++++++ Operator ++++++++++++++++++++++++++++++++++++++++++++++++
 
 # Operator will trigger kubescape and kubevuln scanning
 operator:
-
   # operator Deployment name
   name: operator
 
@@ -304,6 +301,8 @@ operator:
   nodeSelector:
     kubernetes.io/os: linux
 
+  podAnnotations: {}
+  podLabels: {}
   service:
     type: ClusterIP
     port: 4002
@@ -317,16 +316,16 @@ operator:
     limits:
       cpu: 300m
       memory: 300Mi
-  env: { }
-  labels: { }
+  env: {}
+  labels: {}
 
   podScanGuardTime: "1h"
 
   # Additional volumes to be mounted on the websocket
-  volumes: [ ]
+  volumes: []
 
   # Additional volumeMounts to be mounted on the websocket
-  volumeMounts: [ ]
+  volumeMounts: []
 
   triggerSecurityFramework: true
 
@@ -336,7 +335,6 @@ unittest: false
 
 # kubevuln - image vulnerability scanning microservice
 kubevuln:
-
   # -- for enable:"<any-value>", for disable:"": the print of json posted to the Kubescape cloud from the vuln scanner
   verbose: ""
 
@@ -351,6 +349,9 @@ kubevuln:
 
   nodeSelector:
     kubernetes.io/os: linux
+
+  podAnnotations: {}
+  podLabels: {}
 
   replicaCount: 1
 
@@ -384,13 +385,13 @@ kubevuln:
     - name: CA_MAX_VULN_SCAN_ROUTINES # TODO update the kubevuln
       value: "1"
 
-  labels: { }
+  labels: {}
 
   # Additional volumes to be mounted on the vulnerability scanning microservice
-  volumes: [ ]
+  volumes: []
 
   # Additional volumeMounts to be mounted on the vulnerability scanning microservice
-  volumeMounts: [ ]
+  volumeMounts: []
 
 # +++++++++++++++++++++++++++++++ Host-scanner ++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -406,10 +407,10 @@ hostScanner:
     kubernetes.io/os: linux
 
   # Additional volumes to be mounted on the Kubescape host scanner
-  volumes: [ ]
+  volumes: []
 
   # Additional volumeMounts to be mounted on the Kubescape host scanner
-  volumeMounts: [ ]
+  volumeMounts: []
 
   tolerations:
     # this toleration is to have the DaemonDet runnable on master nodes
@@ -429,13 +430,11 @@ hostScanner:
       cpu: 0.1m
       memory: 200Mi
 
-
 # +++++++++++++++++++++++++++++++ Storage ++++++++++++++++++++++++++++++++++++++++++++++++
 
 # Values for the Kubescape Storage service that Kubescape uses for its internal
 # purposes like storage
 storage:
-
   # Values or the Aggregated APIServer
   name: "storage"
   mtls:
@@ -453,6 +452,8 @@ storage:
   nodeSelector:
     kubernetes.io/os: linux
 
+  podAnnotations: {}
+  podLabels: {}
   # cleanup interval is a duration string
   cleanupInterval: "6h"
 
@@ -493,6 +494,8 @@ nodeAgent:
     hostMalwareSensor: disable
     hostNetworkSensor: disable
 
+  podAnnotations: {}
+  podLabels: {}
   # GKE Autopilot allowlist
   gke:
     allowlist:
@@ -605,8 +608,6 @@ nodeAgent:
     enabled: false
     maxStartupJitter: 60
 
-
-
 # +++++++++++++++++++++++++++++++ ClamAV ++++++++++++++++++++++++++++++++++++++++++++++++
 clamav:
   name: clamav
@@ -636,18 +637,18 @@ clamav:
       readOnly: true
 
   volumes:
-  - name: clamdb
-    emptyDir: {}
-  - name: clamrun
-    emptyDir: {}
-  - name: etc
-    configMap:
-      name: clamav
-      items:
-      - key: clamd.conf
-        path: clamd.conf
-      - key: freshclam.conf
-        path: freshclam.conf
+    - name: clamdb
+      emptyDir: {}
+    - name: clamrun
+      emptyDir: {}
+    - name: etc
+      configMap:
+        name: clamav
+        items:
+          - key: clamd.conf
+            path: clamd.conf
+          - key: freshclam.conf
+            path: freshclam.conf
 
   affinity:
     nodeAffinity:
@@ -684,11 +685,11 @@ synchronizer:
     port: 8089
     targetPort: 8089
     protocol: TCP
-
+  podAnnotations: {}
+  podLabels: {}
 # -----------------------------------------------------------------------------------------
 # ------------------------ Microservice - helpers -----------------------------------------
 # -----------------------------------------------------------------------------------------
-
 
 # +++++++++++++++++++++++++++++++ OTEL-collector ++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -711,6 +712,8 @@ otelCollector:
     tag: 0.108.0
     pullPolicy: IfNotPresent
 
+  podAnnotations: {}
+  podLabels: {}
   resources:
     requests:
       cpu: 100m
@@ -728,12 +731,15 @@ grypeOfflineDB:
 
   image:
     repository: quay.io/kubescape/grype-offline-db
-    tag: ""  # use latest for weekly updates, it will overwrite the sha if specified
+    tag: "" # use latest for weekly updates, it will overwrite the sha if specified
     sha: sha256:155db3be4baa461a50cebadfc8f52108fca71aa4ce5e460a30a4e0922e899ed2
     pullPolicy: Always
 
   nodeSelector:
     kubernetes.io/os: linux
+
+  podLabels: {}
+  podAnnotations: {}
 
   resources:
     requests:
@@ -772,6 +778,8 @@ serviceDiscovery:
   nodeSelector:
     kubernetes.io/os: linux
 
+  podLabels: {}
+  podAnnotations: {}
   resources:
     requests:
       cpu: 10m
@@ -793,6 +801,8 @@ prometheusExporter:
   nodeSelector:
     kubernetes.io/os: linux
 
+  podAnnotations: {}
+  podLabels: {}
   resources:
     requests:
       cpu: 10m
@@ -809,10 +819,10 @@ prometheusExporter:
   enableWorkloadMetrics: false
 
   # Additional volumes to be mounted on the prometheus exporter
-  volumes: [ ]
+  volumes: []
 
   # Additional volumeMounts to be mounted on the prometheus exporter
-  volumeMounts: [ ]
+  volumeMounts: []
 
 # +++++++++++++++++++++++++++++ Upgrader ++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -858,7 +868,6 @@ helmReleaseUpgrader:
 
 # kubescape scheduled scan using a CronJob
 kubescapeScheduler:
-
   # scan scheduler container name
   name: kubescape-scheduler
   # Detemines what to scan. By default it will scan all resources in the cluster for all frameworks.
@@ -889,6 +898,9 @@ kubescapeScheduler:
     tag: v0.2.11
     pullPolicy: IfNotPresent
 
+  podLabels: {}
+  podAnnotations: {}
+
   nodeSelector:
     kubernetes.io/os: linux
 
@@ -896,10 +908,10 @@ kubescapeScheduler:
   insecureSkipTLSVerify: false
 
   # Additional volumes to be mounted on the scan scheduler
-  volumes: [ ]
+  volumes: []
 
   # Additional volumeMounts to be mounted on the scan scheduler
-  volumeMounts: [ ]
+  volumeMounts: []
 
   resources:
     requests:
@@ -912,11 +924,10 @@ kubescapeScheduler:
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 1
 
-
 kubevulnScheduler:
-
   ## scan scheduler container name
-  name: kubevuln-scheduler
+  name:
+    kubevuln-scheduler
 
     # -- Frequency of running the scan
     #     ┌───────────── minute (0 - 59)
@@ -941,11 +952,14 @@ kubevulnScheduler:
   # Skip SSL certificate verification
   insecureSkipTLSVerify: false
 
+  podLabels: {}
+  podAnnotations: {}
+
   # Additional volumes to be mounted on the vuln scan scheduler
-  volumes: [ ]
+  volumes: []
 
   # Additional volumeMounts to be mounted on the vuln scan scheduler
-  volumeMounts: [ ]
+  volumeMounts: []
 
   resources:
     requests:
@@ -958,12 +972,11 @@ kubevulnScheduler:
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 1
 
-
 # registry scan scheduled scan using a CronJob
 registryScanScheduler:
-
   # scan scheduler container name
-  name: registry-scheduler
+  name:
+    registry-scheduler
 
     # -- Frequency of running the scan
     #     ┌───────────── minute (0 - 59)
@@ -990,10 +1003,10 @@ registryScanScheduler:
   insecureSkipTLSVerify: false
 
   # Additional volumes to be mounted on the scan scheduler
-  volumes: [ ]
+  volumes: []
 
   # Additional volumeMounts to be mounted on the scan scheduler
-  volumeMounts: [ ]
+  volumeMounts: []
 
   resources:
     requests:

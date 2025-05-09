@@ -27,11 +27,17 @@ spec:
       {{- if ne .Values.global.proxySecretFile "" }}
         checksum/proxy-config: {{ $checksums.proxySecret }}
       {{- end }}
+      {{- with .Values.synchronizer.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       labels:
         {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.synchronizer.name "tier" .Values.global.namespaceTier) | nindent 8 }}
         kubescape.io/tier: "core"
       {{- if $components.otelCollector.enabled }}
         otel: enabled
+      {{- end }}
+      {{- with .Values.synchronizer.podLabels }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
     spec:
       {{- if .Values.imagePullSecrets }}
