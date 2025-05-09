@@ -12,11 +12,13 @@ Using alternative installation methods, such as Kustomize, Helmfile or using cus
 We cannot guarantee compatibility or provide support for deployments that are installed using methods other than Helm or ArgoCD.
 
 Run the install command:
+
 ```
 helm repo add kubescape https://kubescape.github.io/helm-charts/ ; helm repo update ; helm upgrade --install kubescape kubescape/kubescape-operator -n kubescape --create-namespace --set clusterName=`kubectl config current-context`
 ```
 
 Verify that the installation was successful:
+
 ```shell
 $ kubectl get pods -n kubescape
 kubescape     kubescape-548d6b4577-qshb5                          1/1     Running   0               60m
@@ -24,16 +26,19 @@ kubescape     kubevuln-6779c9d74b-wfgqf                           1/1     Runnin
 kubescape     operator-5d745b5b84-ts7zq                           1/1     Running   0               60m
 kubescape     storage-59567854fd-hg8n8                            1/1     Running   0               60m
 ```
+
 ## View results
 
 The scanning results will be available gradually as the scans are completed.
 
 View your configuration scan reports:
+
 ```
 kubectl get workloadconfigurationscans -A
 ```
 
 View your image vulnerabilities:
+
 ```
 kubectl get vulnerabilitymanifests -A
 ```
@@ -41,10 +46,13 @@ kubectl get vulnerabilitymanifests -A
 ## Uninstall
 
 You can uninstall this helm chart by running the following command:
+
 ```shell
 helm uninstall kubescape -n kubescape
 ```
+
 Then, delete the kubescape namespace:
+
 ```shell
 kubectl delete ns kubescape
 ```
@@ -64,17 +72,20 @@ kubectl get all -A --no-headers | wc -l
 The command should print an approximate count of resources in your cluster.
 Then, based on the number you see, allocate 100 MiB of memory for every 200 resources in your cluster over the count of 1250, but no less than 128 MiB total.
 The formula for memory is as follows:
+
 ```
 MemoryLimit := max(128, 0.4 * YOUR_AMOUNT_OF_RESOURCES)
 ```
 
 For example, if your cluster has 500 resources, a sensible memory limit would be:
+
 ```
 kubescape:
   resources:
     limits:
       memory: 200Mi  # max(128, 0.4 * 500) == 200
 ```
+
 If your cluster has 50 resources, we still recommend allocating at least 128 MiB of memory.
 
 Regarding CPU, the more you allocate, the faster Kubescape will scan your cluster.
@@ -102,6 +113,8 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | global.overrideRuntimePath | string | `""` | Override the runtime path for node-agent |
 | credentials.cloudSecret | string | `""` | Leave it blank for the default secret. If you have an existing secret, override with the existing secret name to avoid Helm creating a default one |
 | kubescape.affinity | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the deployment |
+| kubescape.podLabels| object | `{}` | Optional labels to add to the pods |
+| kubescape.podAnnotations| object | `{}` | optional map of annotations to be applied to the Pods |
 | kubescape.downloadArtifacts | bool | `true` | download policies every scan, we recommend it should remain true, you should change to 'false' when running in an air-gapped environment or when scanning with high frequency (when running with Prometheus) |
 | kubescape.enableHostScan | bool | `true` | enable [host scanner feature](https://hub.armosec.io/docs/host-sensor) |
 | kubescape.image.repository | string | `"quay.io/kubescape/kubescape"` | [source code](https://github.com/kubescape/kubescape/tree/master/httphandler) (public repo) |
@@ -109,26 +122,34 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | kubescape.serviceMonitor.enabled | bool | `false` | enable/disable service monitor for prometheus (operator) integration |
 | kubescape.skipUpdateCheck | bool | `false` | skip check for a newer version |
 | kubescape.labels | `[]` | adds labels to the kubescape microservice |
-| kubescape.submit | bool | `true` | submit results to Kubescape SaaS: https://cloud.armosec.io/ |
+| kubescape.submit | bool | `true` | submit results to Kubescape SaaS: <https://cloud.armosec.io/> |
 | kubescape.volumes | object | `[]` | Additional volumes for Kubescape |
 | kubescape.volumeMounts | object | `[]` | Additional volumeMounts for Kubescape |
 | kubescapeScheduler.enabled | bool | `true` | enable/disable a kubescape scheduled scan using a CronJob |
+| kubescapeScheuler.podLabels| object | `{}` | Optional labels to add to the pods |
+| kubescapeScheuler.podAnnotations| object | `{}` | optional map of annotations to be applied to the Pods |
 | kubescapeScheduler.image.repository | string | `"quay.io/kubescape/http_request"` | [source code](https://github.com/kubescape/http-request) (public repo) |
 | kubescapeScheduler.scanSchedule | string | `"0 0 * * *"` | scan schedule frequency |
 | kubescapeScheduler.volumes | object | `[]` | Additional volumes for scan scheduler |
 | kubescapeScheduler.volumeMounts | object | `[]` | Additional volumeMounts for scan scheduler |
 | kubevuln.affinity | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the deployment |
+| kubevuln.podLabels| object | `{}` | Optional labels to add to the pods |
+| kubevuln.podAnnotations| object | `{}` | optional map of annotations to be applied to the Pods |
 | kubevuln.image.repository | string | `"quay.io/kubescape/kubevuln"` | [source code](https://github.com/kubescape/kubevuln) |
 | kubevuln.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | kubevuln.volumes | object | `[]` | Additional volumes for the image vulnerability scanning |
 | kubevuln.volumeMounts | object | `[]` | Additional volumeMounts for the image vulnerability scanning |
 | kubevuln.config.grypeDbListingURL | string | `""` | Parameter to override the default Grype vulnerability database URL (listings.json format) |
 | kubevulnScheduler.enabled | bool | `true` | enable/disable an image vulnerability scheduled scan using a CronJob |
+| kubevulnScheduler.podLabels| object | `{}` | Optional labels to add to the pods |
+| kubevulnScheduler.podAnnotations| object | `{}` | optional map of annotations to be applied to the Pods |
 | kubevulnScheduler.image.repository | string | `"quay.io/kubescape/http_request"` | [source code](https://github.com/kubescape/http-request) (public repo) |
 | kubevulnScheduler.scanSchedule | string | `"0 0 * * *"` | scan schedule frequency |
 | kubevulnScheduler.volumes | object | `[]` | Additional volumes for scan scheduler |
 | kubevulnScheduler.volumeMounts | object | `[]` | Additional volumeMounts for scan scheduler |
 | operator.affinity | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the deployment |
+| operator.podLabels| object | `{}` | Optional labels to add to the pods |
+| operator.podAnnotations| object | `{}` | optional map of annotations to be applied to the Pods |
 | operator.image.repository | string | `"quay.io/kubescape/operator"` | [source code](https://github.com/kubescape/operator) |
 | operator.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | operator.volumes | object | `[]` | Additional volumes for the web socket |
@@ -154,7 +175,6 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | imageScanning.privateRegistries.credentials.insecure | bool | `false` | Use HTTP instead of HTTPS |
 | configurations.priorityClass.enabled | bool | `true` | Add priority class to the installed components |
 | configurations.priorityClass.daemonset | int | 100000100 | PriorityClass of the DaemonSet, this should be higher than the other components so the DaemonSet will schedule on all nodes |
-
 
 # In-cluster components overview
 
@@ -205,11 +225,12 @@ subgraph Backend
 
 ## [Synchronizer](https://github.com/kubescape/synchronizer)
 
-* __Resource Kind:__ `Deployment`
-* __Communication:__ gRPC, REST API, Websocket
-* __Responsibility:__ This component is an optional part of the Kubescape Operator. It enables users to replicate the Kubernetes objects in the cluster (somewhat like `rsync`) to a remote service. It is used for collecting the Kubescape Operator objects by central services monitoring multiple clusters.
+* **Resource Kind:** `Deployment`
+* **Communication:** gRPC, REST API, Websocket
+* **Responsibility:** This component is an optional part of the Kubescape Operator. It enables users to replicate the Kubernetes objects in the cluster (somewhat like `rsync`) to a remote service. It is used for collecting the Kubescape Operator objects by central services monitoring multiple clusters.
 
 In our architecture, the Synchronizer acts both as a server and a client, depending on its running configuration:
+
 * Master Synchronizer: Refers to the instance running in the backend.
 * In-cluster Synchronizer: Refers to the instance running in the cluster.
   Registered to the Master Synchronizer using a websocket; Synchronizes Kubernetes objects and virtual objects,
@@ -256,9 +277,9 @@ graph TB
 
 ## [Storage](https://github.com/kubescape/storage)
 
-* __Resource Kind:__ `Deployment` (singleton)
-* __Communication:__ gRPC, REST API
-* __Responsibility:__ This component is a Kubernetes [aggregated API extension](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/apiserver-aggregation/) service. It stores the different objects produced by the other components and stores them on a volume as files and SQLite. It is a singleton component in the current implementation and cannot be scaled horizontaly, but it is running in 10k node clusters.
+* **Resource Kind:** `Deployment` (singleton)
+* **Communication:** gRPC, REST API
+* **Responsibility:** This component is a Kubernetes [aggregated API extension](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/apiserver-aggregation/) service. It stores the different objects produced by the other components and stores them on a volume as files and SQLite. It is a singleton component in the current implementation and cannot be scaled horizontaly, but it is running in 10k node clusters.
 
 ```mermaid
 graph TD
@@ -293,9 +314,9 @@ class agent,kubectl,Lens,Headlamp,sync,etcd,file,k9s,sqlite plain
 
 ## [Operator](https://github.com/kubescape/operator)
 
-* __Resource Kind:__ `Deployment`
-* __Communication:__ gRPC, REST API
-* __Responsibility:__ This component is in charge of command and control of the scans in the cluster. There are multiple configuration options when and what to scan in the cluster. This component is in charge of orchestrating these activities by triggering the *Kubescape* and the *KubeVuln* components.
+* **Resource Kind:** `Deployment`
+* **Communication:** gRPC, REST API
+* **Responsibility:** This component is in charge of command and control of the scans in the cluster. There are multiple configuration options when and what to scan in the cluster. This component is in charge of orchestrating these activities by triggering the *Kubescape* and the *KubeVuln* components.
 
 ```mermaid
 graph TB
@@ -329,9 +350,9 @@ graph TB
 
 ## [Kubevuln](https://github.com/kubescape/kubevuln/)
 
-* __Resource Kind:__ `Deployment`
-* __Communication:__ gRPC, REST API
-* __Responsibility:__ This component is in charge of the image vulnerability scanning. It can either produce SBOM object in the *Storage* and match the SBOM entries with vulnerabilities, or relies on the *Node agent* to generate SBOM objects on the nodes and then produce vulnerability manfiests and VEX. All the results are stored in the *Storage* component via the Kubernetes API and optionally sent to external API endpoints.
+* **Resource Kind:** `Deployment`
+* **Communication:** gRPC, REST API
+* **Responsibility:** This component is in charge of the image vulnerability scanning. It can either produce SBOM object in the *Storage* and match the SBOM entries with vulnerabilities, or relies on the *Node agent* to generate SBOM objects on the nodes and then produce vulnerability manfiests and VEX. All the results are stored in the *Storage* component via the Kubernetes API and optionally sent to external API endpoints.
 
 ```mermaid
 graph TB
@@ -378,9 +399,9 @@ class urlCm,recurringScanCm,operator,er,sync,masterSync,recurringScanCj,recurrin
 
 ## [Kubescape](https://github.com/kubescape/kubescape/tree/master/httphandler)
 
-* __Resource Kind:__ `Deployment`
-* __Communication:__ gRPC, REST API
-* __Responsibility:__ This component is in charge of configuration and host scanning. It is, like the CLI, uses [OPA engine](https://github.com/open-policy-agent/opa) to run the project's own Rego library of rules. It also scans the Kubernetes host to validate their configurations. The output of the scans are stored in the *Storage* component via the Kubernetes API and optionally sent to external API endpoints.
+* **Resource Kind:** `Deployment`
+* **Communication:** gRPC, REST API
+* **Responsibility:** This component is in charge of configuration and host scanning. It is, like the CLI, uses [OPA engine](https://github.com/open-policy-agent/opa) to run the project's own Rego library of rules. It also scans the Kubernetes host to validate their configurations. The output of the scans are stored in the *Storage* component via the Kubernetes API and optionally sent to external API endpoints.
 
 ```mermaid
 graph TB
@@ -424,9 +445,9 @@ class ksCm,recurringScanCm,operator,er,store,masterSync,recurringScanCj,recurrin
 
 ## [Node Agent](https://github.com/kubescape/node-agent)
 
-* __Resource Kind:__ `Daemonset`
-* __Communication:__ gRPC, REST API
-* __Responsibility:__ This component has multiple purposes all bound to information available on Kubernetes nodes:
+* **Resource Kind:** `Daemonset`
+* **Communication:** gRPC, REST API
+* **Responsibility:** This component has multiple purposes all bound to information available on Kubernetes nodes:
   * Produces SBOMs from the images avialable on the node (used by *KubeVuln*)
   * Produces information from the configurations of the Linux host of the Kubernetes node (used by *Kubescape*)
   * Creates *ApplicationProfile* using [Inspektor Gadget](https://inspektor-gadget.io) and eBPF. These profiles log the behavior of each container on the node (file access, processes launched, capabilities used, system calls done) into *ApplicationProfile* objects stored in the *Storage* component via the Kubernetes API and optionally sent to external API endpoints.
@@ -492,8 +513,8 @@ The backend components are running in [Kubescape's SaaS offering](https://cloud.
 
 ### CloudEndpoint
 
-* __Responsibility:__ Receive and process Kubescape & Kubevuln scan results.
-* __Communication:__ REST API
+* **Responsibility:** Receive and process Kubescape & Kubevuln scan results.
+* **Communication:** REST API
 
 ---
 
@@ -541,20 +562,27 @@ The CronJob itself does not run the scan directly. When a CronJob is ready to ru
 The scan results are then sent by each relevant component to the CloudEndpoint.
 
 ---
+
 ## Common Issues
+
 * Error starting the container watcher - `(fanotify)`.
 
   This error is usually caused by the `node-agent` not being able to find `runc` in any of the default paths.
   This can be fixed by adding the path of `runc` to the global configuration [here](#values).
   If you aren't sure where `runc` is located, you can run the following command on the node to find it:
+
   ```bash
   find / -name runc 2>/dev/null
   ```
+
   In case you are in an environment where you can't access the node, one solution is to run a privileged pod on the node, and run the command from there. To create a privileged pod, run the following command:
+
   ```bash
    kubectl run --rm -i --tty busybox --image=busybox --restart=Never --overrides='{"spec": {"template": {"spec": {"containers": [{"securityContext": {"privileged": true} }]}}}}' -- /bin/sh
   ```
+
   For K3s, the `runc` binary is different from the system one, and is located in `/var/lib/rancher/k3s/data/current/bin/runc`. Given this path, the option to set during the Helm installation is (note the `/host` prefix):
+
   ```bash
   --set global.overrideRuntimePath="/host/var/lib/rancher/k3s/data/current/bin/runc"
   ```
