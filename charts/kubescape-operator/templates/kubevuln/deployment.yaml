@@ -23,7 +23,8 @@ spec:
   template:
     metadata:
       annotations:
-        {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
+        {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 8 }}
+        {{- with .Values.kubevuln.podAnnotations }}{{- toYaml . | nindent 8 }}{{- end }}
         checksum/cloud-secret: {{ $checksums.cloudSecret }}
         checksum/cloud-config: {{ $checksums.cloudConfig }}
       {{- if ne .Values.global.proxySecretFile "" }}
@@ -31,6 +32,7 @@ spec:
       {{- end }}
       labels:
         {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.kubevuln.name "tier" .Values.global.namespaceTier) | nindent 8 }}
+        {{- with .Values.kubevuln.podLabels }}{{- toYaml . | nindent 8 }}{{- end }}
         kubescape.io/tier: "core"
       {{- if $components.otelCollector.enabled }}
         otel: enabled

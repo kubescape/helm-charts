@@ -26,13 +26,15 @@ spec:
   template:
     metadata:
       annotations:
-        {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
+        {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 8 }}
+        {{- with .Values.otelCollector.podAnnotations }}{{- toYaml . | nindent 8 }}{{- end }}
         checksum/otel-config: {{ $checksums.otelConfig }}
       {{- if ne .Values.global.proxySecretFile "" }}
         checksum/proxy-config: {{ $checksums.proxySecret }}
       {{- end }}
       labels:
         {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.otelCollector.name "tier" .Values.global.namespaceTier) | nindent 8 }}
+        {{- with .Values.otelCollector.podLabels }}{{- toYaml . | nindent 8 }}{{- end }}
         kubescape.io/tier: "core"
     spec:
       securityContext:

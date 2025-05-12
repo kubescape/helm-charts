@@ -26,7 +26,8 @@ spec:
   template:
     metadata:
       annotations:
-        {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
+        {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 8 }}
+        {{- with .Values.nodeAgent.podAnnotations }}{{- toYaml . | nindent 8 }}{{- end }}
         checksum/node-agent-config: {{ $checksums.nodeAgentConfig }}
         checksum/cloud-secret: {{ $checksums.cloudSecret }}
         checksum/cloud-config: {{ $checksums.cloudConfig }}
@@ -42,10 +43,11 @@ spec:
         prometheus.io/scrape: "true"
       {{- end }}
       labels:
+        {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.nodeAgent.name "tier" .Values.global.namespaceTier) | nindent 8 }}
+        {{- with .Values.nodeAgent.podLabels }}{{- toYaml . | nindent 8 }}{{- end }}
         {{- if .Values.nodeAgent.gke.allowlist.enabled }}
         cloud.google.com/matching-allowlist: {{ .Values.nodeAgent.gke.allowlist.name }}
         {{- end }}
-        {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.nodeAgent.name "tier" .Values.global.namespaceTier) | nindent 8 }}
         kubescape.io/tier: "core"
       {{- if $components.otelCollector.enabled }}
         otel: enabled
