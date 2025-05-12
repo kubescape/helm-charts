@@ -19,18 +19,13 @@ spec:
     metadata:
       name: "{{ .Release.Name }}"
       annotations:
-        {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
+        {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 8 }}
+        {{- with .Values.serviceDiscovery.podAnnotations }}{{- toYaml . | nindent 8 }}{{- end }}
       labels:
         {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.serviceDiscovery.name "tier" .Values.global.namespaceTier) | nindent 8 }}
+        {{- with .Values.serviceDiscovery.podLabels }}{{- toYaml . | nindent 8 }}{{- end }}
       {{- if $components.otelCollector.enabled }}
         otel: enabled
-      {{- end }}
-      {{- with .Values.serviceDiscovery.podLabels }}
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.serviceDiscovery.podAnnotations }}
-      annotations:
-        {{- toYaml . | nindent 8 }}
       {{- end }}
     spec:
       securityContext:

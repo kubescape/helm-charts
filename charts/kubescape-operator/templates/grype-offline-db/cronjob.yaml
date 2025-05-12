@@ -23,17 +23,12 @@ spec:
         metadata:
           annotations:
             {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 12 }}
+            {{- with .Values.grypeOfflineDB.podAnnotations }}{{- toYaml . | nindent 12 }}{{- end }}
           labels:
             {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.grypeOfflineDB.name "tier" .Values.global.namespaceTier) | nindent 12 }}
+            {{- with .Values.grypeOfflineDB.podLabels }}{{- toYaml . | nindent 12 }}{{- end }}
             armo.tier: "vuln-scan"
             kubescape.io/tier: "core"
-            {{- with .Values.grypeOfflineDB.podLabels }}
-            {{- toYaml . | nindent 12 }}
-            {{- end }}
-          {{- with .Values.grypeOfflineDB.podAnnotations }}
-          annotations:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
         spec:
           securityContext:
             seccompProfile:

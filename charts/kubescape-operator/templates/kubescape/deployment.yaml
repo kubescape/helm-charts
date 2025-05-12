@@ -27,7 +27,8 @@ spec:
   template:
     metadata:
       annotations:
-        {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
+        {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 8 }}
+        {{- with .Values.kubescape.podAnnotations }}{{- toYaml . | nindent 8 }}{{- end }}
         checksum/host-scanner-configmap: {{ $checksums.hostScannerConfig }}
         checksum/cloud-secret: {{ $checksums.cloudSecret }}
         checksum/cloud-config: {{ $checksums.cloudConfig }}
@@ -39,17 +40,12 @@ spec:
         prometheus.io/port: "8080"
         prometheus.io/scrape: "true"
       {{- end }}
-      {{- with .Values.kubescape.podAnnotations }}
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       labels:
         {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.kubescape.name "tier" .Values.global.namespaceTier) | nindent 8 }}
+        {{- with .Values.kubescape.podLabels }}{{- toYaml . | nindent 8 }}{{- end }}
         kubescape.io/tier: "core"
       {{- if $components.otelCollector.enabled }}
         otel: enabled
-      {{- end }}
-      {{- with .Values.kubescape.podLabels }}
-      {{- toYaml . | nindent 12 }}
       {{- end }}
     spec:
       {{- if .Values.imagePullSecrets }}
