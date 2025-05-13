@@ -51,11 +51,11 @@ hostScanner:
 kubescape:
   enabled: {{ eq .Values.capabilities.configurationScan "enable" }}
 kubescapeScheduler:
-  enabled: {{ and $configurations.submit (eq .Values.capabilities.configurationScan "enable") }}
+  enabled: {{ eq .Values.capabilities.configurationScan "enable" }}
 kubevuln:
   enabled: {{ eq .Values.capabilities.vulnerabilityScan "enable" }}
 kubevulnScheduler:
-  enabled: {{ and $configurations.submit (eq .Values.capabilities.vulnerabilityScan "enable") }}
+  enabled: {{ eq .Values.capabilities.vulnerabilityScan "enable" }}
 nodeAgent:
   enabled: {{ or
    (eq .Values.capabilities.relevancy "enable")

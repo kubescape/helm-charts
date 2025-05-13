@@ -14784,8 +14784,16 @@ minimal capabilities:
   1: |+
     raw: |+
       Thank you for installing kubescape-operator version 1.27.5.
+      View your cluster's configuration scanning schedule:
+      > kubectl -n kubescape get cj kubescape-scheduler -o=jsonpath='{.metadata.name}{"\t"}{.spec.schedule}{"\n"}'
 
+      To change the schedule, set `.spec.schedule`:
+      > kubectl -n kubescape edit cj kubescape-scheduler
+      View your cluster's image scanning schedule:
+      > kubectl -n kubescape get cj kubevuln-scheduler -o=jsonpath='{.metadata.name}{"\t"}{.spec.schedule}{"\n"}'
 
+      To change the schedule, edit `.spec.schedule`:
+      > kubectl -n kubescape edit cj kubevuln-scheduler
 
       View your image vulnerabilities scan summaries:
       > kubectl get vulnerabilitymanifestsummaries -A
@@ -14870,7 +14878,7 @@ minimal capabilities:
       capabilities: |
         {
           "capabilities":{"admissionController":"enable","autoUpgrading":"disable","configurationScan":"enable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"disable","networkPolicyService":"enable","nodeProfileService":"disable","nodeSbomGeneration":"enable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
-          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":false},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":false},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":false},"serviceDiscovery":{"enabled":false},"storage":{"enabled":true},"synchronizer":{"enabled":false}},
+          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":false},"serviceDiscovery":{"enabled":false},"storage":{"enabled":true},"synchronizer":{"enabled":false}},
           "configurations":{"excludeJsonPaths":null,"otelUrl":"otelCollector.svc.monitoring:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
         }
@@ -14934,6 +14942,112 @@ minimal capabilities:
       name: kubescape-critical
     value: 1.000001e+08
   7: |
+    apiVersion: v1
+    data:
+      request-body.json: '{"commands":[{"CommandName":"kubescapeScan","args":{"scanV1":{}}}]}'
+    kind: ConfigMap
+    metadata:
+      annotations: null
+      labels:
+        app: kubescape-scheduler
+        app.kubernetes.io/component: kubescape-scheduler
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.27.5
+        helm.sh/chart: kubescape-operator-1.27.5
+        kubescape.io/ignore: "true"
+        kubescape.io/tier: core
+        tier: ks-control-plane
+      name: kubescape-scheduler
+      namespace: kubescape
+  8: |
+    apiVersion: batch/v1
+    kind: CronJob
+    metadata:
+      annotations: null
+      labels:
+        app: kubescape-scheduler
+        app.kubernetes.io/component: kubescape-scheduler
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.27.5
+        armo.tier: kubescape-scan
+        helm.sh/chart: kubescape-operator-1.27.5
+        kubescape.io/ignore: "true"
+        kubescape.io/tier: core
+        tier: ks-control-plane
+      name: kubescape-scheduler
+      namespace: kubescape
+    spec:
+      failedJobsHistoryLimit: 1
+      jobTemplate:
+        spec:
+          template:
+            metadata:
+              annotations: null
+              labels:
+                app: kubescape-scheduler
+                app.kubernetes.io/component: kubescape-scheduler
+                app.kubernetes.io/instance: RELEASE-NAME
+                app.kubernetes.io/managed-by: Helm
+                app.kubernetes.io/name: kubescape-operator
+                app.kubernetes.io/part-of: kubescape
+                app.kubernetes.io/version: 1.27.5
+                armo.tier: kubescape-scan
+                helm.sh/chart: kubescape-operator-1.27.5
+                kubescape.io/ignore: "true"
+                kubescape.io/tier: core
+                tier: ks-control-plane
+            spec:
+              affinity: null
+              automountServiceAccountToken: false
+              containers:
+                - args:
+                    - -method=post
+                    - -scheme=http
+                    - -host=operator:4002
+                    - -path=v1/triggerAction
+                    - -headers=Content-Type:application/json
+                    - -path-body=/home/ks/request-body.json
+                  image: quay.io/kubescape/http-request:v0.2.11
+                  imagePullPolicy: IfNotPresent
+                  name: kubescape-scheduler
+                  resources:
+                    limits:
+                      cpu: 10m
+                      memory: 20Mi
+                    requests:
+                      cpu: 1m
+                      memory: 10Mi
+                  securityContext:
+                    allowPrivilegeEscalation: false
+                    readOnlyRootFilesystem: true
+                    runAsNonRoot: true
+                    runAsUser: 100
+                  volumeMounts:
+                    - mountPath: /home/ks/request-body.json
+                      name: kubescape-scheduler
+                      readOnly: true
+                      subPath: request-body.json
+              nodeSelector:
+                kubernetes.io/os: linux
+              restartPolicy: Never
+              securityContext:
+                seccompProfile:
+                  type: RuntimeDefault
+              serviceAccountName: kubescape
+              tolerations: null
+              volumes:
+                - configMap:
+                    name: kubescape-scheduler
+                  name: kubescape-scheduler
+      schedule: 1 2 3 4 5
+      successfulJobsHistoryLimit: 3
+  9: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -15185,7 +15299,7 @@ minimal capabilities:
           - get
           - watch
           - list
-  8: |
+  10: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -15210,7 +15324,7 @@ minimal capabilities:
       - kind: ServiceAccount
         name: kubescape
         namespace: kubescape
-  9: |
+  11: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -15380,7 +15494,7 @@ minimal capabilities:
               name: results
             - emptyDir: {}
               name: failed
-  10: |
+  12: |
     apiVersion: v1
     data:
       host-scanner-yaml: "apiVersion: apps/v1\nkind: DaemonSet\nmetadata:\n  name: host-scanner\n  namespace: kubescape\n  annotations:\n    \n  labels:\n    helm.sh/chart: kubescape-operator-1.27.5\n    app.kubernetes.io/name: kubescape-operator\n    app.kubernetes.io/instance: RELEASE-NAME\n    app.kubernetes.io/component: host-scanner\n    app.kubernetes.io/version: \"1.27.5\"\n    app.kubernetes.io/managed-by: Helm\n    app.kubernetes.io/part-of: kubescape\n    app: host-scanner\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\nspec:\n  selector:\n    matchLabels:\n      app.kubernetes.io/name: kubescape-operator\n      app.kubernetes.io/instance: RELEASE-NAME\n      app.kubernetes.io/component: host-scanner\n  template:\n    metadata:\n      annotations:\n        \n      labels:\n        helm.sh/chart: kubescape-operator-1.27.5\n        app.kubernetes.io/name: kubescape-operator\n        app.kubernetes.io/instance: RELEASE-NAME\n        app.kubernetes.io/component: host-scanner\n        app.kubernetes.io/version: \"1.27.5\"\n        app.kubernetes.io/managed-by: Helm\n        app.kubernetes.io/part-of: kubescape\n        app: host-scanner\n        tier: ks-control-plane\n        kubescape.io/ignore: \"true\"\n        kubescape.io/tier: \"core\"\n        name: host-scanner\n    spec:\n      nodeSelector:\n        kubernetes.io/os: linux\n      affinity:\n      tolerations:\n        - effect: NoSchedule\n          key: node-role.kubernetes.io/control-plane\n          operator: Exists\n        - effect: NoSchedule\n          key: node-role.kubernetes.io/master\n          operator: Exists\n      containers:\n      - name: host-sensor\n        image: \"quay.io/kubescape/host-scanner:v1.0.73\"\n        imagePullPolicy: IfNotPresent\n        securityContext:\n          allowPrivilegeEscalation: true\n          privileged: true\n          readOnlyRootFilesystem: true\n          procMount: Unmasked\n        env:\n        - name: KS_LOGGER_LEVEL\n          value: \"info\"\n        - name: KS_LOGGER_NAME\n          value: \"zap\"\n        - name: OTEL_COLLECTOR_SVC\n          value: otelCollector.svc.monitoring:4317\n        ports:\n          - name: scanner # Do not change port name\n            containerPort: 7888\n            protocol: TCP\n        resources:\n          limits:\n            cpu: 0.4m\n            memory: 400Mi\n          requests:\n            cpu: 0.1m\n            memory: 200Mi\n        volumeMounts:\n        - mountPath: /host_fs\n          name: host-filesystem\n        startupProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          failureThreshold: 30\n          periodSeconds: 1\n        livenessProbe:\n          httpGet:\n            path: /healthz\n            port: 7888\n          periodSeconds: 10\n      terminationGracePeriodSeconds: 120\n      dnsPolicy: ClusterFirstWithHostNet\n      serviceAccountName: node-agent\n      automountServiceAccountToken: false\n      volumes:\n      - hostPath:\n          path: /\n          type: Directory\n        name: host-filesystem\n      hostPID: true\n      hostIPC: true"
@@ -15401,7 +15515,7 @@ minimal capabilities:
         tier: ks-control-plane
       name: host-scanner-definition
       namespace: kubescape
-  11: |
+  13: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -15432,7 +15546,7 @@ minimal capabilities:
           - list
           - patch
           - delete
-  12: |
+  14: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -15458,7 +15572,7 @@ minimal capabilities:
       - kind: ServiceAccount
         name: kubescape
         namespace: kubescape
-  13: |
+  15: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -15487,7 +15601,7 @@ minimal capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  14: |
+  16: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -15506,7 +15620,112 @@ minimal capabilities:
         tier: ks-control-plane
       name: kubescape
       namespace: kubescape
-  15: |
+  17: |
+    apiVersion: v1
+    data:
+      request-body.json: '{"commands":[{"commandName":"scan","designators":[{"designatorType":"Attributes","attributes":{}}]}]}'
+    kind: ConfigMap
+    metadata:
+      labels:
+        app: kubevuln-scheduler
+        app.kubernetes.io/component: kubevuln-scheduler
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.27.5
+        helm.sh/chart: kubescape-operator-1.27.5
+        kubescape.io/ignore: "true"
+        kubescape.io/tier: core
+        tier: ks-control-plane
+      name: kubevuln-scheduler
+      namespace: kubescape
+  18: |
+    apiVersion: batch/v1
+    kind: CronJob
+    metadata:
+      annotations: null
+      labels:
+        app: kubevuln-scheduler
+        app.kubernetes.io/component: kubevuln-scheduler
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.27.5
+        armo.tier: vuln-scan
+        helm.sh/chart: kubescape-operator-1.27.5
+        kubescape.io/ignore: "true"
+        kubescape.io/tier: core
+        tier: ks-control-plane
+      name: kubevuln-scheduler
+      namespace: kubescape
+    spec:
+      failedJobsHistoryLimit: 1
+      jobTemplate:
+        spec:
+          template:
+            metadata:
+              annotations: null
+              labels:
+                app: kubevuln-scheduler
+                app.kubernetes.io/component: kubevuln-scheduler
+                app.kubernetes.io/instance: RELEASE-NAME
+                app.kubernetes.io/managed-by: Helm
+                app.kubernetes.io/name: kubescape-operator
+                app.kubernetes.io/part-of: kubescape
+                app.kubernetes.io/version: 1.27.5
+                armo.tier: vuln-scan
+                helm.sh/chart: kubescape-operator-1.27.5
+                kubescape.io/ignore: "true"
+                kubescape.io/tier: core
+                tier: ks-control-plane
+            spec:
+              affinity: null
+              automountServiceAccountToken: false
+              containers:
+                - args:
+                    - -method=post
+                    - -scheme=http
+                    - -host=operator:4002
+                    - -path=v1/triggerAction
+                    - -headers=Content-Type:application/json
+                    - -path-body=/home/ks/request-body.json
+                  image: quay.io/kubescape/http-request:v0.2.11
+                  imagePullPolicy: IfNotPresent
+                  name: kubevuln-scheduler
+                  resources:
+                    limits:
+                      cpu: 10m
+                      memory: 20Mi
+                    requests:
+                      cpu: 1m
+                      memory: 10Mi
+                  securityContext:
+                    allowPrivilegeEscalation: false
+                    readOnlyRootFilesystem: true
+                    runAsNonRoot: true
+                    runAsUser: 100
+                  volumeMounts:
+                    - mountPath: /home/ks/request-body.json
+                      name: kubevuln-scheduler
+                      readOnly: true
+                      subPath: request-body.json
+              nodeSelector:
+                kubernetes.io/os: linux
+              restartPolicy: Never
+              securityContext:
+                seccompProfile:
+                  type: RuntimeDefault
+              serviceAccountName: kubevuln
+              tolerations: null
+              volumes:
+                - configMap:
+                    name: kubevuln-scheduler
+                  name: kubevuln-scheduler
+      schedule: 1 2 3 4 5
+      successfulJobsHistoryLimit: 3
+  19: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -15547,7 +15766,7 @@ minimal capabilities:
           - get
           - watch
           - list
-  16: |
+  20: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -15572,7 +15791,7 @@ minimal capabilities:
       - kind: ServiceAccount
         name: kubevuln
         namespace: kubescape
-  17: |
+  21: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -15714,7 +15933,7 @@ minimal capabilities:
               name: ks-cloud-config
             - emptyDir: {}
               name: grype-db
-  18: |
+  22: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -15742,7 +15961,7 @@ minimal capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  19: |
+  23: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -15761,7 +15980,7 @@ minimal capabilities:
         tier: ks-control-plane
       name: kubevuln
       namespace: kubescape
-  20: |
+  24: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -15883,7 +16102,7 @@ minimal capabilities:
           - create
           - patch
           - get
-  21: |
+  25: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -15908,7 +16127,7 @@ minimal capabilities:
       - kind: ServiceAccount
         name: node-agent
         namespace: kubescape
-  22: |
+  26: |
     apiVersion: v1
     data:
       config.json: |
@@ -15956,7 +16175,7 @@ minimal capabilities:
         tier: ks-control-plane
       name: node-agent
       namespace: kubescape
-  23: |
+  27: |
     apiVersion: apps/v1
     kind: DaemonSet
     metadata:
@@ -16183,7 +16402,7 @@ minimal capabilities:
                     path: config.json
                 name: node-agent
               name: config
-  24: |
+  28: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -16211,7 +16430,7 @@ minimal capabilities:
         app.kubernetes.io/component: node-agent
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  25: |
+  29: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -16229,7 +16448,7 @@ minimal capabilities:
         tier: ks-control-plane
       name: node-agent
       namespace: kubescape
-  26: |
+  30: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -16256,7 +16475,7 @@ minimal capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  27: |
+  31: |
     apiVersion: v1
     data:
       tls.crt: bW9jay1jZXJ0LWNlcnQ=
@@ -16278,7 +16497,7 @@ minimal capabilities:
       name: kubescape-admission-webhook.kubescape.svc-kubescape-tls-pair
       namespace: kubescape
     type: kubernetes.io/tls
-  28: |
+  32: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingWebhookConfiguration
     metadata:
@@ -16326,7 +16545,7 @@ minimal capabilities:
               - rolebindings
             scope: '*'
         sideEffects: None
-  29: |
+  33: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -16441,7 +16660,7 @@ minimal capabilities:
           - list
           - update
           - patch
-  30: |
+  34: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -16466,7 +16685,7 @@ minimal capabilities:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  31: |
+  35: |
     apiVersion: v1
     data:
       config.json: |
@@ -16494,7 +16713,7 @@ minimal capabilities:
         tier: ks-control-plane
       name: operator
       namespace: kubescape
-  32: |
+  36: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -16529,7 +16748,7 @@ minimal capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: a5e36678813fa8e94bbf480226a3552dd2b0077eca4d96a5273f18b4315a3538
+            checksum/capabilities-config: 799c9e5e0cde933510332106d15631822291f9ea5f55a10ebce0a1a2203d7e55
             checksum/cloud-config: 11776b1d85eac38ea7db7db1db4ad411626f652b05d023940d22f1314b641908
             checksum/cloud-secret: 3248919273cee6d6f750f97ea378fc79fff1f03b131f21d584a00258bf475a80
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
@@ -16672,7 +16891,7 @@ minimal capabilities:
                     path: matchingRules.json
                 name: cs-matching-rules
               name: cs-matching-rules
-  33: |
+  37: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -16757,7 +16976,7 @@ minimal capabilities:
         tier: ks-control-plane
       name: kubescape-cronjob-template
       namespace: kubescape
-  34: |
+  38: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -16842,7 +17061,7 @@ minimal capabilities:
         tier: ks-control-plane
       name: kubevuln-cronjob-template
       namespace: kubescape
-  35: |
+  39: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -16927,7 +17146,7 @@ minimal capabilities:
         tier: ks-control-plane
       name: registry-scan-cronjob-template
       namespace: kubescape
-  36: |
+  40: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -16971,7 +17190,7 @@ minimal capabilities:
           - list
           - patch
           - delete
-  37: |
+  41: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -16997,7 +17216,7 @@ minimal capabilities:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  38: |
+  42: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -17025,7 +17244,7 @@ minimal capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  39: |
+  43: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -17044,7 +17263,7 @@ minimal capabilities:
         tier: ks-control-plane
       name: operator
       namespace: kubescape
-  40: |
+  44: |
     apiVersion: apiregistration.k8s.io/v1
     kind: APIService
     metadata:
@@ -17070,7 +17289,7 @@ minimal capabilities:
         namespace: kubescape
       version: v1beta1
       versionPriority: 15
-  41: |
+  45: |
     apiVersion: v1
     data:
       ca.crt: bW9jay1jYS1jZXJ0
@@ -17093,7 +17312,7 @@ minimal capabilities:
       name: storage-ca
       namespace: kubescape
     type: kubernetes.io/tls
-  42: |
+  46: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -17159,7 +17378,7 @@ minimal capabilities:
           - get
           - watch
           - list
-  43: |
+  47: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -17184,7 +17403,7 @@ minimal capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  44: |
+  48: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -17209,7 +17428,7 @@ minimal capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  45: |
+  49: |
     apiVersion: v1
     data:
       config.json: |
@@ -17238,7 +17457,7 @@ minimal capabilities:
         tier: ks-control-plane
       name: storage
       namespace: kubescape
-  46: |
+  50: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -17363,7 +17582,7 @@ minimal capabilities:
             - name: ca-certificates
               secret:
                 secretName: storage-ca
-  47: |
+  51: |
     apiVersion: v1
     kind: PersistentVolumeClaim
     metadata:
@@ -17387,7 +17606,7 @@ minimal capabilities:
       resources:
         requests:
           storage: 5Gi
-  48: |
+  52: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -17413,7 +17632,7 @@ minimal capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  49: |
+  53: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -17441,7 +17660,7 @@ minimal capabilities:
         app.kubernetes.io/component: storage
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  50: |
+  54: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -17463,8 +17682,16 @@ relevancy only:
   1: |+
     raw: |+
       Thank you for installing kubescape-operator version 1.27.5.
+      View your cluster's configuration scanning schedule:
+      > kubectl -n kubescape get cj kubescape-scheduler -o=jsonpath='{.metadata.name}{"\t"}{.spec.schedule}{"\n"}'
 
+      To change the schedule, set `.spec.schedule`:
+      > kubectl -n kubescape edit cj kubescape-scheduler
+      View your cluster's image scanning schedule:
+      > kubectl -n kubescape get cj kubevuln-scheduler -o=jsonpath='{.metadata.name}{"\t"}{.spec.schedule}{"\n"}'
 
+      To change the schedule, edit `.spec.schedule`:
+      > kubectl -n kubescape edit cj kubevuln-scheduler
 
       View your image vulnerabilities scan summaries:
       > kubectl get vulnerabilitymanifestsummaries -A
@@ -17548,7 +17775,7 @@ relevancy only:
       capabilities: |
         {
           "capabilities":{"admissionController":"disable","autoUpgrading":"disable","configurationScan":"enable","httpDetection":"disable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"disable","networkPolicyService":"disable","nodeProfileService":"disable","nodeSbomGeneration":"disable","nodeScan":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"disable","seccompProfileService":"disable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
-          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":false},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":false},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":false},"serviceDiscovery":{"enabled":false},"storage":{"enabled":true},"synchronizer":{"enabled":false}},
+          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":false},"serviceDiscovery":{"enabled":false},"storage":{"enabled":true},"synchronizer":{"enabled":false}},
           "configurations":{"excludeJsonPaths":null,"otelUrl":"otelCollector.svc.monitoring:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
         }
@@ -17612,6 +17839,112 @@ relevancy only:
       name: kubescape-critical
     value: 1.000001e+08
   7: |
+    apiVersion: v1
+    data:
+      request-body.json: '{"commands":[{"CommandName":"kubescapeScan","args":{"scanV1":{}}}]}'
+    kind: ConfigMap
+    metadata:
+      annotations: null
+      labels:
+        app: kubescape-scheduler
+        app.kubernetes.io/component: kubescape-scheduler
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.27.5
+        helm.sh/chart: kubescape-operator-1.27.5
+        kubescape.io/ignore: "true"
+        kubescape.io/tier: core
+        tier: ks-control-plane
+      name: kubescape-scheduler
+      namespace: kubescape
+  8: |
+    apiVersion: batch/v1
+    kind: CronJob
+    metadata:
+      annotations: null
+      labels:
+        app: kubescape-scheduler
+        app.kubernetes.io/component: kubescape-scheduler
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.27.5
+        armo.tier: kubescape-scan
+        helm.sh/chart: kubescape-operator-1.27.5
+        kubescape.io/ignore: "true"
+        kubescape.io/tier: core
+        tier: ks-control-plane
+      name: kubescape-scheduler
+      namespace: kubescape
+    spec:
+      failedJobsHistoryLimit: 1
+      jobTemplate:
+        spec:
+          template:
+            metadata:
+              annotations: null
+              labels:
+                app: kubescape-scheduler
+                app.kubernetes.io/component: kubescape-scheduler
+                app.kubernetes.io/instance: RELEASE-NAME
+                app.kubernetes.io/managed-by: Helm
+                app.kubernetes.io/name: kubescape-operator
+                app.kubernetes.io/part-of: kubescape
+                app.kubernetes.io/version: 1.27.5
+                armo.tier: kubescape-scan
+                helm.sh/chart: kubescape-operator-1.27.5
+                kubescape.io/ignore: "true"
+                kubescape.io/tier: core
+                tier: ks-control-plane
+            spec:
+              affinity: null
+              automountServiceAccountToken: false
+              containers:
+                - args:
+                    - -method=post
+                    - -scheme=http
+                    - -host=operator:4002
+                    - -path=v1/triggerAction
+                    - -headers=Content-Type:application/json
+                    - -path-body=/home/ks/request-body.json
+                  image: quay.io/kubescape/http-request:v0.2.11
+                  imagePullPolicy: IfNotPresent
+                  name: kubescape-scheduler
+                  resources:
+                    limits:
+                      cpu: 10m
+                      memory: 20Mi
+                    requests:
+                      cpu: 1m
+                      memory: 10Mi
+                  securityContext:
+                    allowPrivilegeEscalation: false
+                    readOnlyRootFilesystem: true
+                    runAsNonRoot: true
+                    runAsUser: 100
+                  volumeMounts:
+                    - mountPath: /home/ks/request-body.json
+                      name: kubescape-scheduler
+                      readOnly: true
+                      subPath: request-body.json
+              nodeSelector:
+                kubernetes.io/os: linux
+              restartPolicy: Never
+              securityContext:
+                seccompProfile:
+                  type: RuntimeDefault
+              serviceAccountName: kubescape
+              tolerations: null
+              volumes:
+                - configMap:
+                    name: kubescape-scheduler
+                  name: kubescape-scheduler
+      schedule: 1 2 3 4 5
+      successfulJobsHistoryLimit: 3
+  9: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -17863,7 +18196,7 @@ relevancy only:
           - get
           - watch
           - list
-  8: |
+  10: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -17888,7 +18221,7 @@ relevancy only:
       - kind: ServiceAccount
         name: kubescape
         namespace: kubescape
-  9: |
+  11: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -18058,7 +18391,7 @@ relevancy only:
               name: results
             - emptyDir: {}
               name: failed
-  10: |
+  12: |
     apiVersion: v1
     data:
       host-scanner-yaml: "apiVersion: apps/v1\nkind: DaemonSet\nmetadata:\n  name: host-scanner\n  namespace: kubescape\n  annotations:\n    \n  labels:\n    helm.sh/chart: kubescape-operator-1.27.5\n    app.kubernetes.io/name: kubescape-operator\n    app.kubernetes.io/instance: RELEASE-NAME\n    app.kubernetes.io/component: host-scanner\n    app.kubernetes.io/version: \"1.27.5\"\n    app.kubernetes.io/managed-by: Helm\n    app.kubernetes.io/part-of: kubescape\n    app: host-scanner\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\nspec:\n  selector:\n    matchLabels:\n      app.kubernetes.io/name: kubescape-operator\n      app.kubernetes.io/instance: RELEASE-NAME\n      app.kubernetes.io/component: host-scanner\n  template:\n    metadata:\n      annotations:\n        \n      labels:\n        helm.sh/chart: kubescape-operator-1.27.5\n        app.kubernetes.io/name: kubescape-operator\n        app.kubernetes.io/instance: RELEASE-NAME\n        app.kubernetes.io/component: host-scanner\n        app.kubernetes.io/version: \"1.27.5\"\n        app.kubernetes.io/managed-by: Helm\n        app.kubernetes.io/part-of: kubescape\n        app: host-scanner\n        tier: ks-control-plane\n        kubescape.io/ignore: \"true\"\n        kubescape.io/tier: \"core\"\n        name: host-scanner\n    spec:\n      nodeSelector:\n        kubernetes.io/os: linux\n      affinity:\n      tolerations:\n        - effect: NoSchedule\n          key: node-role.kubernetes.io/control-plane\n          operator: Exists\n        - effect: NoSchedule\n          key: node-role.kubernetes.io/master\n          operator: Exists\n      containers:\n      - name: host-sensor\n        image: \"quay.io/kubescape/host-scanner:v1.0.73\"\n        imagePullPolicy: IfNotPresent\n        securityContext:\n          allowPrivilegeEscalation: true\n          privileged: true\n          readOnlyRootFilesystem: true\n          procMount: Unmasked\n        env:\n        - name: KS_LOGGER_LEVEL\n          value: \"info\"\n        - name: KS_LOGGER_NAME\n          value: \"zap\"\n        - name: OTEL_COLLECTOR_SVC\n          value: otelCollector.svc.monitoring:4317\n        ports:\n          - name: scanner # Do not change port name\n            containerPort: 7888\n            protocol: TCP\n        resources:\n          limits:\n            cpu: 0.4m\n            memory: 400Mi\n          requests:\n            cpu: 0.1m\n            memory: 200Mi\n        volumeMounts:\n        - mountPath: /host_fs\n          name: host-filesystem\n        startupProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          failureThreshold: 30\n          periodSeconds: 1\n        livenessProbe:\n          httpGet:\n            path: /healthz\n            port: 7888\n          periodSeconds: 10\n      terminationGracePeriodSeconds: 120\n      dnsPolicy: ClusterFirstWithHostNet\n      serviceAccountName: node-agent\n      automountServiceAccountToken: false\n      volumes:\n      - hostPath:\n          path: /\n          type: Directory\n        name: host-filesystem\n      hostPID: true\n      hostIPC: true"
@@ -18079,7 +18412,7 @@ relevancy only:
         tier: ks-control-plane
       name: host-scanner-definition
       namespace: kubescape
-  11: |
+  13: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -18110,7 +18443,7 @@ relevancy only:
           - list
           - patch
           - delete
-  12: |
+  14: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -18136,7 +18469,7 @@ relevancy only:
       - kind: ServiceAccount
         name: kubescape
         namespace: kubescape
-  13: |
+  15: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -18165,7 +18498,7 @@ relevancy only:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  14: |
+  16: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -18184,7 +18517,112 @@ relevancy only:
         tier: ks-control-plane
       name: kubescape
       namespace: kubescape
-  15: |
+  17: |
+    apiVersion: v1
+    data:
+      request-body.json: '{"commands":[{"commandName":"scan","designators":[{"designatorType":"Attributes","attributes":{}}]}]}'
+    kind: ConfigMap
+    metadata:
+      labels:
+        app: kubevuln-scheduler
+        app.kubernetes.io/component: kubevuln-scheduler
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.27.5
+        helm.sh/chart: kubescape-operator-1.27.5
+        kubescape.io/ignore: "true"
+        kubescape.io/tier: core
+        tier: ks-control-plane
+      name: kubevuln-scheduler
+      namespace: kubescape
+  18: |
+    apiVersion: batch/v1
+    kind: CronJob
+    metadata:
+      annotations: null
+      labels:
+        app: kubevuln-scheduler
+        app.kubernetes.io/component: kubevuln-scheduler
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.27.5
+        armo.tier: vuln-scan
+        helm.sh/chart: kubescape-operator-1.27.5
+        kubescape.io/ignore: "true"
+        kubescape.io/tier: core
+        tier: ks-control-plane
+      name: kubevuln-scheduler
+      namespace: kubescape
+    spec:
+      failedJobsHistoryLimit: 1
+      jobTemplate:
+        spec:
+          template:
+            metadata:
+              annotations: null
+              labels:
+                app: kubevuln-scheduler
+                app.kubernetes.io/component: kubevuln-scheduler
+                app.kubernetes.io/instance: RELEASE-NAME
+                app.kubernetes.io/managed-by: Helm
+                app.kubernetes.io/name: kubescape-operator
+                app.kubernetes.io/part-of: kubescape
+                app.kubernetes.io/version: 1.27.5
+                armo.tier: vuln-scan
+                helm.sh/chart: kubescape-operator-1.27.5
+                kubescape.io/ignore: "true"
+                kubescape.io/tier: core
+                tier: ks-control-plane
+            spec:
+              affinity: null
+              automountServiceAccountToken: false
+              containers:
+                - args:
+                    - -method=post
+                    - -scheme=http
+                    - -host=operator:4002
+                    - -path=v1/triggerAction
+                    - -headers=Content-Type:application/json
+                    - -path-body=/home/ks/request-body.json
+                  image: quay.io/kubescape/http-request:v0.2.11
+                  imagePullPolicy: IfNotPresent
+                  name: kubevuln-scheduler
+                  resources:
+                    limits:
+                      cpu: 10m
+                      memory: 20Mi
+                    requests:
+                      cpu: 1m
+                      memory: 10Mi
+                  securityContext:
+                    allowPrivilegeEscalation: false
+                    readOnlyRootFilesystem: true
+                    runAsNonRoot: true
+                    runAsUser: 100
+                  volumeMounts:
+                    - mountPath: /home/ks/request-body.json
+                      name: kubevuln-scheduler
+                      readOnly: true
+                      subPath: request-body.json
+              nodeSelector:
+                kubernetes.io/os: linux
+              restartPolicy: Never
+              securityContext:
+                seccompProfile:
+                  type: RuntimeDefault
+              serviceAccountName: kubevuln
+              tolerations: null
+              volumes:
+                - configMap:
+                    name: kubevuln-scheduler
+                  name: kubevuln-scheduler
+      schedule: 1 2 3 4 5
+      successfulJobsHistoryLimit: 3
+  19: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -18225,7 +18663,7 @@ relevancy only:
           - get
           - watch
           - list
-  16: |
+  20: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -18250,7 +18688,7 @@ relevancy only:
       - kind: ServiceAccount
         name: kubevuln
         namespace: kubescape
-  17: |
+  21: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -18392,7 +18830,7 @@ relevancy only:
               name: ks-cloud-config
             - emptyDir: {}
               name: grype-db
-  18: |
+  22: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -18420,7 +18858,7 @@ relevancy only:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  19: |
+  23: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -18439,7 +18877,7 @@ relevancy only:
         tier: ks-control-plane
       name: kubevuln
       namespace: kubescape
-  20: |
+  24: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -18561,7 +18999,7 @@ relevancy only:
           - create
           - patch
           - get
-  21: |
+  25: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -18586,7 +19024,7 @@ relevancy only:
       - kind: ServiceAccount
         name: node-agent
         namespace: kubescape
-  22: |
+  26: |
     apiVersion: v1
     data:
       config.json: |
@@ -18634,7 +19072,7 @@ relevancy only:
         tier: ks-control-plane
       name: node-agent
       namespace: kubescape
-  23: |
+  27: |
     apiVersion: apps/v1
     kind: DaemonSet
     metadata:
@@ -18862,7 +19300,7 @@ relevancy only:
                     path: config.json
                 name: node-agent
               name: config
-  24: |
+  28: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -18890,7 +19328,7 @@ relevancy only:
         app.kubernetes.io/component: node-agent
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  25: |
+  29: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -18908,7 +19346,7 @@ relevancy only:
         tier: ks-control-plane
       name: node-agent
       namespace: kubescape
-  26: |
+  30: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -19023,7 +19461,7 @@ relevancy only:
           - list
           - update
           - patch
-  27: |
+  31: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -19048,7 +19486,7 @@ relevancy only:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  28: |
+  32: |
     apiVersion: v1
     data:
       config.json: |
@@ -19076,7 +19514,7 @@ relevancy only:
         tier: ks-control-plane
       name: operator
       namespace: kubescape
-  29: |
+  33: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -19111,7 +19549,7 @@ relevancy only:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 5e24c8cee15b4a420ff6f4b04890936761e91ac7ec3c9dc17f6676cb2ecc74c6
+            checksum/capabilities-config: 76706662c2b12149e8117a952ad63a7b1d8881ec5fe6d3fe2ac39aa252cbe192
             checksum/cloud-config: 11776b1d85eac38ea7db7db1db4ad411626f652b05d023940d22f1314b641908
             checksum/cloud-secret: 3248919273cee6d6f750f97ea378fc79fff1f03b131f21d584a00258bf475a80
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
@@ -19245,7 +19683,7 @@ relevancy only:
                     path: matchingRules.json
                 name: cs-matching-rules
               name: cs-matching-rules
-  30: |
+  34: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -19330,7 +19768,7 @@ relevancy only:
         tier: ks-control-plane
       name: kubescape-cronjob-template
       namespace: kubescape
-  31: |
+  35: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -19415,7 +19853,7 @@ relevancy only:
         tier: ks-control-plane
       name: kubevuln-cronjob-template
       namespace: kubescape
-  32: |
+  36: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -19500,7 +19938,7 @@ relevancy only:
         tier: ks-control-plane
       name: registry-scan-cronjob-template
       namespace: kubescape
-  33: |
+  37: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -19544,7 +19982,7 @@ relevancy only:
           - list
           - patch
           - delete
-  34: |
+  38: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -19570,7 +20008,7 @@ relevancy only:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  35: |
+  39: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -19598,7 +20036,7 @@ relevancy only:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  36: |
+  40: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -19617,7 +20055,7 @@ relevancy only:
         tier: ks-control-plane
       name: operator
       namespace: kubescape
-  37: |
+  41: |
     apiVersion: apiregistration.k8s.io/v1
     kind: APIService
     metadata:
@@ -19643,7 +20081,7 @@ relevancy only:
         namespace: kubescape
       version: v1beta1
       versionPriority: 15
-  38: |
+  42: |
     apiVersion: v1
     data:
       ca.crt: bW9jay1jYS1jZXJ0
@@ -19666,7 +20104,7 @@ relevancy only:
       name: storage-ca
       namespace: kubescape
     type: kubernetes.io/tls
-  39: |
+  43: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -19732,7 +20170,7 @@ relevancy only:
           - get
           - watch
           - list
-  40: |
+  44: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -19757,7 +20195,7 @@ relevancy only:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  41: |
+  45: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -19782,7 +20220,7 @@ relevancy only:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  42: |
+  46: |
     apiVersion: v1
     data:
       config.json: |
@@ -19811,7 +20249,7 @@ relevancy only:
         tier: ks-control-plane
       name: storage
       namespace: kubescape
-  43: |
+  47: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -19936,7 +20374,7 @@ relevancy only:
             - name: ca-certificates
               secret:
                 secretName: storage-ca
-  44: |
+  48: |
     apiVersion: v1
     kind: PersistentVolumeClaim
     metadata:
@@ -19960,7 +20398,7 @@ relevancy only:
       resources:
         requests:
           storage: 5Gi
-  45: |
+  49: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -19986,7 +20424,7 @@ relevancy only:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  46: |
+  50: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -20014,7 +20452,7 @@ relevancy only:
         app.kubernetes.io/component: storage
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  47: |
+  51: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
