@@ -5,18 +5,19 @@ apiVersion: v1
 metadata:
   name: {{ .Values.global.cloudConfig }}
   namespace: {{ .Values.ksNamespace }}
-  labels:
-    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.global.cloudConfig "tier" .Values.global.namespaceTier) | nindent 4 }}
-    kubescape.io/tier: "core"
-    kubescape.io/infra: config
-  {{- if $components.serviceDiscovery.enabled }}
   annotations:
+    {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
+  {{- if $components.serviceDiscovery.enabled }}
     "argocd.argoproj.io/sync-options": Delete=false
     "helm.sh/hook": pre-install,pre-upgrade
     "helm.sh/hook-weight": "0"
     "helm.sh/hook-delete-policy": before-hook-creation
     "helm.sh/resource-policy": keep
   {{- end }}
+  labels:
+    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.global.cloudConfig "tier" .Values.global.namespaceTier) | nindent 4 }}
+    kubescape.io/tier: "core"
+    kubescape.io/infra: config
 data:
   {{- if $components.serviceDiscovery.enabled }}
   metrics: '{{ .Values.serviceDiscovery.metrics }}'
@@ -42,7 +43,7 @@ data:
       "scanTimeout": "{{ .Values.kubevuln.config.scanTimeout }}",
       "vexGeneration": {{ eq .Values.capabilities.vexGeneration "enable" }},
       "useDefaultMatchers": {{ .Values.kubevuln.config.useDefaultMatchers }},
-      "storeFilteredSboms": {{ .Values.kubevuln.config.storeFilteredSboms }},
+      "storeFilteredSbom": {{ or .Values.kubevuln.config.storeFilteredSboms (eq .Values.capabilities.syncSBOM "enable") }},
       "continuousPostureScan": {{ $configurations.continuousScan }},
 {{- if not (empty .Values.kubevuln.config.grypeDbListingURL) }}
       "listingURL": "{{ .Values.kubevuln.config.grypeDbListingURL }}",

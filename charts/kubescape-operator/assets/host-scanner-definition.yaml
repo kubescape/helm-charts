@@ -4,6 +4,8 @@ kind: DaemonSet
 metadata:
   name: {{ .Values.hostScanner.name }}
   namespace: {{ .Values.ksNamespace }}
+  annotations:
+    {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
   labels:
     {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.hostScanner.name "tier" .Values.global.namespaceTier) | nindent 4 }}
 spec:
@@ -12,6 +14,8 @@ spec:
       {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.hostScanner.name) | nindent 6 }}
   template:
     metadata:
+      annotations:
+        {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 8 }}
       labels:
         {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.hostScanner.name "tier" .Values.global.namespaceTier) | nindent 8 }}
         kubescape.io/tier: "core"
@@ -40,7 +44,13 @@ spec:
       {{- end }}
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
-      - name: {{ toYaml .Values.imagePullSecrets }}
+      {{- if kindIs "string" .Values.imagePullSecrets }}
+      - name: {{ .Values.imagePullSecrets }}
+      {{- else }}
+      {{- range .Values.imagePullSecrets }}
+      - name: {{ . }}
+      {{- end }}
+      {{- end }}
       {{- end }}
       containers:
       - name: host-sensor

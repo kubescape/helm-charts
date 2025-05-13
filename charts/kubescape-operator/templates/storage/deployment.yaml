@@ -6,10 +6,11 @@ kind: Deployment
 metadata:
   name: {{ .Values.storage.name }}
   namespace: {{ .Values.ksNamespace }}
+  annotations:
+    {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
   labels:
     {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.storage.name "tier" .Values.global.namespaceTier) | nindent 4 }}
     kubescape.io/tier: "core"
-    {{ .Values.storage.labels | toYaml  | nindent 4 }}
 spec:
   replicas: 1
   revisionHistoryLimit: 2
@@ -20,20 +21,31 @@ spec:
       {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.storage.name) | nindent 6 }}
   template:
     metadata:
+      annotations:
+        {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 8 }}
+        {{- with .Values.storage.podAnnotations }}{{- toYaml . | nindent 8 }}{{- end }}
       labels:
         {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.storage.name "tier" .Values.global.namespaceTier) | nindent 8 }}
+        {{- with .Values.storage.podLabels }}{{- toYaml . | nindent 8 }}{{- end }}
         kubescape.io/tier: "core"
       {{- if $components.otelCollector.enabled }}
         otel: enabled
       {{- end }}
-        {{ .Values.storage.labels | toYaml | nindent 8 }}
     spec:
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
-      - name: {{ toYaml .Values.imagePullSecrets }}
+      {{- if kindIs "string" .Values.imagePullSecrets }}
+      - name: {{ .Values.imagePullSecrets }}
+      {{- else }}
+      {{- range .Values.imagePullSecrets }}
+      - name: {{ . }}
+      {{- end }}
+      {{- end }}
       {{- end }}
       serviceAccountName: {{ .Values.storage.name }}
       securityContext:
+        seccompProfile:
+          type: RuntimeDefault
         runAsUser: 65532
         fsGroup: 65532
       containers:
@@ -45,39 +57,26 @@ spec:
           runAsNonRoot: true
         livenessProbe:
           tcpSocket:
-            port: 8443
+            port: {{ .Values.storage.serverPort }}
         readinessProbe:
           tcpSocket:
-            port: 8443
+            port: {{ .Values.storage.serverPort }}
         env:
-          - name: "CLEANUP_INTERVAL"
-            value: "{{ .Values.storage.cleanupInterval }}"
           - name: GOMEMLIMIT
             valueFrom:
               resourceFieldRef:
                 resource: limits.memory
+                divisor: '1'
           - name: GOMAXPROCS
             valueFrom:
               resourceFieldRef:
                 resource: limits.cpu
+                divisor: '1'
           - name: KS_LOGGER_LEVEL
             value: "{{ .Values.logger.level }}"
           - name: KS_LOGGER_NAME
             value: "{{ .Values.logger.name }}"
-          {{- if .Values.storage.mtls.enabled }}
-          - name: TLS_CLIENT_CA_FILE
-            value: "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
-          - name: TLS_SERVER_CERT_FILE
-            value: "/etc/storage-ca-certificates/tls.crt"
-          - name: TLS_SERVER_KEY_FILE
-            value: "/etc/storage-ca-certificates/tls.key"
-          {{- end }}
           {{- if $components.otelCollector.enabled }}
-          - name: ACCOUNT_ID
-            valueFrom:
-              secretKeyRef:
-                name: {{ $components.cloudSecret.name }}
-                key: account
           - name: OTEL_COLLECTOR_SVC
             value: "otel-collector:4318"
           {{- end }}
@@ -85,16 +84,17 @@ spec:
           - name: OTEL_COLLECTOR_SVC
             value: {{ .Values.configurations.otelUrl }}
           {{- end }}
-          {{- if not $configurations.virtualCrds }}
-          - name: DISABLE_VIRTUAL_CRDS
-            value: "true"
-          {{- end }}
         volumeMounts:
           - name: "data"
             mountPath: "/data"
           - name: {{ .Values.global.cloudConfig }}
-            mountPath: /etc/config
+            mountPath: /etc/config/clusterData.json
             readOnly: true
+            subPath: "clusterData.json"
+          - name: config
+            mountPath: /etc/config/config.json
+            readOnly: true
+            subPath: "config.json"
           {{- if .Values.storage.mtls.enabled }}
           - name: "ca-certificates"
             mountPath: /etc/storage-ca-certificates
@@ -138,6 +138,12 @@ spec:
             - key: "services"
               path: "services.json"
             {{- end }}
+        - name: config
+          configMap:
+            name: {{ .Values.storage.name }}
+            items:
+              - key: "config.json"
+                path: "config.json"
         {{- if .Values.storage.mtls.enabled }}
         - name: "ca-certificates"
           secret:

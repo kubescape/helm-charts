@@ -5,10 +5,11 @@ kind: CronJob
 metadata:
   name: {{ .Values.helmReleaseUpgrader.name }}
   namespace: {{ .Values.ksNamespace }}
+  annotations:
+    {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
+    "helm.sh/resource-policy": keep
   labels:
     {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.helmReleaseUpgrader.name "tier" .Values.global.namespaceTier) | nindent 4 }}
-  annotations:
-    "helm.sh/resource-policy": keep
 spec:
   schedule: {{ .Values.helmReleaseUpgrader.schedule | quote }}
   successfulJobsHistoryLimit: {{ .Values.helmReleaseUpgrader.successfulJobsHistoryLimit }}
@@ -17,6 +18,8 @@ spec:
     spec:
       template:
         metadata:
+          annotations:
+            {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 12 }}
           labels:
             {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.helmReleaseUpgrader.name "tier" .Values.global.namespaceTier) | nindent 12 }}
         spec:

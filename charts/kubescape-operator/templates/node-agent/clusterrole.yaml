@@ -4,6 +4,8 @@ kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: {{ .Values.nodeAgent.name }}
+  annotations:
+    {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
   labels:
     {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.nodeAgent.name "tier" .Values.global.namespaceTier) | nindent 4 }}
 rules:
@@ -26,7 +28,7 @@ rules:
   resources: ["seccompprofiles"]
   verbs: ["get", "watch", "list"]
 - apiGroups: ["spdx.softwarecomposition.kubescape.io"]
-  resources: ["applicationactivities", "applicationprofiles", "networkneighborses", "networkneighborhoods", "sbomsyfts"]
+  resources: ["applicationprofiles", "networkneighborhoods", "sbomsyfts"]
   verbs: ["create", "get", "update", "watch", "list", "patch"]
 - apiGroups: ["kubescape.io"]
   resources: ["runtimerulealertbindings"]

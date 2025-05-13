@@ -9,6 +9,8 @@ kind: CronJob
 metadata:
   name: {{ .Values.kubevulnScheduler.name }}
   namespace: {{ .Values.ksNamespace }}
+  annotations:
+    {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
   labels:
     {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.kubevulnScheduler.name "tier" .Values.global.namespaceTier) | nindent 4 }}
     armo.tier: "vuln-scan"
@@ -21,14 +23,27 @@ spec:
     spec:
       template:
         metadata:
+          annotations:
+            {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 12 }}
+            {{- with .Values.kubevulnScheduler.podAnnotations }}{{- toYaml . | nindent 12 }}{{- end }}
           labels:
             {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.kubevulnScheduler.name "tier" .Values.global.namespaceTier) | nindent 12 }}
+            {{- with .Values.kubevulnScheduler.podLabels }}{{- toYaml . | nindent 12 }}{{- end }}
             armo.tier: "vuln-scan"
             kubescape.io/tier: "core"
         spec:
+          securityContext:
+            seccompProfile:
+              type: RuntimeDefault
           {{- if .Values.imagePullSecrets }}
           imagePullSecrets:
-          - name: {{ toYaml .Values.imagePullSecrets }}
+          {{- if kindIs "string" .Values.imagePullSecrets }}
+          - name: {{ .Values.imagePullSecrets }}
+          {{- else }}
+          {{- range .Values.imagePullSecrets }}
+          - name: {{ . }}
+          {{- end }}
+          {{- end }}
           {{- end }}
           containers:
           - name: {{ .Values.kubevulnScheduler.name }}

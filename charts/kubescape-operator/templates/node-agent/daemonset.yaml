@@ -11,6 +11,8 @@ kind: DaemonSet
 metadata:
   name: {{ .Values.nodeAgent.name }}
   namespace: {{ .Values.ksNamespace }}
+  annotations:
+    {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
   labels:
     {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.nodeAgent.name "tier" .Values.global.namespaceTier) | nindent 4 }}
     kubescape.io/tier: "core"
@@ -24,13 +26,17 @@ spec:
   template:
     metadata:
       annotations:
+        {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 8 }}
+        {{- with .Values.nodeAgent.podAnnotations }}{{- toYaml . | nindent 8 }}{{- end }}
         checksum/node-agent-config: {{ $checksums.nodeAgentConfig }}
         checksum/cloud-secret: {{ $checksums.cloudSecret }}
         checksum/cloud-config: {{ $checksums.cloudConfig }}
       {{- if ne .Values.global.proxySecretFile "" }}
         checksum/proxy-config: {{ $checksums.proxySecret }}
       {{- end }}
+      {{- if lt (.Capabilities.KubeVersion.Minor | int) 29 }}
         container.apparmor.security.beta.kubernetes.io/{{ .Values.nodeAgent.name }}: unconfined
+      {{- end }}
       {{- if eq .Values.configurations.prometheusAnnotations "enable" }}
         prometheus.io/path: /metrics
         prometheus.io/port: "8080"
@@ -38,14 +44,29 @@ spec:
       {{- end }}
       labels:
         {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.nodeAgent.name "tier" .Values.global.namespaceTier) | nindent 8 }}
+        {{- with .Values.nodeAgent.podLabels }}{{- toYaml . | nindent 8 }}{{- end }}
+        {{- if .Values.nodeAgent.gke.allowlist.enabled }}
+        cloud.google.com/matching-allowlist: {{ .Values.nodeAgent.gke.allowlist.name }}
+        {{- end }}
         kubescape.io/tier: "core"
       {{- if $components.otelCollector.enabled }}
         otel: enabled
       {{- end }}
     spec:
+      securityContext:
+        {{- if ge (.Capabilities.KubeVersion.Minor | int) 29 }}
+        appArmorProfile:
+          type: Unconfined
+        {{- end }}
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
-      - name: {{ toYaml .Values.imagePullSecrets }}
+      {{- if kindIs "string" .Values.imagePullSecrets }}
+      - name: {{ .Values.imagePullSecrets }}
+      {{- else }}
+      {{- range .Values.imagePullSecrets }}
+      - name: {{ . }}
+      {{- end }}
+      {{- end }}
       {{- end }}
       {{- if .Values.configurations.priorityClass.enabled }}
       priorityClassName: kubescape-critical
@@ -151,10 +172,12 @@ spec:
               valueFrom:
                 resourceFieldRef:
                   resource: limits.memory
+                  divisor: '1'
             - name: GOMAXPROCS
               valueFrom:
                 resourceFieldRef:
                   resource: limits.cpu
+                  divisor: '1'
             - name: HOST_ROOT
               value: "/host"
             - name: KS_LOGGER_LEVEL
@@ -185,6 +208,10 @@ spec:
             {{- end }}
             {{- if .Values.nodeAgent.config.skipKernelVersionCheck }}
             - name: SKIP_KERNEL_VERSION_CHECK
+              value: "true"
+            {{- end }}
+            {{- if .Values.nodeAgent.config.malwareScanAllFiles }}
+            - name: MALWARE_SCAN_ALL_FILES
               value: "true"
             {{- end }}
             - name: NODE_NAME
@@ -245,17 +272,20 @@ spec:
           - name: proxy-secret
             mountPath: /etc/ssl/certs/proxy.crt
             subPath: proxy.crt
+            readOnly: true
           {{- end }}
           {{- if .Values.global.overrideDefaultCaCertificates.enabled }}
           - name: custom-ca-certificates
             mountPath: /etc/ssl/certs/ca-certificates.crt
             subPath: ca-certificates.crt
+            readOnly: true
           {{- end }}
           {{- if .Values.global.extraCaCertificates.enabled }}
           {{- range $key, $value := (lookup "v1" "Secret" .Values.ksNamespace .Values.global.extraCaCertificates.secretName).data }}
           - name: extra-ca-certificates
             mountPath: /etc/ssl/certs/{{ $key }}
             subPath: {{ $key }}
+            readOnly: true
           {{- end }}
           {{- end }}
       nodeSelector:

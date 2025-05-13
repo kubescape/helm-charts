@@ -18,6 +18,10 @@ clusterName: "cluster"
 ksNamespace: kubescape
 ksLabel: kubescape
 
+# Additional annotations and labels that should be applied to all resources
+additionalAnnotations: {}
+additionalLabels: {}
+
 # global logger name and level
 # the logger level and name are mapped to environment variables in each component
 logger:
@@ -31,10 +35,10 @@ excludeNamespaces: "kubescape,kube-system,kube-public,kube-node-lease,kubeconfig
 includeNamespaces: ""
 
 # Additional volumes applied to all containers
-volumes: [ ]
+volumes: []
 
 # Additional volumeMounts applied to all containers
-volumeMounts: [ ]
+volumeMounts: []
 
 customScheduling:
   affinity:
@@ -83,7 +87,7 @@ capabilities:
 
   # ====== Image vulnerabilities scanning related capabilities ======
   #
-  nodeSbomGeneration: disable  # Warning: When disabled along with enableClusterWideSecretAccess: false, vulnerability scanning capabilities will be limited
+  nodeSbomGeneration: enable # Warning: When disabled along with enableClusterWideSecretAccess: false, vulnerability scanning capabilities will be limited
   vulnerabilityScan: enable
   relevancy: enable
   # Generate VEX documents alongside the image vulnerabilities report (experimental)
@@ -93,13 +97,15 @@ capabilities:
   #
   runtimeObservability: enable
   networkPolicyService: enable
+  networkEventsStreaming: disable
   runtimeDetection: disable
   malwareDetection: disable
   nodeProfileService: disable # this should only be enabled when using a backend service that supports node profiles
   admissionController: enable
-  httpDetection: disable # this is automatically enabled when runtimeObservability or runtimeDetection is enabled
+  httpDetection: enable
   seccompProfileService: enable
   manageWorkloads: disable
+  syncSBOM: disable
 
   # ====== Other capabilities ======
   #
@@ -130,6 +136,10 @@ configurations:
     enabled: true
     daemonset: 100000100  # PriorityClass of the DaemonSet, this should be higher than the other components so the DaemonSet will schedule on all nodes
 
+  # List of json paths to exclude from the pod spec hash computation - used for aggregating CronJob generated CRDs
+  excludeJsonPaths:
+    # - ".containers[*].env[?(@.name==\"DD_INJECT_ID\")]"
+
 
 # installation of the alertCRD chart
 alertCRD:
@@ -144,7 +154,6 @@ alertCRD:
 # It is recommended to setup the cloud info when installing the chart on a managed cluster, this will enable to check the related settings
 # cloud support
 cloudProviderMetadata:
-
   # -- cloud region
   cloudRegion:
 
@@ -157,13 +166,21 @@ cloudProviderMetadata:
   # -- GKE project
   gkeProject:
 
+  # Provider Metada can also be pulled from a kubernetes secret like
+  # secretRef:
+  #   name: kubescape-secret
+  #   subscriptionIdKey: aksSubscriptionID
+  #   clientIdKey: aksClientID
+  #   clientSecretKey: aksClientSecret
+  #   tenantIdKey: aksTenantID
+  #   resourceGroupKey: aksResourceGroup
+
 # -----------------------------------------------------------------------------------------
 # ------------------------- Configurations ------------------------------------------------
 # -----------------------------------------------------------------------------------------
 
 # Enable persistence using Persistent Volume Claims
 persistence:
-
   # -- persistence storage class
   #    ref: https://kubernetes.io/docs/concepts/storage/storage-classes/
   #    note: set to "-" (dash) for default storage class
@@ -181,7 +198,7 @@ persistence:
 global:
   httpsProxy: ""
   noProxy: ""
-  proxySecretFile: ""  # file content (not file path), e.g. `global.proxySecretFile=(cat /path/to/file)`
+  proxySecretFile: "" # file content (not file path), e.g. `global.proxySecretFile=(cat /path/to/file)`
   proxySecretName: kubescape-proxy-certificate
   enableClusterWideSecretAccess: true
   namespaceTier: ks-control-plane
@@ -231,18 +248,19 @@ imageScanning:
 
 # kubescape scanner - https://github.com/kubescape/kubescape
 kubescape:
-
   name: kubescape
 
   image:
     # -- source code: https://github.com/kubescape/kubescape/tree/master/httphandler (public repo)
     repository: quay.io/kubescape/kubescape
-    tag: v3.0.31
+    tag: v3.0.34
     pullPolicy: IfNotPresent
 
   nodeSelector:
     kubernetes.io/os: linux
 
+  podAnnotations: {}
+  podLabels: {}
   resources:
     requests:
       cpu: 250m
@@ -273,24 +291,26 @@ kubescape:
     # If needed the service monitor can be deployed to a different namespace than the one kubescape is in
     #namespace: my-namespace
 
+    # Additional labels, e.g. setting a label for service monitor selector as set in prometheus
+    additionalLabels: {}
+
   # Additional volumes to be mounted on Kubescape
-  volumes: [ ]
+  volumes: []
 
   # Additional volumeMounts to be mounted on Kubescape
-  volumeMounts: [ ]
+  volumeMounts: []
 
 # +++++++++++++++++++++++++++++++ Operator ++++++++++++++++++++++++++++++++++++++++++++++++
 
 # Operator will trigger kubescape and kubevuln scanning
 operator:
-
   # operator Deployment name
   name: operator
 
   image:
     # -- source code: https://github.com/kubescape/operator
     repository: quay.io/kubescape/operator
-    tag: v0.2.74
+    tag: v0.2.88
     pullPolicy: IfNotPresent
 
   nodeSelector:
@@ -302,6 +322,8 @@ operator:
     targetPort: 4002
     protocol: TCP
 
+  podAnnotations: {}
+  podLabels: {}
   resources:
     requests:
       cpu: 50m
@@ -309,16 +331,15 @@ operator:
     limits:
       cpu: 300m
       memory: 300Mi
-  env: { }
-  labels: { }
+  env: {}
 
   podScanGuardTime: "1h"
 
   # Additional volumes to be mounted on the websocket
-  volumes: [ ]
+  volumes: []
 
   # Additional volumeMounts to be mounted on the websocket
-  volumeMounts: [ ]
+  volumeMounts: []
 
   triggerSecurityFramework: true
 
@@ -328,7 +349,6 @@ unittest: false
 
 # kubevuln - image vulnerability scanning microservice
 kubevuln:
-
   # -- for enable:"<any-value>", for disable:"": the print of json posted to the Kubescape cloud from the vuln scanner
   verbose: ""
 
@@ -338,7 +358,7 @@ kubevuln:
   image:
     # -- source code: https://github.com/kubescape/kubevuln
     repository: quay.io/kubescape/kubevuln
-    tag: v0.3.65
+    tag: v0.3.74
     pullPolicy: IfNotPresent
 
   nodeSelector:
@@ -352,6 +372,8 @@ kubevuln:
     targetPort: 8080
     protocol: TCP
 
+  podAnnotations: {}
+  podLabels: {}
   resources:
     requests:
       cpu: 300m
@@ -376,13 +398,11 @@ kubevuln:
     - name: CA_MAX_VULN_SCAN_ROUTINES # TODO update the kubevuln
       value: "1"
 
-  labels: { }
-
   # Additional volumes to be mounted on the vulnerability scanning microservice
-  volumes: [ ]
+  volumes: []
 
   # Additional volumeMounts to be mounted on the vulnerability scanning microservice
-  volumeMounts: [ ]
+  volumeMounts: []
 
 # +++++++++++++++++++++++++++++++ Host-scanner ++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -391,17 +411,17 @@ hostScanner:
   image:
     # -- source code: https://github.com/kubescape/host-scanner (public repo)
     repository: quay.io/kubescape/host-scanner
-    tag: v1.0.71
+    tag: v1.0.73
     pullPolicy: IfNotPresent
 
   nodeSelector:
     kubernetes.io/os: linux
 
   # Additional volumes to be mounted on the Kubescape host scanner
-  volumes: [ ]
+  volumes: []
 
   # Additional volumeMounts to be mounted on the Kubescape host scanner
-  volumeMounts: [ ]
+  volumeMounts: []
 
   tolerations:
     # this toleration is to have the DaemonDet runnable on master nodes
@@ -421,23 +441,23 @@ hostScanner:
       cpu: 0.1m
       memory: 200Mi
 
-
 # +++++++++++++++++++++++++++++++ Storage ++++++++++++++++++++++++++++++++++++++++++++++++
 
 # Values for the Kubescape Storage service that Kubescape uses for its internal
 # purposes like storage
 storage:
-
   # Values or the Aggregated APIServer
   name: "storage"
   mtls:
     enabled: true
     certificateValidityInDays: 730
+  serverPort: 8443
 
+  # -- source code: https://github.com/kubescape/storage
   image:
     # -- source code: https://github.com/kubescape/storage
     repository: quay.io/kubescape/storage
-    tag: v0.0.161
+    tag: v0.0.183
     pullPolicy: IfNotPresent
 
   nodeSelector:
@@ -446,9 +466,8 @@ storage:
   # cleanup interval is a duration string
   cleanupInterval: "6h"
 
-  labels:
-    app.kubernetes.io/part-of: "kubescape-storage"
-
+  podAnnotations: {}
+  podLabels: {}
   resources:
     requests:
       cpu: 100m
@@ -464,7 +483,7 @@ nodeAgent:
   image:
     # -- source code: https://github.com/kubescape/node-agent
     repository: quay.io/kubescape/node-agent
-    tag: v0.2.263
+    tag: v0.2.318
     pullPolicy: IfNotPresent
 
   config:
@@ -472,6 +491,7 @@ nodeAgent:
     learningPeriod: 2m # duration string
     updatePeriod: 10m # duration string
     nodeProfileInterval: 10m # duration string
+    networkStreamingInterval: 2m # duration string
     prometheusExporter: disable
     httpExporterConfig:
       url: http://synchronizer:8089/apis/v1/kubescape.io
@@ -481,8 +501,15 @@ nodeAgent:
     stdoutExporter: true
     syslogExporterURL: ""
     skipKernelVersionCheck: false
+    malwareScanAllFiles: false
     hostMalwareSensor: disable
     hostNetworkSensor: disable
+
+  # GKE Autopilot allowlist
+  gke:
+    allowlist:
+      enabled: false
+      name: armo-kubescape-node-agent-1.27
 
   # prometheus (operator) service monitor
   serviceMonitor:
@@ -493,13 +520,18 @@ nodeAgent:
     interval: 30s
     scrapeTimeout: 15s
 
+    # Additional labels, e.g. setting a label for service monitor selector as set in prometheus
+    additionalLabels: {}
+
+  podAnnotations: {}
+  podLabels: {}
   resources:
     requests:
       cpu: 100m
       memory: 180Mi
     limits:
       cpu: 500m
-      memory: 700Mi
+      memory: 1400Mi
 
   env:
     - name: NodeName
@@ -513,25 +545,34 @@ nodeAgent:
   volumeMounts:
     - mountPath: /host
       name: host
+      readOnly: true
     - mountPath: /run
       name: run
+      readOnly: false # Must be writable for the node-agent to open container runtime socket for writing
     - mountPath: /var
       name: var
+      readOnly: true
     - mountPath: /lib/modules
       name: modules
+      readOnly: true
     - mountPath: /sys/kernel/debug
       name: debugfs
+      readOnly: false # Must be writable for the node-agent to load eBPF programs
     - mountPath: /sys/fs/cgroup
       name: cgroup
+      readOnly: true
     - mountPath: /sys/fs/bpf
       name: bpffs
+      readOnly: false # Must be writable for the node-agent to load eBPF programs
     - mountPath: /data
       name: data
+      readOnly: false # EmptyDir volume
     - mountPath: /boot
       name: boot
+      readOnly: true
     - mountPath: /clamav
       name: clamrun
-      readOnly: false
+      readOnly: false # EmptyDir volume
 
   volumes:
     - hostPath:
@@ -578,8 +619,6 @@ nodeAgent:
     enabled: false
     maxStartupJitter: 60
 
-
-
 # +++++++++++++++++++++++++++++++ ClamAV ++++++++++++++++++++++++++++++++++++++++++++++++
 clamav:
   name: clamav
@@ -609,18 +648,18 @@ clamav:
       readOnly: true
 
   volumes:
-  - name: clamdb
-    emptyDir: {}
-  - name: clamrun
-    emptyDir: {}
-  - name: etc
-    configMap:
-      name: clamav
-      items:
-      - key: clamd.conf
-        path: clamd.conf
-      - key: freshclam.conf
-        path: freshclam.conf
+    - name: clamdb
+      emptyDir: {}
+    - name: clamrun
+      emptyDir: {}
+    - name: etc
+      configMap:
+        name: clamav
+        items:
+          - key: clamd.conf
+            path: clamd.conf
+          - key: freshclam.conf
+            path: freshclam.conf
 
   affinity:
     nodeAffinity:
@@ -641,10 +680,12 @@ synchronizer:
   image:
     # -- source code: https://github.com/kubescape/synchronizer
     repository: quay.io/kubescape/synchronizer
-    tag: v0.0.99
+    tag: v0.0.110
     pullPolicy: IfNotPresent
   nodeSelector:
     kubernetes.io/os: linux
+  podAnnotations: {}
+  podLabels: {}
   resources:
     requests:
       cpu: 100m
@@ -661,7 +702,6 @@ synchronizer:
 # -----------------------------------------------------------------------------------------
 # ------------------------ Microservice - helpers -----------------------------------------
 # -----------------------------------------------------------------------------------------
-
 
 # +++++++++++++++++++++++++++++++ OTEL-collector ++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -680,10 +720,12 @@ otelCollector:
     scrapeInterval: 30s
 
   image:
-    repository: docker.io/otel/opentelemetry-collector
+    repository: quay.io/kubescape/opentelemetry-collector
     tag: 0.108.0
     pullPolicy: IfNotPresent
 
+  podAnnotations: {}
+  podLabels: {}
   resources:
     requests:
       cpu: 100m
@@ -701,13 +743,15 @@ grypeOfflineDB:
 
   image:
     repository: quay.io/kubescape/grype-offline-db
-    tag: ""  # use latest for weekly updates, it will overwrite the sha if specified
+    tag: "" # use latest for weekly updates, it will overwrite the sha if specified
     sha: sha256:155db3be4baa461a50cebadfc8f52108fca71aa4ce5e460a30a4e0922e899ed2
     pullPolicy: Always
 
   nodeSelector:
     kubernetes.io/os: linux
 
+  podAnnotations: {}
+  podLabels: {}
   resources:
     requests:
       cpu: 150m
@@ -745,6 +789,8 @@ serviceDiscovery:
   nodeSelector:
     kubernetes.io/os: linux
 
+  podAnnotations: {}
+  podLabels: {}
   resources:
     requests:
       cpu: 10m
@@ -760,12 +806,14 @@ prometheusExporter:
   name: "prometheus-exporter"
   image:
     repository: quay.io/kubescape/prometheus-exporter
-    tag: v0.2.2
+    tag: v0.2.4
     pullPolicy: IfNotPresent
 
   nodeSelector:
     kubernetes.io/os: linux
 
+  podAnnotations: {}
+  podLabels: {}
   resources:
     requests:
       cpu: 10m
@@ -782,10 +830,10 @@ prometheusExporter:
   enableWorkloadMetrics: false
 
   # Additional volumes to be mounted on the prometheus exporter
-  volumes: [ ]
+  volumes: []
 
   # Additional volumeMounts to be mounted on the prometheus exporter
-  volumeMounts: [ ]
+  volumeMounts: []
 
 # +++++++++++++++++++++++++++++ Upgrader ++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -831,7 +879,6 @@ helmReleaseUpgrader:
 
 # kubescape scheduled scan using a CronJob
 kubescapeScheduler:
-
   # scan scheduler container name
   name: kubescape-scheduler
   # Detemines what to scan. By default it will scan all resources in the cluster for all frameworks.
@@ -869,11 +916,13 @@ kubescapeScheduler:
   insecureSkipTLSVerify: false
 
   # Additional volumes to be mounted on the scan scheduler
-  volumes: [ ]
+  volumes: []
 
   # Additional volumeMounts to be mounted on the scan scheduler
-  volumeMounts: [ ]
+  volumeMounts: []
 
+  podAnnotations: {}
+  podLabels: {}
   resources:
     requests:
       cpu: 1m
@@ -885,9 +934,7 @@ kubescapeScheduler:
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 1
 
-
 kubevulnScheduler:
-
   ## scan scheduler container name
   name: kubevuln-scheduler
 
@@ -915,11 +962,13 @@ kubevulnScheduler:
   insecureSkipTLSVerify: false
 
   # Additional volumes to be mounted on the vuln scan scheduler
-  volumes: [ ]
+  volumes: []
 
   # Additional volumeMounts to be mounted on the vuln scan scheduler
-  volumeMounts: [ ]
+  volumeMounts: []
 
+  podAnnotations: {}
+  podLabels: {}
   resources:
     requests:
       cpu: 1m
@@ -931,10 +980,8 @@ kubevulnScheduler:
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 1
 
-
 # registry scan scheduled scan using a CronJob
 registryScanScheduler:
-
   # scan scheduler container name
   name: registry-scheduler
 
@@ -963,10 +1010,10 @@ registryScanScheduler:
   insecureSkipTLSVerify: false
 
   # Additional volumes to be mounted on the scan scheduler
-  volumes: [ ]
+  volumes: []
 
   # Additional volumeMounts to be mounted on the scan scheduler
-  volumeMounts: [ ]
+  volumeMounts: []
 
   resources:
     requests:

@@ -3,6 +3,8 @@ apiVersion: kubescape.io/v1
 kind: RuntimeRuleAlertBinding
 metadata:
   name: all-rules-all-pods
+  annotations:
+    {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
   labels:
     {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.nodeAgent.name "tier" .Values.global.namespaceTier) | nindent 4 }}
 spec:
@@ -27,6 +29,11 @@ spec:
       {{- end }}
   rules:
     - ruleName: "Unexpected process launched"
+    - ruleName: "Unexpected file access"
+      parameters:
+        ignoreMounts: true
+        ignorePrefixes: ["/proc", "/run/secrets/kubernetes.io/serviceaccount", "/var/run/secrets/kubernetes.io/serviceaccount", "/tmp"]
+        includePrefixes: [ "/etc", "/var/spool/cron/", "/var/log/", "/var/run/", "/dev/shm/", "/run/", "/var/www/", "/var/lib/docker/", "/opt/", "/usr/local/", "/app/", "/.dockerenv", "/proc/self/environ", "/var/lib/kubelet/", "/etc/cni/net.d/", "/var/run/secrets/kubernetes.io/", "/var/run/secrets/kubernetes.io/serviceaccount/", "/run/containerd/", "/run/flannel/", "/run/calico/"]
     - ruleName: "Unexpected system call"
     - ruleName: "Unexpected capability used"
     - ruleName: "Unexpected domain request"
@@ -63,4 +70,16 @@ spec:
     - ruleName: "Unexpected Symlink Source"
     - ruleName: "Unexpected Hardlink Source"
     - ruleName: "Unexpected io_uring Operation Detected"
+    - ruleName: "ReDoS Attack"
+    - ruleName: "Prototype Pollution Attack"
+    - ruleName: "Execution of base64 Encoded Command"
+    - ruleName: "Execution of interpreter command"
+    - ruleName: "Code Sharing Site Access"
+    - ruleName: "Web Application File Write Access"
+    - ruleName: "Cron Job File Created or Modified"
+    - ruleName: "Hidden File Created"
+    - ruleName: "Reverse Shell Patterens Detected"
+    - ruleName: "Unauthorized IMDS Connection Attempt"
+    - ruleName: "Credentials Detection Attempts"
+    - ruleName: "HTTP Request Smuggling Attempt"
 {{- end }}

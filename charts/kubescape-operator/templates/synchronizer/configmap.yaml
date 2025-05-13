@@ -6,6 +6,8 @@ kind: ConfigMap
 metadata:
   name: {{ .Values.synchronizer.name }}
   namespace: {{ .Values.ksNamespace }}
+  annotations:
+    {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
   labels:
     {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.synchronizer.name "tier" .Values.global.namespaceTier) | nindent 4 }}
     kubescape.io/tier: "core"
@@ -59,6 +61,18 @@ data:
             "group": "rbac.authorization.k8s.io",
             "version": "v1",
             "resource": "clusterrolebindings",
+            "strategy": "patch"
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "version": "v1",
+            "resource": "clusterroles",
+            "strategy": "patch"
+          },
+          {
+            "group": "rbac.authorization.k8s.io",
+            "version": "v1",
+            "resource": "roles",
             "strategy": "patch"
           },
           {
@@ -142,12 +156,6 @@ data:
           {
             "group": "spdx.softwarecomposition.kubescape.io",
             "version": "v1beta1",
-            "resource": "applicationactivities",
-            "strategy": "copy"
-          },
-          {
-            "group": "spdx.softwarecomposition.kubescape.io",
-            "version": "v1beta1",
             "resource": "applicationprofiles",
             "strategy": "copy"
           },
@@ -160,15 +168,23 @@ data:
           {
             "group": "spdx.softwarecomposition.kubescape.io",
             "version": "v1beta1",
-            "resource": "networkneighborses",
+            "resource": "networkneighborhoods",
+            "strategy": "copy"
+          },
+          {{- if eq .Values.capabilities.syncSBOM "enable" }}
+          {
+            "group": "spdx.softwarecomposition.kubescape.io",
+            "version": "v1beta1",
+            "resource": "sbomsyfts",
             "strategy": "copy"
           },
           {
             "group": "spdx.softwarecomposition.kubescape.io",
             "version": "v1beta1",
-            "resource": "networkneighborhoods",
+            "resource": "sbomsyftfiltereds",
             "strategy": "copy"
           },
+          {{- end }}
           {{- if eq .Values.capabilities.manageWorkloads "enable" }}
           {
             "group": "spdx.softwarecomposition.kubescape.io",
@@ -242,6 +258,12 @@ data:
       "httpEndpoint": {
         "serverPort": "{{ .Values.synchronizer.service.targetPort }}",
         "resources": [
+          {
+            "group": "kubescape.io",
+            "version": "v1",
+            "resource": "networkstreams",
+            "strategy": "copy"
+          },
           {
             "group": "kubescape.io",
             "version": "v1",

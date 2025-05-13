@@ -7,6 +7,8 @@ kind: Deployment
 metadata:
   name: {{ .Values.otelCollector.name }}
   namespace: {{ .Values.ksNamespace }}
+  annotations:
+    {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
   labels:
     {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.otelCollector.name "tier" .Values.global.namespaceTier) | nindent 4 }}
     kubescape.io/tier: "core"
@@ -24,17 +26,29 @@ spec:
   template:
     metadata:
       annotations:
+        {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 8 }}
+        {{- with .Values.otelCollector.podAnnotations }}{{- toYaml . | nindent 8 }}{{- end }}
         checksum/otel-config: {{ $checksums.otelConfig }}
       {{- if ne .Values.global.proxySecretFile "" }}
         checksum/proxy-config: {{ $checksums.proxySecret }}
       {{- end }}
       labels:
         {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.otelCollector.name "tier" .Values.global.namespaceTier) | nindent 8 }}
+        {{- with .Values.otelCollector.podLabels }}{{- toYaml . | nindent 8 }}{{- end }}
         kubescape.io/tier: "core"
     spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
-      - name: {{ toYaml .Values.imagePullSecrets }}
+      {{- if kindIs "string" .Values.imagePullSecrets }}
+      - name: {{ .Values.imagePullSecrets }}
+      {{- else }}
+      {{- range .Values.imagePullSecrets }}
+      - name: {{ . }}
+      {{- end }}
+      {{- end }}
       {{- end }}
       containers:
       - name: {{ .Values.otelCollector.name }}
@@ -67,10 +81,12 @@ spec:
           valueFrom:
             resourceFieldRef:
               resource: limits.memory
+              divisor: '1'
         - name: GOMAXPROCS
           valueFrom:
             resourceFieldRef:
               resource: limits.cpu
+              divisor: '1'
         - name: GOGC
           value: "80"
         {{- if ne .Values.global.httpsProxy "" }}

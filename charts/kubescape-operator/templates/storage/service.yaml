@@ -5,13 +5,16 @@ kind: Service
 metadata:
   name: {{ .Values.storage.name }}
   namespace: {{ .Values.ksNamespace }}
+  annotations:
+    {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
   labels:
     {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.storage.name "tier" .Values.global.namespaceTier) | nindent 4 }}
 spec:
   ports:
   - port: 443
     protocol: TCP
-    targetPort: 8443
+    targetPort: {{ .Values.storage.serverPort }}
+    name: https
   selector:
     {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.storage.name) | nindent 6 }}
 {{- end }}

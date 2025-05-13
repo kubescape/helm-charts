@@ -12,6 +12,8 @@ kind: ConfigMap
 metadata:
   name: {{ .Values.nodeAgent.name }}
   namespace: {{ .Values.ksNamespace }}
+  annotations:
+    {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
   labels:
     {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.nodeAgent.name "tier" .Values.global.namespaceTier) | nindent 4 }}
     kubescape.io/tier: "core"
@@ -21,12 +23,13 @@ data:
         "applicationProfileServiceEnabled": {{ or $configurations.runtimeObservability (eq .Values.capabilities.relevancy "enable") }},
         "prometheusExporterEnabled": {{ eq .Values.nodeAgent.config.prometheusExporter "enable" }},
         "runtimeDetectionEnabled": {{ eq .Values.capabilities.runtimeDetection "enable" }},
-        "httpDetectionEnabled": {{ or (eq .Values.capabilities.httpDetection "enable") (eq .Values.capabilities.runtimeDetection "enable") (eq .Values.capabilities.runtimeObservability "enable") }},
+        "httpDetectionEnabled": {{ and (eq .Values.capabilities.httpDetection "enable") (eq .Values.capabilities.runtimeDetection "enable") }},
         "networkServiceEnabled": {{ eq .Values.capabilities.networkPolicyService "enable" }},
         "malwareDetectionEnabled": {{ eq .Values.capabilities.malwareDetection "enable" }},
         "hostMalwareSensorEnabled": {{ eq .Values.nodeAgent.config.hostMalwareSensor "enable" }},
         "hostNetworkSensorEnabled": {{ eq .Values.nodeAgent.config.hostNetworkSensor "enable" }},
         "nodeProfileServiceEnabled": {{ eq .Values.capabilities.nodeProfileService "enable" }},
+        "networkStreamingEnabled": {{ eq .Values.capabilities.networkEventsStreaming "enable" }},
         "maxImageSize": {{ .Values.kubevuln.config.maxImageSize }},
         "maxSBOMSize": {{ .Values.kubevuln.config.maxSBOMSize }},
         "sbomGenerationEnabled": {{ eq .Values.capabilities.nodeSbomGeneration "enable" }},
@@ -34,6 +37,7 @@ data:
         "initialDelay": "{{ .Values.nodeAgent.config.learningPeriod }}",
         "updateDataPeriod": "{{ .Values.nodeAgent.config.updatePeriod }}",
         "nodeProfileInterval": "{{ .Values.nodeAgent.config.nodeProfileInterval }}",
+        "networkStreamingInterval": "{{ .Values.nodeAgent.config.networkStreamingInterval }}",
         "maxSniffingTimePerContainer": "{{ .Values.nodeAgent.config.maxLearningPeriod }}",
         {{- if ne .Values.includeNamespaces "" }}
         "includeNamespaces": "{{ .Values.includeNamespaces }}",
@@ -47,7 +51,8 @@ data:
           "alertManagerExporterUrls": {{- .Values.nodeAgent.config.alertManagerExporterUrls | toJson }},
           "stdoutExporter": {{- .Values.nodeAgent.config.stdoutExporter }},
           "syslogExporterURL": "{{- .Values.nodeAgent.config.syslogExporterURL }}"
-        }
+        },
+        "excludeJsonPaths": {{- .Values.configurations.excludeJsonPaths | toJson }}
     }
 ---
 {{- if $components.clamAV.enabled }}
