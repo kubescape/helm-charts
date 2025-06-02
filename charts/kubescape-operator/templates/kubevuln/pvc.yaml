@@ -1,0 +1,21 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- if and $components.kubevuln.enabled .Values.kubevuln.config.grypeDbPersistence }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kubescape-{{ .Values.kubevuln.name }}
+  namespace: {{ .Values.ksNamespace }}
+  annotations:
+    {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
+  labels:
+    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.kubevuln.name "tier" .Values.global.namespaceTier) | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.persistence.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.size.backingStorage }}
+  {{- if ne .Values.persistence.storageClass "-" }}
+  storageClassName: {{ .Values.persistence.storageClass | quote }}
+  {{- end }}
+{{- end }}
