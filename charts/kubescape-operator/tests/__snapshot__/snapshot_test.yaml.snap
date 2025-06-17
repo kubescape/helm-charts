@@ -2252,6 +2252,8 @@ all capabilities:
       - apiGroups:
           - spdx.softwarecomposition.kubescape.io
         resources:
+          - applicationprofiles
+          - networkneighborhoods
           - seccompprofiles
         verbs:
           - get
@@ -2260,8 +2262,7 @@ all capabilities:
       - apiGroups:
           - spdx.softwarecomposition.kubescape.io
         resources:
-          - applicationprofiles
-          - networkneighborhoods
+          - containerprofiles
           - sbomsyfts
         verbs:
           - create
@@ -2546,7 +2547,7 @@ all capabilities:
                 - name: KUBELET_ROOT
                   value: /var/lib/kubelet
                 - name: NodeName
-              image: quay.io/kubescape/node-agent:v0.2.347
+              image: quay.io/kubescape/node-agent:v0.2.357
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -2605,6 +2606,8 @@ all capabilities:
                   name: bpffs
                 - mountPath: /data
                   name: data
+                - mountPath: /profiles
+                  name: profiles
                 - mountPath: /boot
                   name: boot
                   readOnly: true
@@ -2669,6 +2672,8 @@ all capabilities:
               name: boot
             - emptyDir: null
               name: data
+            - emptyDir: null
+              name: profiles
             - emptyDir: {}
               name: clamdb
             - emptyDir: {}
@@ -4561,6 +4566,47 @@ all capabilities:
           "cleanupInterval": "6h",
           "disableVirtualCRDs": false,
           "excludeJsonPaths": [".containers[*].env[?(@.name==\"KUBECONFIG\")]"],
+          "defaultQueueLength": 100,
+          "defaultWorkerCount": 2,
+          "defaultMaxObjectSize": 400000,
+          "queueManagerEnabled": true,
+          "kindQueues": {
+            "applicationprofiles": {
+              "queueLength": 50,
+              "workerCount": 2,
+              "maxObjectSize": 20000000
+            },
+            "containerprofiles": {
+              "queueLength": 50,
+              "workerCount": 2,
+              "maxObjectSize": 2500000
+            },
+            "networkneighborhoods": {
+              "queueLength": 50,
+              "workerCount": 2,
+              "maxObjectSize": 10000000
+            },
+            "openvulnerabilityexchangecontainers": {
+              "queueLength": 50,
+              "workerCount": 1,
+              "maxObjectSize": 500000
+            },
+            "sbomsyftfiltereds": {
+              "queueLength": 50,
+              "workerCount": 1,
+              "maxObjectSize": 50000000
+            },
+            "sbomsyfts": {
+              "queueLength": 50,
+              "workerCount": 1,
+              "maxObjectSize": 100000000
+            },
+            "vulnerabilitymanifests": {
+              "queueLength": 50,
+              "workerCount": 1,
+              "maxObjectSize": 50000000
+            }
+          },
           "serverBindPort": "8443"
         }
     kind: ConfigMap
@@ -4643,7 +4689,7 @@ all capabilities:
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
                   value: otelCollector.svc.monitoring:4317
-              image: quay.io/kubescape/storage:v0.0.185
+              image: quay.io/kubescape/storage:v0.0.204
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 tcpSocket:
@@ -7552,6 +7598,8 @@ default capabilities:
       - apiGroups:
           - spdx.softwarecomposition.kubescape.io
         resources:
+          - applicationprofiles
+          - networkneighborhoods
           - seccompprofiles
         verbs:
           - get
@@ -7560,8 +7608,7 @@ default capabilities:
       - apiGroups:
           - spdx.softwarecomposition.kubescape.io
         resources:
-          - applicationprofiles
-          - networkneighborhoods
+          - containerprofiles
           - sbomsyfts
         verbs:
           - create
@@ -7777,7 +7824,7 @@ default capabilities:
                 - name: KUBELET_ROOT
                   value: /var/lib/kubelet
                 - name: NodeName
-              image: quay.io/kubescape/node-agent:v0.2.347
+              image: quay.io/kubescape/node-agent:v0.2.357
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -7836,6 +7883,8 @@ default capabilities:
                   name: bpffs
                 - mountPath: /data
                   name: data
+                - mountPath: /profiles
+                  name: profiles
                 - mountPath: /boot
                   name: boot
                   readOnly: true
@@ -7903,6 +7952,8 @@ default capabilities:
               name: boot
             - emptyDir: null
               name: data
+            - emptyDir: null
+              name: profiles
             - emptyDir: {}
               name: clamdb
             - emptyDir: {}
@@ -9667,6 +9718,47 @@ default capabilities:
           "cleanupInterval": "6h",
           "disableVirtualCRDs": true,
           "excludeJsonPaths": null,
+          "defaultQueueLength": 100,
+          "defaultWorkerCount": 2,
+          "defaultMaxObjectSize": 400000,
+          "queueManagerEnabled": true,
+          "kindQueues": {
+            "applicationprofiles": {
+              "queueLength": 50,
+              "workerCount": 2,
+              "maxObjectSize": 20000000
+            },
+            "containerprofiles": {
+              "queueLength": 50,
+              "workerCount": 2,
+              "maxObjectSize": 2500000
+            },
+            "networkneighborhoods": {
+              "queueLength": 50,
+              "workerCount": 2,
+              "maxObjectSize": 10000000
+            },
+            "openvulnerabilityexchangecontainers": {
+              "queueLength": 50,
+              "workerCount": 1,
+              "maxObjectSize": 500000
+            },
+            "sbomsyftfiltereds": {
+              "queueLength": 50,
+              "workerCount": 1,
+              "maxObjectSize": 50000000
+            },
+            "sbomsyfts": {
+              "queueLength": 50,
+              "workerCount": 1,
+              "maxObjectSize": 100000000
+            },
+            "vulnerabilitymanifests": {
+              "queueLength": 50,
+              "workerCount": 1,
+              "maxObjectSize": 50000000
+            }
+          },
           "tlsClientCaFile": "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
           "tlsServerCertFile": "/etc/storage-ca-certificates/tls.crt",
           "tlsServerKeyFile": "/etc/storage-ca-certificates/tls.key",
@@ -9753,7 +9845,7 @@ default capabilities:
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4318
-              image: quay.io/kubescape/storage:v0.0.185
+              image: quay.io/kubescape/storage:v0.0.204
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 tcpSocket:
@@ -12060,6 +12152,8 @@ disable otel:
       - apiGroups:
           - spdx.softwarecomposition.kubescape.io
         resources:
+          - applicationprofiles
+          - networkneighborhoods
           - seccompprofiles
         verbs:
           - get
@@ -12068,8 +12162,7 @@ disable otel:
       - apiGroups:
           - spdx.softwarecomposition.kubescape.io
         resources:
-          - applicationprofiles
-          - networkneighborhoods
+          - containerprofiles
           - sbomsyfts
         verbs:
           - create
@@ -12285,7 +12378,7 @@ disable otel:
                 - name: KUBELET_ROOT
                   value: /var/lib/kubelet
                 - name: NodeName
-              image: quay.io/kubescape/node-agent:v0.2.347
+              image: quay.io/kubescape/node-agent:v0.2.357
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -12344,6 +12437,8 @@ disable otel:
                   name: bpffs
                 - mountPath: /data
                   name: data
+                - mountPath: /profiles
+                  name: profiles
                 - mountPath: /boot
                   name: boot
                   readOnly: true
@@ -12397,6 +12492,8 @@ disable otel:
               name: boot
             - emptyDir: null
               name: data
+            - emptyDir: null
+              name: profiles
             - emptyDir: {}
               name: clamdb
             - emptyDir: {}
@@ -13892,6 +13989,47 @@ disable otel:
           "cleanupInterval": "6h",
           "disableVirtualCRDs": true,
           "excludeJsonPaths": null,
+          "defaultQueueLength": 100,
+          "defaultWorkerCount": 2,
+          "defaultMaxObjectSize": 400000,
+          "queueManagerEnabled": true,
+          "kindQueues": {
+            "applicationprofiles": {
+              "queueLength": 50,
+              "workerCount": 2,
+              "maxObjectSize": 20000000
+            },
+            "containerprofiles": {
+              "queueLength": 50,
+              "workerCount": 2,
+              "maxObjectSize": 2500000
+            },
+            "networkneighborhoods": {
+              "queueLength": 50,
+              "workerCount": 2,
+              "maxObjectSize": 10000000
+            },
+            "openvulnerabilityexchangecontainers": {
+              "queueLength": 50,
+              "workerCount": 1,
+              "maxObjectSize": 500000
+            },
+            "sbomsyftfiltereds": {
+              "queueLength": 50,
+              "workerCount": 1,
+              "maxObjectSize": 50000000
+            },
+            "sbomsyfts": {
+              "queueLength": 50,
+              "workerCount": 1,
+              "maxObjectSize": 100000000
+            },
+            "vulnerabilitymanifests": {
+              "queueLength": 50,
+              "workerCount": 1,
+              "maxObjectSize": 50000000
+            }
+          },
           "tlsClientCaFile": "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
           "tlsServerCertFile": "/etc/storage-ca-certificates/tls.crt",
           "tlsServerKeyFile": "/etc/storage-ca-certificates/tls.key",
@@ -13978,7 +14116,7 @@ disable otel:
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4318
-              image: quay.io/kubescape/storage:v0.0.185
+              image: quay.io/kubescape/storage:v0.0.204
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 tcpSocket:
@@ -16122,6 +16260,8 @@ minimal capabilities:
       - apiGroups:
           - spdx.softwarecomposition.kubescape.io
         resources:
+          - applicationprofiles
+          - networkneighborhoods
           - seccompprofiles
         verbs:
           - get
@@ -16130,8 +16270,7 @@ minimal capabilities:
       - apiGroups:
           - spdx.softwarecomposition.kubescape.io
         resources:
-          - applicationprofiles
-          - networkneighborhoods
+          - containerprofiles
           - sbomsyfts
         verbs:
           - create
@@ -16344,7 +16483,7 @@ minimal capabilities:
                 - name: KUBELET_ROOT
                   value: /var/lib/kubelet
                 - name: NodeName
-              image: quay.io/kubescape/node-agent:v0.2.347
+              image: quay.io/kubescape/node-agent:v0.2.357
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -16403,6 +16542,8 @@ minimal capabilities:
                   name: bpffs
                 - mountPath: /data
                   name: data
+                - mountPath: /profiles
+                  name: profiles
                 - mountPath: /boot
                   name: boot
                   readOnly: true
@@ -16456,6 +16597,8 @@ minimal capabilities:
               name: boot
             - emptyDir: null
               name: data
+            - emptyDir: null
+              name: profiles
             - emptyDir: {}
               name: clamdb
             - emptyDir: {}
@@ -17521,6 +17664,47 @@ minimal capabilities:
           "cleanupInterval": "6h",
           "disableVirtualCRDs": false,
           "excludeJsonPaths": null,
+          "defaultQueueLength": 100,
+          "defaultWorkerCount": 2,
+          "defaultMaxObjectSize": 400000,
+          "queueManagerEnabled": true,
+          "kindQueues": {
+            "applicationprofiles": {
+              "queueLength": 50,
+              "workerCount": 2,
+              "maxObjectSize": 20000000
+            },
+            "containerprofiles": {
+              "queueLength": 50,
+              "workerCount": 2,
+              "maxObjectSize": 2500000
+            },
+            "networkneighborhoods": {
+              "queueLength": 50,
+              "workerCount": 2,
+              "maxObjectSize": 10000000
+            },
+            "openvulnerabilityexchangecontainers": {
+              "queueLength": 50,
+              "workerCount": 1,
+              "maxObjectSize": 500000
+            },
+            "sbomsyftfiltereds": {
+              "queueLength": 50,
+              "workerCount": 1,
+              "maxObjectSize": 50000000
+            },
+            "sbomsyfts": {
+              "queueLength": 50,
+              "workerCount": 1,
+              "maxObjectSize": 100000000
+            },
+            "vulnerabilitymanifests": {
+              "queueLength": 50,
+              "workerCount": 1,
+              "maxObjectSize": 50000000
+            }
+          },
           "tlsClientCaFile": "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
           "tlsServerCertFile": "/etc/storage-ca-certificates/tls.crt",
           "tlsServerKeyFile": "/etc/storage-ca-certificates/tls.key",
@@ -17606,7 +17790,7 @@ minimal capabilities:
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
                   value: otelCollector.svc.monitoring:4317
-              image: quay.io/kubescape/storage:v0.0.185
+              image: quay.io/kubescape/storage:v0.0.204
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 tcpSocket:
@@ -20017,6 +20201,8 @@ multiple node agents:
       - apiGroups:
           - spdx.softwarecomposition.kubescape.io
         resources:
+          - applicationprofiles
+          - networkneighborhoods
           - seccompprofiles
         verbs:
           - get
@@ -20025,8 +20211,7 @@ multiple node agents:
       - apiGroups:
           - spdx.softwarecomposition.kubescape.io
         resources:
-          - applicationprofiles
-          - networkneighborhoods
+          - containerprofiles
           - sbomsyfts
         verbs:
           - create
@@ -20310,7 +20495,7 @@ multiple node agents:
                 - name: KUBELET_ROOT
                   value: /var/lib/kubelet
                 - name: NodeName
-              image: quay.io/kubescape/node-agent:v0.2.347
+              image: quay.io/kubescape/node-agent:v0.2.357
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -20369,6 +20554,8 @@ multiple node agents:
                   name: bpffs
                 - mountPath: /data
                   name: data
+                - mountPath: /profiles
+                  name: profiles
                 - mountPath: /boot
                   name: boot
                   readOnly: true
@@ -20436,6 +20623,8 @@ multiple node agents:
               name: boot
             - emptyDir: null
               name: data
+            - emptyDir: null
+              name: profiles
             - emptyDir: {}
               name: clamdb
             - emptyDir: {}
@@ -20593,7 +20782,7 @@ multiple node agents:
                 - name: KUBELET_ROOT
                   value: /var/lib/kubelet
                 - name: NodeName
-              image: quay.io/kubescape/node-agent:v0.2.347
+              image: quay.io/kubescape/node-agent:v0.2.357
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -20652,6 +20841,8 @@ multiple node agents:
                   name: bpffs
                 - mountPath: /data
                   name: data
+                - mountPath: /profiles
+                  name: profiles
                 - mountPath: /boot
                   name: boot
                   readOnly: true
@@ -20719,6 +20910,8 @@ multiple node agents:
               name: boot
             - emptyDir: null
               name: data
+            - emptyDir: null
+              name: profiles
             - emptyDir: {}
               name: clamdb
             - emptyDir: {}
@@ -22611,6 +22804,47 @@ multiple node agents:
           "cleanupInterval": "6h",
           "disableVirtualCRDs": false,
           "excludeJsonPaths": [".containers[*].env[?(@.name==\"KUBECONFIG\")]"],
+          "defaultQueueLength": 100,
+          "defaultWorkerCount": 2,
+          "defaultMaxObjectSize": 400000,
+          "queueManagerEnabled": true,
+          "kindQueues": {
+            "applicationprofiles": {
+              "queueLength": 50,
+              "workerCount": 2,
+              "maxObjectSize": 20000000
+            },
+            "containerprofiles": {
+              "queueLength": 50,
+              "workerCount": 2,
+              "maxObjectSize": 2500000
+            },
+            "networkneighborhoods": {
+              "queueLength": 50,
+              "workerCount": 2,
+              "maxObjectSize": 10000000
+            },
+            "openvulnerabilityexchangecontainers": {
+              "queueLength": 50,
+              "workerCount": 1,
+              "maxObjectSize": 500000
+            },
+            "sbomsyftfiltereds": {
+              "queueLength": 50,
+              "workerCount": 1,
+              "maxObjectSize": 50000000
+            },
+            "sbomsyfts": {
+              "queueLength": 50,
+              "workerCount": 1,
+              "maxObjectSize": 100000000
+            },
+            "vulnerabilitymanifests": {
+              "queueLength": 50,
+              "workerCount": 1,
+              "maxObjectSize": 50000000
+            }
+          },
           "serverBindPort": "8443"
         }
     kind: ConfigMap
@@ -22693,7 +22927,7 @@ multiple node agents:
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
                   value: otelCollector.svc.monitoring:4317
-              image: quay.io/kubescape/storage:v0.0.185
+              image: quay.io/kubescape/storage:v0.0.204
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 tcpSocket:
@@ -25129,6 +25363,8 @@ relevancy only:
       - apiGroups:
           - spdx.softwarecomposition.kubescape.io
         resources:
+          - applicationprofiles
+          - networkneighborhoods
           - seccompprofiles
         verbs:
           - get
@@ -25137,8 +25373,7 @@ relevancy only:
       - apiGroups:
           - spdx.softwarecomposition.kubescape.io
         resources:
-          - applicationprofiles
-          - networkneighborhoods
+          - containerprofiles
           - sbomsyfts
         verbs:
           - create
@@ -25350,7 +25585,7 @@ relevancy only:
                 - name: KUBELET_ROOT
                   value: /var/lib/kubelet
                 - name: NodeName
-              image: quay.io/kubescape/node-agent:v0.2.347
+              image: quay.io/kubescape/node-agent:v0.2.357
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -25409,6 +25644,8 @@ relevancy only:
                   name: bpffs
                 - mountPath: /data
                   name: data
+                - mountPath: /profiles
+                  name: profiles
                 - mountPath: /boot
                   name: boot
                   readOnly: true
@@ -25464,6 +25701,8 @@ relevancy only:
               name: boot
             - emptyDir: null
               name: data
+            - emptyDir: null
+              name: profiles
             - emptyDir: {}
               name: clamdb
             - emptyDir: {}
@@ -26423,6 +26662,47 @@ relevancy only:
           "cleanupInterval": "6h",
           "disableVirtualCRDs": false,
           "excludeJsonPaths": null,
+          "defaultQueueLength": 100,
+          "defaultWorkerCount": 2,
+          "defaultMaxObjectSize": 400000,
+          "queueManagerEnabled": true,
+          "kindQueues": {
+            "applicationprofiles": {
+              "queueLength": 50,
+              "workerCount": 2,
+              "maxObjectSize": 20000000
+            },
+            "containerprofiles": {
+              "queueLength": 50,
+              "workerCount": 2,
+              "maxObjectSize": 2500000
+            },
+            "networkneighborhoods": {
+              "queueLength": 50,
+              "workerCount": 2,
+              "maxObjectSize": 10000000
+            },
+            "openvulnerabilityexchangecontainers": {
+              "queueLength": 50,
+              "workerCount": 1,
+              "maxObjectSize": 500000
+            },
+            "sbomsyftfiltereds": {
+              "queueLength": 50,
+              "workerCount": 1,
+              "maxObjectSize": 50000000
+            },
+            "sbomsyfts": {
+              "queueLength": 50,
+              "workerCount": 1,
+              "maxObjectSize": 100000000
+            },
+            "vulnerabilitymanifests": {
+              "queueLength": 50,
+              "workerCount": 1,
+              "maxObjectSize": 50000000
+            }
+          },
           "tlsClientCaFile": "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
           "tlsServerCertFile": "/etc/storage-ca-certificates/tls.crt",
           "tlsServerKeyFile": "/etc/storage-ca-certificates/tls.key",
@@ -26508,7 +26788,7 @@ relevancy only:
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
                   value: otelCollector.svc.monitoring:4317
-              image: quay.io/kubescape/storage:v0.0.185
+              image: quay.io/kubescape/storage:v0.0.204
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 tcpSocket:
