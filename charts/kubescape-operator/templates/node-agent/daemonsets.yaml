@@ -1,7 +1,10 @@
 {{- $checksums := fromYaml (include "checksums" .) }}
 {{- $components := fromYaml (include "components" .) }}
-{{- if and $components.nodeAgent.enabled (not .Values.nodeAgent.multipleDaemonSets.enabled) }}
+{{- if and $components.nodeAgent.enabled .Values.nodeAgent.multipleDaemonSets.enabled }}
 {{- $no_proxy_envar_list := (include "no_proxy_envar_list" .) -}}
+{{- range $index, $config := .Values.nodeAgent.multipleDaemonSets.configurations }}
+{{- with $ }}
+{{- $daemonsetName := printf "%s-%d" .Values.nodeAgent.name (add $index 1) }}
 apiVersion: apps/v1
 {{- if .Values.capabilities.testing.nodeAgentMultiplication.enabled }}
 kind: Deployment
@@ -9,7 +12,7 @@ kind: Deployment
 kind: DaemonSet
 {{- end }}
 metadata:
-  name: {{ .Values.nodeAgent.name }}
+  name: {{ $daemonsetName }}
   namespace: {{ .Values.ksNamespace }}
   annotations:
     {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
@@ -166,7 +169,7 @@ spec:
             initialDelaySeconds: 3
             periodSeconds: 3
           resources:
-{{ toYaml .Values.nodeAgent.resources | indent 12 }}
+{{ toYaml $config.resources | indent 12 }}
           env:
             - name: GOMEMLIMIT
               valueFrom:
@@ -291,11 +294,7 @@ spec:
           {{- end }}
           {{- end }}
       nodeSelector:
-      {{- if .Values.nodeAgent.nodeSelector }}
-      {{- toYaml .Values.nodeAgent.nodeSelector | nindent 8 }}
-      {{- else if .Values.customScheduling.nodeSelector }}
-      {{- toYaml .Values.customScheduling.nodeSelector | nindent 8 }}
-      {{- end }}
+{{ toYaml $config.nodeSelector | indent 8 }}
       affinity:
       {{- if .Values.nodeAgent.affinity }}
       {{- toYaml .Values.nodeAgent.affinity | nindent 8 }}
@@ -308,4 +307,7 @@ spec:
       {{- else if .Values.customScheduling.tolerations }}
       {{- toYaml .Values.customScheduling.tolerations | nindent 8 }}
       {{- end }}
+{{- end }}
+---
+{{- end }}
 {{- end }}
