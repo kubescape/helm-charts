@@ -1,0 +1,18 @@
+{{- if .Values.kubevuln.tmpDirPersistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kubescape-{{ .Values.kubevuln.name }}-tmp
+  namespace: {{ .Values.ksNamespace }}
+  annotations:
+    {{- toYaml .Values.kubevuln.tmpDirPersistence.annotations | nindent 4 }}
+spec:
+  accessModes:
+    {{- toYaml .Values.kubevuln.tmpDirPersistence.accessModes | nindent 4 }}
+  resources:
+    requests:
+      storage: {{ .Values.kubevuln.tmpDirPersistence.size }}
+  {{- if .Values.kubevuln.tmpDirPersistence.storageClassName }}
+  storageClassName: {{ .Values.kubevuln.tmpDirPersistence.storageClassName }}
+  {{- end }}
+{{- end }}
