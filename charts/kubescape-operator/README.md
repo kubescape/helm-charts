@@ -3,7 +3,6 @@
 ![Version: 1.28.2](https://img.shields.io/badge/Version-1.28.2-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.28.0](https://img.shields.io/badge/AppVersion-v1.28.0-informational?style=flat-square)
 
 [Kubescape operator documentation](https://kubescape.io/docs/install-operator/)
-[Troubleshooting guide](https://hub.armosec.io/docs/installation-troubleshooting#3-the-kubescape-pod-restarted)
 
 ## Install
 
