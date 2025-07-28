@@ -1,0 +1,31 @@
+{{- if and .Values.alertCRD.installDefault }}
+apiVersion: kubescape.io/v1
+kind: Rule
+metadata:
+  name: default-rules
+  namespace: {{ .Values.ksNamespace }}
+  annotations:
+    {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
+  labels:
+    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.nodeAgent.name "tier" .Values.global.namespaceTier) | nindent 4 }}
+spec:
+  rules:
+    - name: "Unexpected process launched" 
+      enabled: true
+      id: "R0001"
+      description: "Detects execution of unexpected processes that are not in the baseline"
+      expressions:
+        message: "Unexpected process execution detected: event.Comm with PID event.Pid"
+        unique_id: "unexpected_exec_event.Comm_event.ExePath_event.Pcomm"
+        rule_expression:
+          - event_type: "exec"
+            expression: profile_checks.exec_path
+      profile_dependency:
+        required: 0 # Required
+      severity: 5
+      support_policy: false
+      tags:
+        - "anomaly"
+        - "process"
+        - "execution"
+    
