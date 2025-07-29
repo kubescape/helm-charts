@@ -9,56 +9,41 @@ metadata:
   labels:
     {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.nodeAgent.name "tier" .Values.global.namespaceTier) | nindent 4 }}
 spec:
-  rules:
-  - name: "Unexpected process launched"
+  - name: "Unexpected process launched" 
     enabled: true
     id: "R0001"
-    description: "Detects unexpected process launches that are not in the baseline"
+    description: "Detects execution of unexpected processes that are not in the baseline"
     expressions:
-      message: "'Unexpected process launched: ' + data.event.Comm + ' with PID ' + string(data.event.Pid)"
-      unique_id: "data.event.Comm + '_' + string(data.event.Pid) + '_' + data.event.ExePath"
+      message: "Unexpected process execution detected: event.Comm with PID event.Pid"
+      unique_id: "event.Comm_event.ExePath_event.Pcomm"
       rule_expression:
         - event_type: "exec"
-          expression: "!data.profile_checks.exec_path"
-    profile_dependency: 0
-    severity: 1
+          expression: "!profile_checks.exec_path"
+    profile_dependency:
+      required: 0 # Required
+    severity: 5
     support_policy: false
     tags:
       - "anomaly"
       - "process"
-      - "exec" 
+      - "execution"
   - name: "Unexpected file access"
     enabled: true
     id: "R0002"
     description: "Detects unexpected file access that is not in the baseline"
     expressions:
-      message: "'Unexpected file access detected: ' + data.event.Comm + ' with PID ' + string(data.event.Pid) + ' to ' + data.event.FullPath"
-      unique_id: "data.event.Comm + '_' + data.event.FullPath"
+      message: "Unexpected file access detected: event.Comm with PID event.Pid"
+      unique_id: "event.Comm_event.FullPath"
       rule_expression:
         - event_type: "open"
-          expression: "!data.profile_checks.open_dynamic_path"
-    profile_dependency: 0
+          expression: "!profile_checks.open_dynamic_path"
+    profile_dependency:
+      required: 0 # Required
     severity: 1
     support_policy: false
     tags:
       - "anomaly"
       - "file"
-      - "access" 
-  - name: "Symlink Created Over Sensitive File"
-    enabled: true
-    id: "R1010"
-    description: "Detects symlink creation over sensitive files"
-    expressions:
-      message: "'Symlink created over sensitive file: ' + data.event.OldPath + ' -> ' + data.event.NewPath"
-      unique_id: "data.event.Comm + '_' + data.event.OldPath"
-      rule_expression:
-        - event_type: "symlink"
-          expression: "data.event.OldPath.startsWith('/etc/shadow') || data.event.OldPath.startsWith('/etc/sudoers')"
-    profile_dependency: 0
-    severity: 1
-    support_policy: true
-    tags:
-      - "files"
-      - "malicious"
-      - "symlink" 
+      - "access"
+
 {{- end }}
