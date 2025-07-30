@@ -751,7 +751,7 @@ all capabilities:
                     - -path=v1/triggerAction
                     - -headers=Content-Type:application/json
                     - -path-body=/home/ks/request-body.json
-                  image: quay.io/kubescape/http-request:v0.2.11
+                  image: quay.io/kubescape/http-request:v0.2.12
                   imagePullPolicy: IfNotPresent
                   name: kubescape-scheduler
                   resources:
@@ -1164,7 +1164,7 @@ all capabilities:
           annotations:
             checksum/cloud-config: 3ca3213633e8269b560ec4cfc55649a50e43dcda2eb73f0b60d9225d2067ca82
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
-            checksum/host-scanner-configmap: 5134d6f1bc0565c2455150dc8f7c331aed7813c9accf98d1e419b25d2b6121f7
+            checksum/host-scanner-configmap: 9cb91f50b21c88f86b8ad62a957dcdde17aa2165b726a50f41f4bd3a76250ace
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
           labels:
             app: kubescape
@@ -1254,7 +1254,7 @@ all capabilities:
                   value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
                 - name: KS_INCLUDE_NAMESPACES
                   value: my-namespace
-              image: quay.io/kubescape/kubescape:v3.0.34
+              image: quay.io/kubescape/kubescape:v3.0.37
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -1349,7 +1349,7 @@ all capabilities:
   26: |
     apiVersion: v1
     data:
-      host-scanner-yaml: "apiVersion: apps/v1\nkind: DaemonSet\nmetadata:\n  name: host-scanner\n  namespace: kubescape\n  annotations:\n    \n  labels:\n    helm.sh/chart: kubescape-operator-1.28.4\n    app.kubernetes.io/name: kubescape-operator\n    app.kubernetes.io/instance: RELEASE-NAME\n    app.kubernetes.io/component: host-scanner\n    app.kubernetes.io/version: \"1.28.4\"\n    app.kubernetes.io/managed-by: Helm\n    app.kubernetes.io/part-of: kubescape\n    app: host-scanner\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\nspec:\n  selector:\n    matchLabels:\n      app.kubernetes.io/name: kubescape-operator\n      app.kubernetes.io/instance: RELEASE-NAME\n      app.kubernetes.io/component: host-scanner\n  template:\n    metadata:\n      annotations:\n        \n      labels:\n        helm.sh/chart: kubescape-operator-1.28.4\n        app.kubernetes.io/name: kubescape-operator\n        app.kubernetes.io/instance: RELEASE-NAME\n        app.kubernetes.io/component: host-scanner\n        app.kubernetes.io/version: \"1.28.4\"\n        app.kubernetes.io/managed-by: Helm\n        app.kubernetes.io/part-of: kubescape\n        app: host-scanner\n        tier: ks-control-plane\n        kubescape.io/ignore: \"true\"\n        kubescape.io/tier: \"core\"\n        name: host-scanner\n    spec:\n      nodeSelector:\n        kubernetes.io/os: linux\n      affinity:\n      tolerations:\n        - effect: NoSchedule\n          key: node-role.kubernetes.io/control-plane\n          operator: Exists\n        - effect: NoSchedule\n          key: node-role.kubernetes.io/master\n          operator: Exists\n      imagePullSecrets:\n      - name: foo\n      - name: bar\n      containers:\n      - name: host-sensor\n        image: \"quay.io/kubescape/host-scanner:v1.0.73\"\n        imagePullPolicy: IfNotPresent\n        securityContext:\n          allowPrivilegeEscalation: true\n          privileged: true\n          readOnlyRootFilesystem: true\n          procMount: Unmasked\n        env:\n        - name: KS_LOGGER_LEVEL\n          value: \"info\"\n        - name: KS_LOGGER_NAME\n          value: \"zap\"\n        - name: OTEL_COLLECTOR_SVC\n          value: otelCollector.svc.monitoring:4317\n        ports:\n          - name: scanner # Do not change port name\n            containerPort: 7888\n            protocol: TCP\n        resources:\n          limits:\n            cpu: 0.4m\n            memory: 400Mi\n          requests:\n            cpu: 0.1m\n            memory: 200Mi\n        volumeMounts:\n        - mountPath: /host_fs\n          name: host-filesystem\n        startupProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          failureThreshold: 30\n          periodSeconds: 1\n        livenessProbe:\n          httpGet:\n            path: /healthz\n            port: 7888\n          periodSeconds: 10\n      terminationGracePeriodSeconds: 120\n      dnsPolicy: ClusterFirstWithHostNet\n      serviceAccountName: node-agent\n      automountServiceAccountToken: false\n      volumes:\n      - hostPath:\n          path: /\n          type: Directory\n        name: host-filesystem\n      hostPID: true\n      hostIPC: true"
+      host-scanner-yaml: "apiVersion: apps/v1\nkind: DaemonSet\nmetadata:\n  name: host-scanner\n  namespace: kubescape\n  annotations:\n    \n  labels:\n    helm.sh/chart: kubescape-operator-1.28.4\n    app.kubernetes.io/name: kubescape-operator\n    app.kubernetes.io/instance: RELEASE-NAME\n    app.kubernetes.io/component: host-scanner\n    app.kubernetes.io/version: \"1.28.4\"\n    app.kubernetes.io/managed-by: Helm\n    app.kubernetes.io/part-of: kubescape\n    app: host-scanner\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\nspec:\n  selector:\n    matchLabels:\n      app.kubernetes.io/name: kubescape-operator\n      app.kubernetes.io/instance: RELEASE-NAME\n      app.kubernetes.io/component: host-scanner\n  template:\n    metadata:\n      annotations:\n        \n      labels:\n        helm.sh/chart: kubescape-operator-1.28.4\n        app.kubernetes.io/name: kubescape-operator\n        app.kubernetes.io/instance: RELEASE-NAME\n        app.kubernetes.io/component: host-scanner\n        app.kubernetes.io/version: \"1.28.4\"\n        app.kubernetes.io/managed-by: Helm\n        app.kubernetes.io/part-of: kubescape\n        app: host-scanner\n        tier: ks-control-plane\n        kubescape.io/ignore: \"true\"\n        kubescape.io/tier: \"core\"\n        name: host-scanner\n    spec:\n      nodeSelector:\n        kubernetes.io/os: linux\n      affinity:\n      tolerations:\n        - effect: NoSchedule\n          key: node-role.kubernetes.io/control-plane\n          operator: Exists\n        - effect: NoSchedule\n          key: node-role.kubernetes.io/master\n          operator: Exists\n      imagePullSecrets:\n      - name: foo\n      - name: bar\n      containers:\n      - name: host-sensor\n        image: \"quay.io/kubescape/host-scanner:v1.0.75\"\n        imagePullPolicy: IfNotPresent\n        securityContext:\n          allowPrivilegeEscalation: true\n          privileged: true\n          readOnlyRootFilesystem: true\n          procMount: Unmasked\n        env:\n        - name: KS_LOGGER_LEVEL\n          value: \"info\"\n        - name: KS_LOGGER_NAME\n          value: \"zap\"\n        - name: OTEL_COLLECTOR_SVC\n          value: otelCollector.svc.monitoring:4317\n        ports:\n          - name: scanner # Do not change port name\n            containerPort: 7888\n            protocol: TCP\n        resources:\n          limits:\n            cpu: 0.4m\n            memory: 400Mi\n          requests:\n            cpu: 0.1m\n            memory: 200Mi\n        volumeMounts:\n        - mountPath: /host_fs\n          name: host-filesystem\n        startupProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          failureThreshold: 30\n          periodSeconds: 1\n        livenessProbe:\n          httpGet:\n            path: /healthz\n            port: 7888\n          periodSeconds: 10\n      terminationGracePeriodSeconds: 120\n      dnsPolicy: ClusterFirstWithHostNet\n      serviceAccountName: node-agent\n      automountServiceAccountToken: false\n      volumes:\n      - hostPath:\n          path: /\n          type: Directory\n        name: host-filesystem\n      hostPID: true\n      hostIPC: true"
     kind: ConfigMap
     metadata:
       annotations: null
@@ -1686,7 +1686,7 @@ all capabilities:
                     - -path=v1/triggerAction
                     - -headers=Content-Type:application/json
                     - -path-body=/home/ks/request-body.json
-                  image: quay.io/kubescape/http-request:v0.2.11
+                  image: quay.io/kubescape/http-request:v0.2.12
                   imagePullPolicy: IfNotPresent
                   name: kubevuln-scheduler
                   resources:
@@ -1931,7 +1931,7 @@ all capabilities:
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
                   value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/kubevuln:v0.3.80
+              image: quay.io/kubescape/kubevuln:v0.3.82
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -3298,7 +3298,7 @@ all capabilities:
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
                   value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/operator:v0.2.94
+              image: quay.io/kubescape/operator:v0.2.97
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -3456,7 +3456,7 @@ all capabilities:
                   - name: bar
                   containers:
                   - name: kubescape-scheduler
-                    image: "quay.io/kubescape/http-request:v0.2.11"
+                    image: "quay.io/kubescape/http-request:v0.2.12"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
@@ -3544,7 +3544,7 @@ all capabilities:
                   - name: bar
                   containers:
                   - name: kubevuln-scheduler
-                    image: "quay.io/kubescape/http-request:v0.2.11"
+                    image: "quay.io/kubescape/http-request:v0.2.12"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
@@ -3739,7 +3739,7 @@ all capabilities:
                   - name: bar
                   containers:
                   - name: registry-scheduler
-                    image: "quay.io/kubescape/http-request:v0.2.11"
+                    image: "quay.io/kubescape/http-request:v0.2.12"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
@@ -4051,7 +4051,7 @@ all capabilities:
                   value: zap
                 - name: ENABLE_WORKLOAD_METRICS
                   value: "true"
-              image: quay.io/kubescape/prometheus-exporter:v0.2.4
+              image: quay.io/kubescape/prometheus-exporter:v0.2.5
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 initialDelaySeconds: 3
@@ -4304,7 +4304,7 @@ all capabilities:
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
                   value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/http-request:v0.2.11
+              image: quay.io/kubescape/http-request:v0.2.12
               imagePullPolicy: IfNotPresent
               name: url-discovery
               resources:
@@ -5558,7 +5558,7 @@ all capabilities:
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
                   value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/synchronizer:v0.0.110
+              image: quay.io/kubescape/synchronizer:v0.0.113
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -6230,7 +6230,7 @@ default capabilities:
                     - -path=v1/triggerAction
                     - -headers=Content-Type:application/json
                     - -path-body=/home/ks/request-body.json
-                  image: quay.io/kubescape/http-request:v0.2.11
+                  image: quay.io/kubescape/http-request:v0.2.12
                   imagePullPolicy: IfNotPresent
                   name: kubescape-scheduler
                   resources:
@@ -6634,7 +6634,7 @@ default capabilities:
           annotations:
             checksum/cloud-config: 25583c343a17a31630cba82349ae1ff89238a943c0e5feeafcfc352645a18348
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
-            checksum/host-scanner-configmap: e2d4008c73157f7dd270f1ae9822dd99370927e5a8cff3a3465fb80c5704c636
+            checksum/host-scanner-configmap: 49fa28f344a77c42e3c47ee4255bfeea6d24e962f633668a099824036987f408
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
           labels:
             app: kubescape
@@ -6701,7 +6701,7 @@ default capabilities:
                   value: otel-collector:4318
                 - name: KS_EXCLUDE_NAMESPACES
                   value: kubescape,kube-system,kube-public,kube-node-lease,kubeconfig,gmp-system,gmp-public
-              image: quay.io/kubescape/kubescape:v3.0.34
+              image: quay.io/kubescape/kubescape:v3.0.37
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -6796,7 +6796,7 @@ default capabilities:
   16: |
     apiVersion: v1
     data:
-      host-scanner-yaml: "apiVersion: apps/v1\nkind: DaemonSet\nmetadata:\n  name: host-scanner\n  namespace: kubescape\n  annotations:\n    \n  labels:\n    helm.sh/chart: kubescape-operator-1.28.4\n    app.kubernetes.io/name: kubescape-operator\n    app.kubernetes.io/instance: RELEASE-NAME\n    app.kubernetes.io/component: host-scanner\n    app.kubernetes.io/version: \"1.28.4\"\n    app.kubernetes.io/managed-by: Helm\n    app.kubernetes.io/part-of: kubescape\n    app: host-scanner\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\nspec:\n  selector:\n    matchLabels:\n      app.kubernetes.io/name: kubescape-operator\n      app.kubernetes.io/instance: RELEASE-NAME\n      app.kubernetes.io/component: host-scanner\n  template:\n    metadata:\n      annotations:\n        \n      labels:\n        helm.sh/chart: kubescape-operator-1.28.4\n        app.kubernetes.io/name: kubescape-operator\n        app.kubernetes.io/instance: RELEASE-NAME\n        app.kubernetes.io/component: host-scanner\n        app.kubernetes.io/version: \"1.28.4\"\n        app.kubernetes.io/managed-by: Helm\n        app.kubernetes.io/part-of: kubescape\n        app: host-scanner\n        tier: ks-control-plane\n        kubescape.io/ignore: \"true\"\n        kubescape.io/tier: \"core\"\n        name: host-scanner\n        otel: enabled\n    spec:\n      nodeSelector:\n        kubernetes.io/os: linux\n      affinity:\n      tolerations:\n        - effect: NoSchedule\n          key: node-role.kubernetes.io/control-plane\n          operator: Exists\n        - effect: NoSchedule\n          key: node-role.kubernetes.io/master\n          operator: Exists\n      containers:\n      - name: host-sensor\n        image: \"quay.io/kubescape/host-scanner:v1.0.73\"\n        imagePullPolicy: IfNotPresent\n        securityContext:\n          allowPrivilegeEscalation: true\n          privileged: true\n          readOnlyRootFilesystem: true\n          procMount: Unmasked\n        env:\n        - name: KS_LOGGER_LEVEL\n          value: \"info\"\n        - name: KS_LOGGER_NAME\n          value: \"zap\"\n        - name: ACCOUNT_ID\n          valueFrom:\n            secretKeyRef:\n              name: cloud-secret\n              key: account\n        - name: CLUSTER_NAME\n          value: \"kind-kind\"\n        - name: OTEL_COLLECTOR_SVC\n          value: \"otel-collector.kubescape.svc:4318\"\n        ports:\n          - name: scanner # Do not change port name\n            containerPort: 7888\n            protocol: TCP\n        resources:\n          limits:\n            cpu: 0.4m\n            memory: 400Mi\n          requests:\n            cpu: 0.1m\n            memory: 200Mi\n        volumeMounts:\n        - mountPath: /host_fs\n          name: host-filesystem\n        startupProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          failureThreshold: 30\n          periodSeconds: 1\n        livenessProbe:\n          httpGet:\n            path: /healthz\n            port: 7888\n          periodSeconds: 10\n      terminationGracePeriodSeconds: 120\n      dnsPolicy: ClusterFirstWithHostNet\n      serviceAccountName: node-agent\n      automountServiceAccountToken: false\n      volumes:\n      - hostPath:\n          path: /\n          type: Directory\n        name: host-filesystem\n      hostPID: true\n      hostIPC: true"
+      host-scanner-yaml: "apiVersion: apps/v1\nkind: DaemonSet\nmetadata:\n  name: host-scanner\n  namespace: kubescape\n  annotations:\n    \n  labels:\n    helm.sh/chart: kubescape-operator-1.28.4\n    app.kubernetes.io/name: kubescape-operator\n    app.kubernetes.io/instance: RELEASE-NAME\n    app.kubernetes.io/component: host-scanner\n    app.kubernetes.io/version: \"1.28.4\"\n    app.kubernetes.io/managed-by: Helm\n    app.kubernetes.io/part-of: kubescape\n    app: host-scanner\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\nspec:\n  selector:\n    matchLabels:\n      app.kubernetes.io/name: kubescape-operator\n      app.kubernetes.io/instance: RELEASE-NAME\n      app.kubernetes.io/component: host-scanner\n  template:\n    metadata:\n      annotations:\n        \n      labels:\n        helm.sh/chart: kubescape-operator-1.28.4\n        app.kubernetes.io/name: kubescape-operator\n        app.kubernetes.io/instance: RELEASE-NAME\n        app.kubernetes.io/component: host-scanner\n        app.kubernetes.io/version: \"1.28.4\"\n        app.kubernetes.io/managed-by: Helm\n        app.kubernetes.io/part-of: kubescape\n        app: host-scanner\n        tier: ks-control-plane\n        kubescape.io/ignore: \"true\"\n        kubescape.io/tier: \"core\"\n        name: host-scanner\n        otel: enabled\n    spec:\n      nodeSelector:\n        kubernetes.io/os: linux\n      affinity:\n      tolerations:\n        - effect: NoSchedule\n          key: node-role.kubernetes.io/control-plane\n          operator: Exists\n        - effect: NoSchedule\n          key: node-role.kubernetes.io/master\n          operator: Exists\n      containers:\n      - name: host-sensor\n        image: \"quay.io/kubescape/host-scanner:v1.0.75\"\n        imagePullPolicy: IfNotPresent\n        securityContext:\n          allowPrivilegeEscalation: true\n          privileged: true\n          readOnlyRootFilesystem: true\n          procMount: Unmasked\n        env:\n        - name: KS_LOGGER_LEVEL\n          value: \"info\"\n        - name: KS_LOGGER_NAME\n          value: \"zap\"\n        - name: ACCOUNT_ID\n          valueFrom:\n            secretKeyRef:\n              name: cloud-secret\n              key: account\n        - name: CLUSTER_NAME\n          value: \"kind-kind\"\n        - name: OTEL_COLLECTOR_SVC\n          value: \"otel-collector.kubescape.svc:4318\"\n        ports:\n          - name: scanner # Do not change port name\n            containerPort: 7888\n            protocol: TCP\n        resources:\n          limits:\n            cpu: 0.4m\n            memory: 400Mi\n          requests:\n            cpu: 0.1m\n            memory: 200Mi\n        volumeMounts:\n        - mountPath: /host_fs\n          name: host-filesystem\n        startupProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          failureThreshold: 30\n          periodSeconds: 1\n        livenessProbe:\n          httpGet:\n            path: /healthz\n            port: 7888\n          periodSeconds: 10\n      terminationGracePeriodSeconds: 120\n      dnsPolicy: ClusterFirstWithHostNet\n      serviceAccountName: node-agent\n      automountServiceAccountToken: false\n      volumes:\n      - hostPath:\n          path: /\n          type: Directory\n        name: host-filesystem\n      hostPID: true\n      hostIPC: true"
     kind: ConfigMap
     metadata:
       annotations: null
@@ -7096,7 +7096,7 @@ default capabilities:
                     - -path=v1/triggerAction
                     - -headers=Content-Type:application/json
                     - -path-body=/home/ks/request-body.json
-                  image: quay.io/kubescape/http-request:v0.2.11
+                  image: quay.io/kubescape/http-request:v0.2.12
                   imagePullPolicy: IfNotPresent
                   name: kubevuln-scheduler
                   resources:
@@ -7334,7 +7334,7 @@ default capabilities:
                       name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4318
-              image: quay.io/kubescape/kubevuln:v0.3.80
+              image: quay.io/kubescape/kubevuln:v0.3.82
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -8447,7 +8447,7 @@ default capabilities:
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4318
-              image: quay.io/kubescape/operator:v0.2.94
+              image: quay.io/kubescape/operator:v0.2.97
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -8593,7 +8593,7 @@ default capabilities:
                       type: RuntimeDefault
                   containers:
                   - name: kubescape-scheduler
-                    image: "quay.io/kubescape/http-request:v0.2.11"
+                    image: "quay.io/kubescape/http-request:v0.2.12"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
@@ -8678,7 +8678,7 @@ default capabilities:
                       type: RuntimeDefault
                   containers:
                   - name: kubevuln-scheduler
-                    image: "quay.io/kubescape/http-request:v0.2.11"
+                    image: "quay.io/kubescape/http-request:v0.2.12"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
@@ -8856,7 +8856,7 @@ default capabilities:
                       type: RuntimeDefault
                   containers:
                   - name: registry-scheduler
-                    image: "quay.io/kubescape/http-request:v0.2.11"
+                    image: "quay.io/kubescape/http-request:v0.2.12"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
@@ -9433,7 +9433,7 @@ default capabilities:
                 - -path=api/v2/servicediscovery
                 - -path-output=/data/services.json
               env: null
-              image: quay.io/kubescape/http-request:v0.2.11
+              image: quay.io/kubescape/http-request:v0.2.12
               imagePullPolicy: IfNotPresent
               name: url-discovery
               resources:
@@ -10595,7 +10595,7 @@ default capabilities:
                       name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4318
-              image: quay.io/kubescape/synchronizer:v0.0.110
+              image: quay.io/kubescape/synchronizer:v0.0.113
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -11096,7 +11096,7 @@ disable otel:
                     - -path=v1/triggerAction
                     - -headers=Content-Type:application/json
                     - -path-body=/home/ks/request-body.json
-                  image: quay.io/kubescape/http-request:v0.2.11
+                  image: quay.io/kubescape/http-request:v0.2.12
                   imagePullPolicy: IfNotPresent
                   name: kubescape-scheduler
                   resources:
@@ -11444,7 +11444,7 @@ disable otel:
           annotations:
             checksum/cloud-config: 3c2cb169171427fb98efb5d9fd396943df6cfd9141f82a6289f8dea0cde7039b
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
-            checksum/host-scanner-configmap: e2d4008c73157f7dd270f1ae9822dd99370927e5a8cff3a3465fb80c5704c636
+            checksum/host-scanner-configmap: 49fa28f344a77c42e3c47ee4255bfeea6d24e962f633668a099824036987f408
           labels:
             app: kubescape
             app.kubernetes.io/component: kubescape
@@ -11510,7 +11510,7 @@ disable otel:
                   value: otel-collector:4318
                 - name: KS_EXCLUDE_NAMESPACES
                   value: kubescape,kube-system,kube-public,kube-node-lease,kubeconfig,gmp-system,gmp-public
-              image: quay.io/kubescape/kubescape:v3.0.34
+              image: quay.io/kubescape/kubescape:v3.0.37
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -11590,7 +11590,7 @@ disable otel:
   12: |
     apiVersion: v1
     data:
-      host-scanner-yaml: "apiVersion: apps/v1\nkind: DaemonSet\nmetadata:\n  name: host-scanner\n  namespace: kubescape\n  annotations:\n    \n  labels:\n    helm.sh/chart: kubescape-operator-1.28.4\n    app.kubernetes.io/name: kubescape-operator\n    app.kubernetes.io/instance: RELEASE-NAME\n    app.kubernetes.io/component: host-scanner\n    app.kubernetes.io/version: \"1.28.4\"\n    app.kubernetes.io/managed-by: Helm\n    app.kubernetes.io/part-of: kubescape\n    app: host-scanner\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\nspec:\n  selector:\n    matchLabels:\n      app.kubernetes.io/name: kubescape-operator\n      app.kubernetes.io/instance: RELEASE-NAME\n      app.kubernetes.io/component: host-scanner\n  template:\n    metadata:\n      annotations:\n        \n      labels:\n        helm.sh/chart: kubescape-operator-1.28.4\n        app.kubernetes.io/name: kubescape-operator\n        app.kubernetes.io/instance: RELEASE-NAME\n        app.kubernetes.io/component: host-scanner\n        app.kubernetes.io/version: \"1.28.4\"\n        app.kubernetes.io/managed-by: Helm\n        app.kubernetes.io/part-of: kubescape\n        app: host-scanner\n        tier: ks-control-plane\n        kubescape.io/ignore: \"true\"\n        kubescape.io/tier: \"core\"\n        name: host-scanner\n        otel: enabled\n    spec:\n      nodeSelector:\n        kubernetes.io/os: linux\n      affinity:\n      tolerations:\n        - effect: NoSchedule\n          key: node-role.kubernetes.io/control-plane\n          operator: Exists\n        - effect: NoSchedule\n          key: node-role.kubernetes.io/master\n          operator: Exists\n      containers:\n      - name: host-sensor\n        image: \"quay.io/kubescape/host-scanner:v1.0.73\"\n        imagePullPolicy: IfNotPresent\n        securityContext:\n          allowPrivilegeEscalation: true\n          privileged: true\n          readOnlyRootFilesystem: true\n          procMount: Unmasked\n        env:\n        - name: KS_LOGGER_LEVEL\n          value: \"info\"\n        - name: KS_LOGGER_NAME\n          value: \"zap\"\n        - name: ACCOUNT_ID\n          valueFrom:\n            secretKeyRef:\n              name: cloud-secret\n              key: account\n        - name: CLUSTER_NAME\n          value: \"kind-kind\"\n        - name: OTEL_COLLECTOR_SVC\n          value: \"otel-collector.kubescape.svc:4318\"\n        ports:\n          - name: scanner # Do not change port name\n            containerPort: 7888\n            protocol: TCP\n        resources:\n          limits:\n            cpu: 0.4m\n            memory: 400Mi\n          requests:\n            cpu: 0.1m\n            memory: 200Mi\n        volumeMounts:\n        - mountPath: /host_fs\n          name: host-filesystem\n        startupProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          failureThreshold: 30\n          periodSeconds: 1\n        livenessProbe:\n          httpGet:\n            path: /healthz\n            port: 7888\n          periodSeconds: 10\n      terminationGracePeriodSeconds: 120\n      dnsPolicy: ClusterFirstWithHostNet\n      serviceAccountName: node-agent\n      automountServiceAccountToken: false\n      volumes:\n      - hostPath:\n          path: /\n          type: Directory\n        name: host-filesystem\n      hostPID: true\n      hostIPC: true"
+      host-scanner-yaml: "apiVersion: apps/v1\nkind: DaemonSet\nmetadata:\n  name: host-scanner\n  namespace: kubescape\n  annotations:\n    \n  labels:\n    helm.sh/chart: kubescape-operator-1.28.4\n    app.kubernetes.io/name: kubescape-operator\n    app.kubernetes.io/instance: RELEASE-NAME\n    app.kubernetes.io/component: host-scanner\n    app.kubernetes.io/version: \"1.28.4\"\n    app.kubernetes.io/managed-by: Helm\n    app.kubernetes.io/part-of: kubescape\n    app: host-scanner\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\nspec:\n  selector:\n    matchLabels:\n      app.kubernetes.io/name: kubescape-operator\n      app.kubernetes.io/instance: RELEASE-NAME\n      app.kubernetes.io/component: host-scanner\n  template:\n    metadata:\n      annotations:\n        \n      labels:\n        helm.sh/chart: kubescape-operator-1.28.4\n        app.kubernetes.io/name: kubescape-operator\n        app.kubernetes.io/instance: RELEASE-NAME\n        app.kubernetes.io/component: host-scanner\n        app.kubernetes.io/version: \"1.28.4\"\n        app.kubernetes.io/managed-by: Helm\n        app.kubernetes.io/part-of: kubescape\n        app: host-scanner\n        tier: ks-control-plane\n        kubescape.io/ignore: \"true\"\n        kubescape.io/tier: \"core\"\n        name: host-scanner\n        otel: enabled\n    spec:\n      nodeSelector:\n        kubernetes.io/os: linux\n      affinity:\n      tolerations:\n        - effect: NoSchedule\n          key: node-role.kubernetes.io/control-plane\n          operator: Exists\n        - effect: NoSchedule\n          key: node-role.kubernetes.io/master\n          operator: Exists\n      containers:\n      - name: host-sensor\n        image: \"quay.io/kubescape/host-scanner:v1.0.75\"\n        imagePullPolicy: IfNotPresent\n        securityContext:\n          allowPrivilegeEscalation: true\n          privileged: true\n          readOnlyRootFilesystem: true\n          procMount: Unmasked\n        env:\n        - name: KS_LOGGER_LEVEL\n          value: \"info\"\n        - name: KS_LOGGER_NAME\n          value: \"zap\"\n        - name: ACCOUNT_ID\n          valueFrom:\n            secretKeyRef:\n              name: cloud-secret\n              key: account\n        - name: CLUSTER_NAME\n          value: \"kind-kind\"\n        - name: OTEL_COLLECTOR_SVC\n          value: \"otel-collector.kubescape.svc:4318\"\n        ports:\n          - name: scanner # Do not change port name\n            containerPort: 7888\n            protocol: TCP\n        resources:\n          limits:\n            cpu: 0.4m\n            memory: 400Mi\n          requests:\n            cpu: 0.1m\n            memory: 200Mi\n        volumeMounts:\n        - mountPath: /host_fs\n          name: host-filesystem\n        startupProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          failureThreshold: 30\n          periodSeconds: 1\n        livenessProbe:\n          httpGet:\n            path: /healthz\n            port: 7888\n          periodSeconds: 10\n      terminationGracePeriodSeconds: 120\n      dnsPolicy: ClusterFirstWithHostNet\n      serviceAccountName: node-agent\n      automountServiceAccountToken: false\n      volumes:\n      - hostPath:\n          path: /\n          type: Directory\n        name: host-filesystem\n      hostPID: true\n      hostIPC: true"
     kind: ConfigMap
     metadata:
       annotations: null
@@ -11784,7 +11784,7 @@ disable otel:
                     - -path=v1/triggerAction
                     - -headers=Content-Type:application/json
                     - -path-body=/home/ks/request-body.json
-                  image: quay.io/kubescape/http-request:v0.2.11
+                  image: quay.io/kubescape/http-request:v0.2.12
                   imagePullPolicy: IfNotPresent
                   name: kubevuln-scheduler
                   resources:
@@ -11965,7 +11965,7 @@ disable otel:
                       name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4318
-              image: quay.io/kubescape/kubevuln:v0.3.80
+              image: quay.io/kubescape/kubevuln:v0.3.82
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -12915,7 +12915,7 @@ disable otel:
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4318
-              image: quay.io/kubescape/operator:v0.2.94
+              image: quay.io/kubescape/operator:v0.2.97
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -13055,7 +13055,7 @@ disable otel:
                       type: RuntimeDefault
                   containers:
                   - name: kubescape-scheduler
-                    image: "quay.io/kubescape/http-request:v0.2.11"
+                    image: "quay.io/kubescape/http-request:v0.2.12"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
@@ -13140,7 +13140,7 @@ disable otel:
                       type: RuntimeDefault
                   containers:
                   - name: kubevuln-scheduler
-                    image: "quay.io/kubescape/http-request:v0.2.11"
+                    image: "quay.io/kubescape/http-request:v0.2.12"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
@@ -13225,7 +13225,7 @@ disable otel:
                       type: RuntimeDefault
                   containers:
                   - name: registry-scheduler
-                    image: "quay.io/kubescape/http-request:v0.2.11"
+                    image: "quay.io/kubescape/http-request:v0.2.12"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
@@ -13710,7 +13710,7 @@ disable otel:
                 - -path=api/v2/servicediscovery
                 - -path-output=/data/services.json
               env: null
-              image: quay.io/kubescape/http-request:v0.2.11
+              image: quay.io/kubescape/http-request:v0.2.12
               imagePullPolicy: IfNotPresent
               name: url-discovery
               resources:
@@ -14811,7 +14811,7 @@ disable otel:
                       name: cloud-secret
                 - name: OTEL_COLLECTOR_SVC
                   value: otel-collector:4318
-              image: quay.io/kubescape/synchronizer:v0.0.110
+              image: quay.io/kubescape/synchronizer:v0.0.113
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -15222,7 +15222,7 @@ minimal capabilities:
                     - -path=v1/triggerAction
                     - -headers=Content-Type:application/json
                     - -path-body=/home/ks/request-body.json
-                  image: quay.io/kubescape/http-request:v0.2.11
+                  image: quay.io/kubescape/http-request:v0.2.12
                   imagePullPolicy: IfNotPresent
                   name: kubescape-scheduler
                   resources:
@@ -15570,7 +15570,7 @@ minimal capabilities:
           annotations:
             checksum/cloud-config: 8f40f001a3e31db9895e7bbb06ab070f25ab66c83b31d1929b273cfd22402097
             checksum/cloud-secret: 3248919273cee6d6f750f97ea378fc79fff1f03b131f21d584a00258bf475a80
-            checksum/host-scanner-configmap: 5c11f27bbab0c223b133ada945caf693c2107a3069b9386b7560bfefc3a09dc2
+            checksum/host-scanner-configmap: aad05bc791aa892bd1f8d5a7c3d365ea5efa3be8dda6a1a6089c09d116d85390
           labels:
             app: kubescape
             app.kubernetes.io/component: kubescape
@@ -15628,7 +15628,7 @@ minimal capabilities:
                   value: "1500"
                 - name: OTEL_COLLECTOR_SVC
                   value: otelCollector.svc.monitoring:4317
-              image: quay.io/kubescape/kubescape:v3.0.34
+              image: quay.io/kubescape/kubescape:v3.0.37
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -15706,7 +15706,7 @@ minimal capabilities:
   12: |
     apiVersion: v1
     data:
-      host-scanner-yaml: "apiVersion: apps/v1\nkind: DaemonSet\nmetadata:\n  name: host-scanner\n  namespace: kubescape\n  annotations:\n    \n  labels:\n    helm.sh/chart: kubescape-operator-1.28.4\n    app.kubernetes.io/name: kubescape-operator\n    app.kubernetes.io/instance: RELEASE-NAME\n    app.kubernetes.io/component: host-scanner\n    app.kubernetes.io/version: \"1.28.4\"\n    app.kubernetes.io/managed-by: Helm\n    app.kubernetes.io/part-of: kubescape\n    app: host-scanner\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\nspec:\n  selector:\n    matchLabels:\n      app.kubernetes.io/name: kubescape-operator\n      app.kubernetes.io/instance: RELEASE-NAME\n      app.kubernetes.io/component: host-scanner\n  template:\n    metadata:\n      annotations:\n        \n      labels:\n        helm.sh/chart: kubescape-operator-1.28.4\n        app.kubernetes.io/name: kubescape-operator\n        app.kubernetes.io/instance: RELEASE-NAME\n        app.kubernetes.io/component: host-scanner\n        app.kubernetes.io/version: \"1.28.4\"\n        app.kubernetes.io/managed-by: Helm\n        app.kubernetes.io/part-of: kubescape\n        app: host-scanner\n        tier: ks-control-plane\n        kubescape.io/ignore: \"true\"\n        kubescape.io/tier: \"core\"\n        name: host-scanner\n    spec:\n      nodeSelector:\n        kubernetes.io/os: linux\n      affinity:\n      tolerations:\n        - effect: NoSchedule\n          key: node-role.kubernetes.io/control-plane\n          operator: Exists\n        - effect: NoSchedule\n          key: node-role.kubernetes.io/master\n          operator: Exists\n      containers:\n      - name: host-sensor\n        image: \"quay.io/kubescape/host-scanner:v1.0.73\"\n        imagePullPolicy: IfNotPresent\n        securityContext:\n          allowPrivilegeEscalation: true\n          privileged: true\n          readOnlyRootFilesystem: true\n          procMount: Unmasked\n        env:\n        - name: KS_LOGGER_LEVEL\n          value: \"info\"\n        - name: KS_LOGGER_NAME\n          value: \"zap\"\n        - name: OTEL_COLLECTOR_SVC\n          value: otelCollector.svc.monitoring:4317\n        ports:\n          - name: scanner # Do not change port name\n            containerPort: 7888\n            protocol: TCP\n        resources:\n          limits:\n            cpu: 0.4m\n            memory: 400Mi\n          requests:\n            cpu: 0.1m\n            memory: 200Mi\n        volumeMounts:\n        - mountPath: /host_fs\n          name: host-filesystem\n        startupProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          failureThreshold: 30\n          periodSeconds: 1\n        livenessProbe:\n          httpGet:\n            path: /healthz\n            port: 7888\n          periodSeconds: 10\n      terminationGracePeriodSeconds: 120\n      dnsPolicy: ClusterFirstWithHostNet\n      serviceAccountName: node-agent\n      automountServiceAccountToken: false\n      volumes:\n      - hostPath:\n          path: /\n          type: Directory\n        name: host-filesystem\n      hostPID: true\n      hostIPC: true"
+      host-scanner-yaml: "apiVersion: apps/v1\nkind: DaemonSet\nmetadata:\n  name: host-scanner\n  namespace: kubescape\n  annotations:\n    \n  labels:\n    helm.sh/chart: kubescape-operator-1.28.4\n    app.kubernetes.io/name: kubescape-operator\n    app.kubernetes.io/instance: RELEASE-NAME\n    app.kubernetes.io/component: host-scanner\n    app.kubernetes.io/version: \"1.28.4\"\n    app.kubernetes.io/managed-by: Helm\n    app.kubernetes.io/part-of: kubescape\n    app: host-scanner\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\nspec:\n  selector:\n    matchLabels:\n      app.kubernetes.io/name: kubescape-operator\n      app.kubernetes.io/instance: RELEASE-NAME\n      app.kubernetes.io/component: host-scanner\n  template:\n    metadata:\n      annotations:\n        \n      labels:\n        helm.sh/chart: kubescape-operator-1.28.4\n        app.kubernetes.io/name: kubescape-operator\n        app.kubernetes.io/instance: RELEASE-NAME\n        app.kubernetes.io/component: host-scanner\n        app.kubernetes.io/version: \"1.28.4\"\n        app.kubernetes.io/managed-by: Helm\n        app.kubernetes.io/part-of: kubescape\n        app: host-scanner\n        tier: ks-control-plane\n        kubescape.io/ignore: \"true\"\n        kubescape.io/tier: \"core\"\n        name: host-scanner\n    spec:\n      nodeSelector:\n        kubernetes.io/os: linux\n      affinity:\n      tolerations:\n        - effect: NoSchedule\n          key: node-role.kubernetes.io/control-plane\n          operator: Exists\n        - effect: NoSchedule\n          key: node-role.kubernetes.io/master\n          operator: Exists\n      containers:\n      - name: host-sensor\n        image: \"quay.io/kubescape/host-scanner:v1.0.75\"\n        imagePullPolicy: IfNotPresent\n        securityContext:\n          allowPrivilegeEscalation: true\n          privileged: true\n          readOnlyRootFilesystem: true\n          procMount: Unmasked\n        env:\n        - name: KS_LOGGER_LEVEL\n          value: \"info\"\n        - name: KS_LOGGER_NAME\n          value: \"zap\"\n        - name: OTEL_COLLECTOR_SVC\n          value: otelCollector.svc.monitoring:4317\n        ports:\n          - name: scanner # Do not change port name\n            containerPort: 7888\n            protocol: TCP\n        resources:\n          limits:\n            cpu: 0.4m\n            memory: 400Mi\n          requests:\n            cpu: 0.1m\n            memory: 200Mi\n        volumeMounts:\n        - mountPath: /host_fs\n          name: host-filesystem\n        startupProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          failureThreshold: 30\n          periodSeconds: 1\n        livenessProbe:\n          httpGet:\n            path: /healthz\n            port: 7888\n          periodSeconds: 10\n      terminationGracePeriodSeconds: 120\n      dnsPolicy: ClusterFirstWithHostNet\n      serviceAccountName: node-agent\n      automountServiceAccountToken: false\n      volumes:\n      - hostPath:\n          path: /\n          type: Directory\n        name: host-filesystem\n      hostPID: true\n      hostIPC: true"
     kind: ConfigMap
     metadata:
       annotations: null
@@ -15900,7 +15900,7 @@ minimal capabilities:
                     - -path=v1/triggerAction
                     - -headers=Content-Type:application/json
                     - -path-body=/home/ks/request-body.json
-                  image: quay.io/kubescape/http-request:v0.2.11
+                  image: quay.io/kubescape/http-request:v0.2.12
                   imagePullPolicy: IfNotPresent
                   name: kubevuln-scheduler
                   resources:
@@ -16075,7 +16075,7 @@ minimal capabilities:
                   value: "1"
                 - name: OTEL_COLLECTOR_SVC
                   value: otelCollector.svc.monitoring:4317
-              image: quay.io/kubescape/kubevuln:v0.3.80
+              image: quay.io/kubescape/kubevuln:v0.3.82
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -17016,7 +17016,7 @@ minimal capabilities:
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
                   value: otelCollector.svc.monitoring:4317
-              image: quay.io/kubescape/operator:v0.2.94
+              image: quay.io/kubescape/operator:v0.2.97
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -17150,7 +17150,7 @@ minimal capabilities:
                       type: RuntimeDefault
                   containers:
                   - name: kubescape-scheduler
-                    image: "quay.io/kubescape/http-request:v0.2.11"
+                    image: "quay.io/kubescape/http-request:v0.2.12"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
@@ -17235,7 +17235,7 @@ minimal capabilities:
                       type: RuntimeDefault
                   containers:
                   - name: kubevuln-scheduler
-                    image: "quay.io/kubescape/http-request:v0.2.11"
+                    image: "quay.io/kubescape/http-request:v0.2.12"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
@@ -17320,7 +17320,7 @@ minimal capabilities:
                       type: RuntimeDefault
                   containers:
                   - name: registry-scheduler
-                    image: "quay.io/kubescape/http-request:v0.2.11"
+                    image: "quay.io/kubescape/http-request:v0.2.12"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
@@ -18700,7 +18700,7 @@ multiple node agents:
                     - -path=v1/triggerAction
                     - -headers=Content-Type:application/json
                     - -path-body=/home/ks/request-body.json
-                  image: quay.io/kubescape/http-request:v0.2.11
+                  image: quay.io/kubescape/http-request:v0.2.12
                   imagePullPolicy: IfNotPresent
                   name: kubescape-scheduler
                   resources:
@@ -19113,7 +19113,7 @@ multiple node agents:
           annotations:
             checksum/cloud-config: 3ca3213633e8269b560ec4cfc55649a50e43dcda2eb73f0b60d9225d2067ca82
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
-            checksum/host-scanner-configmap: 5134d6f1bc0565c2455150dc8f7c331aed7813c9accf98d1e419b25d2b6121f7
+            checksum/host-scanner-configmap: 9cb91f50b21c88f86b8ad62a957dcdde17aa2165b726a50f41f4bd3a76250ace
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
           labels:
             app: kubescape
@@ -19203,7 +19203,7 @@ multiple node agents:
                   value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
                 - name: KS_INCLUDE_NAMESPACES
                   value: my-namespace
-              image: quay.io/kubescape/kubescape:v3.0.34
+              image: quay.io/kubescape/kubescape:v3.0.37
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -19298,7 +19298,7 @@ multiple node agents:
   26: |
     apiVersion: v1
     data:
-      host-scanner-yaml: "apiVersion: apps/v1\nkind: DaemonSet\nmetadata:\n  name: host-scanner\n  namespace: kubescape\n  annotations:\n    \n  labels:\n    helm.sh/chart: kubescape-operator-1.28.4\n    app.kubernetes.io/name: kubescape-operator\n    app.kubernetes.io/instance: RELEASE-NAME\n    app.kubernetes.io/component: host-scanner\n    app.kubernetes.io/version: \"1.28.4\"\n    app.kubernetes.io/managed-by: Helm\n    app.kubernetes.io/part-of: kubescape\n    app: host-scanner\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\nspec:\n  selector:\n    matchLabels:\n      app.kubernetes.io/name: kubescape-operator\n      app.kubernetes.io/instance: RELEASE-NAME\n      app.kubernetes.io/component: host-scanner\n  template:\n    metadata:\n      annotations:\n        \n      labels:\n        helm.sh/chart: kubescape-operator-1.28.4\n        app.kubernetes.io/name: kubescape-operator\n        app.kubernetes.io/instance: RELEASE-NAME\n        app.kubernetes.io/component: host-scanner\n        app.kubernetes.io/version: \"1.28.4\"\n        app.kubernetes.io/managed-by: Helm\n        app.kubernetes.io/part-of: kubescape\n        app: host-scanner\n        tier: ks-control-plane\n        kubescape.io/ignore: \"true\"\n        kubescape.io/tier: \"core\"\n        name: host-scanner\n    spec:\n      nodeSelector:\n        kubernetes.io/os: linux\n      affinity:\n      tolerations:\n        - effect: NoSchedule\n          key: node-role.kubernetes.io/control-plane\n          operator: Exists\n        - effect: NoSchedule\n          key: node-role.kubernetes.io/master\n          operator: Exists\n      imagePullSecrets:\n      - name: foo\n      - name: bar\n      containers:\n      - name: host-sensor\n        image: \"quay.io/kubescape/host-scanner:v1.0.73\"\n        imagePullPolicy: IfNotPresent\n        securityContext:\n          allowPrivilegeEscalation: true\n          privileged: true\n          readOnlyRootFilesystem: true\n          procMount: Unmasked\n        env:\n        - name: KS_LOGGER_LEVEL\n          value: \"info\"\n        - name: KS_LOGGER_NAME\n          value: \"zap\"\n        - name: OTEL_COLLECTOR_SVC\n          value: otelCollector.svc.monitoring:4317\n        ports:\n          - name: scanner # Do not change port name\n            containerPort: 7888\n            protocol: TCP\n        resources:\n          limits:\n            cpu: 0.4m\n            memory: 400Mi\n          requests:\n            cpu: 0.1m\n            memory: 200Mi\n        volumeMounts:\n        - mountPath: /host_fs\n          name: host-filesystem\n        startupProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          failureThreshold: 30\n          periodSeconds: 1\n        livenessProbe:\n          httpGet:\n            path: /healthz\n            port: 7888\n          periodSeconds: 10\n      terminationGracePeriodSeconds: 120\n      dnsPolicy: ClusterFirstWithHostNet\n      serviceAccountName: node-agent\n      automountServiceAccountToken: false\n      volumes:\n      - hostPath:\n          path: /\n          type: Directory\n        name: host-filesystem\n      hostPID: true\n      hostIPC: true"
+      host-scanner-yaml: "apiVersion: apps/v1\nkind: DaemonSet\nmetadata:\n  name: host-scanner\n  namespace: kubescape\n  annotations:\n    \n  labels:\n    helm.sh/chart: kubescape-operator-1.28.4\n    app.kubernetes.io/name: kubescape-operator\n    app.kubernetes.io/instance: RELEASE-NAME\n    app.kubernetes.io/component: host-scanner\n    app.kubernetes.io/version: \"1.28.4\"\n    app.kubernetes.io/managed-by: Helm\n    app.kubernetes.io/part-of: kubescape\n    app: host-scanner\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\nspec:\n  selector:\n    matchLabels:\n      app.kubernetes.io/name: kubescape-operator\n      app.kubernetes.io/instance: RELEASE-NAME\n      app.kubernetes.io/component: host-scanner\n  template:\n    metadata:\n      annotations:\n        \n      labels:\n        helm.sh/chart: kubescape-operator-1.28.4\n        app.kubernetes.io/name: kubescape-operator\n        app.kubernetes.io/instance: RELEASE-NAME\n        app.kubernetes.io/component: host-scanner\n        app.kubernetes.io/version: \"1.28.4\"\n        app.kubernetes.io/managed-by: Helm\n        app.kubernetes.io/part-of: kubescape\n        app: host-scanner\n        tier: ks-control-plane\n        kubescape.io/ignore: \"true\"\n        kubescape.io/tier: \"core\"\n        name: host-scanner\n    spec:\n      nodeSelector:\n        kubernetes.io/os: linux\n      affinity:\n      tolerations:\n        - effect: NoSchedule\n          key: node-role.kubernetes.io/control-plane\n          operator: Exists\n        - effect: NoSchedule\n          key: node-role.kubernetes.io/master\n          operator: Exists\n      imagePullSecrets:\n      - name: foo\n      - name: bar\n      containers:\n      - name: host-sensor\n        image: \"quay.io/kubescape/host-scanner:v1.0.75\"\n        imagePullPolicy: IfNotPresent\n        securityContext:\n          allowPrivilegeEscalation: true\n          privileged: true\n          readOnlyRootFilesystem: true\n          procMount: Unmasked\n        env:\n        - name: KS_LOGGER_LEVEL\n          value: \"info\"\n        - name: KS_LOGGER_NAME\n          value: \"zap\"\n        - name: OTEL_COLLECTOR_SVC\n          value: otelCollector.svc.monitoring:4317\n        ports:\n          - name: scanner # Do not change port name\n            containerPort: 7888\n            protocol: TCP\n        resources:\n          limits:\n            cpu: 0.4m\n            memory: 400Mi\n          requests:\n            cpu: 0.1m\n            memory: 200Mi\n        volumeMounts:\n        - mountPath: /host_fs\n          name: host-filesystem\n        startupProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          failureThreshold: 30\n          periodSeconds: 1\n        livenessProbe:\n          httpGet:\n            path: /healthz\n            port: 7888\n          periodSeconds: 10\n      terminationGracePeriodSeconds: 120\n      dnsPolicy: ClusterFirstWithHostNet\n      serviceAccountName: node-agent\n      automountServiceAccountToken: false\n      volumes:\n      - hostPath:\n          path: /\n          type: Directory\n        name: host-filesystem\n      hostPID: true\n      hostIPC: true"
     kind: ConfigMap
     metadata:
       annotations: null
@@ -19635,7 +19635,7 @@ multiple node agents:
                     - -path=v1/triggerAction
                     - -headers=Content-Type:application/json
                     - -path-body=/home/ks/request-body.json
-                  image: quay.io/kubescape/http-request:v0.2.11
+                  image: quay.io/kubescape/http-request:v0.2.12
                   imagePullPolicy: IfNotPresent
                   name: kubevuln-scheduler
                   resources:
@@ -19880,7 +19880,7 @@ multiple node agents:
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
                   value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/kubevuln:v0.3.80
+              image: quay.io/kubescape/kubevuln:v0.3.82
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -21536,7 +21536,7 @@ multiple node agents:
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
                   value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/operator:v0.2.94
+              image: quay.io/kubescape/operator:v0.2.97
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -21694,7 +21694,7 @@ multiple node agents:
                   - name: bar
                   containers:
                   - name: kubescape-scheduler
-                    image: "quay.io/kubescape/http-request:v0.2.11"
+                    image: "quay.io/kubescape/http-request:v0.2.12"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
@@ -21782,7 +21782,7 @@ multiple node agents:
                   - name: bar
                   containers:
                   - name: kubevuln-scheduler
-                    image: "quay.io/kubescape/http-request:v0.2.11"
+                    image: "quay.io/kubescape/http-request:v0.2.12"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
@@ -21977,7 +21977,7 @@ multiple node agents:
                   - name: bar
                   containers:
                   - name: registry-scheduler
-                    image: "quay.io/kubescape/http-request:v0.2.11"
+                    image: "quay.io/kubescape/http-request:v0.2.12"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
@@ -22289,7 +22289,7 @@ multiple node agents:
                   value: zap
                 - name: ENABLE_WORKLOAD_METRICS
                   value: "true"
-              image: quay.io/kubescape/prometheus-exporter:v0.2.4
+              image: quay.io/kubescape/prometheus-exporter:v0.2.5
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 initialDelaySeconds: 3
@@ -22542,7 +22542,7 @@ multiple node agents:
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
                   value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/http-request:v0.2.11
+              image: quay.io/kubescape/http-request:v0.2.12
               imagePullPolicy: IfNotPresent
               name: url-discovery
               resources:
@@ -23796,7 +23796,7 @@ multiple node agents:
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
                   value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/synchronizer:v0.0.110
+              image: quay.io/kubescape/synchronizer:v0.0.113
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -24325,7 +24325,7 @@ relevancy only:
                     - -path=v1/triggerAction
                     - -headers=Content-Type:application/json
                     - -path-body=/home/ks/request-body.json
-                  image: quay.io/kubescape/http-request:v0.2.11
+                  image: quay.io/kubescape/http-request:v0.2.12
                   imagePullPolicy: IfNotPresent
                   name: kubescape-scheduler
                   resources:
@@ -24673,7 +24673,7 @@ relevancy only:
           annotations:
             checksum/cloud-config: 8f40f001a3e31db9895e7bbb06ab070f25ab66c83b31d1929b273cfd22402097
             checksum/cloud-secret: 3248919273cee6d6f750f97ea378fc79fff1f03b131f21d584a00258bf475a80
-            checksum/host-scanner-configmap: 5c11f27bbab0c223b133ada945caf693c2107a3069b9386b7560bfefc3a09dc2
+            checksum/host-scanner-configmap: aad05bc791aa892bd1f8d5a7c3d365ea5efa3be8dda6a1a6089c09d116d85390
           labels:
             app: kubescape
             app.kubernetes.io/component: kubescape
@@ -24731,7 +24731,7 @@ relevancy only:
                   value: "1500"
                 - name: OTEL_COLLECTOR_SVC
                   value: otelCollector.svc.monitoring:4317
-              image: quay.io/kubescape/kubescape:v3.0.34
+              image: quay.io/kubescape/kubescape:v3.0.37
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -24809,7 +24809,7 @@ relevancy only:
   12: |
     apiVersion: v1
     data:
-      host-scanner-yaml: "apiVersion: apps/v1\nkind: DaemonSet\nmetadata:\n  name: host-scanner\n  namespace: kubescape\n  annotations:\n    \n  labels:\n    helm.sh/chart: kubescape-operator-1.28.4\n    app.kubernetes.io/name: kubescape-operator\n    app.kubernetes.io/instance: RELEASE-NAME\n    app.kubernetes.io/component: host-scanner\n    app.kubernetes.io/version: \"1.28.4\"\n    app.kubernetes.io/managed-by: Helm\n    app.kubernetes.io/part-of: kubescape\n    app: host-scanner\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\nspec:\n  selector:\n    matchLabels:\n      app.kubernetes.io/name: kubescape-operator\n      app.kubernetes.io/instance: RELEASE-NAME\n      app.kubernetes.io/component: host-scanner\n  template:\n    metadata:\n      annotations:\n        \n      labels:\n        helm.sh/chart: kubescape-operator-1.28.4\n        app.kubernetes.io/name: kubescape-operator\n        app.kubernetes.io/instance: RELEASE-NAME\n        app.kubernetes.io/component: host-scanner\n        app.kubernetes.io/version: \"1.28.4\"\n        app.kubernetes.io/managed-by: Helm\n        app.kubernetes.io/part-of: kubescape\n        app: host-scanner\n        tier: ks-control-plane\n        kubescape.io/ignore: \"true\"\n        kubescape.io/tier: \"core\"\n        name: host-scanner\n    spec:\n      nodeSelector:\n        kubernetes.io/os: linux\n      affinity:\n      tolerations:\n        - effect: NoSchedule\n          key: node-role.kubernetes.io/control-plane\n          operator: Exists\n        - effect: NoSchedule\n          key: node-role.kubernetes.io/master\n          operator: Exists\n      containers:\n      - name: host-sensor\n        image: \"quay.io/kubescape/host-scanner:v1.0.73\"\n        imagePullPolicy: IfNotPresent\n        securityContext:\n          allowPrivilegeEscalation: true\n          privileged: true\n          readOnlyRootFilesystem: true\n          procMount: Unmasked\n        env:\n        - name: KS_LOGGER_LEVEL\n          value: \"info\"\n        - name: KS_LOGGER_NAME\n          value: \"zap\"\n        - name: OTEL_COLLECTOR_SVC\n          value: otelCollector.svc.monitoring:4317\n        ports:\n          - name: scanner # Do not change port name\n            containerPort: 7888\n            protocol: TCP\n        resources:\n          limits:\n            cpu: 0.4m\n            memory: 400Mi\n          requests:\n            cpu: 0.1m\n            memory: 200Mi\n        volumeMounts:\n        - mountPath: /host_fs\n          name: host-filesystem\n        startupProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          failureThreshold: 30\n          periodSeconds: 1\n        livenessProbe:\n          httpGet:\n            path: /healthz\n            port: 7888\n          periodSeconds: 10\n      terminationGracePeriodSeconds: 120\n      dnsPolicy: ClusterFirstWithHostNet\n      serviceAccountName: node-agent\n      automountServiceAccountToken: false\n      volumes:\n      - hostPath:\n          path: /\n          type: Directory\n        name: host-filesystem\n      hostPID: true\n      hostIPC: true"
+      host-scanner-yaml: "apiVersion: apps/v1\nkind: DaemonSet\nmetadata:\n  name: host-scanner\n  namespace: kubescape\n  annotations:\n    \n  labels:\n    helm.sh/chart: kubescape-operator-1.28.4\n    app.kubernetes.io/name: kubescape-operator\n    app.kubernetes.io/instance: RELEASE-NAME\n    app.kubernetes.io/component: host-scanner\n    app.kubernetes.io/version: \"1.28.4\"\n    app.kubernetes.io/managed-by: Helm\n    app.kubernetes.io/part-of: kubescape\n    app: host-scanner\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\nspec:\n  selector:\n    matchLabels:\n      app.kubernetes.io/name: kubescape-operator\n      app.kubernetes.io/instance: RELEASE-NAME\n      app.kubernetes.io/component: host-scanner\n  template:\n    metadata:\n      annotations:\n        \n      labels:\n        helm.sh/chart: kubescape-operator-1.28.4\n        app.kubernetes.io/name: kubescape-operator\n        app.kubernetes.io/instance: RELEASE-NAME\n        app.kubernetes.io/component: host-scanner\n        app.kubernetes.io/version: \"1.28.4\"\n        app.kubernetes.io/managed-by: Helm\n        app.kubernetes.io/part-of: kubescape\n        app: host-scanner\n        tier: ks-control-plane\n        kubescape.io/ignore: \"true\"\n        kubescape.io/tier: \"core\"\n        name: host-scanner\n    spec:\n      nodeSelector:\n        kubernetes.io/os: linux\n      affinity:\n      tolerations:\n        - effect: NoSchedule\n          key: node-role.kubernetes.io/control-plane\n          operator: Exists\n        - effect: NoSchedule\n          key: node-role.kubernetes.io/master\n          operator: Exists\n      containers:\n      - name: host-sensor\n        image: \"quay.io/kubescape/host-scanner:v1.0.75\"\n        imagePullPolicy: IfNotPresent\n        securityContext:\n          allowPrivilegeEscalation: true\n          privileged: true\n          readOnlyRootFilesystem: true\n          procMount: Unmasked\n        env:\n        - name: KS_LOGGER_LEVEL\n          value: \"info\"\n        - name: KS_LOGGER_NAME\n          value: \"zap\"\n        - name: OTEL_COLLECTOR_SVC\n          value: otelCollector.svc.monitoring:4317\n        ports:\n          - name: scanner # Do not change port name\n            containerPort: 7888\n            protocol: TCP\n        resources:\n          limits:\n            cpu: 0.4m\n            memory: 400Mi\n          requests:\n            cpu: 0.1m\n            memory: 200Mi\n        volumeMounts:\n        - mountPath: /host_fs\n          name: host-filesystem\n        startupProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          failureThreshold: 30\n          periodSeconds: 1\n        livenessProbe:\n          httpGet:\n            path: /healthz\n            port: 7888\n          periodSeconds: 10\n      terminationGracePeriodSeconds: 120\n      dnsPolicy: ClusterFirstWithHostNet\n      serviceAccountName: node-agent\n      automountServiceAccountToken: false\n      volumes:\n      - hostPath:\n          path: /\n          type: Directory\n        name: host-filesystem\n      hostPID: true\n      hostIPC: true"
     kind: ConfigMap
     metadata:
       annotations: null
@@ -25003,7 +25003,7 @@ relevancy only:
                     - -path=v1/triggerAction
                     - -headers=Content-Type:application/json
                     - -path-body=/home/ks/request-body.json
-                  image: quay.io/kubescape/http-request:v0.2.11
+                  image: quay.io/kubescape/http-request:v0.2.12
                   imagePullPolicy: IfNotPresent
                   name: kubevuln-scheduler
                   resources:
@@ -25178,7 +25178,7 @@ relevancy only:
                   value: "1"
                 - name: OTEL_COLLECTOR_SVC
                   value: otelCollector.svc.monitoring:4317
-              image: quay.io/kubescape/kubevuln:v0.3.80
+              image: quay.io/kubescape/kubevuln:v0.3.82
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -26023,7 +26023,7 @@ relevancy only:
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
                   value: otelCollector.svc.monitoring:4317
-              image: quay.io/kubescape/operator:v0.2.94
+              image: quay.io/kubescape/operator:v0.2.97
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -26148,7 +26148,7 @@ relevancy only:
                       type: RuntimeDefault
                   containers:
                   - name: kubescape-scheduler
-                    image: "quay.io/kubescape/http-request:v0.2.11"
+                    image: "quay.io/kubescape/http-request:v0.2.12"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
@@ -26233,7 +26233,7 @@ relevancy only:
                       type: RuntimeDefault
                   containers:
                   - name: kubevuln-scheduler
-                    image: "quay.io/kubescape/http-request:v0.2.11"
+                    image: "quay.io/kubescape/http-request:v0.2.12"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
@@ -26318,7 +26318,7 @@ relevancy only:
                       type: RuntimeDefault
                   containers:
                   - name: registry-scheduler
-                    image: "quay.io/kubescape/http-request:v0.2.11"
+                    image: "quay.io/kubescape/http-request:v0.2.12"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
