@@ -27,111 +27,98 @@ spec:
             spec:
               type: object
               properties:
-                enabled:
-                  type: boolean
-                  description: "Whether the rule is enabled"
-                id:
-                  type: string
-                  description: "Unique identifier for the rule"
-                name:
-                  type: string
-                  description: "Name of the rule"
-                description:
-                  type: string
-                  description: "Description of the rule"
-                expressions:
-                  type: object
-                  properties:
-                    message:
-                      type: string
-                      description: "Message expression"
-                    unique_id:
-                      type: string
-                      description: "Unique identifier expression"
-                    rule_expression:
-                      type: array
-                      items:
-                        type: object
-                        properties:
-                          event_type:
-                            type: string
-                            enum:
-                              - "exec"
-                              - "open"
-                              - "capabilities"
-                              - "dns"
-                              - "network"
-                              - "syscall"
-                              - "randomx"
-                              - "symlink"
-                              - "hardlink"
-                              - "ssh"
-                              - "http"
-                              - "ptrace"
-                              - "iouring"
-                              - "fork"
-                              - "exit"
-                              - "procfs"
-                            description: "Type of event this expression handles"
-                          expression:
-                            type: string
-                            description: "The rule expression string"
-                        required:
-                          - event_type
-                          - expression
-                  required:
-                    - message
-                    - unique_id
-                    - rule_expression
-                profile_dependency:
-                  type: object
-                  properties:
-                    required:
-                      type: integer
-                      enum: [0, 1, 2]
-                      description: "Profile dependency level (0=Required, 1=Optional, 2=NotRequired)"
-                  description: "Profile dependency configuration"
-                severity:
-                  type: integer
-                  description: "Severity level of the rule"
-                support_policy:
-                  type: boolean
-                  description: "Whether the rule supports rule policy enforcement"
-                  default: false
-                tags:
+                rules:
                   type: array
                   items:
-                    type: string
-                  description: "Tags associated with the rule"
-                state:
-                  type: object
-                  additionalProperties: true
-                  description: "State information for the rule"
+                    type: object
+                    properties:
+                      enabled:
+                        type: boolean
+                        description: "Whether the rule is enabled"
+                      id:
+                        type: string
+                        description: "Unique identifier for the rule"
+                      name:
+                        type: string
+                        description: "Name of the rule"
+                      description:
+                        type: string
+                        description: "Description of the rule"
+                      expressions:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                            description: "Message expression"
+                          unique_id:
+                            type: string
+                            description: "Unique identifier expression"
+                          rule_expression:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                event_type:
+                                  type: string
+                                  enum:
+                                    - "exec"
+                                    - "open"
+                                    - "capabilities"
+                                    - "dns"
+                                    - "network"
+                                    - "syscall"
+                                    - "randomx"
+                                    - "symlink"
+                                    - "hardlink"
+                                    - "ssh"
+                                    - "http"
+                                    - "ptrace"
+                                    - "iouring"
+                                    - "fork"
+                                    - "exit"
+                                    - "procfs"
+                                  description: "Type of event this expression handles"
+                                expression:
+                                  type: string
+                                  description: "The rule expression string"
+                              required:
+                                - event_type
+                                - expression
+                        required:
+                          - message
+                          - unique_id
+                          - rule_expression
+                      profile_dependency:
+                        type: integer
+                        enum: [0, 1, 2]
+                        description: "Profile dependency level (0=Required, 1=Optional, 2=NotRequired)"
+                      severity:
+                        type: integer
+                        description: "Severity level of the rule"
+                      support_policy:
+                        type: boolean
+                        description: "Whether the rule supports rule policy enforcement"
+                        default: false
+                      tags:
+                        type: array
+                        items:
+                          type: string
+                        description: "Tags associated with the rule"
+                      state:
+                        type: object
+                        additionalProperties: true
+                        description: "State information for the rule"
+                    required:
+                      - enabled
+                      - id
+                      - name
+                      - description
+                      - expressions
+                      - profile_dependency
+                      - severity
+                      - support_policy
+                      - tags
               required:
-                - enabled
-                - id
-                - name
-                - description
-                - expressions
-                - profile_dependency
-                - severity
-                - support_policy
-                - tags
+                - rules
       subresources:
         status: {}
-      additionalPrinterColumns:
-        - name: Enabled
-          type: boolean
-          jsonPath: .spec.enabled
-        - name: ID
-          type: string
-          jsonPath: .spec.id
-        - name: Name
-          type: string
-          jsonPath: .spec.name
-        - name: Severity
-          type: integer
-          jsonPath: .spec.severity
-        - name: Age
-          type: date
-          jsonPath: .metadata.creationTimestamp
