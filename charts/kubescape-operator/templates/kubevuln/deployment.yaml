@@ -176,7 +176,12 @@ spec:
             secretName: {{ .Values.global.extraCaCertificates.secretName }}
       {{- end }}
         - name: tmp-dir
+          {{- if .Values.kubevuln.tmpDirPersistence.enabled }}
+          persistentVolumeClaim:
+            claimName: kubescape-{{ .Values.kubevuln.name }}-tmp
+          {{- else }}
           emptyDir: {}
+          {{- end }}
         - name: grype-db-cache
           emptyDir: {}
         - name: {{ .Values.global.cloudConfig }}

@@ -13,7 +13,11 @@ data:
   config.json: |
     {
       "cleanupInterval": "{{ .Values.storage.cleanupInterval }}",
+      {{- if .Values.storage.disableVirtualCRDs }}
+      "disableVirtualCRDs": true,
+      {{- else }}
       "disableVirtualCRDs": {{ not $configurations.virtualCrds }},
+      {{- end }}
       "excludeJsonPaths": {{ .Values.configurations.excludeJsonPaths | toJson }},
       "defaultQueueLength": 100,
       "defaultWorkerCount": 2,
@@ -43,7 +47,7 @@ data:
         "sbomsyftfiltereds": {
           "queueLength": 50,
           "workerCount": 1,
-          "maxObjectSize": 20000000
+          "maxObjectSize": 50000000
         },
         "sbomsyfts": {
           "queueLength": 50,
@@ -53,7 +57,7 @@ data:
         "vulnerabilitymanifests": {
           "queueLength": 50,
           "workerCount": 1,
-          "maxObjectSize": 20000000
+          "maxObjectSize": 50000000
         }
       },
       {{- if .Values.storage.mtls.enabled }}

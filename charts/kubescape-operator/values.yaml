@@ -145,7 +145,6 @@ configurations:
   excludeJsonPaths:
     # - ".containers[*].env[?(@.name==\"DD_INJECT_ID\")]"
 
-
 # installation of the alertCRD chart
 alertCRD:
   installDefault: false # install the default CRD
@@ -258,7 +257,7 @@ kubescape:
   image:
     # -- source code: https://github.com/kubescape/kubescape/tree/master/httphandler (public repo)
     repository: quay.io/kubescape/kubescape
-    tag: v3.0.34
+    tag: v3.0.37
     pullPolicy: IfNotPresent
 
   nodeSelector:
@@ -315,7 +314,7 @@ operator:
   image:
     # -- source code: https://github.com/kubescape/operator
     repository: quay.io/kubescape/operator
-    tag: v0.2.92
+    tag: v0.2.97
     pullPolicy: IfNotPresent
 
   nodeSelector:
@@ -363,7 +362,7 @@ kubevuln:
   image:
     # -- source code: https://github.com/kubescape/kubevuln
     repository: quay.io/kubescape/kubevuln
-    tag: v0.3.80
+    tag: v0.3.82
     pullPolicy: IfNotPresent
 
   nodeSelector:
@@ -384,7 +383,6 @@ kubevuln:
       cpu: 300m
       memory: 1000Mi
       # Consider to increase ephemeral-storage requests in order to avoid pod eviction due to huge images
-      # More details: https://hub.armosec.io/docs/limitations
       #               https://github.com/kubescape/kubescape/issues/389
       ephemeral-storage: 5Gi
     limits:
@@ -410,6 +408,14 @@ kubevuln:
   # Additional volumeMounts to be mounted on the vulnerability scanning microservice
   volumeMounts: []
 
+  tmpDirPersistence:
+    enabled: false
+    storageClassName: ""
+    accessModes:
+      - ReadWriteOnce
+    size: 50Gi
+    annotations: {}
+
 # +++++++++++++++++++++++++++++++ Host-scanner ++++++++++++++++++++++++++++++++++++++++++++++++
 
 hostScanner:
@@ -417,7 +423,7 @@ hostScanner:
   image:
     # -- source code: https://github.com/kubescape/host-scanner (public repo)
     repository: quay.io/kubescape/host-scanner
-    tag: v1.0.73
+    tag: v1.0.75
     pullPolicy: IfNotPresent
 
   nodeSelector:
@@ -463,7 +469,7 @@ storage:
   image:
     # -- source code: https://github.com/kubescape/storage
     repository: quay.io/kubescape/storage
-    tag: v0.0.200
+    tag: v0.0.206
     pullPolicy: IfNotPresent
 
   nodeSelector:
@@ -482,6 +488,8 @@ storage:
       cpu: 1500m
       memory: 1500Mi
 
+  disableVirtualCRDs: false  # set to true or false to override auto-detection
+
 # +++++++++++++++++++++++++++++ Node-agent ++++++++++++++++++++++++++++++++++++++++++++++++
 
 nodeAgent:
@@ -489,7 +497,7 @@ nodeAgent:
   image:
     # -- source code: https://github.com/kubescape/node-agent
     repository: quay.io/kubescape/node-agent
-    tag: v0.2.354
+    tag: v0.2.357
     pullPolicy: IfNotPresent
 
   config:
@@ -520,7 +528,7 @@ nodeAgent:
   gke:
     allowlist:
       enabled: false
-      name: armo-kubescape-node-agent-1.28
+      name: armo-kubescape-node-agent-1.29
 
   # prometheus (operator) service monitor
   serviceMonitor:
@@ -716,7 +724,7 @@ synchronizer:
   image:
     # -- source code: https://github.com/kubescape/synchronizer
     repository: quay.io/kubescape/synchronizer
-    tag: v0.0.110
+    tag: v0.0.114
     pullPolicy: IfNotPresent
   nodeSelector:
     kubernetes.io/os: linux
@@ -809,7 +817,7 @@ serviceDiscovery:
     name: url-discovery
     image:
       repository: quay.io/kubescape/http-request
-      tag: v0.2.11
+      tag: v0.2.12
       pullPolicy: IfNotPresent
 
     # Skip SSL certificate verification
@@ -842,7 +850,7 @@ prometheusExporter:
   name: "prometheus-exporter"
   image:
     repository: quay.io/kubescape/prometheus-exporter
-    tag: v0.2.4
+    tag: v0.2.5
     pullPolicy: IfNotPresent
 
   nodeSelector:
@@ -942,7 +950,7 @@ kubescapeScheduler:
   image:
     # -- source code: https://github.com/kubescape/http-request (public repo)
     repository: quay.io/kubescape/http-request
-    tag: v0.2.11
+    tag: v0.2.12
     pullPolicy: IfNotPresent
 
   nodeSelector:
@@ -988,7 +996,7 @@ kubevulnScheduler:
   image:
     # source code - https://github.com/kubescape/http-request
     repository: quay.io/kubescape/http-request
-    tag: v0.2.11
+    tag: v0.2.12
     pullPolicy: IfNotPresent
 
   nodeSelector:
@@ -1036,7 +1044,7 @@ registryScanScheduler:
   image:
     # -- source code: https://github.com/kubescape/http-request (public repo)
     repository: quay.io/kubescape/http-request
-    tag: v0.2.11
+    tag: v0.2.12
     pullPolicy: IfNotPresent
 
   nodeSelector:

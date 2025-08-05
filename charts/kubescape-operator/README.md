@@ -1,9 +1,8 @@
 # Kubescape Operator
 
-![Version: 1.28.2](https://img.shields.io/badge/Version-1.28.2-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.28.0](https://img.shields.io/badge/AppVersion-v1.28.0-informational?style=flat-square)
+![Version: 1.29.0](https://img.shields.io/badge/Version-1.29.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.29.0](https://img.shields.io/badge/AppVersion-v1.29.0-informational?style=flat-square)
 
 [Kubescape operator documentation](https://kubescape.io/docs/install-operator/)
-[Troubleshooting guide](https://hub.armosec.io/docs/installation-troubleshooting#3-the-kubescape-pod-restarted)
 
 ## Install
 
@@ -116,7 +115,7 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | kubescape.podLabels| object | `{}` | Optional labels to add to the pods |
 | kubescape.podAnnotations| object | `{}` | optional map of annotations to be applied to the Pods |
 | kubescape.downloadArtifacts | bool | `true` | download policies every scan, we recommend it should remain true, you should change to 'false' when running in an air-gapped environment or when scanning with high frequency (when running with Prometheus) |
-| kubescape.enableHostScan | bool | `true` | enable [host scanner feature](https://hub.armosec.io/docs/host-sensor) |
+| kubescape.enableHostScan | bool | `true` | enable [host scanner feature](https://kubescape.io/docs/components/host-sensor/) |
 | kubescape.image.repository | string | `"quay.io/kubescape/kubescape"` | [source code](https://github.com/kubescape/kubescape/tree/master/httphandler) (public repo) |
 | kubescape.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | kubescape.serviceMonitor.enabled | bool | `false` | enable/disable service monitor for prometheus (operator) integration |
