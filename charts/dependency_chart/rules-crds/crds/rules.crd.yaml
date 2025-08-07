@@ -1,0 +1,124 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: rules.kubescape.io
+spec:
+  group: kubescape.io
+  names:
+    kind: Rules
+    listKind: RulesList
+    plural: rules
+    singular: rule
+  scope: Namespaced
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              type: object
+              properties:
+                rules:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      enabled:
+                        type: boolean
+                        description: "Whether the rule is enabled"
+                      id:
+                        type: string
+                        description: "Unique identifier for the rule"
+                      name:
+                        type: string
+                        description: "Name of the rule"
+                      description:
+                        type: string
+                        description: "Description of the rule"
+                      expressions:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                            description: "Message expression"
+                          unique_id:
+                            type: string
+                            description: "Unique identifier expression"
+                          rule_expression:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                event_type:
+                                  type: string
+                                  enum:
+                                    - "exec"
+                                    - "open"
+                                    - "capabilities"
+                                    - "dns"
+                                    - "network"
+                                    - "syscall"
+                                    - "randomx"
+                                    - "symlink"
+                                    - "hardlink"
+                                    - "ssh"
+                                    - "http"
+                                    - "ptrace"
+                                    - "iouring"
+                                    - "fork"
+                                    - "exit"
+                                    - "procfs"
+                                  description: "Type of event this expression handles"
+                                expression:
+                                  type: string
+                                  description: "The rule expression string"
+                              required:
+                                - event_type
+                                - expression
+                        required:
+                          - message
+                          - unique_id
+                          - rule_expression
+                      profile_dependency:
+                        type: integer
+                        enum: [0, 1, 2]
+                        description: "Profile dependency level (0=Required, 1=Optional, 2=NotRequired)"
+                      severity:
+                        type: integer
+                        description: "Severity level of the rule"
+                      support_policy:
+                        type: boolean
+                        description: "Whether the rule supports rule policy enforcement"
+                        default: false
+                      tags:
+                        type: array
+                        items:
+                          type: string
+                        description: "Tags associated with the rule"
+                      state:
+                        type: object
+                        additionalProperties: true
+                        description: "State information for the rule"
+                    required:
+                      - enabled
+                      - id
+                      - name
+                      - description
+                      - expressions
+                      - profile_dependency
+                      - severity
+                      - support_policy
+                      - tags
+              required:
+                - rules
+      subresources:
+        status: {}
