@@ -1,6 +1,6 @@
 {{- $components := fromYaml (include "components" .) }}
 {{- $configurations := fromYaml (include "configurations" .) }}
-  {{- if $components.storage.enabled }}
+{{- if $components.storage.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -9,6 +9,7 @@ metadata:
   labels:
     {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.storage.name "tier" .Values.global.namespaceTier) | nindent 4 }}
     kubescape.io/tier: "core"
+# Turning "kindQueues" into variables to be referenced and customized in the values override file
 data:
   config.json: |
     {
@@ -25,39 +26,39 @@ data:
       "queueManagerEnabled": true,
       "kindQueues": {
         "applicationprofiles": {
-          "queueLength": 50,
-          "workerCount": 2,
-          "maxObjectSize": 20000000
+          "queueLength": {{ .Values.storage.kindQueues.applicationprofiles.queueLength }},
+          "workerCount": {{ .Values.storage.kindQueues.applicationprofiles.workerCount }},
+          "maxObjectSize": {{ .Values.storage.kindQueues.applicationprofiles.maxObjectSize }}
         },
         "containerprofiles": {
-          "queueLength": 50,
-          "workerCount": 2,
-          "maxObjectSize": 2500000
+          "queueLength": {{ .Values.storage.kindQueues.containerprofiles.queueLength }},
+          "workerCount": {{ .Values.storage.kindQueues.containerprofiles.workerCount }},
+          "maxObjectSize": {{ .Values.storage.kindQueues.containerprofiles.maxObjectSize }}
         },
         "networkneighborhoods": {
-          "queueLength": 50,
-          "workerCount": 2,
-          "maxObjectSize": 10000000
+          "queueLength": {{ .Values.storage.kindQueues.networkneighborhoods.queueLength }},
+          "workerCount": {{ .Values.storage.kindQueues.networkneighborhoods.workerCount }},
+          "maxObjectSize": {{ .Values.storage.kindQueues.networkneighborhoods.maxObjectSize }}
         },
         "openvulnerabilityexchangecontainers": {
-          "queueLength": 50,
-          "workerCount": 1,
-          "maxObjectSize": 500000
+          "queueLength": {{ .Values.storage.kindQueues.openvulnerabilityexchangecontainers.queueLength }},
+          "workerCount": {{ .Values.storage.kindQueues.openvulnerabilityexchangecontainers.workerCount }},
+          "maxObjectSize": {{ .Values.storage.kindQueues.openvulnerabilityexchangecontainers.maxObjectSize }}
         },
         "sbomsyftfiltereds": {
-          "queueLength": 50,
-          "workerCount": 1,
-          "maxObjectSize": 50000000
+          "queueLength": {{ .Values.storage.kindQueues.sbomsyftfiltereds.queueLength }},
+          "workerCount": {{ .Values.storage.kindQueues.sbomsyftfiltereds.workerCount }},
+          "maxObjectSize": {{ .Values.storage.kindQueues.sbomsyftfiltereds.maxObjectSize }}
         },
         "sbomsyfts": {
-          "queueLength": 50,
-          "workerCount": 1,
-          "maxObjectSize": 100000000
+          "queueLength": {{ .Values.storage.kindQueues.sbomsyfts.queueLength }},
+          "workerCount": {{ .Values.storage.kindQueues.sbomsyfts.workerCount }},
+          "maxObjectSize": {{ .Values.storage.kindQueues.sbomsyfts.maxObjectSize }}
         },
         "vulnerabilitymanifests": {
-          "queueLength": 50,
-          "workerCount": 1,
-          "maxObjectSize": 50000000
+          "queueLength": {{ .Values.storage.kindQueues.vulnerabilitymanifests.queueLength }},
+          "workerCount": {{ .Values.storage.kindQueues.vulnerabilitymanifests.workerCount }},
+          "maxObjectSize": {{ .Values.storage.kindQueues.vulnerabilitymanifests.maxObjectSize }}
         }
       },
       {{- if .Values.storage.mtls.enabled }}
@@ -68,3 +69,4 @@ data:
       "serverBindPort": "{{ .Values.storage.serverPort }}"
     }
 {{- end }}
+
