@@ -10,474 +10,502 @@ metadata:
     {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.nodeAgent.name "tier" .Values.global.namespaceTier) | nindent 4 }}
 spec:
   rules:
-  - name: "Unexpected process launched"
-    enabled: true
-    id: "R0001"
-    description: "Detects unexpected process launches that are not in the baseline"
-    expressions:
-      message: "'Unexpected process launched: ' + event.comm + ' with PID ' + string(event.pid)"
-      unique_id: "event.comm + '_' + event.exepath"
-      rule_expression:
-        - event_type: "exec"
-          expression: "!ap.was_executed(event.runtime.containerId, parse.get_exec_path(event.args, event.comm))"
-    profile_dependency: 0
-    severity: 1
-    support_policy: false
-    tags:
-      - "anomaly"
-      - "process"
-      - "exec"
-      - "applicationprofile"
-  - name: "Unexpected file access"
-    enabled: true
-    id: "R0002"
-    description: "Detects unexpected file access that is not in the baseline"
-    expressions:
-      message: "'Unexpected file access detected: ' + event.comm + ' with PID ' + string(event.pid) + ' to ' + event.fullPath"
-      unique_id: "event.comm + '_' + event.fullPath"
-      rule_expression:
-        - event_type: "open"
-          expression: "!ap.was_path_opened(event.runtime.containerId, event.fullPath) && !(event.fullPath.startsWith('/proc') || \n  event.fullPath.startsWith('/run/secrets/kubernetes.io/serviceaccount') || \n  event.fullPath.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') || \n  event.fullPath.startsWith('/tmp')) &&\n(event.fullPath.startsWith('/etc') || \n event.fullPath.startsWith('/var/spool/cron/') || \n event.fullPath.startsWith('/var/log/') || \n event.fullPath.startsWith('/var/run/') || \n event.fullPath.startsWith('/dev/shm/') || \n event.fullPath.startsWith('/run/') || \n event.fullPath.startsWith('/var/www/') || \n event.fullPath.startsWith('/var/lib/docker/') || \n event.fullPath.startsWith('/opt/') || \n event.fullPath.startsWith('/usr/local/') || \n event.fullPath.startsWith('/app/') || \n event.fullPath.startsWith('/.dockerenv') || \n event.fullPath.startsWith('/proc/self/environ') || \n event.fullPath.startsWith('/var/lib/kubelet/') || \n event.fullPath.startsWith('/etc/cni/net.d/') || \n event.fullPath.startsWith('/var/run/secrets/kubernetes.io/') || \n event.fullPath.startsWith('/var/run/secrets/kubernetes.io/serviceaccount/') || \n event.fullPath.startsWith('/run/containerd/') || \n event.fullPath.startsWith('/run/flannel/') || \n event.fullPath.startsWith('/run/calico/'))\n"
-    profile_dependency: 0
-    severity: 1
-    support_policy: false
-    tags:
-      - "anomaly"
-      - "file"
-      - "open"
-      - "applicationprofile"
-  - name: "Unexpected system call"
-    enabled: true
-    id: "R0003"
-    description: "Detects unexpected system calls that are not whitelisted by application profile"
-    expressions:
-      message: "'Unexpected system call detected: ' + event.syscallName + ' with PID ' + string(event.pid)"
-      unique_id: "event.syscallName"
-      rule_expression:
-        - event_type: "syscall"
-          expression: "!ap.was_syscall_used(event.runtime.containerId, event.syscallName)"
-    profile_dependency: 0
-    severity: 1
-    support_policy: false
-    tags:
-      - "anomaly"
-      - "syscall"
-      - "applicationprofile"
-  - name: "Unexpected capability used"
-    enabled: true
-    id: "R0004"
-    description: "Detects unexpected capabilities that are not whitelisted by application profile"
-    expressions:
-      message: "'Unexpected capability used: ' + event.capName + ' in syscall ' + event.syscall + ' with PID ' + string(event.pid)"
-      unique_id: "event.comm + '_' + event.capName"
-      rule_expression:
-        - event_type: "capabilities"
-          expression: "!ap.was_capability_used(event.runtime.containerId, event.capName)"
-    profile_dependency: 0
-    severity: 1
-    support_policy: false
-    tags:
-      - "anomaly"
-      - "capabilities"
-      - "applicationprofile"
-  - name: "Unexpected domain request"
-    enabled: true
-    id: "R0005"
-    description: "Detecting unexpected domain requests that are not whitelisted by application profile."
-    expressions:
-      message: "'Unexpected domain communication: ' + event.name + ' from: ' + event.k8s.containerName"
-      unique_id: "event.comm + '_' + event.name"
-      rule_expression:
-        - event_type: "dns"
-          expression: "!nn.is_domain_in_egress(event.runtime.containerId, event.name) && !event.name.endsWith('.svc.cluster.local.')"
-    profile_dependency: 0
-    severity: 1
-    support_policy: false
-    tags:
-      - "dns"
-      - "anomaly"
-      - "networkprofile"
-  - name: "Unexpected Service Account Token Access"
-    enabled: true
-    id: "R0006"
-    description: "Detecting unexpected access to service account token."
-    expressions:
-      message: "'Unexpected access to service account token: ' + event.fullPath + ' with flags: ' + event.flags.join(',')"
-      unique_id: "event.comm"
-      rule_expression:
-        - event_type: "open"
-          expression: "((event.fullPath.startsWith('/run/secrets/kubernetes.io/serviceaccount') && event.fullPath.endsWith('/token')) || \n (event.fullPath.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && event.fullPath.endsWith('/token')) ||\n (event.fullPath.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && event.fullPath.endsWith('/token')) ||\n (event.fullPath.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && event.fullPath.endsWith('/token'))) &&\n!ap.was_path_opened_with_prefix(event.runtime.containerId, '/run/secrets/kubernetes.io/serviceaccount') && !ap.was_path_opened_with_prefix(event.runtime.containerId, '/var/run/secrets/kubernetes.io/serviceaccount') && !ap.was_path_opened_with_prefix(event.runtime.containerId, '/run/secrets/eks.amazonaws.com/serviceaccount') && !ap.was_path_opened_with_prefix(event.runtime.containerId, '/var/run/secrets/eks.amazonaws.com/serviceaccount')\n"
-    profile_dependency: 1
-    severity: 5
-    support_policy: false
-    tags:
-      - "anomaly"
-      - "serviceaccount"
-      - "applicationprofile"
-  - name: "Kubernetes Client Executed"
-    enabled: true
-    id: "R0007"
-    description: "Detecting execution of kubernetes client"
-    expressions:
-      message: "'Kubernetes client ' + event.comm + ' was executed with PID ' + string(event.pid)"
-      unique_id: "event.comm + '_' + event.pcomm"
-      rule_expression:
-        - event_type: "exec"
-          expression: "(event.comm == 'kubectl' || event.exepath.endsWith('/kubectl')) && !ap.was_executed(event.runtime.containerId, parse.get_exec_path(event.args, event.comm))"
-        - event_type: "network"
-          expression: "event.pktType == 'OUTGOING' && k8s.is_api_server_address(event.dst.addr) && !nn.was_address_in_egress(event.runtime.containerId, event.dst.addr)"
-    profile_dependency: 0
-    severity: 5 # Medium
-    support_policy: false
-    tags:
-      - "exec"
-      - "network"
-      - "anomaly"
-      - "applicationprofile"
-  - name: "Read Environment Variables from procfs"
-    enabled: true
-    id: "R0008"
-    description: "Detecting reading environment variables from procfs."
-    expressions:
-      message: "'Reading environment variables from procfs: ' + event.fullPath + ' by process ' + event.comm"
-      unique_id: "event.comm + '_' + event.fullPath"
-      rule_expression:
-        - event_type: "open"
-          expression: >
-            event.fullPath.startsWith('/proc/') &&  event.fullPath.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.runtime.containerId, '/environ')
-    
-    profile_dependency: 0 # Required
-    severity: 3
-    support_policy: false
-    tags:
-      - "anomaly"
-      - "procfs"
-      - "environment"
-      - "applicationprofile"
-  - name: "eBPF Program Load"
-    enabled: true
-    id: "R0009"
-    description: "Detecting eBPF program load."
-    expressions:
-      message: "'bpf system call executed in ' + event.k8s.containerName"
-      unique_id: "event.comm + '_' + event.syscallName"
-      rule_expression:
-        - event_type: "syscall"
-          expression: "event.syscallName == 'bpf' && !ap.was_syscall_used(event.runtime.containerId, event.syscallName)"
-    profile_dependency: 1
-    severity: 5
-    support_policy: false
-    tags:
-      - "syscall"
-      - "ebpf"
-      - "applicationprofile"
-  - name: "Unexpected Sensitive File Access"
-    enabled: true
-    id: "R0010"
-    description: "Detecting access to sensitive files."
-    expressions:
-      message: "'Unexpected sensitive file access: ' + event.fullPath + ' by process ' + event.comm"
-      unique_id: "event.comm + '_' + event.fullPath"
-      rule_expression:
-        - event_type: "open"
-          expression: "event.fullPath.startsWith('/etc/shadow') && !ap.was_path_opened(event.runtime.containerId, event.fullPath)"
-    profile_dependency: 1
-    severity: 5
-    support_policy: false
-    tags:
-      - "files"
-      - "anomaly"
-      - "applicationprofile"
-  - name: "Unexpected Egress Network Traffic"
-    enabled: true
-    id: "R0011"
-    description: "Detecting unexpected egress network traffic that is not whitelisted by application profile."
-    expressions:
-      message: "'Unexpected egress network communication to: ' + event.dst.addr + ':' + string(event.port) + ' using ' + event.proto + ' from: ' + event.k8s.containerName"
-      unique_id: "event.dst.addr + '_' + string(event.port) + '_' + event.proto"
-      rule_expression:
-        - event_type: "network"
-          expression: "event.pktType == 'OUTGOING' && !net.is_private_ip(event.dst.addr) && !nn.was_address_in_egress(event.runtime.containerId, event.dst.addr)"
-    profile_dependency: 0
-    severity: 5 # Medium
-    support_policy: false
-    tags:
-      - "whitelisted"
-      - "network"
-      - "anomaly"
-      - "networkprofile"
-  - name: "Exec from malicious source"
-    enabled: true
-    id: "R1000"
-    description: "Detecting exec calls that are from malicious source like: /dev/shm, /proc/self"
-    expressions:
-      message: "'Execution from malicious source: ' + event.exepath + ' in directory ' + event.cwd"
-      unique_id: "event.comm + '_' + event.exepath + '_' + event.pcomm"
-      rule_expression:
-        - event_type: "exec"
-          expression: "(event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') ||  (parse.get_exec_path(event.args, event.comm).startsWith('/dev/shm/'))) \n"
-    profile_dependency: 2
-    severity: 8
-    support_policy: true
-    tags:
-      - "exec"
-      - "signature"
-      - "malicious"
-  - name: "Exec Binary Not In Base Image"
-    enabled: true
-    id: "R1001"
-    description: "Detecting exec calls of binaries that are not included in the base image"
-    expressions:
-      message: "'Process (' + event.comm + ') was executed and is not part of the image'"
-      unique_id: "event.comm + '_' + event.exepath + '_' + event.pcomm"
-      rule_expression:
-        - event_type: "exec"
-          expression: >
-            (event.upperlayer == true ||
-    
-             event.pupperlayer == true) &&
-            !ap.was_executed(event.runtime.containerId, parse.get_exec_path(event.args, event.comm))
-    
-    profile_dependency: 1
-    severity: 8
-    support_policy: false
-    tags:
-      - "exec"
-      - "malicious"
-      - "binary"
-      - "base image"
-      - "applicationprofile"
-  - name: "Kernel Module Load"
-    enabled: true
-    id: "R1002"
-    description: "Detecting Kernel Module Load."
-    expressions:
-      message: "'Kernel module load syscall (' + event.syscallName + ') was called'"
-      unique_id: "event.syscallName"
-      rule_expression:
-        - event_type: "syscall"
-          expression: >
-            event.syscallName == 'init_module' || event.syscallName == 'finit_module'
-    
-    profile_dependency: 2
-    severity: 10
-    support_policy: false
-    tags:
-      - "syscall"
-      - "kernel"
-      - "module"
-      - "load"
-  - name: "Malicious SSH Connection"
-    enabled: true
-    id: "R1003"
-    description: "Detecting ssh connection to disallowed port"
-    expressions:
-      message: "'Malicious SSH connection attempt to ' + event.dst_ip + ':' + string(event.dst_port)"
-      unique_id: "event.comm + '_' + event.dst_ip + '_' + string(event.dst_port)"
-      rule_expression:
-        - event_type: "ssh"
-          expression: "event.src_port >= 32768 && event.src_port <= 60999 && !(event.dst_port in [22, 2022]) && !nn.was_address_in_egress(event.runtime.containerId, event.dst_ip)"
-    profile_dependency: 1
-    severity: 5
-    support_policy: false
-    tags:
-      - "ssh"
-      - "connection"
-      - "port"
-      - "malicious"
-      - "networkprofile"
-  - name: "Exec from mount"
-    enabled: true
-    id: "R1004"
-    description: "Detecting exec calls from mounted paths."
-    expressions:
-      message: "'Process (' + event.comm + ') was executed from a mounted path'"
-      unique_id: "event.comm + '_' + event.exepath + '_'"
-      rule_expression:
-        - event_type: "exec"
-          expression: "!ap.was_executed(event.runtime.containerId, parse.get_exec_path(event.args, event.comm)) && k8s.get_container_mount_paths(event.k8s.namespace, event.k8s.podName, event.k8s.containerName).exists(mount, event.exepath.startsWith(mount) || parse.get_exec_path(event.args, event.comm).startsWith(mount))"
-    profile_dependency: 1
-    severity: 5
-    support_policy: false
-    tags:
-      - "exec"
-      - "mount"
-      - "applicationprofile"
-  - name: "Fileless Execution"
-    enabled: true
-    id: "R1005"
-    description: "Detecting Fileless Execution"
-    expressions:
-      message: "'Fileless execution detected: exec call \"' + event.comm + '\" is from a malicious source'"
-      unique_id: "event.comm + '_' + event.exepath + '_' + event.pcomm"
-      rule_expression:
-        - event_type: "exec"
-          expression: "event.exepath.contains('memfd') || event.exepath.startsWith('/proc/self/fd') || event.exepath.matches('/proc/[0-9]+/fd/[0-9]+')"
-    profile_dependency: 2
-    severity: 8
-    support_policy: false
-    tags:
-      - "fileless"
-      - "execution"
-      - "malicious"
-  - name: "Unshare System Call usage"
-    enabled: true
-    id: "R1006"
-    description: "Detecting Unshare System Call usage, which can be used to escape container."
-    expressions:
-      message: "'Unshare system call detected: ' + event.syscallName + ' with PID ' + string(event.pid)"
-      unique_id: "event.syscallName"
-      rule_expression:
-        - event_type: "syscall"
-          expression: "event.syscallName == 'unshare' && !ap.was_syscall_used(event.runtime.containerId, event.syscallName)"
-    profile_dependency: 2
-    severity: 5
-    support_policy: false
-    tags:
-      - "syscall"
-      - "escape"
-      - "unshare"
-      - "anomaly"
-      - "applicationprofile"
-  - name: "XMR Crypto Mining Detection"
-    enabled: true
-    id: "R1007"
-    description: "Detecting XMR Crypto Miners by randomx algorithm usage."
-    expressions:
-      message: "'XMR Crypto Miner process: (' + event.exe_path + ') executed'"
-      unique_id: "event.exe_path + '_' + event.comm"
-      rule_expression:
-        - event_type: "randomx"
-          expression: "true"
-    profile_dependency: 2
-    severity: 10
-    support_policy: false
-    tags:
-      - "crypto"
-      - "miners"
-      - "malicious"
-  - name: "Crypto Mining Domain Communication"
-    enabled: true
-    id: "R1008"
-    description: "Detecting Crypto miners communication by domain"
-    expressions:
-      message: "'Communication with a known crypto mining domain: ' + event.name"
-      unique_id: "event.name + '_' + event.comm"
-      rule_expression:
-        - event_type: "dns"
-          expression: "event.name in ['2cryptocalc.com.', '2miners.com.', 'antpool.com.', 'asia1.ethpool.org.', 'bohemianpool.com.', 'botbox.dev.', 'btm.antpool.com.', 'c3pool.com.', 'c4pool.org.', 'ca.minexmr.com.', 'cn.stratum.slushpool.com.', 'dash.antpool.com.', 'data.miningpoolstats.stream.', 'de.minexmr.com.', 'eth-ar.dwarfpool.com.', 'eth-asia.dwarfpool.com.', 'eth-asia1.nanopool.org.', 'eth-au.dwarfpool.com.', 'eth-au1.nanopool.org.', 'eth-br.dwarfpool.com.', 'eth-cn.dwarfpool.com.', 'eth-cn2.dwarfpool.com.', 'eth-eu.dwarfpool.com.', 'eth-eu1.nanopool.org.', 'eth-eu2.nanopool.org.', 'eth-hk.dwarfpool.com.', 'eth-jp1.nanopool.org.', 'eth-ru.dwarfpool.com.', 'eth-ru2.dwarfpool.com.', 'eth-sg.dwarfpool.com.', 'eth-us-east1.nanopool.org.', 'eth-us-west1.nanopool.org.', 'eth-us.dwarfpool.com.', 'eth-us2.dwarfpool.com.', 'eth.antpool.com.', 'eu.stratum.slushpool.com.', 'eu1.ethermine.org.', 'eu1.ethpool.org.', 'fastpool.xyz.', 'fr.minexmr.com.', 'kriptokyng.com.', 'mine.moneropool.com.', 'mine.xmrpool.net.', 'miningmadness.com.', 'monero.cedric-crispin.com.', 'monero.crypto-pool.fr.', 'monero.fairhash.org.', 'monero.hashvault.pro.', 'monero.herominers.com.', 'monerod.org.', 'monerohash.com.', 'moneroocean.stream.', 'monerop.com.', 'multi-pools.com.', 'p2pool.io.', 'pool.kryptex.com.', 'pool.minexmr.com.', 'pool.monero.hashvault.pro.', 'pool.rplant.xyz.', 'pool.supportxmr.com.', 'pool.xmr.pt.', 'prohashing.com.', 'rx.unmineable.com.', 'sg.minexmr.com.', 'sg.stratum.slushpool.com.', 'skypool.org.', 'solo-xmr.2miners.com.', 'ss.antpool.com.', 'stratum-btm.antpool.com.', 'stratum-dash.antpool.com.', 'stratum-eth.antpool.com.', 'stratum-ltc.antpool.com.', 'stratum-xmc.antpool.com.', 'stratum-zec.antpool.com.', 'stratum.antpool.com.', 'supportxmr.com.', 'trustpool.cc.', 'us-east.stratum.slushpool.com.', 'us1.ethermine.org.', 'us1.ethpool.org.', 'us2.ethermine.org.', 'us2.ethpool.org.', 'web.xmrpool.eu.', 'www.domajorpool.com.', 'www.dxpool.com.', 'www.mining-dutch.nl.', 'xmc.antpool.com.', 'xmr-asia1.nanopool.org.', 'xmr-au1.nanopool.org.', 'xmr-eu1.nanopool.org.', 'xmr-eu2.nanopool.org.', 'xmr-jp1.nanopool.org.', 'xmr-us-east1.nanopool.org.', 'xmr-us-west1.nanopool.org.', 'xmr.2miners.com.', 'xmr.crypto-pool.fr.', 'xmr.gntl.uk.', 'xmr.nanopool.org.', 'xmr.pool-pay.com.', 'xmr.pool.minergate.com.', 'xmr.solopool.org.', 'xmr.volt-mine.com.', 'xmr.zeropool.io.', 'zec.antpool.com.', 'zergpool.com.', 'auto.c3pool.org.', 'us.monero.herominers.com.']"
-    profile_dependency: 2
-    severity: 10
-    support_policy: false
-    tags:
-      - "network"
-      - "crypto"
-      - "miners"
-      - "malicious"
-      - "dns"
-  - name: "Crypto Mining Related Port Communication"
-    enabled: true
-    id: "R1009"
-    description: "Detecting Crypto Miners by suspicious port usage."
-    expressions:
-      message: "'Detected crypto mining related port communication on port ' + string(event.port) + ' to ' + event.dst.addr + ' with protocol ' + event.proto"
-      unique_id: "event.comm + '_' + string(event.port)"
-      rule_expression:
-        - event_type: "network"
-          expression: "event.proto == 'TCP' && event.pktType == 'OUTGOING' && event.port in [3333, 45700] && !nn.was_address_in_egress(event.runtime.containerId, event.dst.addr)"
-    profile_dependency: 1
-    severity: 3
-    support_policy: false
-    tags:
-      - "network"
-      - "crypto"
-      - "miners"
-      - "malicious"
-      - "networkprofile"
-  - name: "Symlink Created Over Sensitive File"
-    enabled: true
-    id: "R1010"
-    description: "Detects symlink creation over sensitive files"
-    expressions:
-      message: "'Symlink created over sensitive file: ' + event.oldpath + ' -> ' + event.newpath"
-      unique_id: "event.comm + '_' + event.oldpath"
-      rule_expression:
-        - event_type: "symlink"
-          expression: "(event.oldpath.startsWith('/etc/shadow') || event.oldpath.startsWith('/etc/sudoers')) && !ap.was_path_opened(event.runtime.containerId, event.oldpath)"
-    profile_dependency: 0
-    severity: 5
-    support_policy: true
-    tags:
-      - "anomaly"
-      - "symlink"
-      - "applicationprofile"
-  - name: "LD_PRELOAD Hook"
-    enabled: true
-    id: "R1011"
-    description: "Detecting ld_preload hook techniques."
-    expressions:
-      message: "'Process (' + event.comm + ') was executed and is using the environment variable ' + process.get_ld_hook_var(event.pid)"
-      unique_id: "event.comm + '_' + event.exepath + '_' + event.pcomm"
-      rule_expression:
-        - event_type: "exec"
-          expression: "event.comm != 'java' && event.k8s.containerName != 'matlab' && process.get_ld_hook_var(event.pid) != ''"
-        - event_type: "open"
-          expression: "event.fullPath == '/etc/ld.so.preload' && has(event.flagsRaw) && event.flagsRaw != 0"
-    profile_dependency: 1
-    severity: 3
-    support_policy: true
-    tags:
-      - "exec"
-      - "malicious"
-      - "applicationprofile"
-  - name: "Hardlink Created Over Sensitive File"
-    enabled: true
-    id: "R1012"
-    description: "Detecting hardlink creation over sensitive files."
-    expressions:
-      message: "'Hardlink created over sensitive file: ' + event.oldpath + ' - ' + event.newpath"
-      unique_id: "event.comm + '_' + event.oldpath"
-      rule_expression:
-        - event_type: "hardlink"
-          expression: "(event.oldpath.startsWith('/etc/shadow') || event.oldpath.startsWith('/etc/sudoers')) && !ap.was_path_opened(event.runtime.containerId, event.oldpath)"
-    profile_dependency: 1
-    severity: 5
-    support_policy: true
-    tags:
-      - "files"
-      - "malicious"
-      - "applicationprofile"
-  - name: "Malicious Ptrace Usage"
-    enabled: true
-    id: "R1015"
-    description: "Detecting potentially malicious ptrace usage."
-    expressions:
-      message: "'Malicious ptrace usage detected from: ' + event.comm + ' on PID: ' + string(event.pid)"
-      unique_id: "event.exe_path + '_' + event.comm"
-      rule_expression:
-        - event_type: "ptrace"
-          expression: "true"
-    profile_dependency: 2
-    severity: 5
-    support_policy: false
-    tags:
-      - "process"
-      - "malicious"
-  - name: "Unexpected io_uring Operation Detected"
-    enabled: true
-    id: "R1030"
-    description: "Detects io_uring operations that were not recorded during the initial observation period, indicating potential unauthorized activity."
-    expressions:
-      message: "'Unexpected io_uring operation detected: (opcode=' + string(event.opcode) + ') flags=0x' + (has(event.flags) ? string(event.flags) : '0') + ' in ' + event.comm + '.'"
-      unique_id: "string(event.opcode) + '_' + event.comm"
-      rule_expression:
-        - event_type: "iouring"
-          expression: "true"
-    profile_dependency: 0
-    severity: 5
-    support_policy: true
-    tags:
-      - "syscalls"
-      - "io_uring"
-      - "applicationprofile"
+    - name: "Unexpected process launched"
+      enabled: true
+      id: "R0001"
+      description: "Detects unexpected process launches that are not in the baseline"
+      expressions:
+        message: "'Unexpected process launched: ' + exec.comm + ' with PID ' + string(exec.pid)"
+        unique_id: "exec.comm + '_' + exec.exe_path"
+        rule_expression:
+          - event_type: "exec"
+            expression: "!ap.was_executed(exec.runtime.container_id, parse.get_exec_path(exec.args, exec.comm))"
+      profile_dependency: 0
+      severity: 1
+      support_policy: false
+      tags:
+        - "anomaly"
+        - "process"
+        - "exec"
+        - "applicationprofile"
+    - name: "Unexpected file access"
+      enabled: true
+      id: "R0002"
+      description: "Detects unexpected file access that is not in the baseline"
+      expressions:
+        message: "'Unexpected file access detected: ' + open.comm + ' with PID ' + string(open.pid) + ' to ' + open.full_path"
+        unique_id: "open.comm + '_' + open.full_path"
+        rule_expression:
+          - event_type: "open"
+            expression: >
+              (open.full_path.startsWith('/etc/') ||
+              open.full_path.startsWith('/var/log/') ||
+              open.full_path.startsWith('/var/run/') ||
+              open.full_path.startsWith('/run/') ||
+              open.full_path.startsWith('/var/spool/cron/') ||
+              open.full_path.startsWith('/var/www/') ||
+              open.full_path.startsWith('/var/lib/') ||
+              open.full_path.startsWith('/opt/') ||
+              open.full_path.startsWith('/usr/local/') ||
+              open.full_path.startsWith('/app/') ||
+              open.full_path == '/.dockerenv' ||
+              open.full_path == '/proc/self/environ')
+              &&
+              !(open.full_path.startsWith('/run/secrets/kubernetes.io/serviceaccount') ||
+                open.full_path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') ||
+                open.full_path.startsWith('/tmp'))
+              &&
+              !ap.was_path_opened(open.runtime.container_id, open.full_path)
+      profile_dependency: 0
+      severity: 1
+      support_policy: false
+      tags:
+        - "anomaly"
+        - "file"
+        - "open"
+        - "applicationprofile"
+    - name: "Unexpected system call"
+      enabled: true
+      id: "R0003"
+      description: "Detects unexpected system calls that are not whitelisted by application profile"
+      expressions:
+        message: "'Unexpected system call detected: ' + syscall.syscall_name + ' with PID ' + string(syscall.pid)"
+        unique_id: "syscall.syscall_name"
+        rule_expression:
+          - event_type: "syscall"
+            expression: "!ap.was_syscall_used(syscall.runtime.container_id, syscall.syscall_name)"
+      profile_dependency: 0
+      severity: 1
+      support_policy: false
+      tags:
+        - "anomaly"
+        - "syscall"
+        - "applicationprofile"
+    - name: "Unexpected capability used"
+      enabled: true
+      id: "R0004"
+      description: "Detects unexpected capabilities that are not whitelisted by application profile"
+      expressions:
+        message: "'Unexpected capability used: ' + capabilities.cap_name + ' in syscall ' + capabilities.syscall + ' with PID ' + string(capabilities.pid)"
+        unique_id: "capabilities.comm + '_' + capabilities.cap_name"
+        rule_expression:
+          - event_type: "capabilities"
+            expression: "!ap.was_capability_used(capabilities.runtime.container_id, capabilities.cap_name)"
+      profile_dependency: 0
+      severity: 1
+      support_policy: false
+      tags:
+        - "anomaly"
+        - "capabilities"
+        - "applicationprofile"
+    - name: "Unexpected domain request"
+      enabled: true
+      id: "R0005"
+      description: "Detecting unexpected domain requests that are not whitelisted by application profile."
+      expressions:
+        message: "'Unexpected domain communication: ' + dns.dns_name + ' from: ' + dns.k8s.container_name"
+        unique_id: "dns.comm + '_' + dns.dns_name"
+        rule_expression:
+          - event_type: "dns"
+            expression: "!dns.dns_name.endsWith('.svc.cluster.local.') && !nn.is_domain_in_egress(dns.runtime.container_id, dns.dns_name)"
+      profile_dependency: 0
+      severity: 1
+      support_policy: false
+      tags:
+        - "dns"
+        - "anomaly"
+        - "networkprofile"
+    - name: "Unexpected Service Account Token Access"
+      enabled: true
+      id: "R0006"
+      description: "Detecting unexpected access to service account token."
+      expressions:
+        message: "'Unexpected access to service account token: ' + open.full_path + ' with flags: ' + open.flags.join(',')"
+        unique_id: "open.comm"
+        rule_expression:
+          - event_type: "open"
+            expression: >
+              ((open.full_path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && open.full_path.endsWith('/token')) || 
+               (open.full_path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && open.full_path.endsWith('/token')) ||
+               (open.full_path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && open.full_path.endsWith('/token')) ||
+               (open.full_path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && open.full_path.endsWith('/token'))) &&
+              !ap.was_path_opened_with_prefix(open.runtime.container_id, '/run/secrets/kubernetes.io/serviceaccount') &&
+              !ap.was_path_opened_with_prefix(open.runtime.container_id, '/var/run/secrets/kubernetes.io/serviceaccount') &&
+              !ap.was_path_opened_with_prefix(open.runtime.container_id, '/run/secrets/eks.amazonaws.com/serviceaccount') &&
+              !ap.was_path_opened_with_prefix(open.runtime.container_id, '/var/run/secrets/eks.amazonaws.com/serviceaccount')
+      profile_dependency: 1
+      severity: 5
+      support_policy: false
+      tags:
+        - "anomaly"
+        - "serviceaccount"
+        - "applicationprofile"
+    - name: "Kubernetes Client Executed"
+      enabled: true
+      id: "R0007"
+      description: "Detecting execution of kubernetes client"
+      expressions:
+        message: "event_type == 'exec' ? 'Kubernetes client (' + exec.comm + ') was executed with PID ' + string(exec.pid) : 'Network connection to Kubernetes API server from ' + network.runtime.container_id"
+        unique_id: "event_type == 'exec' ? 'exec_' + exec.comm : 'network_' + network.dst_endpoint.addr"
+        rule_expression:
+          - event_type: "exec"
+            expression: "(exec.comm == 'kubectl' || exec.exe_path.endsWith('/kubectl')) && !ap.was_executed(exec.runtime.container_id, parse.get_exec_path(exec.args, exec.comm))"
+          - event_type: "network"
+            expression: "network.pkt_type == 'OUTGOING' && k8s.is_api_server_address(network.dst_endpoint.addr) && !nn.was_address_in_egress(network.runtime.container_id, network.dst_endpoint.addr)"
+      profile_dependency: 0
+      severity: 5 # Medium
+      support_policy: false
+      tags:
+        - "exec"
+        - "network"
+        - "anomaly"
+        - "applicationprofile"
+    - name: "Read Environment Variables from procfs"
+      enabled: true
+      id: "R0008"
+      description: "Detecting reading environment variables from procfs."
+      expressions:
+        message: "'Reading environment variables from procfs: ' + open.full_path + ' by process ' + open.comm"
+        unique_id: "open.comm + '_' + open.full_path"
+        rule_expression:
+          - event_type: "open"
+            expression: >
+              open.full_path.startsWith('/proc/') && 
+              open.full_path.endsWith('/environ') &&
+              !ap.was_path_opened_with_suffix(open.runtime.container_id, '/environ')
+      profile_dependency: 0 # Required
+      severity: 3
+      support_policy: false
+      tags:
+        - "anomaly"
+        - "procfs"
+        - "environment"
+        - "applicationprofile"
+    - name: "eBPF Program Load"
+      enabled: true
+      id: "R0009"
+      description: "Detecting eBPF program load."
+      expressions:
+        message: "'bpf system call executed in ' + syscall.k8s.container_name"
+        unique_id: "syscall.comm + '_' + syscall.syscall_name"
+        rule_expression:
+          - event_type: "syscall"
+            expression: "syscall.syscall_name == 'bpf' && !ap.was_syscall_used(syscall.runtime.container_id, syscall.syscall_name)"
+      profile_dependency: 1
+      severity: 5
+      support_policy: false
+      tags:
+        - "syscall"
+        - "ebpf"
+        - "applicationprofile"
+    - name: "Unexpected Sensitive File Access"
+      enabled: true
+      id: "R0010"
+      description: "Detecting access to sensitive files."
+      expressions:
+        message: "'Unexpected sensitive file access: ' + open.full_path + ' by process ' + open.comm"
+        unique_id: "open.comm + '_' + open.full_path"
+        rule_expression:
+          - event_type: "open"
+            expression: "open.full_path.startsWith('/etc/shadow') && !ap.was_path_opened(open.runtime.container_id, open.full_path)"
+      profile_dependency: 1
+      severity: 5
+      support_policy: false
+      tags:
+        - "files"
+        - "anomaly"
+        - "applicationprofile"
+    - name: "Unexpected Egress Network Traffic"
+      enabled: true
+      id: "R0011"
+      description: "Detecting unexpected egress network traffic that is not whitelisted by application profile."
+      expressions:
+        message: "'Unexpected egress network communication to: ' + network.dst_endpoint.addr + ':' + string(dyn(network.port)) + ' using ' + network.proto + ' from: ' + network.k8s.container_name"
+        unique_id: "network.dst_endpoint.addr + '_' + string(dyn(network.port)) + '_' + network.proto"
+        rule_expression:
+          - event_type: "network"
+            expression: "network.pkt_type == 'OUTGOING' && !net.is_private_ip(network.dst_endpoint.addr) && !nn.was_address_in_egress(network.runtime.container_id, network.dst_endpoint.addr)"
+      profile_dependency: 0
+      severity: 5 # Medium
+      support_policy: false
+      tags:
+        - "whitelisted"
+        - "network"
+        - "anomaly"
+        - "networkprofile"
+    - name: "Exec from malicious source"
+      enabled: true
+      id: "R1000"
+      description: "Detecting exec calls that are from malicious source like: /dev/shm, /proc/self"
+      expressions:
+        message: "'Execution from malicious source: ' + exec.exe_path + ' in directory ' + exec.cwd"
+        unique_id: "exec.comm + '_' + exec.exe_path + '_' + exec.pcomm"
+        rule_expression:
+          - event_type: "exec"
+            expression: >
+              (exec.exe_path == '/dev/shm' || exec.exe_path.startsWith('/dev/shm/')) ||
+              (exec.cwd == '/dev/shm' || exec.cwd.startsWith('/dev/shm/') || 
+              (parse.get_exec_path(exec.args, exec.comm).startsWith('/dev/shm/')))
+      profile_dependency: 2
+      severity: 8
+      support_policy: true
+      tags:
+        - "exec"
+        - "signature"
+        - "malicious"
+    - name: "Exec Binary Not In Base Image"
+      enabled: true
+      id: "R1001"
+      description: "Detecting exec calls of binaries that are not included in the base image"
+      expressions:
+        message: "'Process (' + exec.comm + ') was executed and is not part of the image'"
+        unique_id: "exec.comm + '_' + exec.exe_path + '_' + exec.pcomm"
+        rule_expression:
+          - event_type: "exec"
+            expression: >
+              (exec.upper_layer == true ||
+               exec.pupper_layer == true) &&
+              !ap.was_executed(exec.runtime.container_id, parse.get_exec_path(exec.args, exec.comm))
+      profile_dependency: 1
+      severity: 8
+      support_policy: false
+      tags:
+        - "exec"
+        - "malicious"
+        - "binary"
+        - "base image"
+        - "applicationprofile"
+    - name: "Kernel Module Load"
+      enabled: true
+      id: "R1002"
+      description: "Detecting Kernel Module Load."
+      expressions:
+        message: "'Kernel module load syscall (' + syscall.syscall_name + ') was called'"
+        unique_id: "syscall.syscall_name"
+        rule_expression:
+          - event_type: "syscall"
+            expression: >
+              syscall.syscall_name == 'init_module' ||
+              syscall.syscall_name == 'finit_module'
+      profile_dependency: 2
+      severity: 10
+      support_policy: false
+      tags:
+        - "syscall"
+        - "kernel"
+        - "module"
+        - "load"
+    - name: "Malicious SSH Connection"
+      enabled: true
+      id: "R1003"
+      description: "Detecting ssh connection to disallowed port"
+      expressions:
+        message: "'Malicious SSH connection attempt to ' + ssh.dst_ip + ':' + string(dyn(ssh.dst_port))"
+        unique_id: "ssh.comm + '_' + ssh.dst_ip + '_' + string(dyn(ssh.dst_port))"
+        rule_expression:
+          - event_type: "ssh"
+            expression: "dyn(ssh.src_port) >= 32768 && dyn(ssh.src_port) <= 60999 && !(dyn(ssh.dst_port) in [22, 2022]) && !nn.was_address_in_egress(ssh.runtime.container_id, ssh.dst_ip)"
+      profile_dependency: 1
+      severity: 5
+      support_policy: false
+      tags:
+        - "ssh"
+        - "connection"
+        - "port"
+        - "malicious"
+        - "networkprofile"
+    - name: "Exec from mount"
+      enabled: true
+      id: "R1004"
+      description: "Detecting exec calls from mounted paths."
+      expressions:
+        message: "'Process (' + exec.comm + ') was executed from a mounted path'"
+        unique_id: "exec.comm + '_' + exec.exe_path + '_'"
+        rule_expression:
+          - event_type: "exec"
+            expression: "!ap.was_executed(exec.runtime.container_id, parse.get_exec_path(exec.args, exec.comm)) && k8s.get_container_mount_paths(exec.k8s.namespace, exec.k8s.pod_name, exec.k8s.container_name).exists(mount, exec.exe_path.startsWith(mount) || parse.get_exec_path(exec.args, exec.comm).startsWith(mount))"
+      profile_dependency: 1
+      severity: 5
+      support_policy: false
+      tags:
+        - "exec"
+        - "mount"
+        - "applicationprofile"
+    - name: "Fileless Execution"
+      enabled: true
+      id: "R1005"
+      description: "Detecting Fileless Execution"
+      expressions:
+        message: "'Fileless execution detected: exec call \"' + exec.comm + '\" is from a malicious source'"
+        unique_id: "exec.comm + '_' + exec.exe_path + '_' + exec.pcomm"
+        rule_expression:
+          - event_type: "exec"
+            expression: "exec.exe_path.contains('memfd') || exec.exe_path.startsWith('/proc/self/fd') || exec.exe_path.matches('/proc/[0-9]+/fd/[0-9]+')"
+      profile_dependency: 2
+      severity: 8
+      support_policy: false
+      tags:
+        - "fileless"
+        - "execution"
+        - "malicious"
+    - name: "Unshare System Call usage"
+      enabled: true
+      id: "R1006"
+      description: "Detecting Unshare System Call usage, which can be used to escape container."
+      expressions:
+        message: "'Unshare system call detected: ' + syscall.syscall_name + ' with PID ' + string(syscall.pid)"
+        unique_id: "syscall.syscall_name"
+        rule_expression:
+          - event_type: "syscall"
+            expression: "syscall.syscall_name == 'unshare' && !ap.was_syscall_used(syscall.runtime.container_id, syscall.syscall_name)"
+      profile_dependency: 2
+      severity: 5
+      support_policy: false
+      tags:
+        - "syscall"
+        - "escape"
+        - "unshare"
+        - "anomaly"
+        - "applicationprofile"
+    - name: "XMR Crypto Mining Detection"
+      enabled: true
+      id: "R1007"
+      description: "Detecting XMR Crypto Miners by randomx algorithm usage."
+      expressions:
+        message: "'XMR Crypto Miner process: (' + randomx.exe_path + ') executed'"
+        unique_id: "randomx.exe_path + '_' + randomx.comm"
+        rule_expression:
+          - event_type: "randomx"
+            expression: "true"
+      profile_dependency: 2
+      severity: 10
+      support_policy: false
+      tags:
+        - "crypto"
+        - "miners"
+        - "malicious"
+    - name: "Crypto Mining Domain Communication"
+      enabled: true
+      id: "R1008"
+      description: "Detecting Crypto miners communication by domain"
+      expressions:
+        message: "'Communication with a known crypto mining domain: ' + dns.dns_name"
+        unique_id: "dns.dns_name + '_' + dns.comm"
+        rule_expression:
+          - event_type: "dns"
+            expression: "dns.dns_name in ['2cryptocalc.com.', '2miners.com.', 'antpool.com.', 'asia1.ethpool.org.', 'bohemianpool.com.', 'botbox.dev.', 'btm.antpool.com.', 'c3pool.com.', 'c4pool.org.', 'ca.minexmr.com.', 'cn.stratum.slushpool.com.', 'dash.antpool.com.', 'data.miningpoolstats.stream.', 'de.minexmr.com.', 'eth-ar.dwarfpool.com.', 'eth-asia.dwarfpool.com.', 'eth-asia1.nanopool.org.', 'eth-au.dwarfpool.com.', 'eth-au1.nanopool.org.', 'eth-br.dwarfpool.com.', 'eth-cn.dwarfpool.com.', 'eth-cn2.dwarfpool.com.', 'eth-eu.dwarfpool.com.', 'eth-eu1.nanopool.org.', 'eth-eu2.nanopool.org.', 'eth-hk.dwarfpool.com.', 'eth-jp1.nanopool.org.', 'eth-ru.dwarfpool.com.', 'eth-ru2.dwarfpool.com.', 'eth-sg.dwarfpool.com.', 'eth-us-east1.nanopool.org.', 'eth-us-west1.nanopool.org.', 'eth-us.dwarfpool.com.', 'eth-us2.dwarfpool.com.', 'eth.antpool.com.', 'eu.stratum.slushpool.com.', 'eu1.ethermine.org.', 'eu1.ethpool.org.', 'fastpool.xyz.', 'fr.minexmr.com.', 'kriptokyng.com.', 'mine.moneropool.com.', 'mine.xmrpool.net.', 'miningmadness.com.', 'monero.cedric-crispin.com.', 'monero.crypto-pool.fr.', 'monero.fairhash.org.', 'monero.hashvault.pro.', 'monero.herominers.com.', 'monerod.org.', 'monerohash.com.', 'moneroocean.stream.', 'monerop.com.', 'multi-pools.com.', 'p2pool.io.', 'pool.kryptex.com.', 'pool.minexmr.com.', 'pool.monero.hashvault.pro.', 'pool.rplant.xyz.', 'pool.supportxmr.com.', 'pool.xmr.pt.', 'prohashing.com.', 'rx.unmineable.com.', 'sg.minexmr.com.', 'sg.stratum.slushpool.com.', 'skypool.org.', 'solo-xmr.2miners.com.', 'ss.antpool.com.', 'stratum-btm.antpool.com.', 'stratum-dash.antpool.com.', 'stratum-eth.antpool.com.', 'stratum-ltc.antpool.com.', 'stratum-xmc.antpool.com.', 'stratum-zec.antpool.com.', 'stratum.antpool.com.', 'supportxmr.com.', 'trustpool.cc.', 'us-east.stratum.slushpool.com.', 'us1.ethermine.org.', 'us1.ethpool.org.', 'us2.ethermine.org.', 'us2.ethpool.org.', 'web.xmrpool.eu.', 'www.domajorpool.com.', 'www.dxpool.com.', 'www.mining-dutch.nl.', 'xmc.antpool.com.', 'xmr-asia1.nanopool.org.', 'xmr-au1.nanopool.org.', 'xmr-eu1.nanopool.org.', 'xmr-eu2.nanopool.org.', 'xmr-jp1.nanopool.org.', 'xmr-us-east1.nanopool.org.', 'xmr-us-west1.nanopool.org.', 'xmr.2miners.com.', 'xmr.crypto-pool.fr.', 'xmr.gntl.uk.', 'xmr.nanopool.org.', 'xmr.pool-pay.com.', 'xmr.pool.minergate.com.', 'xmr.solopool.org.', 'xmr.volt-mine.com.', 'xmr.zeropool.io.', 'zec.antpool.com.', 'zergpool.com.', 'auto.c3pool.org.', 'us.monero.herominers.com.']"
+      profile_dependency: 2
+      severity: 10
+      support_policy: false
+      tags:
+        - "network"
+        - "crypto"
+        - "miners"
+        - "malicious"
+        - "dns"
+    - name: "Crypto Mining Related Port Communication"
+      enabled: true
+      id: "R1009"
+      description: "Detecting Crypto Miners by suspicious port usage."
+      expressions:
+        message: "'Detected crypto mining related port communication on port ' + string(dyn(network.port)) + ' to ' + network.dst_endpoint.addr + ' with protocol ' + network.proto"
+        unique_id: "network.comm + '_' + string(dyn(network.port))"
+        rule_expression:
+          - event_type: "network"
+            expression: "network.proto == 'TCP' && network.pkt_type == 'OUTGOING' && dyn(network.port) in [3333, 45700] && !nn.was_address_in_egress(network.runtime.container_id, network.dst_endpoint.addr)"
+      profile_dependency: 1
+      severity: 3
+      support_policy: false
+      tags:
+        - "network"
+        - "crypto"
+        - "miners"
+        - "malicious"
+        - "networkprofile"
+    - name: "Symlink Created Over Sensitive File"
+      enabled: true
+      id: "R1010"
+      description: "Detects symlink creation over sensitive files"
+      expressions:
+        message: "'Symlink created over sensitive file: ' + symlink.old_path + ' -> ' + symlink.new_path"
+        unique_id: "symlink.comm + '_' + symlink.old_path"
+        rule_expression:
+          - event_type: "symlink"
+            expression: "(symlink.old_path.startsWith('/etc/shadow') || symlink.old_path.startsWith('/etc/sudoers')) && !ap.was_path_opened(symlink.runtime.container_id, symlink.old_path)"
+      profile_dependency: 0
+      severity: 5
+      support_policy: true
+      tags:
+        - "anomaly"
+        - "symlink"
+        - "applicationprofile"
+    - name: "LD_PRELOAD Hook"
+      enabled: true
+      id: "R1011"
+      description: "Detecting ld_preload hook techniques."
+      expressions:
+        message: "event_type == 'exec' ? 'Process (' + exec.comm + ') is using a dynamic linker hook: ' + process.get_ld_hook_var(exec.pid) : 'The dynamic linker configuration file (' + open.full_path + ') was modified by process (' + open.comm + ')'"
+        unique_id: "event_type == 'exec' ? 'exec_' + exec.comm + '_' + exec.runtime.container_id : 'open_' + open.full_path + '_' + open.runtime.container_id"
+        rule_expression:
+          - event_type: "exec"
+            expression: "exec.comm != 'java' && exec.k8s.container_name != 'matlab' && process.get_ld_hook_var(exec.pid) != ''"
+          - event_type: "open"
+            expression: "open.full_path == '/etc/ld.so.preload' && has(open.flags_raw) && open.flags_raw != 0"
+      profile_dependency: 1
+      severity: 3
+      support_policy: true
+      tags:
+        - "exec"
+        - "malicious"
+        - "applicationprofile"
+    - name: "Hardlink Created Over Sensitive File"
+      enabled: true
+      id: "R1012"
+      description: "Detecting hardlink creation over sensitive files."
+      expressions:
+        message: "'Hardlink created over sensitive file: ' + hardlink.old_path + ' - ' + hardlink.new_path"
+        unique_id: "hardlink.comm + '_' + hardlink.old_path"
+        rule_expression:
+          - event_type: "hardlink"
+            expression: "(hardlink.old_path.startsWith('/etc/shadow') || hardlink.old_path.startsWith('/etc/sudoers')) && !ap.was_path_opened(hardlink.runtime.container_id, hardlink.old_path)"
+      profile_dependency: 1
+      severity: 5
+      support_policy: true
+      tags:
+        - "files"
+        - "malicious"
+        - "applicationprofile"
+    - name: "Malicious Ptrace Usage"
+      enabled: true
+      id: "R1015"
+      description: "Detecting potentially malicious ptrace usage."
+      expressions:
+        message: "'Malicious ptrace usage detected from: ' + ptrace.comm + ' on PID: ' + string(ptrace.pid)"
+        unique_id: "ptrace.exe_path + '_' + ptrace.comm"
+        rule_expression:
+          - event_type: "ptrace"
+            expression: "true"
+      profile_dependency: 2
+      severity: 5
+      support_policy: false
+      tags:
+        - "process"
+        - "malicious"
+    - name: "Unexpected io_uring Operation Detected"
+      enabled: true
+      id: "R1030"
+      description: "Detects io_uring operations that were not recorded during the initial observation period, indicating potential unauthorized activity."
+      expressions:
+        message: "'Unexpected io_uring operation detected: (opcode=' + string(iouring.opcode) + ') flags=0x' + (has(iouring.flags) ? string(iouring.flags) : '0') + ' in ' + iouring.comm + '.'"
+        unique_id: "string(iouring.opcode) + '_' + iouring.comm"
+        rule_expression:
+          - event_type: "iouring"
+            expression: "true"
+      profile_dependency: 0
+      severity: 5
+      support_policy: true
+      tags:
+        - "syscalls"
+        - "io_uring"
+        - "applicationprofile"
 {{- end }}
