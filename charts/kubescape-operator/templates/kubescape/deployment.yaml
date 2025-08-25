@@ -63,6 +63,36 @@ spec:
           type: RuntimeDefault
         runAsUser: 65532
         fsGroup: 65532
+      initContainers:
+      - name: {{ .Values.serviceDiscovery.urlDiscovery.name }}
+        image: "{{ .Values.serviceDiscovery.urlDiscovery.image.repository }}:{{ .Values.serviceDiscovery.urlDiscovery.image.tag }}"
+        imagePullPolicy: {{ .Values.serviceDiscovery.urlDiscovery.image.pullPolicy }}
+        resources:
+{{ toYaml .Values.serviceDiscovery.resources | indent 14 }}
+        env:
+      {{- if ne .Values.global.httpsProxy "" }}
+          - name: HTTPS_PROXY
+            value: "{{ .Values.global.httpsProxy }}"
+          - name : no_proxy
+            value: "{{ $no_proxy_envar_list }}"
+      {{- end }}
+        args:
+          - -method=get
+          - -scheme=https
+          - -host={{ .Values.server }}
+          - -path=api/v2/servicediscovery
+          - -path-output=/data/services.json
+      {{- if .Values.serviceDiscovery.urlDiscovery.insecureSkipTLSVerify }}
+          - -skip-ssl-verify=true
+      {{- end}}
+        volumeMounts:
+          - name: services
+            mountPath: /data
+      {{- if ne .Values.global.proxySecretFile "" }}
+          - name: proxy-secret
+            mountPath: /etc/ssl/certs/proxy.crt
+            subPath: proxy.crt
+      {{- end }}
       containers:
       - name: kubescape
         image: "{{ .Values.kubescape.image.repository }}:{{ .Values.kubescape.image.tag }}"
@@ -275,8 +305,15 @@ spec:
         - name: failed
           mountPath: /home/nonroot/failed
         - name: {{ .Values.global.cloudConfig }}
-          mountPath: /etc/config
+          mountPath: /etc/config/clusterData.json
           readOnly: true
+          subPath: "clusterData.json"
+        {{- if $components.serviceDiscovery.enabled }}
+        - name: "services"
+          mountPath: /etc/config/services.json
+          readOnly: true
+          subPath: "services.json"
+        {{- end }}
 {{- if .Values.volumeMounts }}
 {{ toYaml .Values.volumeMounts | indent 8 }}
 {{- end }}
@@ -325,10 +362,10 @@ spec:
           items:
           - key: "clusterData"
             path: "clusterData.json"
-          {{- if $components.serviceDiscovery.enabled }}
-          - key: "services"
-            path: "services.json"
-          {{- end }}
+      {{- if $components.serviceDiscovery.enabled }}
+      - name: "services"
+        emptyDir: {}
+      {{- end }}
       - name: host-scanner-definition
         configMap:
           name: host-scanner-definition
