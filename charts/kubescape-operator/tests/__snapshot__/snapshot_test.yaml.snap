@@ -276,16 +276,9 @@ all capabilities:
           "listingURL": "http://grype-offline-db:80/listing.json",
           "relevantImageVulnerabilitiesConfiguration": "enable"
         }
-      metrics: ""
-      services: ""
     kind: ConfigMap
     metadata:
-      annotations:
-        argocd.argoproj.io/sync-options: Delete=false
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation
-        helm.sh/hook-weight: "0"
-        helm.sh/resource-policy: keep
+      annotations: null
       labels:
         app: ks-cloud-config
         app.kubernetes.io/component: ks-cloud-config
@@ -1162,7 +1155,7 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 3ca3213633e8269b560ec4cfc55649a50e43dcda2eb73f0b60d9225d2067ca82
+            checksum/cloud-config: b5ec535bc27d4fc863fb3331c520e8a39f14de5eb4916c7f6108dda9f6e52f08
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/host-scanner-configmap: 6cf2370947bbd9d1c99183fc2c6dac64d0fcd79df984c60644c1f3634dd98bfb
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
@@ -1298,9 +1291,14 @@ all capabilities:
                   name: results
                 - mountPath: /home/nonroot/failed
                   name: failed
-                - mountPath: /etc/config
+                - mountPath: /etc/config/clusterData.json
                   name: ks-cloud-config
                   readOnly: true
+                  subPath: clusterData.json
+                - mountPath: /etc/config/services.json
+                  name: services
+                  readOnly: true
+                  subPath: services.json
                 - mountPath: /etc/ssl/certs/proxy.crt
                   name: proxy-secret
                   subPath: proxy.crt
@@ -1310,6 +1308,34 @@ all capabilities:
           imagePullSecrets:
             - name: foo
             - name: bar
+          initContainers:
+            - args:
+                - -method=get
+                - -scheme=https
+                - -host=api.armosec.io
+                - -path=api/v2/servicediscovery
+                - -path-output=/data/services.json
+              env:
+                - name: HTTPS_PROXY
+                  value: https://foo:bar@baz:1234
+                - name: no_proxy
+                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
+              image: quay.io/kubescape/http-request:v0.2.14
+              imagePullPolicy: IfNotPresent
+              name: url-discovery
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 50Mi
+                requests:
+                  cpu: 10m
+                  memory: 10Mi
+              volumeMounts:
+                - mountPath: /data
+                  name: services
+                - mountPath: /etc/ssl/certs/proxy.crt
+                  name: proxy-secret
+                  subPath: proxy.crt
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -1333,10 +1359,10 @@ all capabilities:
                 items:
                   - key: clusterData
                     path: clusterData.json
-                  - key: services
-                    path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
+            - emptyDir: {}
+              name: services
             - configMap:
                 name: host-scanner-definition
               name: host-scanner-definition
@@ -1883,7 +1909,7 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 3ca3213633e8269b560ec4cfc55649a50e43dcda2eb73f0b60d9225d2067ca82
+            checksum/cloud-config: b5ec535bc27d4fc863fb3331c520e8a39f14de5eb4916c7f6108dda9f6e52f08
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
           labels:
@@ -1968,9 +1994,14 @@ all capabilities:
                   name: tmp-dir
                 - mountPath: /home/nonroot/anchore-resources/db
                   name: grype-db-cache
-                - mountPath: /etc/config
+                - mountPath: /etc/config/clusterData.json
                   name: ks-cloud-config
                   readOnly: true
+                  subPath: clusterData.json
+                - mountPath: /etc/config/services.json
+                  name: services
+                  readOnly: true
+                  subPath: services.json
                 - mountPath: /home/nonroot/.cache/grype
                   name: grype-db
                 - mountPath: /etc/ssl/certs/proxy.crt
@@ -1982,6 +2013,34 @@ all capabilities:
           imagePullSecrets:
             - name: foo
             - name: bar
+          initContainers:
+            - args:
+                - -method=get
+                - -scheme=https
+                - -host=api.armosec.io
+                - -path=api/v2/servicediscovery
+                - -path-output=/data/services.json
+              env:
+                - name: HTTPS_PROXY
+                  value: https://foo:bar@baz:1234
+                - name: no_proxy
+                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
+              image: quay.io/kubescape/http-request:v0.2.14
+              imagePullPolicy: IfNotPresent
+              name: url-discovery
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 50Mi
+                requests:
+                  cpu: 10m
+                  memory: 10Mi
+              volumeMounts:
+                - mountPath: /data
+                  name: services
+                - mountPath: /etc/ssl/certs/proxy.crt
+                  name: proxy-secret
+                  subPath: proxy.crt
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -2009,10 +2068,10 @@ all capabilities:
                 items:
                   - key: clusterData
                     path: clusterData.json
-                  - key: services
-                    path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
+            - emptyDir: {}
+              name: services
             - name: grype-db
               persistentVolumeClaim:
                 claimName: kubescape-kubevuln
@@ -2452,7 +2511,7 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 3ca3213633e8269b560ec4cfc55649a50e43dcda2eb73f0b60d9225d2067ca82
+            checksum/cloud-config: b5ec535bc27d4fc863fb3331c520e8a39f14de5eb4916c7f6108dda9f6e52f08
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/node-agent-config: db33c78fd6f567c8a7ba54394584a8a8603e3711e139ad596a79b1663830adc4
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
@@ -2693,8 +2752,6 @@ all capabilities:
                 items:
                   - key: clusterData
                     path: clusterData.json
-                  - key: services
-                    path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
             - configMap:
@@ -3250,7 +3307,7 @@ all capabilities:
         metadata:
           annotations:
             checksum/capabilities-config: b074456035fd2e5091a12c5b6875e3464ddcee4167a9e052877bfb7722b84240
-            checksum/cloud-config: 3ca3213633e8269b560ec4cfc55649a50e43dcda2eb73f0b60d9225d2067ca82
+            checksum/cloud-config: b5ec535bc27d4fc863fb3331c520e8a39f14de5eb4916c7f6108dda9f6e52f08
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
             checksum/operator-config: a95183e6cda13e32fef088ea6e42d801059e551051281413c349d57f1e70dfc5
@@ -3345,7 +3402,7 @@ all capabilities:
                   readOnly: true
                   subPath: clusterData.json
                 - mountPath: /etc/config/services.json
-                  name: ks-cloud-config
+                  name: services
                   readOnly: true
                   subPath: services.json
                 - mountPath: /etc/config/capabilities.json
@@ -3372,6 +3429,34 @@ all capabilities:
           imagePullSecrets:
             - name: foo
             - name: bar
+          initContainers:
+            - args:
+                - -method=get
+                - -scheme=https
+                - -host=api.armosec.io
+                - -path=api/v2/servicediscovery
+                - -path-output=/data/services.json
+              env:
+                - name: HTTPS_PROXY
+                  value: https://foo:bar@baz:1234
+                - name: no_proxy
+                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
+              image: quay.io/kubescape/http-request:v0.2.14
+              imagePullPolicy: IfNotPresent
+              name: url-discovery
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 50Mi
+                requests:
+                  cpu: 10m
+                  memory: 10Mi
+              volumeMounts:
+                - mountPath: /data
+                  name: services
+                - mountPath: /etc/ssl/certs/proxy.crt
+                  name: proxy-secret
+                  subPath: proxy.crt
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -3400,10 +3485,10 @@ all capabilities:
                 items:
                   - key: clusterData
                     path: clusterData.json
-                  - key: services
-                    path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
+            - emptyDir: {}
+              name: services
             - configMap:
                 items:
                   - key: capabilities
@@ -4230,193 +4315,6 @@ all capabilities:
       namespace: kubescape
     type: Opaque
   79: |
-    apiVersion: batch/v1
-    kind: Job
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-        helm.sh/hook-weight: "1"
-      labels:
-        app: service-discovery
-        app.kubernetes.io/component: service-discovery
-        app.kubernetes.io/instance: RELEASE-NAME
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: kubescape-operator
-        app.kubernetes.io/part-of: kubescape
-        app.kubernetes.io/version: 1.29.2
-        helm.sh/chart: kubescape-operator-1.29.2
-        kubescape.io/ignore: "true"
-        kubescape.io/tier: core
-        tier: ks-control-plane
-      name: service-discovery
-      namespace: kubescape
-    spec:
-      template:
-        metadata:
-          annotations: null
-          labels:
-            app: service-discovery
-            app.kubernetes.io/component: service-discovery
-            app.kubernetes.io/instance: RELEASE-NAME
-            app.kubernetes.io/managed-by: Helm
-            app.kubernetes.io/name: kubescape-operator
-            app.kubernetes.io/part-of: kubescape
-            app.kubernetes.io/version: 1.29.2
-            helm.sh/chart: kubescape-operator-1.29.2
-            kubescape.io/ignore: "true"
-            tier: ks-control-plane
-          name: RELEASE-NAME
-        spec:
-          affinity: null
-          containers:
-            - args:
-                - |
-                  kubectl create configmap ks-cloud-config --from-literal=metrics=$(jq -r '.response.metrics' /data/services.json) --from-file=services=/data/services.json -n kubescape --dry-run=client -o yaml | kubectl patch configmap ks-cloud-config --patch "$(cat -)" -n kubescape
-              command:
-                - /bin/sh
-                - -c
-              image: quay.io/kubescape/kubectl:1.30.3
-              imagePullPolicy: IfNotPresent
-              name: update-configmap
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              volumeMounts:
-                - mountPath: /data
-                  name: shared-data
-          imagePullSecrets:
-            - name: foo
-            - name: bar
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env:
-                - name: HTTPS_PROXY
-                  value: https://foo:bar@baz:1234
-                - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/http-request:v0.2.14
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              volumeMounts:
-                - mountPath: /data
-                  name: shared-data
-                - mountPath: /etc/ssl/certs/proxy.crt
-                  name: proxy-secret
-                  subPath: proxy.crt
-          nodeSelector:
-            kubernetes.io/os: linux
-          restartPolicy: Never
-          securityContext:
-            seccompProfile:
-              type: RuntimeDefault
-          serviceAccountName: service-discovery
-          tolerations: null
-          volumes:
-            - emptyDir: {}
-              name: shared-data
-            - name: proxy-secret
-              secret:
-                secretName: kubescape-proxy-certificate
-  80: |
-    apiVersion: rbac.authorization.k8s.io/v1
-    kind: Role
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-        helm.sh/hook-weight: "0"
-      labels:
-        app: service-discovery
-        app.kubernetes.io/component: service-discovery
-        app.kubernetes.io/instance: RELEASE-NAME
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: kubescape-operator
-        app.kubernetes.io/part-of: kubescape
-        app.kubernetes.io/version: 1.29.2
-        helm.sh/chart: kubescape-operator-1.29.2
-        kubescape.io/ignore: "true"
-        tier: ks-control-plane
-      name: service-discovery
-      namespace: kubescape
-    rules:
-      - apiGroups:
-          - ""
-        resources:
-          - configmaps
-        verbs:
-          - update
-          - create
-          - patch
-          - get
-          - list
-  81: |
-    apiVersion: rbac.authorization.k8s.io/v1
-    kind: RoleBinding
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-        helm.sh/hook-weight: "0"
-      labels:
-        app: service-discovery
-        app.kubernetes.io/component: service-discovery
-        app.kubernetes.io/instance: RELEASE-NAME
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: kubescape-operator
-        app.kubernetes.io/part-of: kubescape
-        app.kubernetes.io/version: 1.29.2
-        helm.sh/chart: kubescape-operator-1.29.2
-        kubescape.io/ignore: "true"
-        tier: ks-control-plane
-      name: service-discovery
-      namespace: kubescape
-    roleRef:
-      apiGroup: rbac.authorization.k8s.io
-      kind: Role
-      name: service-discovery
-    subjects:
-      - kind: ServiceAccount
-        name: service-discovery
-        namespace: kubescape
-  82: |
-    apiVersion: v1
-    kind: ServiceAccount
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-        helm.sh/hook-weight: "0"
-      labels:
-        app: service-discovery
-        app.kubernetes.io/component: service-discovery
-        app.kubernetes.io/instance: RELEASE-NAME
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: kubescape-operator
-        app.kubernetes.io/part-of: kubescape
-        app.kubernetes.io/version: 1.29.2
-        helm.sh/chart: kubescape-operator-1.29.2
-        kubescape.io/ignore: "true"
-        tier: ks-control-plane
-      name: service-discovery
-      namespace: kubescape
-  83: |
     apiVersion: apiregistration.k8s.io/v1
     kind: APIService
     metadata:
@@ -4442,7 +4340,7 @@ all capabilities:
         namespace: kubescape
       version: v1beta1
       versionPriority: 15
-  84: |
+  80: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -4508,7 +4406,7 @@ all capabilities:
           - get
           - watch
           - list
-  85: |
+  81: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -4533,7 +4431,7 @@ all capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  86: |
+  82: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -4558,7 +4456,7 @@ all capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  87: |
+  83: |
     apiVersion: v1
     data:
       config.json: |
@@ -4589,7 +4487,7 @@ all capabilities:
         tier: ks-control-plane
       name: storage
       namespace: kubescape
-  88: |
+  84: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -4707,8 +4605,6 @@ all capabilities:
                 items:
                   - key: clusterData
                     path: clusterData.json
-                  - key: services
-                    path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
             - configMap:
@@ -4717,7 +4613,7 @@ all capabilities:
                     path: config.json
                 name: storage
               name: config
-  89: |
+  85: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -4782,7 +4678,7 @@ all capabilities:
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
         - Egress
-  90: |
+  86: |
     apiVersion: v1
     kind: PersistentVolumeClaim
     metadata:
@@ -4806,7 +4702,7 @@ all capabilities:
       resources:
         requests:
           storage: 5Gi
-  91: |
+  87: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -4832,7 +4728,7 @@ all capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  92: |
+  88: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -4858,7 +4754,7 @@ all capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  93: |
+  89: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -4886,7 +4782,7 @@ all capabilities:
         app.kubernetes.io/component: storage
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  94: |
+  90: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -4904,7 +4800,7 @@ all capabilities:
         tier: ks-control-plane
       name: storage
       namespace: kubescape
-  95: |
+  91: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -5140,7 +5036,7 @@ all capabilities:
         verbs:
           - update
           - patch
-  96: |
+  92: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -5164,7 +5060,7 @@ all capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  97: |
+  93: |
     apiVersion: v1
     data:
       config.json: |
@@ -5449,7 +5345,7 @@ all capabilities:
         tier: ks-control-plane
       name: synchronizer
       namespace: kubescape
-  98: |
+  94: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -5481,7 +5377,7 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 3ca3213633e8269b560ec4cfc55649a50e43dcda2eb73f0b60d9225d2067ca82
+            checksum/cloud-config: b5ec535bc27d4fc863fb3331c520e8a39f14de5eb4916c7f6108dda9f6e52f08
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
             checksum/synchronizer-configmap: df8fee4a6080fe9af89f3fa7c40b9f8dd98a7080c0ef7de7ce0eb07ac8ac1408
@@ -5556,7 +5452,7 @@ all capabilities:
                   readOnly: true
                   subPath: clusterData.json
                 - mountPath: /etc/config/services.json
-                  name: ks-cloud-config
+                  name: services
                   readOnly: true
                   subPath: services.json
                 - mountPath: /etc/ssl/certs/ca-certificates.crt
@@ -5572,6 +5468,34 @@ all capabilities:
           imagePullSecrets:
             - name: foo
             - name: bar
+          initContainers:
+            - args:
+                - -method=get
+                - -scheme=https
+                - -host=api.armosec.io
+                - -path=api/v2/servicediscovery
+                - -path-output=/data/services.json
+              env:
+                - name: HTTPS_PROXY
+                  value: https://foo:bar@baz:1234
+                - name: no_proxy
+                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
+              image: quay.io/kubescape/http-request:v0.2.14
+              imagePullPolicy: IfNotPresent
+              name: url-discovery
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 50Mi
+                requests:
+                  cpu: 10m
+                  memory: 10Mi
+              volumeMounts:
+                - mountPath: /data
+                  name: services
+                - mountPath: /etc/ssl/certs/proxy.crt
+                  name: proxy-secret
+                  subPath: proxy.crt
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -5595,17 +5519,17 @@ all capabilities:
                 items:
                   - key: clusterData
                     path: clusterData.json
-                  - key: services
-                    path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
+            - emptyDir: {}
+              name: services
             - configMap:
                 items:
                   - key: config.json
                     path: config.json
                 name: synchronizer
               name: config
-  99: |
+  95: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -5684,7 +5608,7 @@ all capabilities:
       policyTypes:
         - Ingress
         - Egress
-  100: |
+  96: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -5727,7 +5651,7 @@ all capabilities:
           - list
           - patch
           - delete
-  101: |
+  97: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -5752,7 +5676,7 @@ all capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  102: |
+  98: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -5777,7 +5701,7 @@ all capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  103: |
+  99: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -5804,7 +5728,7 @@ all capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  104: |
+  100: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -5898,16 +5822,9 @@ default capabilities:
           "listingURL": "http://grype-offline-db:80/listing.json",
           "relevantImageVulnerabilitiesConfiguration": "enable"
         }
-      metrics: ""
-      services: ""
     kind: ConfigMap
     metadata:
-      annotations:
-        argocd.argoproj.io/sync-options: Delete=false
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation
-        helm.sh/hook-weight: "0"
-        helm.sh/resource-policy: keep
+      annotations: null
       labels:
         app: ks-cloud-config
         app.kubernetes.io/component: ks-cloud-config
@@ -6600,7 +6517,7 @@ default capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 652f248cc96bbd990e14365e245874fa28629e24a3227d005cbb807e65e973dd
+            checksum/cloud-config: 169917107b981d38483db8dc0fb8d885696f275d0e9111bc76e9d1152302a28c
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/host-scanner-configmap: de92a2b49dedb88c748db85959afdb8078c5b15135d2755a4d6b1e896825e27f
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
@@ -6705,9 +6622,14 @@ default capabilities:
                   name: results
                 - mountPath: /home/nonroot/failed
                   name: failed
-                - mountPath: /etc/config
+                - mountPath: /etc/config/clusterData.json
                   name: ks-cloud-config
                   readOnly: true
+                  subPath: clusterData.json
+                - mountPath: /etc/config/services.json
+                  name: services
+                  readOnly: true
+                  subPath: services.json
                 - mountPath: /etc/ssl/certs/proxy.crt
                   name: proxy-secret
                   subPath: proxy.crt
@@ -6717,6 +6639,30 @@ default capabilities:
                 - mountPath: /etc/ssl/certs/cert2.pem
                   name: extra-ca-certificates
                   subPath: cert2.pem
+          initContainers:
+            - args:
+                - -method=get
+                - -scheme=https
+                - -host=api.armosec.io
+                - -path=api/v2/servicediscovery
+                - -path-output=/data/services.json
+              env: null
+              image: quay.io/kubescape/http-request:v0.2.14
+              imagePullPolicy: IfNotPresent
+              name: url-discovery
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 50Mi
+                requests:
+                  cpu: 10m
+                  memory: 10Mi
+              volumeMounts:
+                - mountPath: /data
+                  name: services
+                - mountPath: /etc/ssl/certs/proxy.crt
+                  name: proxy-secret
+                  subPath: proxy.crt
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -6740,10 +6686,10 @@ default capabilities:
                 items:
                   - key: clusterData
                     path: clusterData.json
-                  - key: services
-                    path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
+            - emptyDir: {}
+              name: services
             - configMap:
                 name: host-scanner-definition
               name: host-scanner-definition
@@ -7244,7 +7190,7 @@ default capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 652f248cc96bbd990e14365e245874fa28629e24a3227d005cbb807e65e973dd
+            checksum/cloud-config: 169917107b981d38483db8dc0fb8d885696f275d0e9111bc76e9d1152302a28c
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
           labels:
@@ -7323,9 +7269,14 @@ default capabilities:
                   name: tmp-dir
                 - mountPath: /home/nonroot/anchore-resources/db
                   name: grype-db-cache
-                - mountPath: /etc/config
+                - mountPath: /etc/config/clusterData.json
                   name: ks-cloud-config
                   readOnly: true
+                  subPath: clusterData.json
+                - mountPath: /etc/config/services.json
+                  name: services
+                  readOnly: true
+                  subPath: services.json
                 - mountPath: /home/nonroot/.cache/grype
                   name: grype-db
                 - mountPath: /etc/ssl/certs/proxy.crt
@@ -7337,6 +7288,30 @@ default capabilities:
                 - mountPath: /etc/ssl/certs/cert2.pem
                   name: extra-ca-certificates
                   subPath: cert2.pem
+          initContainers:
+            - args:
+                - -method=get
+                - -scheme=https
+                - -host=api.armosec.io
+                - -path=api/v2/servicediscovery
+                - -path-output=/data/services.json
+              env: null
+              image: quay.io/kubescape/http-request:v0.2.14
+              imagePullPolicy: IfNotPresent
+              name: url-discovery
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 50Mi
+                requests:
+                  cpu: 10m
+                  memory: 10Mi
+              volumeMounts:
+                - mountPath: /data
+                  name: services
+                - mountPath: /etc/ssl/certs/proxy.crt
+                  name: proxy-secret
+                  subPath: proxy.crt
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -7364,10 +7339,10 @@ default capabilities:
                 items:
                   - key: clusterData
                     path: clusterData.json
-                  - key: services
-                    path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
+            - emptyDir: {}
+              name: services
             - emptyDir: {}
               name: grype-db
   29: |
@@ -7713,7 +7688,7 @@ default capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 652f248cc96bbd990e14365e245874fa28629e24a3227d005cbb807e65e973dd
+            checksum/cloud-config: 169917107b981d38483db8dc0fb8d885696f275d0e9111bc76e9d1152302a28c
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/node-agent-config: 33383f8b9c78364472de2d3023d459e4f812b673796846fad5b78c3e731053d4
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
@@ -7922,8 +7897,6 @@ default capabilities:
                 items:
                   - key: clusterData
                     path: clusterData.json
-                  - key: services
-                    path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
             - configMap:
@@ -8351,7 +8324,7 @@ default capabilities:
         metadata:
           annotations:
             checksum/capabilities-config: 6fa53f4d4f2980edd19ce910f99b06d72b709782ac2b3e133566d7a9798909b1
-            checksum/cloud-config: 652f248cc96bbd990e14365e245874fa28629e24a3227d005cbb807e65e973dd
+            checksum/cloud-config: 169917107b981d38483db8dc0fb8d885696f275d0e9111bc76e9d1152302a28c
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
             checksum/operator-config: da09bdb4e250d772ca02bb727ed10e0d0ad2f8e878bf136339036a2eee71161d
@@ -8437,7 +8410,7 @@ default capabilities:
                   readOnly: true
                   subPath: clusterData.json
                 - mountPath: /etc/config/services.json
-                  name: ks-cloud-config
+                  name: services
                   readOnly: true
                   subPath: services.json
                 - mountPath: /etc/config/capabilities.json
@@ -8458,6 +8431,30 @@ default capabilities:
                 - mountPath: /etc/ssl/certs/cert2.pem
                   name: extra-ca-certificates
                   subPath: cert2.pem
+                - mountPath: /etc/ssl/certs/proxy.crt
+                  name: proxy-secret
+                  subPath: proxy.crt
+          initContainers:
+            - args:
+                - -method=get
+                - -scheme=https
+                - -host=api.armosec.io
+                - -path=api/v2/servicediscovery
+                - -path-output=/data/services.json
+              env: null
+              image: quay.io/kubescape/http-request:v0.2.14
+              imagePullPolicy: IfNotPresent
+              name: url-discovery
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 50Mi
+                requests:
+                  cpu: 10m
+                  memory: 10Mi
+              volumeMounts:
+                - mountPath: /data
+                  name: services
                 - mountPath: /etc/ssl/certs/proxy.crt
                   name: proxy-secret
                   subPath: proxy.crt
@@ -8486,10 +8483,10 @@ default capabilities:
                 items:
                   - key: clusterData
                     path: clusterData.json
-                  - key: services
-                    path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
+            - emptyDir: {}
+              name: services
             - configMap:
                 items:
                   - key: capabilities
@@ -8998,186 +8995,6 @@ default capabilities:
       namespace: kubescape
     type: Opaque
   53: |
-    apiVersion: batch/v1
-    kind: Job
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-        helm.sh/hook-weight: "1"
-      labels:
-        app: service-discovery
-        app.kubernetes.io/component: service-discovery
-        app.kubernetes.io/instance: RELEASE-NAME
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: kubescape-operator
-        app.kubernetes.io/part-of: kubescape
-        app.kubernetes.io/version: 1.29.2
-        helm.sh/chart: kubescape-operator-1.29.2
-        kubescape.io/ignore: "true"
-        kubescape.io/tier: core
-        tier: ks-control-plane
-      name: service-discovery
-      namespace: kubescape
-    spec:
-      template:
-        metadata:
-          annotations: null
-          labels:
-            app: service-discovery
-            app.kubernetes.io/component: service-discovery
-            app.kubernetes.io/instance: RELEASE-NAME
-            app.kubernetes.io/managed-by: Helm
-            app.kubernetes.io/name: kubescape-operator
-            app.kubernetes.io/part-of: kubescape
-            app.kubernetes.io/version: 1.29.2
-            helm.sh/chart: kubescape-operator-1.29.2
-            kubescape.io/ignore: "true"
-            tier: ks-control-plane
-          name: RELEASE-NAME
-        spec:
-          affinity: null
-          containers:
-            - args:
-                - |
-                  kubectl create configmap ks-cloud-config --from-literal=metrics=$(jq -r '.response.metrics' /data/services.json) --from-file=services=/data/services.json -n kubescape --dry-run=client -o yaml | kubectl patch configmap ks-cloud-config --patch "$(cat -)" -n kubescape
-              command:
-                - /bin/sh
-                - -c
-              image: quay.io/kubescape/kubectl:1.30.3
-              imagePullPolicy: IfNotPresent
-              name: update-configmap
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              volumeMounts:
-                - mountPath: /data
-                  name: shared-data
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env: null
-              image: quay.io/kubescape/http-request:v0.2.14
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              volumeMounts:
-                - mountPath: /data
-                  name: shared-data
-                - mountPath: /etc/ssl/certs/proxy.crt
-                  name: proxy-secret
-                  subPath: proxy.crt
-          nodeSelector:
-            kubernetes.io/os: linux
-          restartPolicy: Never
-          securityContext:
-            seccompProfile:
-              type: RuntimeDefault
-          serviceAccountName: service-discovery
-          tolerations: null
-          volumes:
-            - emptyDir: {}
-              name: shared-data
-            - name: proxy-secret
-              secret:
-                secretName: kubescape-proxy-certificate
-  54: |
-    apiVersion: rbac.authorization.k8s.io/v1
-    kind: Role
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-        helm.sh/hook-weight: "0"
-      labels:
-        app: service-discovery
-        app.kubernetes.io/component: service-discovery
-        app.kubernetes.io/instance: RELEASE-NAME
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: kubescape-operator
-        app.kubernetes.io/part-of: kubescape
-        app.kubernetes.io/version: 1.29.2
-        helm.sh/chart: kubescape-operator-1.29.2
-        kubescape.io/ignore: "true"
-        tier: ks-control-plane
-      name: service-discovery
-      namespace: kubescape
-    rules:
-      - apiGroups:
-          - ""
-        resources:
-          - configmaps
-        verbs:
-          - update
-          - create
-          - patch
-          - get
-          - list
-  55: |
-    apiVersion: rbac.authorization.k8s.io/v1
-    kind: RoleBinding
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-        helm.sh/hook-weight: "0"
-      labels:
-        app: service-discovery
-        app.kubernetes.io/component: service-discovery
-        app.kubernetes.io/instance: RELEASE-NAME
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: kubescape-operator
-        app.kubernetes.io/part-of: kubescape
-        app.kubernetes.io/version: 1.29.2
-        helm.sh/chart: kubescape-operator-1.29.2
-        kubescape.io/ignore: "true"
-        tier: ks-control-plane
-      name: service-discovery
-      namespace: kubescape
-    roleRef:
-      apiGroup: rbac.authorization.k8s.io
-      kind: Role
-      name: service-discovery
-    subjects:
-      - kind: ServiceAccount
-        name: service-discovery
-        namespace: kubescape
-  56: |
-    apiVersion: v1
-    kind: ServiceAccount
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-        helm.sh/hook-weight: "0"
-      labels:
-        app: service-discovery
-        app.kubernetes.io/component: service-discovery
-        app.kubernetes.io/instance: RELEASE-NAME
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: kubescape-operator
-        app.kubernetes.io/part-of: kubescape
-        app.kubernetes.io/version: 1.29.2
-        helm.sh/chart: kubescape-operator-1.29.2
-        kubescape.io/ignore: "true"
-        tier: ks-control-plane
-      name: service-discovery
-      namespace: kubescape
-  57: |
     apiVersion: apiregistration.k8s.io/v1
     kind: APIService
     metadata:
@@ -9203,7 +9020,7 @@ default capabilities:
         namespace: kubescape
       version: v1beta1
       versionPriority: 15
-  58: |
+  54: |
     apiVersion: v1
     data:
       ca.crt: bW9jay1jYS1jZXJ0
@@ -9226,7 +9043,7 @@ default capabilities:
       name: storage-ca
       namespace: kubescape
     type: kubernetes.io/tls
-  59: |
+  55: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -9292,7 +9109,7 @@ default capabilities:
           - get
           - watch
           - list
-  60: |
+  56: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -9317,7 +9134,7 @@ default capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  61: |
+  57: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -9342,7 +9159,7 @@ default capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  62: |
+  58: |
     apiVersion: v1
     data:
       config.json: |
@@ -9376,7 +9193,7 @@ default capabilities:
         tier: ks-control-plane
       name: storage
       namespace: kubescape
-  63: |
+  59: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -9492,8 +9309,6 @@ default capabilities:
                 items:
                   - key: clusterData
                     path: clusterData.json
-                  - key: services
-                    path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
             - configMap:
@@ -9505,7 +9320,7 @@ default capabilities:
             - name: ca-certificates
               secret:
                 secretName: storage-ca
-  64: |
+  60: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -9559,7 +9374,7 @@ default capabilities:
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
         - Egress
-  65: |
+  61: |
     apiVersion: v1
     kind: PersistentVolumeClaim
     metadata:
@@ -9583,7 +9398,7 @@ default capabilities:
       resources:
         requests:
           storage: 5Gi
-  66: |
+  62: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -9609,7 +9424,7 @@ default capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  67: |
+  63: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -9637,7 +9452,7 @@ default capabilities:
         app.kubernetes.io/component: storage
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  68: |
+  64: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -9655,7 +9470,7 @@ default capabilities:
         tier: ks-control-plane
       name: storage
       namespace: kubescape
-  69: |
+  65: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -9822,7 +9637,7 @@ default capabilities:
           - update
           - patch
           - delete
-  70: |
+  66: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -9846,7 +9661,7 @@ default capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  71: |
+  67: |
     apiVersion: v1
     data:
       config.json: |
@@ -10113,7 +9928,7 @@ default capabilities:
         tier: ks-control-plane
       name: synchronizer
       namespace: kubescape
-  72: |
+  68: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -10145,7 +9960,7 @@ default capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 652f248cc96bbd990e14365e245874fa28629e24a3227d005cbb807e65e973dd
+            checksum/cloud-config: 169917107b981d38483db8dc0fb8d885696f275d0e9111bc76e9d1152302a28c
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
             checksum/synchronizer-configmap: d04a30312a4acce7a0a696f17f8bb210b0f5cccb8b7135df604e79a4d2b7d7d3
@@ -10214,7 +10029,7 @@ default capabilities:
                   readOnly: true
                   subPath: clusterData.json
                 - mountPath: /etc/config/services.json
-                  name: ks-cloud-config
+                  name: services
                   readOnly: true
                   subPath: services.json
                 - mountPath: /etc/ssl/certs/cert1.pem
@@ -10227,6 +10042,30 @@ default capabilities:
                   name: config
                   readOnly: true
                   subPath: config.json
+                - mountPath: /etc/ssl/certs/proxy.crt
+                  name: proxy-secret
+                  subPath: proxy.crt
+          initContainers:
+            - args:
+                - -method=get
+                - -scheme=https
+                - -host=api.armosec.io
+                - -path=api/v2/servicediscovery
+                - -path-output=/data/services.json
+              env: null
+              image: quay.io/kubescape/http-request:v0.2.14
+              imagePullPolicy: IfNotPresent
+              name: url-discovery
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 50Mi
+                requests:
+                  cpu: 10m
+                  memory: 10Mi
+              volumeMounts:
+                - mountPath: /data
+                  name: services
                 - mountPath: /etc/ssl/certs/proxy.crt
                   name: proxy-secret
                   subPath: proxy.crt
@@ -10253,17 +10092,17 @@ default capabilities:
                 items:
                   - key: clusterData
                     path: clusterData.json
-                  - key: services
-                    path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
+            - emptyDir: {}
+              name: services
             - configMap:
                 items:
                   - key: config.json
                     path: config.json
                 name: synchronizer
               name: config
-  73: |
+  69: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -10331,7 +10170,7 @@ default capabilities:
       policyTypes:
         - Ingress
         - Egress
-  74: |
+  70: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -10374,7 +10213,7 @@ default capabilities:
           - list
           - patch
           - delete
-  75: |
+  71: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -10399,7 +10238,7 @@ default capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  76: |
+  72: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -10426,7 +10265,7 @@ default capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  77: |
+  73: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -10519,16 +10358,9 @@ disable otel:
           "continuousPostureScan": false,
           "relevantImageVulnerabilitiesConfiguration": "enable"
         }
-      metrics: ""
-      services: ""
     kind: ConfigMap
     metadata:
-      annotations:
-        argocd.argoproj.io/sync-options: Delete=false
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation
-        helm.sh/hook-weight: "0"
-        helm.sh/resource-policy: keep
+      annotations: null
       labels:
         app: ks-cloud-config
         app.kubernetes.io/component: ks-cloud-config
@@ -11031,7 +10863,7 @@ disable otel:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 28924ce7466f05613ebb79dbace1c32960166388b9b12f27d6b9e159691ec5f0
+            checksum/cloud-config: f8f57ee9b7c136ff44014ae152c2ee1d6437058a776ba359547a4d44896626d0
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/host-scanner-configmap: de92a2b49dedb88c748db85959afdb8078c5b15135d2755a4d6b1e896825e27f
           labels:
@@ -11135,9 +10967,35 @@ disable otel:
                   name: results
                 - mountPath: /home/nonroot/failed
                   name: failed
-                - mountPath: /etc/config
+                - mountPath: /etc/config/clusterData.json
                   name: ks-cloud-config
                   readOnly: true
+                  subPath: clusterData.json
+                - mountPath: /etc/config/services.json
+                  name: services
+                  readOnly: true
+                  subPath: services.json
+          initContainers:
+            - args:
+                - -method=get
+                - -scheme=https
+                - -host=api.armosec.io
+                - -path=api/v2/servicediscovery
+                - -path-output=/data/services.json
+              env: null
+              image: quay.io/kubescape/http-request:v0.2.14
+              imagePullPolicy: IfNotPresent
+              name: url-discovery
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 50Mi
+                requests:
+                  cpu: 10m
+                  memory: 10Mi
+              volumeMounts:
+                - mountPath: /data
+                  name: services
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -11155,10 +11013,10 @@ disable otel:
                 items:
                   - key: clusterData
                     path: clusterData.json
-                  - key: services
-                    path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
+            - emptyDir: {}
+              name: services
             - configMap:
                 name: host-scanner-definition
               name: host-scanner-definition
@@ -11497,7 +11355,7 @@ disable otel:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 28924ce7466f05613ebb79dbace1c32960166388b9b12f27d6b9e159691ec5f0
+            checksum/cloud-config: f8f57ee9b7c136ff44014ae152c2ee1d6437058a776ba359547a4d44896626d0
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
           labels:
             app: kubevuln
@@ -11575,11 +11433,37 @@ disable otel:
                   name: tmp-dir
                 - mountPath: /home/nonroot/anchore-resources/db
                   name: grype-db-cache
-                - mountPath: /etc/config
+                - mountPath: /etc/config/clusterData.json
                   name: ks-cloud-config
                   readOnly: true
+                  subPath: clusterData.json
+                - mountPath: /etc/config/services.json
+                  name: services
+                  readOnly: true
+                  subPath: services.json
                 - mountPath: /home/nonroot/.cache/grype
                   name: grype-db
+          initContainers:
+            - args:
+                - -method=get
+                - -scheme=https
+                - -host=api.armosec.io
+                - -path=api/v2/servicediscovery
+                - -path-output=/data/services.json
+              env: null
+              image: quay.io/kubescape/http-request:v0.2.14
+              imagePullPolicy: IfNotPresent
+              name: url-discovery
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 50Mi
+                requests:
+                  cpu: 10m
+                  memory: 10Mi
+              volumeMounts:
+                - mountPath: /data
+                  name: services
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -11601,10 +11485,10 @@ disable otel:
                 items:
                   - key: clusterData
                     path: clusterData.json
-                  - key: services
-                    path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
+            - emptyDir: {}
+              name: services
             - emptyDir: {}
               name: grype-db
   22: |
@@ -11888,7 +11772,7 @@ disable otel:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 28924ce7466f05613ebb79dbace1c32960166388b9b12f27d6b9e159691ec5f0
+            checksum/cloud-config: f8f57ee9b7c136ff44014ae152c2ee1d6437058a776ba359547a4d44896626d0
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/node-agent-config: 7b520a56f3cedd0bf0caf4c77163780e24ef0064de1a5d27571d573556bd416b
             container.apparmor.security.beta.kubernetes.io/node-agent: unconfined
@@ -12083,8 +11967,6 @@ disable otel:
                 items:
                   - key: clusterData
                     path: clusterData.json
-                  - key: services
-                    path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
             - configMap:
@@ -12441,7 +12323,7 @@ disable otel:
         metadata:
           annotations:
             checksum/capabilities-config: eb19e5a9e5c8a0da15c9c17b6dbe90f9b2758957384a8a9d2034c7c4031f443a
-            checksum/cloud-config: 28924ce7466f05613ebb79dbace1c32960166388b9b12f27d6b9e159691ec5f0
+            checksum/cloud-config: f8f57ee9b7c136ff44014ae152c2ee1d6437058a776ba359547a4d44896626d0
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
             checksum/operator-config: da09bdb4e250d772ca02bb727ed10e0d0ad2f8e878bf136339036a2eee71161d
@@ -12529,7 +12411,7 @@ disable otel:
                   readOnly: true
                   subPath: clusterData.json
                 - mountPath: /etc/config/services.json
-                  name: ks-cloud-config
+                  name: services
                   readOnly: true
                   subPath: services.json
                 - mountPath: /etc/config/capabilities.json
@@ -12547,6 +12429,27 @@ disable otel:
                 - mountPath: /etc/certs
                   name: tls-certs
                   readOnly: true
+          initContainers:
+            - args:
+                - -method=get
+                - -scheme=https
+                - -host=api.armosec.io
+                - -path=api/v2/servicediscovery
+                - -path-output=/data/services.json
+              env: null
+              image: quay.io/kubescape/http-request:v0.2.14
+              imagePullPolicy: IfNotPresent
+              name: url-discovery
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 50Mi
+                requests:
+                  cpu: 10m
+                  memory: 10Mi
+              volumeMounts:
+                - mountPath: /data
+                  name: services
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -12569,10 +12472,10 @@ disable otel:
                 items:
                   - key: clusterData
                     path: clusterData.json
-                  - key: services
-                    path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
+            - emptyDir: {}
+              name: services
             - configMap:
                 items:
                   - key: capabilities
@@ -12964,180 +12867,6 @@ disable otel:
       name: operator
       namespace: kubescape
   44: |
-    apiVersion: batch/v1
-    kind: Job
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-        helm.sh/hook-weight: "1"
-      labels:
-        app: service-discovery
-        app.kubernetes.io/component: service-discovery
-        app.kubernetes.io/instance: RELEASE-NAME
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: kubescape-operator
-        app.kubernetes.io/part-of: kubescape
-        app.kubernetes.io/version: 1.29.2
-        helm.sh/chart: kubescape-operator-1.29.2
-        kubescape.io/ignore: "true"
-        kubescape.io/tier: core
-        tier: ks-control-plane
-      name: service-discovery
-      namespace: kubescape
-    spec:
-      template:
-        metadata:
-          annotations: null
-          labels:
-            app: service-discovery
-            app.kubernetes.io/component: service-discovery
-            app.kubernetes.io/instance: RELEASE-NAME
-            app.kubernetes.io/managed-by: Helm
-            app.kubernetes.io/name: kubescape-operator
-            app.kubernetes.io/part-of: kubescape
-            app.kubernetes.io/version: 1.29.2
-            helm.sh/chart: kubescape-operator-1.29.2
-            kubescape.io/ignore: "true"
-            tier: ks-control-plane
-          name: RELEASE-NAME
-        spec:
-          affinity: null
-          containers:
-            - args:
-                - |
-                  kubectl create configmap ks-cloud-config --from-literal=metrics=$(jq -r '.response.metrics' /data/services.json) --from-file=services=/data/services.json -n kubescape --dry-run=client -o yaml | kubectl patch configmap ks-cloud-config --patch "$(cat -)" -n kubescape
-              command:
-                - /bin/sh
-                - -c
-              image: quay.io/kubescape/kubectl:1.30.3
-              imagePullPolicy: IfNotPresent
-              name: update-configmap
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              volumeMounts:
-                - mountPath: /data
-                  name: shared-data
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env: null
-              image: quay.io/kubescape/http-request:v0.2.14
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              volumeMounts:
-                - mountPath: /data
-                  name: shared-data
-          nodeSelector:
-            kubernetes.io/os: linux
-          restartPolicy: Never
-          securityContext:
-            seccompProfile:
-              type: RuntimeDefault
-          serviceAccountName: service-discovery
-          tolerations: null
-          volumes:
-            - emptyDir: {}
-              name: shared-data
-  45: |
-    apiVersion: rbac.authorization.k8s.io/v1
-    kind: Role
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-        helm.sh/hook-weight: "0"
-      labels:
-        app: service-discovery
-        app.kubernetes.io/component: service-discovery
-        app.kubernetes.io/instance: RELEASE-NAME
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: kubescape-operator
-        app.kubernetes.io/part-of: kubescape
-        app.kubernetes.io/version: 1.29.2
-        helm.sh/chart: kubescape-operator-1.29.2
-        kubescape.io/ignore: "true"
-        tier: ks-control-plane
-      name: service-discovery
-      namespace: kubescape
-    rules:
-      - apiGroups:
-          - ""
-        resources:
-          - configmaps
-        verbs:
-          - update
-          - create
-          - patch
-          - get
-          - list
-  46: |
-    apiVersion: rbac.authorization.k8s.io/v1
-    kind: RoleBinding
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-        helm.sh/hook-weight: "0"
-      labels:
-        app: service-discovery
-        app.kubernetes.io/component: service-discovery
-        app.kubernetes.io/instance: RELEASE-NAME
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: kubescape-operator
-        app.kubernetes.io/part-of: kubescape
-        app.kubernetes.io/version: 1.29.2
-        helm.sh/chart: kubescape-operator-1.29.2
-        kubescape.io/ignore: "true"
-        tier: ks-control-plane
-      name: service-discovery
-      namespace: kubescape
-    roleRef:
-      apiGroup: rbac.authorization.k8s.io
-      kind: Role
-      name: service-discovery
-    subjects:
-      - kind: ServiceAccount
-        name: service-discovery
-        namespace: kubescape
-  47: |
-    apiVersion: v1
-    kind: ServiceAccount
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-        helm.sh/hook-weight: "0"
-      labels:
-        app: service-discovery
-        app.kubernetes.io/component: service-discovery
-        app.kubernetes.io/instance: RELEASE-NAME
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: kubescape-operator
-        app.kubernetes.io/part-of: kubescape
-        app.kubernetes.io/version: 1.29.2
-        helm.sh/chart: kubescape-operator-1.29.2
-        kubescape.io/ignore: "true"
-        tier: ks-control-plane
-      name: service-discovery
-      namespace: kubescape
-  48: |
     apiVersion: apiregistration.k8s.io/v1
     kind: APIService
     metadata:
@@ -13163,7 +12892,7 @@ disable otel:
         namespace: kubescape
       version: v1beta1
       versionPriority: 15
-  49: |
+  45: |
     apiVersion: v1
     data:
       ca.crt: bW9jay1jYS1jZXJ0
@@ -13186,7 +12915,7 @@ disable otel:
       name: storage-ca
       namespace: kubescape
     type: kubernetes.io/tls
-  50: |
+  46: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -13252,7 +12981,7 @@ disable otel:
           - get
           - watch
           - list
-  51: |
+  47: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -13277,7 +13006,7 @@ disable otel:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  52: |
+  48: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -13302,7 +13031,7 @@ disable otel:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  53: |
+  49: |
     apiVersion: v1
     data:
       config.json: |
@@ -13336,7 +13065,7 @@ disable otel:
         tier: ks-control-plane
       name: storage
       namespace: kubescape
-  54: |
+  50: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -13452,8 +13181,6 @@ disable otel:
                 items:
                   - key: clusterData
                     path: clusterData.json
-                  - key: services
-                    path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
             - configMap:
@@ -13465,7 +13192,7 @@ disable otel:
             - name: ca-certificates
               secret:
                 secretName: storage-ca
-  55: |
+  51: |
     apiVersion: v1
     kind: PersistentVolumeClaim
     metadata:
@@ -13489,7 +13216,7 @@ disable otel:
       resources:
         requests:
           storage: 5Gi
-  56: |
+  52: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -13515,7 +13242,7 @@ disable otel:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  57: |
+  53: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -13543,7 +13270,7 @@ disable otel:
         app.kubernetes.io/component: storage
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  58: |
+  54: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -13561,7 +13288,7 @@ disable otel:
         tier: ks-control-plane
       name: storage
       namespace: kubescape
-  59: |
+  55: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -13728,7 +13455,7 @@ disable otel:
           - update
           - patch
           - delete
-  60: |
+  56: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -13752,7 +13479,7 @@ disable otel:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  61: |
+  57: |
     apiVersion: v1
     data:
       config.json: |
@@ -14019,7 +13746,7 @@ disable otel:
         tier: ks-control-plane
       name: synchronizer
       namespace: kubescape
-  62: |
+  58: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -14051,7 +13778,7 @@ disable otel:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 28924ce7466f05613ebb79dbace1c32960166388b9b12f27d6b9e159691ec5f0
+            checksum/cloud-config: f8f57ee9b7c136ff44014ae152c2ee1d6437058a776ba359547a4d44896626d0
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/synchronizer-configmap: d04a30312a4acce7a0a696f17f8bb210b0f5cccb8b7135df604e79a4d2b7d7d3
           labels:
@@ -14119,13 +13846,34 @@ disable otel:
                   readOnly: true
                   subPath: clusterData.json
                 - mountPath: /etc/config/services.json
-                  name: ks-cloud-config
+                  name: services
                   readOnly: true
                   subPath: services.json
                 - mountPath: /etc/config/config.json
                   name: config
                   readOnly: true
                   subPath: config.json
+          initContainers:
+            - args:
+                - -method=get
+                - -scheme=https
+                - -host=api.armosec.io
+                - -path=api/v2/servicediscovery
+                - -path-output=/data/services.json
+              env: null
+              image: quay.io/kubescape/http-request:v0.2.14
+              imagePullPolicy: IfNotPresent
+              name: url-discovery
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 50Mi
+                requests:
+                  cpu: 10m
+                  memory: 10Mi
+              volumeMounts:
+                - mountPath: /data
+                  name: services
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -14143,17 +13891,17 @@ disable otel:
                 items:
                   - key: clusterData
                     path: clusterData.json
-                  - key: services
-                    path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
+            - emptyDir: {}
+              name: services
             - configMap:
                 items:
                   - key: config.json
                     path: config.json
                 name: synchronizer
               name: config
-  63: |
+  59: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -14196,7 +13944,7 @@ disable otel:
           - list
           - patch
           - delete
-  64: |
+  60: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -14221,7 +13969,7 @@ disable otel:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  65: |
+  61: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -14248,7 +13996,7 @@ disable otel:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  66: |
+  62: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -14950,9 +14698,31 @@ minimal capabilities:
                   name: results
                 - mountPath: /home/nonroot/failed
                   name: failed
-                - mountPath: /etc/config
+                - mountPath: /etc/config/clusterData.json
                   name: ks-cloud-config
                   readOnly: true
+                  subPath: clusterData.json
+          initContainers:
+            - args:
+                - -method=get
+                - -scheme=https
+                - -host=
+                - -path=api/v2/servicediscovery
+                - -path-output=/data/services.json
+              env: null
+              image: quay.io/kubescape/http-request:v0.2.14
+              imagePullPolicy: IfNotPresent
+              name: url-discovery
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 50Mi
+                requests:
+                  cpu: 10m
+                  memory: 10Mi
+              volumeMounts:
+                - mountPath: /data
+                  name: services
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -15390,11 +15160,33 @@ minimal capabilities:
                   name: tmp-dir
                 - mountPath: /home/nonroot/anchore-resources/db
                   name: grype-db-cache
-                - mountPath: /etc/config
+                - mountPath: /etc/config/clusterData.json
                   name: ks-cloud-config
                   readOnly: true
+                  subPath: clusterData.json
                 - mountPath: /home/nonroot/.cache/grype
                   name: grype-db
+          initContainers:
+            - args:
+                - -method=get
+                - -scheme=https
+                - -host=
+                - -path=api/v2/servicediscovery
+                - -path-output=/data/services.json
+              env: null
+              image: quay.io/kubescape/http-request:v0.2.14
+              imagePullPolicy: IfNotPresent
+              name: url-discovery
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 50Mi
+                requests:
+                  cpu: 10m
+                  memory: 10Mi
+              volumeMounts:
+                - mountPath: /data
+                  name: services
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -16355,6 +16147,27 @@ minimal capabilities:
                 - mountPath: /etc/certs
                   name: tls-certs
                   readOnly: true
+          initContainers:
+            - args:
+                - -method=get
+                - -scheme=https
+                - -host=
+                - -path=api/v2/servicediscovery
+                - -path-output=/data/services.json
+              env: null
+              image: quay.io/kubescape/http-request:v0.2.14
+              imagePullPolicy: IfNotPresent
+              name: url-discovery
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 50Mi
+                requests:
+                  cpu: 10m
+                  memory: 10Mi
+              volumeMounts:
+                - mountPath: /data
+                  name: services
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -17471,16 +17284,9 @@ multiple node agents:
           "listingURL": "http://grype-offline-db:80/listing.json",
           "relevantImageVulnerabilitiesConfiguration": "enable"
         }
-      metrics: ""
-      services: ""
     kind: ConfigMap
     metadata:
-      annotations:
-        argocd.argoproj.io/sync-options: Delete=false
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation
-        helm.sh/hook-weight: "0"
-        helm.sh/resource-policy: keep
+      annotations: null
       labels:
         app: ks-cloud-config
         app.kubernetes.io/component: ks-cloud-config
@@ -18357,7 +18163,7 @@ multiple node agents:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 3ca3213633e8269b560ec4cfc55649a50e43dcda2eb73f0b60d9225d2067ca82
+            checksum/cloud-config: b5ec535bc27d4fc863fb3331c520e8a39f14de5eb4916c7f6108dda9f6e52f08
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/host-scanner-configmap: 6cf2370947bbd9d1c99183fc2c6dac64d0fcd79df984c60644c1f3634dd98bfb
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
@@ -18493,9 +18299,14 @@ multiple node agents:
                   name: results
                 - mountPath: /home/nonroot/failed
                   name: failed
-                - mountPath: /etc/config
+                - mountPath: /etc/config/clusterData.json
                   name: ks-cloud-config
                   readOnly: true
+                  subPath: clusterData.json
+                - mountPath: /etc/config/services.json
+                  name: services
+                  readOnly: true
+                  subPath: services.json
                 - mountPath: /etc/ssl/certs/proxy.crt
                   name: proxy-secret
                   subPath: proxy.crt
@@ -18505,6 +18316,34 @@ multiple node agents:
           imagePullSecrets:
             - name: foo
             - name: bar
+          initContainers:
+            - args:
+                - -method=get
+                - -scheme=https
+                - -host=api.armosec.io
+                - -path=api/v2/servicediscovery
+                - -path-output=/data/services.json
+              env:
+                - name: HTTPS_PROXY
+                  value: https://foo:bar@baz:1234
+                - name: no_proxy
+                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
+              image: quay.io/kubescape/http-request:v0.2.14
+              imagePullPolicy: IfNotPresent
+              name: url-discovery
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 50Mi
+                requests:
+                  cpu: 10m
+                  memory: 10Mi
+              volumeMounts:
+                - mountPath: /data
+                  name: services
+                - mountPath: /etc/ssl/certs/proxy.crt
+                  name: proxy-secret
+                  subPath: proxy.crt
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -18528,10 +18367,10 @@ multiple node agents:
                 items:
                   - key: clusterData
                     path: clusterData.json
-                  - key: services
-                    path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
+            - emptyDir: {}
+              name: services
             - configMap:
                 name: host-scanner-definition
               name: host-scanner-definition
@@ -19078,7 +18917,7 @@ multiple node agents:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 3ca3213633e8269b560ec4cfc55649a50e43dcda2eb73f0b60d9225d2067ca82
+            checksum/cloud-config: b5ec535bc27d4fc863fb3331c520e8a39f14de5eb4916c7f6108dda9f6e52f08
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
           labels:
@@ -19163,9 +19002,14 @@ multiple node agents:
                   name: tmp-dir
                 - mountPath: /home/nonroot/anchore-resources/db
                   name: grype-db-cache
-                - mountPath: /etc/config
+                - mountPath: /etc/config/clusterData.json
                   name: ks-cloud-config
                   readOnly: true
+                  subPath: clusterData.json
+                - mountPath: /etc/config/services.json
+                  name: services
+                  readOnly: true
+                  subPath: services.json
                 - mountPath: /home/nonroot/.cache/grype
                   name: grype-db
                 - mountPath: /etc/ssl/certs/proxy.crt
@@ -19177,6 +19021,34 @@ multiple node agents:
           imagePullSecrets:
             - name: foo
             - name: bar
+          initContainers:
+            - args:
+                - -method=get
+                - -scheme=https
+                - -host=api.armosec.io
+                - -path=api/v2/servicediscovery
+                - -path-output=/data/services.json
+              env:
+                - name: HTTPS_PROXY
+                  value: https://foo:bar@baz:1234
+                - name: no_proxy
+                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
+              image: quay.io/kubescape/http-request:v0.2.14
+              imagePullPolicy: IfNotPresent
+              name: url-discovery
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 50Mi
+                requests:
+                  cpu: 10m
+                  memory: 10Mi
+              volumeMounts:
+                - mountPath: /data
+                  name: services
+                - mountPath: /etc/ssl/certs/proxy.crt
+                  name: proxy-secret
+                  subPath: proxy.crt
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -19204,10 +19076,10 @@ multiple node agents:
                 items:
                   - key: clusterData
                     path: clusterData.json
-                  - key: services
-                    path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
+            - emptyDir: {}
+              name: services
             - name: grype-db
               persistentVolumeClaim:
                 claimName: kubescape-kubevuln
@@ -19647,7 +19519,7 @@ multiple node agents:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 3ca3213633e8269b560ec4cfc55649a50e43dcda2eb73f0b60d9225d2067ca82
+            checksum/cloud-config: b5ec535bc27d4fc863fb3331c520e8a39f14de5eb4916c7f6108dda9f6e52f08
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/node-agent-config: db33c78fd6f567c8a7ba54394584a8a8603e3711e139ad596a79b1663830adc4
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
@@ -19890,8 +19762,6 @@ multiple node agents:
                 items:
                   - key: clusterData
                     path: clusterData.json
-                  - key: services
-                    path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
             - configMap:
@@ -19934,7 +19804,7 @@ multiple node agents:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 3ca3213633e8269b560ec4cfc55649a50e43dcda2eb73f0b60d9225d2067ca82
+            checksum/cloud-config: b5ec535bc27d4fc863fb3331c520e8a39f14de5eb4916c7f6108dda9f6e52f08
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/node-agent-config: db33c78fd6f567c8a7ba54394584a8a8603e3711e139ad596a79b1663830adc4
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
@@ -20177,8 +20047,6 @@ multiple node agents:
                 items:
                   - key: clusterData
                     path: clusterData.json
-                  - key: services
-                    path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
             - configMap:
@@ -20734,7 +20602,7 @@ multiple node agents:
         metadata:
           annotations:
             checksum/capabilities-config: b074456035fd2e5091a12c5b6875e3464ddcee4167a9e052877bfb7722b84240
-            checksum/cloud-config: 3ca3213633e8269b560ec4cfc55649a50e43dcda2eb73f0b60d9225d2067ca82
+            checksum/cloud-config: b5ec535bc27d4fc863fb3331c520e8a39f14de5eb4916c7f6108dda9f6e52f08
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
             checksum/operator-config: a95183e6cda13e32fef088ea6e42d801059e551051281413c349d57f1e70dfc5
@@ -20829,7 +20697,7 @@ multiple node agents:
                   readOnly: true
                   subPath: clusterData.json
                 - mountPath: /etc/config/services.json
-                  name: ks-cloud-config
+                  name: services
                   readOnly: true
                   subPath: services.json
                 - mountPath: /etc/config/capabilities.json
@@ -20856,6 +20724,34 @@ multiple node agents:
           imagePullSecrets:
             - name: foo
             - name: bar
+          initContainers:
+            - args:
+                - -method=get
+                - -scheme=https
+                - -host=api.armosec.io
+                - -path=api/v2/servicediscovery
+                - -path-output=/data/services.json
+              env:
+                - name: HTTPS_PROXY
+                  value: https://foo:bar@baz:1234
+                - name: no_proxy
+                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
+              image: quay.io/kubescape/http-request:v0.2.14
+              imagePullPolicy: IfNotPresent
+              name: url-discovery
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 50Mi
+                requests:
+                  cpu: 10m
+                  memory: 10Mi
+              volumeMounts:
+                - mountPath: /data
+                  name: services
+                - mountPath: /etc/ssl/certs/proxy.crt
+                  name: proxy-secret
+                  subPath: proxy.crt
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -20884,10 +20780,10 @@ multiple node agents:
                 items:
                   - key: clusterData
                     path: clusterData.json
-                  - key: services
-                    path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
+            - emptyDir: {}
+              name: services
             - configMap:
                 items:
                   - key: capabilities
@@ -21714,193 +21610,6 @@ multiple node agents:
       namespace: kubescape
     type: Opaque
   80: |
-    apiVersion: batch/v1
-    kind: Job
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-        helm.sh/hook-weight: "1"
-      labels:
-        app: service-discovery
-        app.kubernetes.io/component: service-discovery
-        app.kubernetes.io/instance: RELEASE-NAME
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: kubescape-operator
-        app.kubernetes.io/part-of: kubescape
-        app.kubernetes.io/version: 1.29.2
-        helm.sh/chart: kubescape-operator-1.29.2
-        kubescape.io/ignore: "true"
-        kubescape.io/tier: core
-        tier: ks-control-plane
-      name: service-discovery
-      namespace: kubescape
-    spec:
-      template:
-        metadata:
-          annotations: null
-          labels:
-            app: service-discovery
-            app.kubernetes.io/component: service-discovery
-            app.kubernetes.io/instance: RELEASE-NAME
-            app.kubernetes.io/managed-by: Helm
-            app.kubernetes.io/name: kubescape-operator
-            app.kubernetes.io/part-of: kubescape
-            app.kubernetes.io/version: 1.29.2
-            helm.sh/chart: kubescape-operator-1.29.2
-            kubescape.io/ignore: "true"
-            tier: ks-control-plane
-          name: RELEASE-NAME
-        spec:
-          affinity: null
-          containers:
-            - args:
-                - |
-                  kubectl create configmap ks-cloud-config --from-literal=metrics=$(jq -r '.response.metrics' /data/services.json) --from-file=services=/data/services.json -n kubescape --dry-run=client -o yaml | kubectl patch configmap ks-cloud-config --patch "$(cat -)" -n kubescape
-              command:
-                - /bin/sh
-                - -c
-              image: quay.io/kubescape/kubectl:1.30.3
-              imagePullPolicy: IfNotPresent
-              name: update-configmap
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              volumeMounts:
-                - mountPath: /data
-                  name: shared-data
-          imagePullSecrets:
-            - name: foo
-            - name: bar
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env:
-                - name: HTTPS_PROXY
-                  value: https://foo:bar@baz:1234
-                - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/http-request:v0.2.14
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              volumeMounts:
-                - mountPath: /data
-                  name: shared-data
-                - mountPath: /etc/ssl/certs/proxy.crt
-                  name: proxy-secret
-                  subPath: proxy.crt
-          nodeSelector:
-            kubernetes.io/os: linux
-          restartPolicy: Never
-          securityContext:
-            seccompProfile:
-              type: RuntimeDefault
-          serviceAccountName: service-discovery
-          tolerations: null
-          volumes:
-            - emptyDir: {}
-              name: shared-data
-            - name: proxy-secret
-              secret:
-                secretName: kubescape-proxy-certificate
-  81: |
-    apiVersion: rbac.authorization.k8s.io/v1
-    kind: Role
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-        helm.sh/hook-weight: "0"
-      labels:
-        app: service-discovery
-        app.kubernetes.io/component: service-discovery
-        app.kubernetes.io/instance: RELEASE-NAME
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: kubescape-operator
-        app.kubernetes.io/part-of: kubescape
-        app.kubernetes.io/version: 1.29.2
-        helm.sh/chart: kubescape-operator-1.29.2
-        kubescape.io/ignore: "true"
-        tier: ks-control-plane
-      name: service-discovery
-      namespace: kubescape
-    rules:
-      - apiGroups:
-          - ""
-        resources:
-          - configmaps
-        verbs:
-          - update
-          - create
-          - patch
-          - get
-          - list
-  82: |
-    apiVersion: rbac.authorization.k8s.io/v1
-    kind: RoleBinding
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-        helm.sh/hook-weight: "0"
-      labels:
-        app: service-discovery
-        app.kubernetes.io/component: service-discovery
-        app.kubernetes.io/instance: RELEASE-NAME
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: kubescape-operator
-        app.kubernetes.io/part-of: kubescape
-        app.kubernetes.io/version: 1.29.2
-        helm.sh/chart: kubescape-operator-1.29.2
-        kubescape.io/ignore: "true"
-        tier: ks-control-plane
-      name: service-discovery
-      namespace: kubescape
-    roleRef:
-      apiGroup: rbac.authorization.k8s.io
-      kind: Role
-      name: service-discovery
-    subjects:
-      - kind: ServiceAccount
-        name: service-discovery
-        namespace: kubescape
-  83: |
-    apiVersion: v1
-    kind: ServiceAccount
-    metadata:
-      annotations:
-        helm.sh/hook: pre-install,pre-upgrade
-        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-        helm.sh/hook-weight: "0"
-      labels:
-        app: service-discovery
-        app.kubernetes.io/component: service-discovery
-        app.kubernetes.io/instance: RELEASE-NAME
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: kubescape-operator
-        app.kubernetes.io/part-of: kubescape
-        app.kubernetes.io/version: 1.29.2
-        helm.sh/chart: kubescape-operator-1.29.2
-        kubescape.io/ignore: "true"
-        tier: ks-control-plane
-      name: service-discovery
-      namespace: kubescape
-  84: |
     apiVersion: apiregistration.k8s.io/v1
     kind: APIService
     metadata:
@@ -21926,7 +21635,7 @@ multiple node agents:
         namespace: kubescape
       version: v1beta1
       versionPriority: 15
-  85: |
+  81: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -21992,7 +21701,7 @@ multiple node agents:
           - get
           - watch
           - list
-  86: |
+  82: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -22017,7 +21726,7 @@ multiple node agents:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  87: |
+  83: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -22042,7 +21751,7 @@ multiple node agents:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  88: |
+  84: |
     apiVersion: v1
     data:
       config.json: |
@@ -22073,7 +21782,7 @@ multiple node agents:
         tier: ks-control-plane
       name: storage
       namespace: kubescape
-  89: |
+  85: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -22191,8 +21900,6 @@ multiple node agents:
                 items:
                   - key: clusterData
                     path: clusterData.json
-                  - key: services
-                    path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
             - configMap:
@@ -22201,7 +21908,7 @@ multiple node agents:
                     path: config.json
                 name: storage
               name: config
-  90: |
+  86: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -22266,7 +21973,7 @@ multiple node agents:
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
         - Egress
-  91: |
+  87: |
     apiVersion: v1
     kind: PersistentVolumeClaim
     metadata:
@@ -22290,7 +21997,7 @@ multiple node agents:
       resources:
         requests:
           storage: 5Gi
-  92: |
+  88: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -22316,7 +22023,7 @@ multiple node agents:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  93: |
+  89: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -22342,7 +22049,7 @@ multiple node agents:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  94: |
+  90: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -22370,7 +22077,7 @@ multiple node agents:
         app.kubernetes.io/component: storage
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  95: |
+  91: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -22388,7 +22095,7 @@ multiple node agents:
         tier: ks-control-plane
       name: storage
       namespace: kubescape
-  96: |
+  92: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -22624,7 +22331,7 @@ multiple node agents:
         verbs:
           - update
           - patch
-  97: |
+  93: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -22648,7 +22355,7 @@ multiple node agents:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  98: |
+  94: |
     apiVersion: v1
     data:
       config.json: |
@@ -22933,7 +22640,7 @@ multiple node agents:
         tier: ks-control-plane
       name: synchronizer
       namespace: kubescape
-  99: |
+  95: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -22965,7 +22672,7 @@ multiple node agents:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 3ca3213633e8269b560ec4cfc55649a50e43dcda2eb73f0b60d9225d2067ca82
+            checksum/cloud-config: b5ec535bc27d4fc863fb3331c520e8a39f14de5eb4916c7f6108dda9f6e52f08
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
             checksum/synchronizer-configmap: df8fee4a6080fe9af89f3fa7c40b9f8dd98a7080c0ef7de7ce0eb07ac8ac1408
@@ -23040,7 +22747,7 @@ multiple node agents:
                   readOnly: true
                   subPath: clusterData.json
                 - mountPath: /etc/config/services.json
-                  name: ks-cloud-config
+                  name: services
                   readOnly: true
                   subPath: services.json
                 - mountPath: /etc/ssl/certs/ca-certificates.crt
@@ -23056,6 +22763,34 @@ multiple node agents:
           imagePullSecrets:
             - name: foo
             - name: bar
+          initContainers:
+            - args:
+                - -method=get
+                - -scheme=https
+                - -host=api.armosec.io
+                - -path=api/v2/servicediscovery
+                - -path-output=/data/services.json
+              env:
+                - name: HTTPS_PROXY
+                  value: https://foo:bar@baz:1234
+                - name: no_proxy
+                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
+              image: quay.io/kubescape/http-request:v0.2.14
+              imagePullPolicy: IfNotPresent
+              name: url-discovery
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 50Mi
+                requests:
+                  cpu: 10m
+                  memory: 10Mi
+              volumeMounts:
+                - mountPath: /data
+                  name: services
+                - mountPath: /etc/ssl/certs/proxy.crt
+                  name: proxy-secret
+                  subPath: proxy.crt
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -23079,17 +22814,17 @@ multiple node agents:
                 items:
                   - key: clusterData
                     path: clusterData.json
-                  - key: services
-                    path: services.json
                 name: ks-cloud-config
               name: ks-cloud-config
+            - emptyDir: {}
+              name: services
             - configMap:
                 items:
                   - key: config.json
                     path: config.json
                 name: synchronizer
               name: config
-  100: |
+  96: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -23168,7 +22903,7 @@ multiple node agents:
       policyTypes:
         - Ingress
         - Egress
-  101: |
+  97: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -23211,7 +22946,7 @@ multiple node agents:
           - list
           - patch
           - delete
-  102: |
+  98: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -23236,7 +22971,7 @@ multiple node agents:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  103: |
+  99: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -23261,7 +22996,7 @@ multiple node agents:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  104: |
+  100: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -23288,7 +23023,7 @@ multiple node agents:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  105: |
+  101: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -23989,9 +23724,31 @@ relevancy only:
                   name: results
                 - mountPath: /home/nonroot/failed
                   name: failed
-                - mountPath: /etc/config
+                - mountPath: /etc/config/clusterData.json
                   name: ks-cloud-config
                   readOnly: true
+                  subPath: clusterData.json
+          initContainers:
+            - args:
+                - -method=get
+                - -scheme=https
+                - -host=
+                - -path=api/v2/servicediscovery
+                - -path-output=/data/services.json
+              env: null
+              image: quay.io/kubescape/http-request:v0.2.14
+              imagePullPolicy: IfNotPresent
+              name: url-discovery
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 50Mi
+                requests:
+                  cpu: 10m
+                  memory: 10Mi
+              volumeMounts:
+                - mountPath: /data
+                  name: services
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -24429,11 +24186,33 @@ relevancy only:
                   name: tmp-dir
                 - mountPath: /home/nonroot/anchore-resources/db
                   name: grype-db-cache
-                - mountPath: /etc/config
+                - mountPath: /etc/config/clusterData.json
                   name: ks-cloud-config
                   readOnly: true
+                  subPath: clusterData.json
                 - mountPath: /home/nonroot/.cache/grype
                   name: grype-db
+          initContainers:
+            - args:
+                - -method=get
+                - -scheme=https
+                - -host=
+                - -path=api/v2/servicediscovery
+                - -path-output=/data/services.json
+              env: null
+              image: quay.io/kubescape/http-request:v0.2.14
+              imagePullPolicy: IfNotPresent
+              name: url-discovery
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 50Mi
+                requests:
+                  cpu: 10m
+                  memory: 10Mi
+              volumeMounts:
+                - mountPath: /data
+                  name: services
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -25292,6 +25071,27 @@ relevancy only:
                   name: config
                   readOnly: true
                   subPath: config.json
+          initContainers:
+            - args:
+                - -method=get
+                - -scheme=https
+                - -host=
+                - -path=api/v2/servicediscovery
+                - -path-output=/data/services.json
+              env: null
+              image: quay.io/kubescape/http-request:v0.2.14
+              imagePullPolicy: IfNotPresent
+              name: url-discovery
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 50Mi
+                requests:
+                  cpu: 10m
+                  memory: 10Mi
+              volumeMounts:
+                - mountPath: /data
+                  name: services
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
