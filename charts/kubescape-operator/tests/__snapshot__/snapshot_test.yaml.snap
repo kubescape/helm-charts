@@ -3355,7 +3355,7 @@ all capabilities:
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
                   value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/operator:v0.2.99
+              image: quay.io/kubescape/operator:v0.2.101
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -3401,10 +3401,6 @@ all capabilities:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /etc/config/capabilities.json
                   name: ks-capabilities
                   readOnly: true
@@ -3429,34 +3425,6 @@ all capabilities:
           imagePullSecrets:
             - name: foo
             - name: bar
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env:
-                - name: HTTPS_PROXY
-                  value: https://foo:bar@baz:1234
-                - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/http-request:v0.2.14
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              volumeMounts:
-                - mountPath: /data
-                  name: services
-                - mountPath: /etc/ssl/certs/proxy.crt
-                  name: proxy-secret
-                  subPath: proxy.crt
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -3487,8 +3455,6 @@ all capabilities:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-            - emptyDir: {}
-              name: services
             - configMap:
                 items:
                   - key: capabilities
@@ -8366,7 +8332,7 @@ default capabilities:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.99
+              image: quay.io/kubescape/operator:v0.2.101
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -8409,10 +8375,6 @@ default capabilities:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /etc/config/capabilities.json
                   name: ks-capabilities
                   readOnly: true
@@ -8431,30 +8393,6 @@ default capabilities:
                 - mountPath: /etc/ssl/certs/cert2.pem
                   name: extra-ca-certificates
                   subPath: cert2.pem
-                - mountPath: /etc/ssl/certs/proxy.crt
-                  name: proxy-secret
-                  subPath: proxy.crt
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env: null
-              image: quay.io/kubescape/http-request:v0.2.14
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              volumeMounts:
-                - mountPath: /data
-                  name: services
                 - mountPath: /etc/ssl/certs/proxy.crt
                   name: proxy-secret
                   subPath: proxy.crt
@@ -8485,8 +8423,6 @@ default capabilities:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-            - emptyDir: {}
-              name: services
             - configMap:
                 items:
                   - key: capabilities
@@ -12364,7 +12300,7 @@ disable otel:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.99
+              image: quay.io/kubescape/operator:v0.2.101
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -12410,10 +12346,6 @@ disable otel:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /etc/config/capabilities.json
                   name: ks-capabilities
                   readOnly: true
@@ -12429,27 +12361,6 @@ disable otel:
                 - mountPath: /etc/certs
                   name: tls-certs
                   readOnly: true
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env: null
-              image: quay.io/kubescape/http-request:v0.2.14
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              volumeMounts:
-                - mountPath: /data
-                  name: services
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -12474,8 +12385,6 @@ disable otel:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-            - emptyDir: {}
-              name: services
             - configMap:
                 items:
                   - key: capabilities
@@ -16086,7 +15995,7 @@ minimal capabilities:
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
                   value: otelCollector.svc.monitoring:4317
-              image: quay.io/kubescape/operator:v0.2.99
+              image: quay.io/kubescape/operator:v0.2.101
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -16147,27 +16056,6 @@ minimal capabilities:
                 - mountPath: /etc/certs
                   name: tls-certs
                   readOnly: true
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env: null
-              image: quay.io/kubescape/http-request:v0.2.14
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              volumeMounts:
-                - mountPath: /data
-                  name: services
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -20650,7 +20538,7 @@ multiple node agents:
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
                   value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/operator:v0.2.99
+              image: quay.io/kubescape/operator:v0.2.101
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -20696,10 +20584,6 @@ multiple node agents:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /etc/config/capabilities.json
                   name: ks-capabilities
                   readOnly: true
@@ -20724,34 +20608,6 @@ multiple node agents:
           imagePullSecrets:
             - name: foo
             - name: bar
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env:
-                - name: HTTPS_PROXY
-                  value: https://foo:bar@baz:1234
-                - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/http-request:v0.2.14
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              volumeMounts:
-                - mountPath: /data
-                  name: services
-                - mountPath: /etc/ssl/certs/proxy.crt
-                  name: proxy-secret
-                  subPath: proxy.crt
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -20782,8 +20638,6 @@ multiple node agents:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-            - emptyDir: {}
-              name: services
             - configMap:
                 items:
                   - key: capabilities
@@ -25016,7 +24870,7 @@ relevancy only:
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
                   value: otelCollector.svc.monitoring:4317
-              image: quay.io/kubescape/operator:v0.2.99
+              image: quay.io/kubescape/operator:v0.2.101
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -25071,27 +24925,6 @@ relevancy only:
                   name: config
                   readOnly: true
                   subPath: config.json
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env: null
-              image: quay.io/kubescape/http-request:v0.2.14
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              volumeMounts:
-                - mountPath: /data
-                  name: services
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
