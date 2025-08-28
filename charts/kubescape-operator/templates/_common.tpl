@@ -71,7 +71,7 @@ operator:
 otelCollector:
   enabled: {{ and $configurations.ksOtel (not $configurations.otel) }}
 serviceDiscovery:
-  enabled: {{ $configurations.submit }}
+  enabled: {{ and $configurations.submit (not .Values.serviceDiscovery.forceDisabled) }}
 storage:
   enabled: true
 prometheusExporter:
