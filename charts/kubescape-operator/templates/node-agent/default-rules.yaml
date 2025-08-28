@@ -103,7 +103,7 @@ spec:
       id: "R0005"
       description: "Detecting unexpected domain requests that are not whitelisted by application profile."
       expressions:
-        message: "'Unexpected domain communication: ' + dns.dns_name + ' from: ' + dns.k8s.container_name"
+        message: "'Unexpected domain communication: ' + dns.dns_name"
         unique_id: "dns.comm + '_' + dns.dns_name"
         rule_expression:
           - event_type: "dns"
@@ -166,7 +166,7 @@ spec:
       description: "Detecting reading environment variables from procfs."
       expressions:
         message: "'Reading environment variables from procfs: ' + open.full_path + ' by process ' + open.comm"
-        unique_id: "open.comm + '_' + open.full_path"
+        unique_id: "open.comm"
         rule_expression:
           - event_type: "open"
             expression: >
@@ -174,7 +174,7 @@ spec:
               open.full_path.endsWith('/environ') &&
               !ap.was_path_opened_with_suffix(open.runtime.container_id, '/environ')
       profile_dependency: 0 # Required
-      severity: 3
+      severity: 5 # Medium
       support_policy: false
       tags:
         - "anomaly"
@@ -236,7 +236,7 @@ spec:
     - name: "Exec from malicious source"
       enabled: true
       id: "R1000"
-      description: "Detecting exec calls that are from malicious source like: /dev/shm, /proc/self"
+      description: "Detecting exec calls that are from malicious source like: /dev/shm"
       expressions:
         message: "'Execution from malicious source: ' + exec.exe_path + ' in directory ' + exec.cwd"
         unique_id: "exec.comm + '_' + exec.exe_path + '_' + exec.pcomm"
@@ -248,7 +248,7 @@ spec:
               (parse.get_exec_path(exec.args, exec.comm).startsWith('/dev/shm/')))
       profile_dependency: 2
       severity: 8
-      support_policy: true
+      support_policy: false
       tags:
         - "exec"
         - "signature"
@@ -320,7 +320,7 @@ spec:
       description: "Detecting exec calls from mounted paths."
       expressions:
         message: "'Process (' + exec.comm + ') was executed from a mounted path'"
-        unique_id: "exec.comm + '_' + exec.exe_path + '_'"
+        unique_id: "exec.comm + '_' + exec.exe_path"
         rule_expression:
           - event_type: "exec"
             expression: "!ap.was_executed(exec.runtime.container_id, parse.get_exec_path(exec.args, exec.comm)) && k8s.get_container_mount_paths(exec.k8s.namespace, exec.k8s.pod_name, exec.k8s.container_name).exists(mount, exec.exe_path.startsWith(mount) || parse.get_exec_path(exec.args, exec.comm).startsWith(mount))"
@@ -445,14 +445,14 @@ spec:
       description: "Detecting ld_preload hook techniques."
       expressions:
         message: "event_type == 'exec' ? 'Process (' + exec.comm + ') is using a dynamic linker hook: ' + process.get_ld_hook_var(exec.pid) : 'The dynamic linker configuration file (' + open.full_path + ') was modified by process (' + open.comm + ')'"
-        unique_id: "event_type == 'exec' ? 'exec_' + exec.comm + '_' + exec.runtime.container_id : 'open_' + open.full_path + '_' + open.runtime.container_id"
+        unique_id: "event_type == 'exec' ? 'exec_' + exec.comm : 'open_' + open.full_path"
         rule_expression:
           - event_type: "exec"
             expression: "exec.comm != 'java' && exec.k8s.container_name != 'matlab' && process.get_ld_hook_var(exec.pid) != ''"
           - event_type: "open"
             expression: "open.full_path == '/etc/ld.so.preload' && has(open.flags_raw) && open.flags_raw != 0"
       profile_dependency: 1
-      severity: 3
+      severity: 5
       support_policy: true
       tags:
         - "exec"
@@ -480,7 +480,7 @@ spec:
       id: "R1015"
       description: "Detecting potentially malicious ptrace usage."
       expressions:
-        message: "'Malicious ptrace usage detected from: ' + ptrace.comm + ' on PID: ' + string(ptrace.pid)"
+        message: "'Malicious ptrace usage detected from: ' + ptrace.comm"
         unique_id: "ptrace.exe_path + '_' + ptrace.comm"
         rule_expression:
           - event_type: "ptrace"
