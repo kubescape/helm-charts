@@ -7,9 +7,9 @@ metadata:
   annotations:
     {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
   labels:
-    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.nodeAgent.name "tier" .Values.global.namespaceTier) | nindent 4 }}
-spec:
-  rules:
+    {{- "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.nodeAgent.name "tier" .Values.global.namespaceTier) | nindent 4 }}
+  spec:
+    rules:
     - name: "Unexpected process launched"
       enabled: true
       id: "R0001"
@@ -28,8 +28,8 @@ spec:
         - "process"
         - "exec"
         - "applicationprofile"
-    - name: "Unexpected file access"
-      enabled: true
+    - name: "Files Access Anomalies in container"
+      enabled: false
       id: "R0002"
       description: "Detects unexpected file access that is not in the baseline"
       expressions:
@@ -38,24 +38,12 @@ spec:
         rule_expression:
           - event_type: "open"
             expression: >
-              (open.full_path.startsWith('/etc/') ||
-              open.full_path.startsWith('/var/log/') ||
-              open.full_path.startsWith('/var/run/') ||
-              open.full_path.startsWith('/run/') ||
-              open.full_path.startsWith('/var/spool/cron/') ||
-              open.full_path.startsWith('/var/www/') ||
-              open.full_path.startsWith('/var/lib/') ||
-              open.full_path.startsWith('/opt/') ||
-              open.full_path.startsWith('/usr/local/') ||
-              open.full_path.startsWith('/app/') ||
-              open.full_path == '/.dockerenv' ||
-              open.full_path == '/proc/self/environ')
-              &&
-              !(open.full_path.startsWith('/run/secrets/kubernetes.io/serviceaccount') ||
+              (open.full_path.startsWith('/etc/') || open.full_path.startsWith('/var/log/') || open.full_path.startsWith('/var/run/') || open.full_path.startsWith('/run/') || open.full_path.startsWith('/var/spool/cron/') || open.full_path.startsWith('/var/www/') || open.full_path.startsWith('/var/lib/') || open.full_path.startsWith('/opt/') || open.full_path.startsWith('/usr/local/') || open.full_path.startsWith('/app/') || open.full_path == '/.dockerenv' || open.full_path == '/proc/self/environ') && !(open.full_path.startsWith('/run/secrets/kubernetes.io/serviceaccount') ||
+      
                 open.full_path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') ||
                 open.full_path.startsWith('/tmp'))
-              &&
-              !ap.was_path_opened(open.runtime.container_id, open.full_path)
+              && !ap.was_path_opened(open.runtime.container_id, open.full_path)
+      
       profile_dependency: 0
       severity: 1
       support_policy: false
@@ -64,7 +52,7 @@ spec:
         - "file"
         - "open"
         - "applicationprofile"
-    - name: "Unexpected system call"
+    - name: "Syscalls Anomalies in container"
       enabled: true
       id: "R0003"
       description: "Detects unexpected system calls that are not whitelisted by application profile"
@@ -81,7 +69,7 @@ spec:
         - "anomaly"
         - "syscall"
         - "applicationprofile"
-    - name: "Unexpected capability used"
+    - name: "Linux Capabilities Anomalies in container"
       enabled: true
       id: "R0004"
       description: "Detects unexpected capabilities that are not whitelisted by application profile"
@@ -98,7 +86,7 @@ spec:
         - "anomaly"
         - "capabilities"
         - "applicationprofile"
-    - name: "Unexpected domain request"
+    - name: "DNS Anomalies in container"
       enabled: true
       id: "R0005"
       description: "Detecting unexpected domain requests that are not whitelisted by application profile."
@@ -115,7 +103,7 @@ spec:
         - "dns"
         - "anomaly"
         - "networkprofile"
-    - name: "Unexpected Service Account Token Access"
+    - name: "Unexpected service account token access"
       enabled: true
       id: "R0006"
       description: "Detecting unexpected access to service account token."
@@ -124,15 +112,7 @@ spec:
         unique_id: "open.comm"
         rule_expression:
           - event_type: "open"
-            expression: >
-              ((open.full_path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && open.full_path.endsWith('/token')) || 
-               (open.full_path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && open.full_path.endsWith('/token')) ||
-               (open.full_path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && open.full_path.endsWith('/token')) ||
-               (open.full_path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && open.full_path.endsWith('/token'))) &&
-              !ap.was_path_opened_with_prefix(open.runtime.container_id, '/run/secrets/kubernetes.io/serviceaccount') &&
-              !ap.was_path_opened_with_prefix(open.runtime.container_id, '/var/run/secrets/kubernetes.io/serviceaccount') &&
-              !ap.was_path_opened_with_prefix(open.runtime.container_id, '/run/secrets/eks.amazonaws.com/serviceaccount') &&
-              !ap.was_path_opened_with_prefix(open.runtime.container_id, '/var/run/secrets/eks.amazonaws.com/serviceaccount')
+            expression: "((open.full_path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && open.full_path.endsWith('/token')) || \n (open.full_path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && open.full_path.endsWith('/token')) ||\n (open.full_path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && open.full_path.endsWith('/token')) ||\n (open.full_path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && open.full_path.endsWith('/token'))) &&\n!ap.was_path_opened_with_prefix(open.runtime.container_id, '/run/secrets/kubernetes.io/serviceaccount') && !ap.was_path_opened_with_prefix(open.runtime.container_id, '/var/run/secrets/kubernetes.io/serviceaccount') && !ap.was_path_opened_with_prefix(open.runtime.container_id, '/run/secrets/eks.amazonaws.com/serviceaccount') && !ap.was_path_opened_with_prefix(open.runtime.container_id, '/var/run/secrets/eks.amazonaws.com/serviceaccount')\n"
       profile_dependency: 1
       severity: 5
       support_policy: false
@@ -140,7 +120,7 @@ spec:
         - "anomaly"
         - "serviceaccount"
         - "applicationprofile"
-    - name: "Kubernetes Client Executed"
+    - name: "Workload uses Kubernetes API unexpectedly"
       enabled: true
       id: "R0007"
       description: "Detecting execution of kubernetes client"
@@ -170,9 +150,8 @@ spec:
         rule_expression:
           - event_type: "open"
             expression: >
-              open.full_path.startsWith('/proc/') && 
-              open.full_path.endsWith('/environ') &&
-              !ap.was_path_opened_with_suffix(open.runtime.container_id, '/environ')
+              open.full_path.startsWith('/proc/') &&  open.full_path.endsWith('/environ') && !ap.was_path_opened_with_suffix(open.runtime.container_id, '/environ')
+      
       profile_dependency: 0 # Required
       severity: 5 # Medium
       support_policy: false
@@ -216,7 +195,7 @@ spec:
         - "anomaly"
         - "applicationprofile"
     - name: "Unexpected Egress Network Traffic"
-      enabled: true
+      enabled: false
       id: "R0011"
       description: "Detecting unexpected egress network traffic that is not whitelisted by application profile."
       expressions:
@@ -233,7 +212,7 @@ spec:
         - "network"
         - "anomaly"
         - "networkprofile"
-    - name: "Exec from malicious source"
+    - name: "Process executed from malicious source"
       enabled: true
       id: "R1000"
       description: "Detecting exec calls that are from malicious source like: /dev/shm"
@@ -243,9 +222,8 @@ spec:
         rule_expression:
           - event_type: "exec"
             expression: >
-              (exec.exe_path == '/dev/shm' || exec.exe_path.startsWith('/dev/shm/')) ||
-              (exec.cwd == '/dev/shm' || exec.cwd.startsWith('/dev/shm/') || 
-              (parse.get_exec_path(exec.args, exec.comm).startsWith('/dev/shm/')))
+              (exec.exe_path == '/dev/shm' || exec.exe_path.startsWith('/dev/shm/')) || (exec.cwd == '/dev/shm' || exec.cwd.startsWith('/dev/shm/') ||  (parse.get_exec_path(exec.args, exec.comm).startsWith('/dev/shm/')))
+      
       profile_dependency: 2
       severity: 8
       support_policy: false
@@ -253,7 +231,7 @@ spec:
         - "exec"
         - "signature"
         - "malicious"
-    - name: "Exec Binary Not In Base Image"
+    - name: "Drifted process executed"
       enabled: true
       id: "R1001"
       description: "Detecting exec calls of binaries that are not included in the base image"
@@ -264,8 +242,10 @@ spec:
           - event_type: "exec"
             expression: >
               (exec.upper_layer == true ||
-               exec.pupper_layer == true) &&
+      
+              exec.pupper_layer == true) &&
               !ap.was_executed(exec.runtime.container_id, parse.get_exec_path(exec.args, exec.comm))
+      
       profile_dependency: 1
       severity: 8
       support_policy: false
@@ -275,7 +255,7 @@ spec:
         - "binary"
         - "base image"
         - "applicationprofile"
-    - name: "Kernel Module Load"
+    - name: "Process tries to load a kernel module"
       enabled: true
       id: "R1002"
       description: "Detecting Kernel Module Load."
@@ -285,8 +265,8 @@ spec:
         rule_expression:
           - event_type: "syscall"
             expression: >
-              syscall.syscall_name == 'init_module' ||
-              syscall.syscall_name == 'finit_module'
+              syscall.syscall_name == 'init_module' || syscall.syscall_name == 'finit_module'
+      
       profile_dependency: 2
       severity: 10
       support_policy: false
@@ -295,7 +275,7 @@ spec:
         - "kernel"
         - "module"
         - "load"
-    - name: "Malicious SSH Connection"
+    - name: "Disallowed ssh connection"
       enabled: true
       id: "R1003"
       description: "Detecting ssh connection to disallowed port"
@@ -314,7 +294,7 @@ spec:
         - "port"
         - "malicious"
         - "networkprofile"
-    - name: "Exec from mount"
+    - name: "Process executed from mount"
       enabled: true
       id: "R1004"
       description: "Detecting exec calls from mounted paths."
@@ -331,7 +311,7 @@ spec:
         - "exec"
         - "mount"
         - "applicationprofile"
-    - name: "Fileless Execution"
+    - name: "Fileless execution detected"
       enabled: true
       id: "R1005"
       description: "Detecting Fileless Execution"
@@ -348,7 +328,7 @@ spec:
         - "fileless"
         - "execution"
         - "malicious"
-    - name: "Unshare System Call usage"
+    - name: "Process tries to escape container"
       enabled: true
       id: "R1006"
       description: "Detecting Unshare System Call usage, which can be used to escape container."
@@ -367,7 +347,7 @@ spec:
         - "unshare"
         - "anomaly"
         - "applicationprofile"
-    - name: "XMR Crypto Mining Detection"
+    - name: "Crypto miner launched"
       enabled: true
       id: "R1007"
       description: "Detecting XMR Crypto Miners by randomx algorithm usage."
@@ -422,7 +402,7 @@ spec:
         - "miners"
         - "malicious"
         - "networkprofile"
-    - name: "Symlink Created Over Sensitive File"
+    - name: "Soft link created over sensitive file"
       enabled: true
       id: "R1010"
       description: "Detects symlink creation over sensitive files"
@@ -432,15 +412,15 @@ spec:
         rule_expression:
           - event_type: "symlink"
             expression: "(symlink.old_path.startsWith('/etc/shadow') || symlink.old_path.startsWith('/etc/sudoers')) && !ap.was_path_opened(symlink.runtime.container_id, symlink.old_path)"
-      profile_dependency: 0
+      profile_dependency: 1
       severity: 5
       support_policy: true
       tags:
         - "anomaly"
         - "symlink"
         - "applicationprofile"
-    - name: "LD_PRELOAD Hook"
-      enabled: true
+    - name: "ld_preload hooks technique detected"
+      enabled: false
       id: "R1011"
       description: "Detecting ld_preload hook techniques."
       expressions:
@@ -458,7 +438,7 @@ spec:
         - "exec"
         - "malicious"
         - "applicationprofile"
-    - name: "Hardlink Created Over Sensitive File"
+    - name: "Hard link created over sensitive file"
       enabled: true
       id: "R1012"
       description: "Detecting hardlink creation over sensitive files."
