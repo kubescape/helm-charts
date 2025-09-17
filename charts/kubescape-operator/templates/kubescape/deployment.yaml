@@ -58,11 +58,10 @@ spec:
       {{- end }}
       {{- end }}
       {{- end }}
+      {{- with (coalesce .Values.kubescape.podSecurityContext .Values.global.podSecurityContext) }}
       securityContext:
-        seccompProfile:
-          type: RuntimeDefault
-        runAsUser: 65532
-        fsGroup: 65532
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- if $components.serviceDiscovery.enabled }}
       initContainers:
       - name: {{ .Values.serviceDiscovery.urlDiscovery.name }}
@@ -103,10 +102,10 @@ spec:
       - name: kubescape
         image: "{{ .Values.kubescape.image.repository }}:{{ .Values.kubescape.image.tag }}"
         imagePullPolicy: "{{ .Values.kubescape.image.pullPolicy }}"
+        {{- with (coalesce .Values.kubescape.securityContext .Values.global.securityContext) }}
         securityContext:
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: true
-          runAsNonRoot: true
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
         ports:
           - name: http
             containerPort: 8080
