@@ -55,19 +55,18 @@ spec:
       {{- end }}
       {{- end }}
       {{- end }}
+      {{- with (coalesce .Values.operator.podSecurityContext .Values.global.podSecurityContext) }}
       securityContext:
-        seccompProfile:
-          type: RuntimeDefault
-        runAsUser: 65532
-        fsGroup: 65532
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: {{ .Values.operator.name }}
           image: "{{ .Values.operator.image.repository }}:{{ .Values.operator.image.tag }}"
           imagePullPolicy: {{ .Values.operator.image.pullPolicy }}
+          {{- with (coalesce .Values.operator.securityContext .Values.global.securityContext) }}
           securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            runAsNonRoot: true
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           ports:
             - name: "trigger-port"
               containerPort: 4002
