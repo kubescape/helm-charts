@@ -1,0 +1,44 @@
+name: "kubescape"
+version: "1.0.0"
+usage: "Scan Helm charts with Kubescape security scanner"
+description: |-
+  A Helm plugin that integrates with Kubescape to perform security scanning on Helm charts.
+  
+  This plugin renders Helm charts using 'helm template' and then runs Kubescape security 
+  scans on the resulting Kubernetes manifests. It supports all standard Helm chart 
+  arguments including --values, --set, and --set-string flags.
+  
+  Usage:
+    helm kubescape [CHART] [flags]
+  
+  Examples:
+    # Scan a local chart
+    helm kubescape ./my-chart
+    
+    # Scan a chart with custom values
+    helm kubescape ./my-chart --values values.yaml
+    
+    # Scan a chart with set overrides
+    helm kubescape ./my-chart --set image.tag=latest
+    
+    # Scan a remote chart
+    helm kubescape bitnami/nginx --repo https://charts.bitnami.com/bitnami
+
+hooks:
+  install: "$HELM_PLUGIN_DIR/install-kubescape.sh"
+platformCommand:
+  - os: linux
+    arch: amd64
+    command: "$HELM_PLUGIN_DIR/kubescape.sh"
+  - os: linux
+    arch: arm64
+    command: "$HELM_PLUGIN_DIR/kubescape.sh"
+  - os: darwin
+    arch: amd64
+    command: "$HELM_PLUGIN_DIR/kubescape.sh"
+  - os: darwin
+    arch: arm64
+    command: "$HELM_PLUGIN_DIR/kubescape.sh"
+  - os: windows
+    arch: amd64
+    command: "$HELM_PLUGIN_DIR/kubescape.bat"
