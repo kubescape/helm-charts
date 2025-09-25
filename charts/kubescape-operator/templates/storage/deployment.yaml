@@ -43,18 +43,18 @@ spec:
       {{- end }}
       {{- end }}
       serviceAccountName: {{ .Values.storage.name }}
+      {{- with (coalesce .Values.storage.podSecurityContext .Values.global.podSecurityContext) }}
       securityContext:
-        seccompProfile:
-          type: RuntimeDefault
-        runAsUser: 65532
-        fsGroup: 65532
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
       - name: apiserver
         image: "{{ .Values.storage.image.repository }}:{{ .Values.storage.image.tag }}"
         imagePullPolicy: {{ .Values.storage.image.pullPolicy }}
+        {{- with (coalesce .Values.storage.securityContext .Values.global.securityContext) }}
         securityContext:
-          allowPrivilegeEscalation: false
-          runAsNonRoot: true
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
         livenessProbe:
           httpGet:
             path: /livez

@@ -30,9 +30,10 @@ spec:
         {{- with .Values.grypeOfflineDB.podLabels }}{{- toYaml . | nindent 8 }}{{- end }}
         kubescape.io/tier: "core"
     spec:
+      {{- with (coalesce .Values.grypeOfflineDB.podSecurityContext .Values.global.podSecurityContext) }}
       securityContext:
-        seccompProfile:
-          type: RuntimeDefault
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
       {{- if kindIs "string" .Values.imagePullSecrets }}
@@ -47,9 +48,10 @@ spec:
         - name: {{ .Values.grypeOfflineDB.name }}
           image: "{{ .Values.grypeOfflineDB.image.repository }}{{ if .Values.grypeOfflineDB.image.tag }}:{{ .Values.grypeOfflineDB.image.tag }}{{ else }}@{{ .Values.grypeOfflineDB.image.sha }}{{ end }}"
           imagePullPolicy: {{ .Values.grypeOfflineDB.image.pullPolicy }}
+          {{- with (coalesce .Values.grypeOfflineDB.securityContext .Values.global.securityContext) }}
           securityContext:
-            allowPrivilegeEscalation: false
-            runAsNonRoot: true
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           ports:
           - containerPort: 8080
             protocol: TCP

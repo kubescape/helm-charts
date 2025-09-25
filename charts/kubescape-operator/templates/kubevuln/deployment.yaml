@@ -48,11 +48,10 @@ spec:
       {{- end }}
       {{- end }}
       {{- end }}
+      {{- with (coalesce .Values.kubevuln.podSecurityContext .Values.global.podSecurityContext) }}
       securityContext:
-        seccompProfile:
-          type: RuntimeDefault
-        runAsUser: 65532
-        fsGroup: 65532
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- if $components.serviceDiscovery.enabled }}
       initContainers:
         - name: {{ .Values.serviceDiscovery.urlDiscovery.name }}
@@ -93,10 +92,10 @@ spec:
         - name: {{ .Values.kubevuln.name }}
           image: "{{ .Values.kubevuln.image.repository }}:{{ .Values.kubevuln.image.tag }}"
           imagePullPolicy: {{ .Values.kubevuln.image.pullPolicy }}
+          {{- with (coalesce .Values.kubevuln.securityContext .Values.global.securityContext) }}
           securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            runAsNonRoot: true
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           ports:
           - containerPort: {{ .Values.kubevuln.service.port }}
             protocol: TCP
