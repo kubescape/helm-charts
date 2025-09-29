@@ -1,6 +1,6 @@
 # Kubescape Operator
 
-![Version: 1.29.8](https://img.shields.io/badge/Version-1.29.8-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.29.8](https://img.shields.io/badge/AppVersion-v1.29.8-informational?style=flat-square)
+![Version: 1.29.9](https://img.shields.io/badge/Version-1.29.9-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.29.9](https://img.shields.io/badge/AppVersion-v1.29.9-informational?style=flat-square)
 
 [Kubescape operator documentation](https://kubescape.io/docs/install-operator/)
 
