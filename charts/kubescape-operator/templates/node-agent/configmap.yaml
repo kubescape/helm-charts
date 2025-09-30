@@ -35,6 +35,15 @@ data:
         "sbomGenerationEnabled": {{ eq .Values.capabilities.nodeSbomGeneration "enable" }},
         "enableEmbeddedSBOMs": {{ eq .Values.capabilities.scanEmbeddedSBOMs "enable" }},
         "seccompServiceEnabled": {{ eq .Values.capabilities.seccompProfileService "enable" }},
+        "auditDetectionEnabled": {{ eq .Values.capabilities.linuxAudit "enable" }},
+        {{- if eq .Values.capabilities.linuxAudit "enable" }}
+        "auditDetection": {
+          "exporters": {{ .Values.nodeAgent.config.auditDetection.exporters | toJson }},
+          "eventFilter": {
+            "includeTypes": {{ .Values.nodeAgent.config.auditDetection.eventFilter.includeTypes | toJson }}
+          }
+        },
+        {{- end }}
         "initialDelay": "{{ .Values.nodeAgent.config.learningPeriod }}",
         "updateDataPeriod": "{{ .Values.nodeAgent.config.updatePeriod }}",
         "nodeProfileInterval": "{{ .Values.nodeAgent.config.nodeProfileInterval }}",

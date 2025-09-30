@@ -85,32 +85,33 @@ capabilities:
   # ====== configuration scanning related capabilities ======
   #
   # Default configuration scanning setup
-  configurationScan: enable
-  nodeScan: enable
+  configurationScan: disable
+  nodeScan: disable
 
   # ====== Image vulnerabilities scanning related capabilities ======
   #
   nodeSbomGeneration: enable # Warning: When disabled along with enableClusterWideSecretAccess: false, vulnerability scanning capabilities will be limited
   # Instruct Syft to also scan for SBOM files in the filesystem container
   scanEmbeddedSBOMs: disable
-  vulnerabilityScan: enable
-  relevancy: enable
+  vulnerabilityScan: disable
+  relevancy: disable
   # Generate VEX documents alongside the image vulnerabilities report (experimental)
   vexGeneration: disable
 
   # ====== Runtime related capabilities ======
   #
   runtimeObservability: enable
-  networkPolicyService: enable
-  networkEventsStreaming: enable
+  networkPolicyService: disable
+  networkEventsStreaming: disable
   runtimeDetection: disable
   malwareDetection: disable
-  nodeProfileService: enable
-  admissionController: enable
-  httpDetection: enable
-  seccompProfileService: enable
+  nodeProfileService: disable
+  admissionController: disable
+  httpDetection: disable
+  seccompProfileService: disable
   manageWorkloads: disable
   syncSBOM: disable
+  linuxAudit: enable
 
   # ====== Other capabilities ======
   #
@@ -532,9 +533,9 @@ nodeAgent:
   name: node-agent
   image:
     # -- source code: https://github.com/kubescape/node-agent
-    repository: quay.io/kubescape/node-agent
-    tag: v0.2.394
-    pullPolicy: IfNotPresent
+    repository: quay.io/benarmosec/node-agent
+    tag: test-v1
+    pullPolicy: Always
 
   config:
     maxLearningPeriod: 24h # duration string
@@ -554,6 +555,14 @@ nodeAgent:
     malwareScanAllFiles: false
     hostMalwareSensor: disable
     hostNetworkSensor: disable
+    # auditDetectionEnabled: false  # This is controlled by capabilities.linuxAudit instead
+    auditDetection:
+      exporters:
+        stdoutExporter: true
+        # Add any additional exporter configurations here
+        # They will be mapped directly to the auditDetection.exporters JSON structure
+      eventFilter:
+        includeTypes: [1300, 1302, 1309, 1307, 1317, 1007, 1327, 1303, 1324, 1306, 1404, 1326]
     ruleCooldown:
       ruleCooldownDuration: 1h # duration string
       ruleCooldownAfterCount: 1

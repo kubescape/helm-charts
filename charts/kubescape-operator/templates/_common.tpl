@@ -65,6 +65,7 @@ nodeAgent:
    (eq .Values.capabilities.malwareDetection "enable")
    (eq .Values.capabilities.nodeProfileService "enable")
    (eq .Values.capabilities.seccompProfileService "enable")
+   (eq .Values.capabilities.linuxAudit "enable")
   }}
 operator:
   enabled: true
