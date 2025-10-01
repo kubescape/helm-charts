@@ -88,6 +88,10 @@ capabilities:
   configurationScan: enable
   nodeScan: enable
 
+  # Enable/disable the nodeAgent DaemonSet deployment
+  # The nodeAgent provides runtime security monitoring and SBOM generation
+  nodeAgent: enable
+
   # ====== Image vulnerabilities scanning related capabilities ======
   #
   nodeSbomGeneration: enable # Warning: When disabled along with enableClusterWideSecretAccess: false, vulnerability scanning capabilities will be limited
@@ -139,7 +143,7 @@ configurations:
 
   priorityClass:
     enabled: true
-    daemonset: 100000100  # PriorityClass of the DaemonSet, this should be higher than the other components so the DaemonSet will schedule on all nodes
+    daemonset: 100000100 # PriorityClass of the DaemonSet, this should be higher than the other components so the DaemonSet will schedule on all nodes
 
   # List of json paths to exclude from the pod spec hash computation - used for aggregating CronJob generated CRDs
   excludeJsonPaths:
@@ -488,7 +492,7 @@ storage:
       cpu: 1500m
       memory: 1500Mi
 
-  disableVirtualCRDs: false  # set to true or false to override auto-detection
+  disableVirtualCRDs: false # set to true or false to override auto-detection
 
   # -- queue manager configuration
   queueManagerEnabled: true # set to false to disable the queue manager, this will disable the queue manager for all kinds
@@ -1017,7 +1021,8 @@ kubescapeScheduler:
 
 kubevulnScheduler:
   ## scan scheduler container name
-  name: kubevuln-scheduler
+  name:
+    kubevuln-scheduler
 
     # -- Frequency of running the scan
     #     ┌───────────── minute (0 - 59)
@@ -1064,7 +1069,8 @@ kubevulnScheduler:
 # registry scan scheduled scan using a CronJob
 registryScanScheduler:
   # scan scheduler container name
-  name: registry-scheduler
+  name:
+    registry-scheduler
 
     # -- Frequency of running the scan
     #     ┌───────────── minute (0 - 59)
