@@ -7,9 +7,9 @@ metadata:
   annotations:
     {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
   labels:
-    {{- "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.nodeAgent.name "tier" .Values.global.namespaceTier) | nindent 4 }}
-  spec:
-    rules:
+    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.nodeAgent.name "tier" .Values.global.namespaceTier) | nindent 4 }}
+spec:
+  rules:
     - name: "Unexpected process launched"
       enabled: true
       id: "R0001"
@@ -38,12 +38,24 @@ metadata:
         rule_expression:
           - event_type: "open"
             expression: >
-              (open.full_path.startsWith('/etc/') || open.full_path.startsWith('/var/log/') || open.full_path.startsWith('/var/run/') || open.full_path.startsWith('/run/') || open.full_path.startsWith('/var/spool/cron/') || open.full_path.startsWith('/var/www/') || open.full_path.startsWith('/var/lib/') || open.full_path.startsWith('/opt/') || open.full_path.startsWith('/usr/local/') || open.full_path.startsWith('/app/') || open.full_path == '/.dockerenv' || open.full_path == '/proc/self/environ') && !(open.full_path.startsWith('/run/secrets/kubernetes.io/serviceaccount') ||
-      
+              (open.full_path.startsWith('/etc/') ||
+              open.full_path.startsWith('/var/log/') ||
+              open.full_path.startsWith('/var/run/') ||
+              open.full_path.startsWith('/run/') ||
+              open.full_path.startsWith('/var/spool/cron/') ||
+              open.full_path.startsWith('/var/www/') ||
+              open.full_path.startsWith('/var/lib/') ||
+              open.full_path.startsWith('/opt/') ||
+              open.full_path.startsWith('/usr/local/') ||
+              open.full_path.startsWith('/app/') ||
+              open.full_path == '/.dockerenv' ||
+              open.full_path == '/proc/self/environ')
+              &&
+              !(open.full_path.startsWith('/run/secrets/kubernetes.io/serviceaccount') ||
                 open.full_path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') ||
                 open.full_path.startsWith('/tmp'))
-              && !ap.was_path_opened(open.runtime.container_id, open.full_path)
-      
+              &&
+              !ap.was_path_opened(open.runtime.container_id, open.full_path)
       profile_dependency: 0
       severity: 1
       support_policy: false
@@ -112,7 +124,15 @@ metadata:
         unique_id: "open.comm"
         rule_expression:
           - event_type: "open"
-            expression: "((open.full_path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && open.full_path.endsWith('/token')) || \n (open.full_path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && open.full_path.endsWith('/token')) ||\n (open.full_path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && open.full_path.endsWith('/token')) ||\n (open.full_path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && open.full_path.endsWith('/token'))) &&\n!ap.was_path_opened_with_prefix(open.runtime.container_id, '/run/secrets/kubernetes.io/serviceaccount') && !ap.was_path_opened_with_prefix(open.runtime.container_id, '/var/run/secrets/kubernetes.io/serviceaccount') && !ap.was_path_opened_with_prefix(open.runtime.container_id, '/run/secrets/eks.amazonaws.com/serviceaccount') && !ap.was_path_opened_with_prefix(open.runtime.container_id, '/var/run/secrets/eks.amazonaws.com/serviceaccount')\n"
+            expression: >
+              ((open.full_path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && open.full_path.endsWith('/token')) || 
+               (open.full_path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && open.full_path.endsWith('/token')) ||
+               (open.full_path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && open.full_path.endsWith('/token')) ||
+               (open.full_path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && open.full_path.endsWith('/token'))) &&
+              !ap.was_path_opened_with_prefix(open.runtime.container_id, '/run/secrets/kubernetes.io/serviceaccount') &&
+              !ap.was_path_opened_with_prefix(open.runtime.container_id, '/var/run/secrets/kubernetes.io/serviceaccount') &&
+              !ap.was_path_opened_with_prefix(open.runtime.container_id, '/run/secrets/eks.amazonaws.com/serviceaccount') &&
+              !ap.was_path_opened_with_prefix(open.runtime.container_id, '/var/run/secrets/eks.amazonaws.com/serviceaccount')
       profile_dependency: 1
       severity: 5
       support_policy: false
@@ -125,7 +145,7 @@ metadata:
       id: "R0007"
       description: "Detecting execution of kubernetes client"
       expressions:
-        message: "event_type == 'exec' ? 'Kubernetes client (' + exec.comm + ') was executed with PID ' + string(exec.pid) : 'Network connection to Kubernetes API server from ' + network.runtime.container_id"
+        message: "event_type == 'exec' ? 'Kubernetes client (' + exec.comm + ') was executed with PID ' + string(exec.pid) : 'Network connection to Kubernetes API server from container ' + network.k8s.container_name"
         unique_id: "event_type == 'exec' ? 'exec_' + exec.comm : 'network_' + network.dst_endpoint.addr"
         rule_expression:
           - event_type: "exec"
@@ -150,8 +170,9 @@ metadata:
         rule_expression:
           - event_type: "open"
             expression: >
-              open.full_path.startsWith('/proc/') &&  open.full_path.endsWith('/environ') && !ap.was_path_opened_with_suffix(open.runtime.container_id, '/environ')
-      
+              open.full_path.startsWith('/proc/') && 
+              open.full_path.endsWith('/environ') &&
+              !ap.was_path_opened_with_suffix(open.runtime.container_id, '/environ')
       profile_dependency: 0 # Required
       severity: 5 # Medium
       support_policy: false
@@ -222,8 +243,9 @@ metadata:
         rule_expression:
           - event_type: "exec"
             expression: >
-              (exec.exe_path == '/dev/shm' || exec.exe_path.startsWith('/dev/shm/')) || (exec.cwd == '/dev/shm' || exec.cwd.startsWith('/dev/shm/') ||  (parse.get_exec_path(exec.args, exec.comm).startsWith('/dev/shm/')))
-      
+              (exec.exe_path == '/dev/shm' || exec.exe_path.startsWith('/dev/shm/')) ||
+              (exec.cwd == '/dev/shm' || exec.cwd.startsWith('/dev/shm/') || 
+              (parse.get_exec_path(exec.args, exec.comm).startsWith('/dev/shm/')))
       profile_dependency: 2
       severity: 8
       support_policy: false
@@ -242,10 +264,8 @@ metadata:
           - event_type: "exec"
             expression: >
               (exec.upper_layer == true ||
-      
-              exec.pupper_layer == true) &&
+               exec.pupper_layer == true) &&
               !ap.was_executed(exec.runtime.container_id, parse.get_exec_path(exec.args, exec.comm))
-      
       profile_dependency: 1
       severity: 8
       support_policy: false
@@ -265,8 +285,8 @@ metadata:
         rule_expression:
           - event_type: "syscall"
             expression: >
-              syscall.syscall_name == 'init_module' || syscall.syscall_name == 'finit_module'
-      
+              syscall.syscall_name == 'init_module' ||
+              syscall.syscall_name == 'finit_module'
       profile_dependency: 2
       severity: 10
       support_policy: false
@@ -276,7 +296,7 @@ metadata:
         - "module"
         - "load"
     - name: "Disallowed ssh connection"
-      enabled: true
+      enabled: false
       id: "R1003"
       description: "Detecting ssh connection to disallowed port"
       expressions:

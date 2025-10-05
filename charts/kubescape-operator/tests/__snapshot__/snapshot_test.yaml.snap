@@ -2744,82 +2744,31 @@ all capabilities:
               - my-namespace
       rules:
         - ruleName: Unexpected process launched
-        - parameters:
-            ignoreMounts: true
-            ignorePrefixes:
-              - /proc
-              - /run/secrets/kubernetes.io/serviceaccount
-              - /var/run/secrets/kubernetes.io/serviceaccount
-              - /tmp
-            includePrefixes:
-              - /etc
-              - /var/spool/cron/
-              - /var/log/
-              - /var/run/
-              - /dev/shm/
-              - /run/
-              - /var/www/
-              - /var/lib/docker/
-              - /opt/
-              - /usr/local/
-              - /app/
-              - /.dockerenv
-              - /proc/self/environ
-              - /var/lib/kubelet/
-              - /etc/cni/net.d/
-              - /var/run/secrets/kubernetes.io/
-              - /var/run/secrets/kubernetes.io/serviceaccount/
-              - /run/containerd/
-              - /run/flannel/
-              - /run/calico/
-          ruleName: Unexpected file access
-        - ruleName: Unexpected system call
-        - ruleName: Unexpected capability used
-        - ruleName: Unexpected domain request
-        - ruleName: Unexpected Service Account Token Access
-        - ruleName: Kubernetes Client Executed
-        - ruleName: Exec from malicious source
-        - ruleName: Kernel Module Load
-        - ruleName: Exec Binary Not In Base Image
-        - ruleName: Fileless Execution
-        - ruleName: XMR Crypto Mining Detection
-        - ruleName: Exec from mount
+        - ruleName: Files Access Anomalies in container
+        - ruleName: Syscalls Anomalies in container
+        - ruleName: Linux Capabilities Anomalies in container
+        - ruleName: DNS Anomalies in container
+        - ruleName: Unexpected service account token access
+        - ruleName: Workload uses Kubernetes API unexpectedly
+        - ruleName: Process executed from malicious source
+        - ruleName: Process tries to load a kernel module
+        - ruleName: Drifted process executed
+        - ruleName: Disallowed ssh connection
+        - ruleName: Fileless execution detected
+        - ruleName: Crypto miner launched
+        - ruleName: Process executed from mount
         - ruleName: Crypto Mining Related Port Communication
         - ruleName: Crypto Mining Domain Communication
         - ruleName: Read Environment Variables from procfs
         - ruleName: eBPF Program Load
-        - ruleName: Symlink Created Over Sensitive File
+        - ruleName: Soft link created over sensitive file
         - ruleName: Unexpected Sensitive File Access
-        - ruleName: Hardlink Created Over Sensitive File
+        - ruleName: Hard link created over sensitive file
         - ruleName: Exec to pod
         - ruleName: Port forward
+        - ruleName: Unexpected Egress Network Traffic
         - ruleName: Malicious Ptrace Usage
-        - ruleName: Cross-Site Scripting (XSS) Attempt
-        - ruleName: SQL Injection Attempt
-        - ruleName: Server-Side Request Forgery Attack Attempt
-        - ruleName: Remote File Inclusion Attack Attempt
-        - ruleName: Local File Inclusion Attempt
-        - ruleName: XML External Entity Attack Attempt
-        - ruleName: Server-Side Template Injection Attack
-        - ruleName: Command Injection Attempt
-        - ruleName: Unexpected Exec Source
-        - ruleName: Unexpected Open Source
-        - ruleName: Unexpected Symlink Source
-        - ruleName: Unexpected Hardlink Source
         - ruleName: Unexpected io_uring Operation Detected
-        - ruleName: ReDoS Attack
-        - ruleName: Prototype Pollution Attack
-        - ruleName: Execution of base64 Encoded Command
-        - ruleName: Execution of interpreter command
-        - ruleName: Code Sharing Site Access
-        - ruleName: Web Application File Write Access
-        - ruleName: Cron Job File Created or Modified
-        - ruleName: Hidden File Created
-        - ruleName: Reverse Shell Patterens Detected
-        - ruleName: Unauthorized IMDS Connection Attempt
-        - ruleName: Credentials Detection Attempts
-        - ruleName: HTTP Request Smuggling Attempt
-        - ruleName: P2P Tracker Connection Created
   51: |
     apiVersion: kubescape.io/v1
     kind: Rules
@@ -2859,7 +2808,7 @@ all capabilities:
             - exec
             - applicationprofile
         - description: Detects unexpected file access that is not in the baseline
-          enabled: true
+          enabled: false
           expressions:
             message: '''Unexpected file access detected: '' + open.comm + '' with PID '' + string(open.pid) + '' to '' + open.full_path'
             rule_expression:
@@ -2871,7 +2820,7 @@ all capabilities:
                   && !ap.was_path_opened(open.runtime.container_id, open.full_path)
             unique_id: open.comm + '_' + open.full_path
           id: R0002
-          name: Unexpected file access
+          name: Files Access Anomalies in container
           profile_dependency: 0
           severity: 1
           support_policy: false
@@ -2889,7 +2838,7 @@ all capabilities:
                 expression: '!ap.was_syscall_used(syscall.runtime.container_id, syscall.syscall_name)'
             unique_id: syscall.syscall_name
           id: R0003
-          name: Unexpected system call
+          name: Syscalls Anomalies in container
           profile_dependency: 0
           severity: 1
           support_policy: false
@@ -2906,7 +2855,7 @@ all capabilities:
                 expression: '!ap.was_capability_used(capabilities.runtime.container_id, capabilities.cap_name)'
             unique_id: capabilities.comm + '_' + capabilities.cap_name
           id: R0004
-          name: Unexpected capability used
+          name: Linux Capabilities Anomalies in container
           profile_dependency: 0
           severity: 1
           support_policy: false
@@ -2923,7 +2872,7 @@ all capabilities:
                 expression: '!dns.dns_name.endsWith(''.svc.cluster.local.'') && !nn.is_domain_in_egress(dns.runtime.container_id, dns.dns_name)'
             unique_id: dns.comm + '_' + dns.dns_name
           id: R0005
-          name: Unexpected domain request
+          name: DNS Anomalies in container
           profile_dependency: 0
           severity: 1
           support_policy: false
@@ -2940,7 +2889,7 @@ all capabilities:
                 expression: "((open.full_path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && open.full_path.endsWith('/token')) || \n (open.full_path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && open.full_path.endsWith('/token')) ||\n (open.full_path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && open.full_path.endsWith('/token')) ||\n (open.full_path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && open.full_path.endsWith('/token'))) &&\n!ap.was_path_opened_with_prefix(open.runtime.container_id, '/run/secrets/kubernetes.io/serviceaccount') && !ap.was_path_opened_with_prefix(open.runtime.container_id, '/var/run/secrets/kubernetes.io/serviceaccount') && !ap.was_path_opened_with_prefix(open.runtime.container_id, '/run/secrets/eks.amazonaws.com/serviceaccount') && !ap.was_path_opened_with_prefix(open.runtime.container_id, '/var/run/secrets/eks.amazonaws.com/serviceaccount')\n"
             unique_id: open.comm
           id: R0006
-          name: Unexpected Service Account Token Access
+          name: Unexpected service account token access
           profile_dependency: 1
           severity: 5
           support_policy: false
@@ -2951,7 +2900,7 @@ all capabilities:
         - description: Detecting execution of kubernetes client
           enabled: true
           expressions:
-            message: 'event_type == ''exec'' ? ''Kubernetes client ('' + exec.comm + '') was executed with PID '' + string(exec.pid) : ''Network connection to Kubernetes API server from '' + network.runtime.container_id'
+            message: 'event_type == ''exec'' ? ''Kubernetes client ('' + exec.comm + '') was executed with PID '' + string(exec.pid) : ''Network connection to Kubernetes API server from container '' + network.k8s.container_name'
             rule_expression:
               - event_type: exec
                 expression: (exec.comm == 'kubectl' || exec.exe_path.endsWith('/kubectl')) && !ap.was_executed(exec.runtime.container_id, parse.get_exec_path(exec.args, exec.comm))
@@ -2959,7 +2908,7 @@ all capabilities:
                 expression: network.pkt_type == 'OUTGOING' && k8s.is_api_server_address(network.dst_endpoint.addr) && !nn.was_address_in_egress(network.runtime.container_id, network.dst_endpoint.addr)
             unique_id: 'event_type == ''exec'' ? ''exec_'' + exec.comm : ''network_'' + network.dst_endpoint.addr'
           id: R0007
-          name: Kubernetes Client Executed
+          name: Workload uses Kubernetes API unexpectedly
           profile_dependency: 0
           severity: 5
           support_policy: false
@@ -3022,7 +2971,7 @@ all capabilities:
             - anomaly
             - applicationprofile
         - description: Detecting unexpected egress network traffic that is not whitelisted by application profile.
-          enabled: true
+          enabled: false
           expressions:
             message: '''Unexpected egress network communication to: '' + network.dst_endpoint.addr + '':'' + string(dyn(network.port)) + '' using '' + network.proto + '' from: '' + network.k8s.container_name'
             rule_expression:
@@ -3049,7 +2998,7 @@ all capabilities:
                   (exec.exe_path == '/dev/shm' || exec.exe_path.startsWith('/dev/shm/')) || (exec.cwd == '/dev/shm' || exec.cwd.startsWith('/dev/shm/') ||  (parse.get_exec_path(exec.args, exec.comm).startsWith('/dev/shm/')))
             unique_id: exec.comm + '_' + exec.exe_path + '_' + exec.pcomm
           id: R1000
-          name: Exec from malicious source
+          name: Process executed from malicious source
           profile_dependency: 2
           severity: 8
           support_policy: false
@@ -3069,7 +3018,7 @@ all capabilities:
                   !ap.was_executed(exec.runtime.container_id, parse.get_exec_path(exec.args, exec.comm))
             unique_id: exec.comm + '_' + exec.exe_path + '_' + exec.pcomm
           id: R1001
-          name: Exec Binary Not In Base Image
+          name: Drifted process executed
           profile_dependency: 1
           severity: 8
           support_policy: false
@@ -3089,7 +3038,7 @@ all capabilities:
                   syscall.syscall_name == 'init_module' || syscall.syscall_name == 'finit_module'
             unique_id: syscall.syscall_name
           id: R1002
-          name: Kernel Module Load
+          name: Process tries to load a kernel module
           profile_dependency: 2
           severity: 10
           support_policy: false
@@ -3099,7 +3048,7 @@ all capabilities:
             - module
             - load
         - description: Detecting ssh connection to disallowed port
-          enabled: true
+          enabled: false
           expressions:
             message: '''Malicious SSH connection attempt to '' + ssh.dst_ip + '':'' + string(dyn(ssh.dst_port))'
             rule_expression:
@@ -3107,7 +3056,7 @@ all capabilities:
                 expression: dyn(ssh.src_port) >= 32768 && dyn(ssh.src_port) <= 60999 && !(dyn(ssh.dst_port) in [22, 2022]) && !nn.was_address_in_egress(ssh.runtime.container_id, ssh.dst_ip)
             unique_id: ssh.comm + '_' + ssh.dst_ip + '_' + string(dyn(ssh.dst_port))
           id: R1003
-          name: Malicious SSH Connection
+          name: Disallowed ssh connection
           profile_dependency: 1
           severity: 5
           support_policy: false
@@ -3126,7 +3075,7 @@ all capabilities:
                 expression: '!ap.was_executed(exec.runtime.container_id, parse.get_exec_path(exec.args, exec.comm)) && k8s.get_container_mount_paths(exec.k8s.namespace, exec.k8s.pod_name, exec.k8s.container_name).exists(mount, exec.exe_path.startsWith(mount) || parse.get_exec_path(exec.args, exec.comm).startsWith(mount))'
             unique_id: exec.comm + '_' + exec.exe_path
           id: R1004
-          name: Exec from mount
+          name: Process executed from mount
           profile_dependency: 1
           severity: 5
           support_policy: false
@@ -3143,7 +3092,7 @@ all capabilities:
                 expression: exec.exe_path.contains('memfd') || exec.exe_path.startsWith('/proc/self/fd') || exec.exe_path.matches('/proc/[0-9]+/fd/[0-9]+')
             unique_id: exec.comm + '_' + exec.exe_path + '_' + exec.pcomm
           id: R1005
-          name: Fileless Execution
+          name: Fileless execution detected
           profile_dependency: 2
           severity: 8
           support_policy: false
@@ -3160,7 +3109,7 @@ all capabilities:
                 expression: syscall.syscall_name == 'unshare' && !ap.was_syscall_used(syscall.runtime.container_id, syscall.syscall_name)
             unique_id: syscall.syscall_name
           id: R1006
-          name: Unshare System Call usage
+          name: Process tries to escape container
           profile_dependency: 2
           severity: 5
           support_policy: false
@@ -3179,7 +3128,7 @@ all capabilities:
                 expression: "true"
             unique_id: randomx.exe_path + '_' + randomx.comm
           id: R1007
-          name: XMR Crypto Mining Detection
+          name: Crypto miner launched
           profile_dependency: 2
           severity: 10
           support_policy: false
@@ -3234,8 +3183,8 @@ all capabilities:
                 expression: (symlink.old_path.startsWith('/etc/shadow') || symlink.old_path.startsWith('/etc/sudoers')) && !ap.was_path_opened(symlink.runtime.container_id, symlink.old_path)
             unique_id: symlink.comm + '_' + symlink.old_path
           id: R1010
-          name: Symlink Created Over Sensitive File
-          profile_dependency: 0
+          name: Soft link created over sensitive file
+          profile_dependency: 1
           severity: 5
           support_policy: true
           tags:
@@ -3243,7 +3192,7 @@ all capabilities:
             - symlink
             - applicationprofile
         - description: Detecting ld_preload hook techniques.
-          enabled: true
+          enabled: false
           expressions:
             message: 'event_type == ''exec'' ? ''Process ('' + exec.comm + '') is using a dynamic linker hook: '' + process.get_ld_hook_var(exec.pid) : ''The dynamic linker configuration file ('' + open.full_path + '') was modified by process ('' + open.comm + '')'''
             rule_expression:
@@ -3253,7 +3202,7 @@ all capabilities:
                 expression: open.full_path == '/etc/ld.so.preload' && has(open.flags_raw) && open.flags_raw != 0
             unique_id: 'event_type == ''exec'' ? ''exec_'' + exec.comm : ''open_'' + open.full_path'
           id: R1011
-          name: LD_PRELOAD Hook
+          name: ld_preload hooks technique detected
           profile_dependency: 1
           severity: 5
           support_policy: true
@@ -3270,7 +3219,7 @@ all capabilities:
                 expression: (hardlink.old_path.startsWith('/etc/shadow') || hardlink.old_path.startsWith('/etc/sudoers')) && !ap.was_path_opened(hardlink.runtime.container_id, hardlink.old_path)
             unique_id: hardlink.comm + '_' + hardlink.old_path
           id: R1012
-          name: Hardlink Created Over Sensitive File
+          name: Hard link created over sensitive file
           profile_dependency: 1
           severity: 5
           support_policy: true
@@ -8508,82 +8457,31 @@ default capabilities:
               - gmp-public
       rules:
         - ruleName: Unexpected process launched
-        - parameters:
-            ignoreMounts: true
-            ignorePrefixes:
-              - /proc
-              - /run/secrets/kubernetes.io/serviceaccount
-              - /var/run/secrets/kubernetes.io/serviceaccount
-              - /tmp
-            includePrefixes:
-              - /etc
-              - /var/spool/cron/
-              - /var/log/
-              - /var/run/
-              - /dev/shm/
-              - /run/
-              - /var/www/
-              - /var/lib/docker/
-              - /opt/
-              - /usr/local/
-              - /app/
-              - /.dockerenv
-              - /proc/self/environ
-              - /var/lib/kubelet/
-              - /etc/cni/net.d/
-              - /var/run/secrets/kubernetes.io/
-              - /var/run/secrets/kubernetes.io/serviceaccount/
-              - /run/containerd/
-              - /run/flannel/
-              - /run/calico/
-          ruleName: Unexpected file access
-        - ruleName: Unexpected system call
-        - ruleName: Unexpected capability used
-        - ruleName: Unexpected domain request
-        - ruleName: Unexpected Service Account Token Access
-        - ruleName: Kubernetes Client Executed
-        - ruleName: Exec from malicious source
-        - ruleName: Kernel Module Load
-        - ruleName: Exec Binary Not In Base Image
-        - ruleName: Fileless Execution
-        - ruleName: XMR Crypto Mining Detection
-        - ruleName: Exec from mount
+        - ruleName: Files Access Anomalies in container
+        - ruleName: Syscalls Anomalies in container
+        - ruleName: Linux Capabilities Anomalies in container
+        - ruleName: DNS Anomalies in container
+        - ruleName: Unexpected service account token access
+        - ruleName: Workload uses Kubernetes API unexpectedly
+        - ruleName: Process executed from malicious source
+        - ruleName: Process tries to load a kernel module
+        - ruleName: Drifted process executed
+        - ruleName: Disallowed ssh connection
+        - ruleName: Fileless execution detected
+        - ruleName: Crypto miner launched
+        - ruleName: Process executed from mount
         - ruleName: Crypto Mining Related Port Communication
         - ruleName: Crypto Mining Domain Communication
         - ruleName: Read Environment Variables from procfs
         - ruleName: eBPF Program Load
-        - ruleName: Symlink Created Over Sensitive File
+        - ruleName: Soft link created over sensitive file
         - ruleName: Unexpected Sensitive File Access
-        - ruleName: Hardlink Created Over Sensitive File
+        - ruleName: Hard link created over sensitive file
         - ruleName: Exec to pod
         - ruleName: Port forward
+        - ruleName: Unexpected Egress Network Traffic
         - ruleName: Malicious Ptrace Usage
-        - ruleName: Cross-Site Scripting (XSS) Attempt
-        - ruleName: SQL Injection Attempt
-        - ruleName: Server-Side Request Forgery Attack Attempt
-        - ruleName: Remote File Inclusion Attack Attempt
-        - ruleName: Local File Inclusion Attempt
-        - ruleName: XML External Entity Attack Attempt
-        - ruleName: Server-Side Template Injection Attack
-        - ruleName: Command Injection Attempt
-        - ruleName: Unexpected Exec Source
-        - ruleName: Unexpected Open Source
-        - ruleName: Unexpected Symlink Source
-        - ruleName: Unexpected Hardlink Source
         - ruleName: Unexpected io_uring Operation Detected
-        - ruleName: ReDoS Attack
-        - ruleName: Prototype Pollution Attack
-        - ruleName: Execution of base64 Encoded Command
-        - ruleName: Execution of interpreter command
-        - ruleName: Code Sharing Site Access
-        - ruleName: Web Application File Write Access
-        - ruleName: Cron Job File Created or Modified
-        - ruleName: Hidden File Created
-        - ruleName: Reverse Shell Patterens Detected
-        - ruleName: Unauthorized IMDS Connection Attempt
-        - ruleName: Credentials Detection Attempts
-        - ruleName: HTTP Request Smuggling Attempt
-        - ruleName: P2P Tracker Connection Created
   37: |
     apiVersion: kubescape.io/v1
     kind: Rules
@@ -8623,7 +8521,7 @@ default capabilities:
             - exec
             - applicationprofile
         - description: Detects unexpected file access that is not in the baseline
-          enabled: true
+          enabled: false
           expressions:
             message: '''Unexpected file access detected: '' + open.comm + '' with PID '' + string(open.pid) + '' to '' + open.full_path'
             rule_expression:
@@ -8635,7 +8533,7 @@ default capabilities:
                   && !ap.was_path_opened(open.runtime.container_id, open.full_path)
             unique_id: open.comm + '_' + open.full_path
           id: R0002
-          name: Unexpected file access
+          name: Files Access Anomalies in container
           profile_dependency: 0
           severity: 1
           support_policy: false
@@ -8653,7 +8551,7 @@ default capabilities:
                 expression: '!ap.was_syscall_used(syscall.runtime.container_id, syscall.syscall_name)'
             unique_id: syscall.syscall_name
           id: R0003
-          name: Unexpected system call
+          name: Syscalls Anomalies in container
           profile_dependency: 0
           severity: 1
           support_policy: false
@@ -8670,7 +8568,7 @@ default capabilities:
                 expression: '!ap.was_capability_used(capabilities.runtime.container_id, capabilities.cap_name)'
             unique_id: capabilities.comm + '_' + capabilities.cap_name
           id: R0004
-          name: Unexpected capability used
+          name: Linux Capabilities Anomalies in container
           profile_dependency: 0
           severity: 1
           support_policy: false
@@ -8687,7 +8585,7 @@ default capabilities:
                 expression: '!dns.dns_name.endsWith(''.svc.cluster.local.'') && !nn.is_domain_in_egress(dns.runtime.container_id, dns.dns_name)'
             unique_id: dns.comm + '_' + dns.dns_name
           id: R0005
-          name: Unexpected domain request
+          name: DNS Anomalies in container
           profile_dependency: 0
           severity: 1
           support_policy: false
@@ -8704,7 +8602,7 @@ default capabilities:
                 expression: "((open.full_path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && open.full_path.endsWith('/token')) || \n (open.full_path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && open.full_path.endsWith('/token')) ||\n (open.full_path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && open.full_path.endsWith('/token')) ||\n (open.full_path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && open.full_path.endsWith('/token'))) &&\n!ap.was_path_opened_with_prefix(open.runtime.container_id, '/run/secrets/kubernetes.io/serviceaccount') && !ap.was_path_opened_with_prefix(open.runtime.container_id, '/var/run/secrets/kubernetes.io/serviceaccount') && !ap.was_path_opened_with_prefix(open.runtime.container_id, '/run/secrets/eks.amazonaws.com/serviceaccount') && !ap.was_path_opened_with_prefix(open.runtime.container_id, '/var/run/secrets/eks.amazonaws.com/serviceaccount')\n"
             unique_id: open.comm
           id: R0006
-          name: Unexpected Service Account Token Access
+          name: Unexpected service account token access
           profile_dependency: 1
           severity: 5
           support_policy: false
@@ -8715,7 +8613,7 @@ default capabilities:
         - description: Detecting execution of kubernetes client
           enabled: true
           expressions:
-            message: 'event_type == ''exec'' ? ''Kubernetes client ('' + exec.comm + '') was executed with PID '' + string(exec.pid) : ''Network connection to Kubernetes API server from '' + network.runtime.container_id'
+            message: 'event_type == ''exec'' ? ''Kubernetes client ('' + exec.comm + '') was executed with PID '' + string(exec.pid) : ''Network connection to Kubernetes API server from container '' + network.k8s.container_name'
             rule_expression:
               - event_type: exec
                 expression: (exec.comm == 'kubectl' || exec.exe_path.endsWith('/kubectl')) && !ap.was_executed(exec.runtime.container_id, parse.get_exec_path(exec.args, exec.comm))
@@ -8723,7 +8621,7 @@ default capabilities:
                 expression: network.pkt_type == 'OUTGOING' && k8s.is_api_server_address(network.dst_endpoint.addr) && !nn.was_address_in_egress(network.runtime.container_id, network.dst_endpoint.addr)
             unique_id: 'event_type == ''exec'' ? ''exec_'' + exec.comm : ''network_'' + network.dst_endpoint.addr'
           id: R0007
-          name: Kubernetes Client Executed
+          name: Workload uses Kubernetes API unexpectedly
           profile_dependency: 0
           severity: 5
           support_policy: false
@@ -8786,7 +8684,7 @@ default capabilities:
             - anomaly
             - applicationprofile
         - description: Detecting unexpected egress network traffic that is not whitelisted by application profile.
-          enabled: true
+          enabled: false
           expressions:
             message: '''Unexpected egress network communication to: '' + network.dst_endpoint.addr + '':'' + string(dyn(network.port)) + '' using '' + network.proto + '' from: '' + network.k8s.container_name'
             rule_expression:
@@ -8813,7 +8711,7 @@ default capabilities:
                   (exec.exe_path == '/dev/shm' || exec.exe_path.startsWith('/dev/shm/')) || (exec.cwd == '/dev/shm' || exec.cwd.startsWith('/dev/shm/') ||  (parse.get_exec_path(exec.args, exec.comm).startsWith('/dev/shm/')))
             unique_id: exec.comm + '_' + exec.exe_path + '_' + exec.pcomm
           id: R1000
-          name: Exec from malicious source
+          name: Process executed from malicious source
           profile_dependency: 2
           severity: 8
           support_policy: false
@@ -8833,7 +8731,7 @@ default capabilities:
                   !ap.was_executed(exec.runtime.container_id, parse.get_exec_path(exec.args, exec.comm))
             unique_id: exec.comm + '_' + exec.exe_path + '_' + exec.pcomm
           id: R1001
-          name: Exec Binary Not In Base Image
+          name: Drifted process executed
           profile_dependency: 1
           severity: 8
           support_policy: false
@@ -8853,7 +8751,7 @@ default capabilities:
                   syscall.syscall_name == 'init_module' || syscall.syscall_name == 'finit_module'
             unique_id: syscall.syscall_name
           id: R1002
-          name: Kernel Module Load
+          name: Process tries to load a kernel module
           profile_dependency: 2
           severity: 10
           support_policy: false
@@ -8863,7 +8761,7 @@ default capabilities:
             - module
             - load
         - description: Detecting ssh connection to disallowed port
-          enabled: true
+          enabled: false
           expressions:
             message: '''Malicious SSH connection attempt to '' + ssh.dst_ip + '':'' + string(dyn(ssh.dst_port))'
             rule_expression:
@@ -8871,7 +8769,7 @@ default capabilities:
                 expression: dyn(ssh.src_port) >= 32768 && dyn(ssh.src_port) <= 60999 && !(dyn(ssh.dst_port) in [22, 2022]) && !nn.was_address_in_egress(ssh.runtime.container_id, ssh.dst_ip)
             unique_id: ssh.comm + '_' + ssh.dst_ip + '_' + string(dyn(ssh.dst_port))
           id: R1003
-          name: Malicious SSH Connection
+          name: Disallowed ssh connection
           profile_dependency: 1
           severity: 5
           support_policy: false
@@ -8890,7 +8788,7 @@ default capabilities:
                 expression: '!ap.was_executed(exec.runtime.container_id, parse.get_exec_path(exec.args, exec.comm)) && k8s.get_container_mount_paths(exec.k8s.namespace, exec.k8s.pod_name, exec.k8s.container_name).exists(mount, exec.exe_path.startsWith(mount) || parse.get_exec_path(exec.args, exec.comm).startsWith(mount))'
             unique_id: exec.comm + '_' + exec.exe_path
           id: R1004
-          name: Exec from mount
+          name: Process executed from mount
           profile_dependency: 1
           severity: 5
           support_policy: false
@@ -8907,7 +8805,7 @@ default capabilities:
                 expression: exec.exe_path.contains('memfd') || exec.exe_path.startsWith('/proc/self/fd') || exec.exe_path.matches('/proc/[0-9]+/fd/[0-9]+')
             unique_id: exec.comm + '_' + exec.exe_path + '_' + exec.pcomm
           id: R1005
-          name: Fileless Execution
+          name: Fileless execution detected
           profile_dependency: 2
           severity: 8
           support_policy: false
@@ -8924,7 +8822,7 @@ default capabilities:
                 expression: syscall.syscall_name == 'unshare' && !ap.was_syscall_used(syscall.runtime.container_id, syscall.syscall_name)
             unique_id: syscall.syscall_name
           id: R1006
-          name: Unshare System Call usage
+          name: Process tries to escape container
           profile_dependency: 2
           severity: 5
           support_policy: false
@@ -8943,7 +8841,7 @@ default capabilities:
                 expression: "true"
             unique_id: randomx.exe_path + '_' + randomx.comm
           id: R1007
-          name: XMR Crypto Mining Detection
+          name: Crypto miner launched
           profile_dependency: 2
           severity: 10
           support_policy: false
@@ -8998,8 +8896,8 @@ default capabilities:
                 expression: (symlink.old_path.startsWith('/etc/shadow') || symlink.old_path.startsWith('/etc/sudoers')) && !ap.was_path_opened(symlink.runtime.container_id, symlink.old_path)
             unique_id: symlink.comm + '_' + symlink.old_path
           id: R1010
-          name: Symlink Created Over Sensitive File
-          profile_dependency: 0
+          name: Soft link created over sensitive file
+          profile_dependency: 1
           severity: 5
           support_policy: true
           tags:
@@ -9007,7 +8905,7 @@ default capabilities:
             - symlink
             - applicationprofile
         - description: Detecting ld_preload hook techniques.
-          enabled: true
+          enabled: false
           expressions:
             message: 'event_type == ''exec'' ? ''Process ('' + exec.comm + '') is using a dynamic linker hook: '' + process.get_ld_hook_var(exec.pid) : ''The dynamic linker configuration file ('' + open.full_path + '') was modified by process ('' + open.comm + '')'''
             rule_expression:
@@ -9017,7 +8915,7 @@ default capabilities:
                 expression: open.full_path == '/etc/ld.so.preload' && has(open.flags_raw) && open.flags_raw != 0
             unique_id: 'event_type == ''exec'' ? ''exec_'' + exec.comm : ''open_'' + open.full_path'
           id: R1011
-          name: LD_PRELOAD Hook
+          name: ld_preload hooks technique detected
           profile_dependency: 1
           severity: 5
           support_policy: true
@@ -9034,7 +8932,7 @@ default capabilities:
                 expression: (hardlink.old_path.startsWith('/etc/shadow') || hardlink.old_path.startsWith('/etc/sudoers')) && !ap.was_path_opened(hardlink.runtime.container_id, hardlink.old_path)
             unique_id: hardlink.comm + '_' + hardlink.old_path
           id: R1012
-          name: Hardlink Created Over Sensitive File
+          name: Hard link created over sensitive file
           profile_dependency: 1
           severity: 5
           support_policy: true
@@ -21907,82 +21805,31 @@ multiple node agents:
               - my-namespace
       rules:
         - ruleName: Unexpected process launched
-        - parameters:
-            ignoreMounts: true
-            ignorePrefixes:
-              - /proc
-              - /run/secrets/kubernetes.io/serviceaccount
-              - /var/run/secrets/kubernetes.io/serviceaccount
-              - /tmp
-            includePrefixes:
-              - /etc
-              - /var/spool/cron/
-              - /var/log/
-              - /var/run/
-              - /dev/shm/
-              - /run/
-              - /var/www/
-              - /var/lib/docker/
-              - /opt/
-              - /usr/local/
-              - /app/
-              - /.dockerenv
-              - /proc/self/environ
-              - /var/lib/kubelet/
-              - /etc/cni/net.d/
-              - /var/run/secrets/kubernetes.io/
-              - /var/run/secrets/kubernetes.io/serviceaccount/
-              - /run/containerd/
-              - /run/flannel/
-              - /run/calico/
-          ruleName: Unexpected file access
-        - ruleName: Unexpected system call
-        - ruleName: Unexpected capability used
-        - ruleName: Unexpected domain request
-        - ruleName: Unexpected Service Account Token Access
-        - ruleName: Kubernetes Client Executed
-        - ruleName: Exec from malicious source
-        - ruleName: Kernel Module Load
-        - ruleName: Exec Binary Not In Base Image
-        - ruleName: Fileless Execution
-        - ruleName: XMR Crypto Mining Detection
-        - ruleName: Exec from mount
+        - ruleName: Files Access Anomalies in container
+        - ruleName: Syscalls Anomalies in container
+        - ruleName: Linux Capabilities Anomalies in container
+        - ruleName: DNS Anomalies in container
+        - ruleName: Unexpected service account token access
+        - ruleName: Workload uses Kubernetes API unexpectedly
+        - ruleName: Process executed from malicious source
+        - ruleName: Process tries to load a kernel module
+        - ruleName: Drifted process executed
+        - ruleName: Disallowed ssh connection
+        - ruleName: Fileless execution detected
+        - ruleName: Crypto miner launched
+        - ruleName: Process executed from mount
         - ruleName: Crypto Mining Related Port Communication
         - ruleName: Crypto Mining Domain Communication
         - ruleName: Read Environment Variables from procfs
         - ruleName: eBPF Program Load
-        - ruleName: Symlink Created Over Sensitive File
+        - ruleName: Soft link created over sensitive file
         - ruleName: Unexpected Sensitive File Access
-        - ruleName: Hardlink Created Over Sensitive File
+        - ruleName: Hard link created over sensitive file
         - ruleName: Exec to pod
         - ruleName: Port forward
+        - ruleName: Unexpected Egress Network Traffic
         - ruleName: Malicious Ptrace Usage
-        - ruleName: Cross-Site Scripting (XSS) Attempt
-        - ruleName: SQL Injection Attempt
-        - ruleName: Server-Side Request Forgery Attack Attempt
-        - ruleName: Remote File Inclusion Attack Attempt
-        - ruleName: Local File Inclusion Attempt
-        - ruleName: XML External Entity Attack Attempt
-        - ruleName: Server-Side Template Injection Attack
-        - ruleName: Command Injection Attempt
-        - ruleName: Unexpected Exec Source
-        - ruleName: Unexpected Open Source
-        - ruleName: Unexpected Symlink Source
-        - ruleName: Unexpected Hardlink Source
         - ruleName: Unexpected io_uring Operation Detected
-        - ruleName: ReDoS Attack
-        - ruleName: Prototype Pollution Attack
-        - ruleName: Execution of base64 Encoded Command
-        - ruleName: Execution of interpreter command
-        - ruleName: Code Sharing Site Access
-        - ruleName: Web Application File Write Access
-        - ruleName: Cron Job File Created or Modified
-        - ruleName: Hidden File Created
-        - ruleName: Reverse Shell Patterens Detected
-        - ruleName: Unauthorized IMDS Connection Attempt
-        - ruleName: Credentials Detection Attempts
-        - ruleName: HTTP Request Smuggling Attempt
-        - ruleName: P2P Tracker Connection Created
   52: |
     apiVersion: kubescape.io/v1
     kind: Rules
@@ -22022,7 +21869,7 @@ multiple node agents:
             - exec
             - applicationprofile
         - description: Detects unexpected file access that is not in the baseline
-          enabled: true
+          enabled: false
           expressions:
             message: '''Unexpected file access detected: '' + open.comm + '' with PID '' + string(open.pid) + '' to '' + open.full_path'
             rule_expression:
@@ -22034,7 +21881,7 @@ multiple node agents:
                   && !ap.was_path_opened(open.runtime.container_id, open.full_path)
             unique_id: open.comm + '_' + open.full_path
           id: R0002
-          name: Unexpected file access
+          name: Files Access Anomalies in container
           profile_dependency: 0
           severity: 1
           support_policy: false
@@ -22052,7 +21899,7 @@ multiple node agents:
                 expression: '!ap.was_syscall_used(syscall.runtime.container_id, syscall.syscall_name)'
             unique_id: syscall.syscall_name
           id: R0003
-          name: Unexpected system call
+          name: Syscalls Anomalies in container
           profile_dependency: 0
           severity: 1
           support_policy: false
@@ -22069,7 +21916,7 @@ multiple node agents:
                 expression: '!ap.was_capability_used(capabilities.runtime.container_id, capabilities.cap_name)'
             unique_id: capabilities.comm + '_' + capabilities.cap_name
           id: R0004
-          name: Unexpected capability used
+          name: Linux Capabilities Anomalies in container
           profile_dependency: 0
           severity: 1
           support_policy: false
@@ -22086,7 +21933,7 @@ multiple node agents:
                 expression: '!dns.dns_name.endsWith(''.svc.cluster.local.'') && !nn.is_domain_in_egress(dns.runtime.container_id, dns.dns_name)'
             unique_id: dns.comm + '_' + dns.dns_name
           id: R0005
-          name: Unexpected domain request
+          name: DNS Anomalies in container
           profile_dependency: 0
           severity: 1
           support_policy: false
@@ -22103,7 +21950,7 @@ multiple node agents:
                 expression: "((open.full_path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && open.full_path.endsWith('/token')) || \n (open.full_path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && open.full_path.endsWith('/token')) ||\n (open.full_path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && open.full_path.endsWith('/token')) ||\n (open.full_path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && open.full_path.endsWith('/token'))) &&\n!ap.was_path_opened_with_prefix(open.runtime.container_id, '/run/secrets/kubernetes.io/serviceaccount') && !ap.was_path_opened_with_prefix(open.runtime.container_id, '/var/run/secrets/kubernetes.io/serviceaccount') && !ap.was_path_opened_with_prefix(open.runtime.container_id, '/run/secrets/eks.amazonaws.com/serviceaccount') && !ap.was_path_opened_with_prefix(open.runtime.container_id, '/var/run/secrets/eks.amazonaws.com/serviceaccount')\n"
             unique_id: open.comm
           id: R0006
-          name: Unexpected Service Account Token Access
+          name: Unexpected service account token access
           profile_dependency: 1
           severity: 5
           support_policy: false
@@ -22114,7 +21961,7 @@ multiple node agents:
         - description: Detecting execution of kubernetes client
           enabled: true
           expressions:
-            message: 'event_type == ''exec'' ? ''Kubernetes client ('' + exec.comm + '') was executed with PID '' + string(exec.pid) : ''Network connection to Kubernetes API server from '' + network.runtime.container_id'
+            message: 'event_type == ''exec'' ? ''Kubernetes client ('' + exec.comm + '') was executed with PID '' + string(exec.pid) : ''Network connection to Kubernetes API server from container '' + network.k8s.container_name'
             rule_expression:
               - event_type: exec
                 expression: (exec.comm == 'kubectl' || exec.exe_path.endsWith('/kubectl')) && !ap.was_executed(exec.runtime.container_id, parse.get_exec_path(exec.args, exec.comm))
@@ -22122,7 +21969,7 @@ multiple node agents:
                 expression: network.pkt_type == 'OUTGOING' && k8s.is_api_server_address(network.dst_endpoint.addr) && !nn.was_address_in_egress(network.runtime.container_id, network.dst_endpoint.addr)
             unique_id: 'event_type == ''exec'' ? ''exec_'' + exec.comm : ''network_'' + network.dst_endpoint.addr'
           id: R0007
-          name: Kubernetes Client Executed
+          name: Workload uses Kubernetes API unexpectedly
           profile_dependency: 0
           severity: 5
           support_policy: false
@@ -22185,7 +22032,7 @@ multiple node agents:
             - anomaly
             - applicationprofile
         - description: Detecting unexpected egress network traffic that is not whitelisted by application profile.
-          enabled: true
+          enabled: false
           expressions:
             message: '''Unexpected egress network communication to: '' + network.dst_endpoint.addr + '':'' + string(dyn(network.port)) + '' using '' + network.proto + '' from: '' + network.k8s.container_name'
             rule_expression:
@@ -22212,7 +22059,7 @@ multiple node agents:
                   (exec.exe_path == '/dev/shm' || exec.exe_path.startsWith('/dev/shm/')) || (exec.cwd == '/dev/shm' || exec.cwd.startsWith('/dev/shm/') ||  (parse.get_exec_path(exec.args, exec.comm).startsWith('/dev/shm/')))
             unique_id: exec.comm + '_' + exec.exe_path + '_' + exec.pcomm
           id: R1000
-          name: Exec from malicious source
+          name: Process executed from malicious source
           profile_dependency: 2
           severity: 8
           support_policy: false
@@ -22232,7 +22079,7 @@ multiple node agents:
                   !ap.was_executed(exec.runtime.container_id, parse.get_exec_path(exec.args, exec.comm))
             unique_id: exec.comm + '_' + exec.exe_path + '_' + exec.pcomm
           id: R1001
-          name: Exec Binary Not In Base Image
+          name: Drifted process executed
           profile_dependency: 1
           severity: 8
           support_policy: false
@@ -22252,7 +22099,7 @@ multiple node agents:
                   syscall.syscall_name == 'init_module' || syscall.syscall_name == 'finit_module'
             unique_id: syscall.syscall_name
           id: R1002
-          name: Kernel Module Load
+          name: Process tries to load a kernel module
           profile_dependency: 2
           severity: 10
           support_policy: false
@@ -22262,7 +22109,7 @@ multiple node agents:
             - module
             - load
         - description: Detecting ssh connection to disallowed port
-          enabled: true
+          enabled: false
           expressions:
             message: '''Malicious SSH connection attempt to '' + ssh.dst_ip + '':'' + string(dyn(ssh.dst_port))'
             rule_expression:
@@ -22270,7 +22117,7 @@ multiple node agents:
                 expression: dyn(ssh.src_port) >= 32768 && dyn(ssh.src_port) <= 60999 && !(dyn(ssh.dst_port) in [22, 2022]) && !nn.was_address_in_egress(ssh.runtime.container_id, ssh.dst_ip)
             unique_id: ssh.comm + '_' + ssh.dst_ip + '_' + string(dyn(ssh.dst_port))
           id: R1003
-          name: Malicious SSH Connection
+          name: Disallowed ssh connection
           profile_dependency: 1
           severity: 5
           support_policy: false
@@ -22289,7 +22136,7 @@ multiple node agents:
                 expression: '!ap.was_executed(exec.runtime.container_id, parse.get_exec_path(exec.args, exec.comm)) && k8s.get_container_mount_paths(exec.k8s.namespace, exec.k8s.pod_name, exec.k8s.container_name).exists(mount, exec.exe_path.startsWith(mount) || parse.get_exec_path(exec.args, exec.comm).startsWith(mount))'
             unique_id: exec.comm + '_' + exec.exe_path
           id: R1004
-          name: Exec from mount
+          name: Process executed from mount
           profile_dependency: 1
           severity: 5
           support_policy: false
@@ -22306,7 +22153,7 @@ multiple node agents:
                 expression: exec.exe_path.contains('memfd') || exec.exe_path.startsWith('/proc/self/fd') || exec.exe_path.matches('/proc/[0-9]+/fd/[0-9]+')
             unique_id: exec.comm + '_' + exec.exe_path + '_' + exec.pcomm
           id: R1005
-          name: Fileless Execution
+          name: Fileless execution detected
           profile_dependency: 2
           severity: 8
           support_policy: false
@@ -22323,7 +22170,7 @@ multiple node agents:
                 expression: syscall.syscall_name == 'unshare' && !ap.was_syscall_used(syscall.runtime.container_id, syscall.syscall_name)
             unique_id: syscall.syscall_name
           id: R1006
-          name: Unshare System Call usage
+          name: Process tries to escape container
           profile_dependency: 2
           severity: 5
           support_policy: false
@@ -22342,7 +22189,7 @@ multiple node agents:
                 expression: "true"
             unique_id: randomx.exe_path + '_' + randomx.comm
           id: R1007
-          name: XMR Crypto Mining Detection
+          name: Crypto miner launched
           profile_dependency: 2
           severity: 10
           support_policy: false
@@ -22397,8 +22244,8 @@ multiple node agents:
                 expression: (symlink.old_path.startsWith('/etc/shadow') || symlink.old_path.startsWith('/etc/sudoers')) && !ap.was_path_opened(symlink.runtime.container_id, symlink.old_path)
             unique_id: symlink.comm + '_' + symlink.old_path
           id: R1010
-          name: Symlink Created Over Sensitive File
-          profile_dependency: 0
+          name: Soft link created over sensitive file
+          profile_dependency: 1
           severity: 5
           support_policy: true
           tags:
@@ -22406,7 +22253,7 @@ multiple node agents:
             - symlink
             - applicationprofile
         - description: Detecting ld_preload hook techniques.
-          enabled: true
+          enabled: false
           expressions:
             message: 'event_type == ''exec'' ? ''Process ('' + exec.comm + '') is using a dynamic linker hook: '' + process.get_ld_hook_var(exec.pid) : ''The dynamic linker configuration file ('' + open.full_path + '') was modified by process ('' + open.comm + '')'''
             rule_expression:
@@ -22416,7 +22263,7 @@ multiple node agents:
                 expression: open.full_path == '/etc/ld.so.preload' && has(open.flags_raw) && open.flags_raw != 0
             unique_id: 'event_type == ''exec'' ? ''exec_'' + exec.comm : ''open_'' + open.full_path'
           id: R1011
-          name: LD_PRELOAD Hook
+          name: ld_preload hooks technique detected
           profile_dependency: 1
           severity: 5
           support_policy: true
@@ -22433,7 +22280,7 @@ multiple node agents:
                 expression: (hardlink.old_path.startsWith('/etc/shadow') || hardlink.old_path.startsWith('/etc/sudoers')) && !ap.was_path_opened(hardlink.runtime.container_id, hardlink.old_path)
             unique_id: hardlink.comm + '_' + hardlink.old_path
           id: R1012
-          name: Hardlink Created Over Sensitive File
+          name: Hard link created over sensitive file
           profile_dependency: 1
           severity: 5
           support_policy: true
