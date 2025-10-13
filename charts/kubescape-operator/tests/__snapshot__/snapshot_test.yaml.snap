@@ -2371,6 +2371,13 @@ all capabilities:
           - create
           - patch
           - get
+      - apiGroups:
+          - kubescape.io
+        resources:
+          - rules
+        verbs:
+          - list
+          - watch
   46: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
@@ -2613,6 +2620,8 @@ all capabilities:
                       fieldPath: metadata.namespace
                 - name: KUBELET_ROOT
                   value: /var/lib/kubelet
+                - name: AGENT_VERSION
+                  value: v0.2.394
                 - name: NodeName
               image: quay.io/kubescape/node-agent:v0.2.394
               imagePullPolicy: IfNotPresent
@@ -2800,83 +2809,523 @@ all capabilities:
               - my-namespace
       rules:
         - ruleName: Unexpected process launched
-        - parameters:
-            ignoreMounts: true
-            ignorePrefixes:
-              - /proc
-              - /run/secrets/kubernetes.io/serviceaccount
-              - /var/run/secrets/kubernetes.io/serviceaccount
-              - /tmp
-            includePrefixes:
-              - /etc
-              - /var/spool/cron/
-              - /var/log/
-              - /var/run/
-              - /dev/shm/
-              - /run/
-              - /var/www/
-              - /var/lib/docker/
-              - /opt/
-              - /usr/local/
-              - /app/
-              - /.dockerenv
-              - /proc/self/environ
-              - /var/lib/kubelet/
-              - /etc/cni/net.d/
-              - /var/run/secrets/kubernetes.io/
-              - /var/run/secrets/kubernetes.io/serviceaccount/
-              - /run/containerd/
-              - /run/flannel/
-              - /run/calico/
-          ruleName: Unexpected file access
-        - ruleName: Unexpected system call
-        - ruleName: Unexpected capability used
-        - ruleName: Unexpected domain request
-        - ruleName: Unexpected Service Account Token Access
-        - ruleName: Kubernetes Client Executed
-        - ruleName: Exec from malicious source
-        - ruleName: Kernel Module Load
-        - ruleName: Exec Binary Not In Base Image
-        - ruleName: Fileless Execution
-        - ruleName: XMR Crypto Mining Detection
-        - ruleName: Exec from mount
+        - ruleName: Files Access Anomalies in container
+        - ruleName: Syscalls Anomalies in container
+        - ruleName: Linux Capabilities Anomalies in container
+        - ruleName: DNS Anomalies in container
+        - ruleName: Unexpected service account token access
+        - ruleName: Workload uses Kubernetes API unexpectedly
+        - ruleName: Process executed from malicious source
+        - ruleName: Process tries to load a kernel module
+        - ruleName: Drifted process executed
+        - ruleName: Disallowed ssh connection
+        - ruleName: Fileless execution detected
+        - ruleName: Crypto miner launched
+        - ruleName: Process executed from mount
         - ruleName: Crypto Mining Related Port Communication
         - ruleName: Crypto Mining Domain Communication
         - ruleName: Read Environment Variables from procfs
         - ruleName: eBPF Program Load
-        - ruleName: Symlink Created Over Sensitive File
+        - ruleName: Soft link created over sensitive file
         - ruleName: Unexpected Sensitive File Access
-        - ruleName: Hardlink Created Over Sensitive File
+        - ruleName: Hard link created over sensitive file
         - ruleName: Exec to pod
         - ruleName: Port forward
+        - ruleName: Unexpected Egress Network Traffic
         - ruleName: Malicious Ptrace Usage
-        - ruleName: Cross-Site Scripting (XSS) Attempt
-        - ruleName: SQL Injection Attempt
-        - ruleName: Server-Side Request Forgery Attack Attempt
-        - ruleName: Remote File Inclusion Attack Attempt
-        - ruleName: Local File Inclusion Attempt
-        - ruleName: XML External Entity Attack Attempt
-        - ruleName: Server-Side Template Injection Attack
-        - ruleName: Command Injection Attempt
-        - ruleName: Unexpected Exec Source
-        - ruleName: Unexpected Open Source
-        - ruleName: Unexpected Symlink Source
-        - ruleName: Unexpected Hardlink Source
         - ruleName: Unexpected io_uring Operation Detected
-        - ruleName: ReDoS Attack
-        - ruleName: Prototype Pollution Attack
-        - ruleName: Execution of base64 Encoded Command
-        - ruleName: Execution of interpreter command
-        - ruleName: Code Sharing Site Access
-        - ruleName: Web Application File Write Access
-        - ruleName: Cron Job File Created or Modified
-        - ruleName: Hidden File Created
-        - ruleName: Reverse Shell Patterens Detected
-        - ruleName: Unauthorized IMDS Connection Attempt
-        - ruleName: Credentials Detection Attempts
-        - ruleName: HTTP Request Smuggling Attempt
-        - ruleName: P2P Tracker Connection Created
   51: |
+    apiVersion: kubescape.io/v1
+    kind: Rules
+    metadata:
+      annotations: null
+      labels:
+        app: node-agent
+        app.kubernetes.io/component: node-agent
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.29.9
+        helm.sh/chart: kubescape-operator-1.29.9
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: default-rules
+      namespace: kubescape
+    spec:
+      rules:
+        - description: Detects unexpected process launches that are not in the baseline
+          enabled: true
+          expressions:
+            message: '''Unexpected process launched: '' + exec.comm + '' with PID '' + string(exec.pid)'
+            rule_expression:
+              - event_type: exec
+                expression: '!ap.was_executed(exec.runtime.container_id, parse.get_exec_path(exec.args, exec.comm))'
+            unique_id: exec.comm + '_' + exec.exe_path
+          id: R0001
+          name: Unexpected process launched
+          profile_dependency: 0
+          severity: 1
+          support_policy: false
+          tags:
+            - anomaly
+            - process
+            - exec
+            - applicationprofile
+        - description: Detects unexpected file access that is not in the baseline
+          enabled: false
+          expressions:
+            message: '''Unexpected file access detected: '' + open.comm + '' with PID '' + string(open.pid) + '' to '' + open.full_path'
+            rule_expression:
+              - event_type: open
+                expression: |
+                  (open.full_path.startsWith('/etc/') || open.full_path.startsWith('/var/log/') || open.full_path.startsWith('/var/run/') || open.full_path.startsWith('/run/') || open.full_path.startsWith('/var/spool/cron/') || open.full_path.startsWith('/var/www/') || open.full_path.startsWith('/var/lib/') || open.full_path.startsWith('/opt/') || open.full_path.startsWith('/usr/local/') || open.full_path.startsWith('/app/') || open.full_path == '/.dockerenv' || open.full_path == '/proc/self/environ') && !(open.full_path.startsWith('/run/secrets/kubernetes.io/serviceaccount') ||
+                    open.full_path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') ||
+                    open.full_path.startsWith('/tmp'))
+                  && !ap.was_path_opened(open.runtime.container_id, open.full_path)
+            unique_id: open.comm + '_' + open.full_path
+          id: R0002
+          name: Files Access Anomalies in container
+          profile_dependency: 0
+          severity: 1
+          support_policy: false
+          tags:
+            - anomaly
+            - file
+            - open
+            - applicationprofile
+        - description: Detects unexpected system calls that are not whitelisted by application profile
+          enabled: true
+          expressions:
+            message: '''Unexpected system call detected: '' + syscall.syscall_name + '' with PID '' + string(syscall.pid)'
+            rule_expression:
+              - event_type: syscall
+                expression: '!ap.was_syscall_used(syscall.runtime.container_id, syscall.syscall_name)'
+            unique_id: syscall.syscall_name
+          id: R0003
+          name: Syscalls Anomalies in container
+          profile_dependency: 0
+          severity: 1
+          support_policy: false
+          tags:
+            - anomaly
+            - syscall
+            - applicationprofile
+        - description: Detects unexpected capabilities that are not whitelisted by application profile
+          enabled: true
+          expressions:
+            message: '''Unexpected capability used: '' + capabilities.cap_name + '' in syscall '' + capabilities.syscall + '' with PID '' + string(capabilities.pid)'
+            rule_expression:
+              - event_type: capabilities
+                expression: '!ap.was_capability_used(capabilities.runtime.container_id, capabilities.cap_name)'
+            unique_id: capabilities.comm + '_' + capabilities.cap_name
+          id: R0004
+          name: Linux Capabilities Anomalies in container
+          profile_dependency: 0
+          severity: 1
+          support_policy: false
+          tags:
+            - anomaly
+            - capabilities
+            - applicationprofile
+        - description: Detecting unexpected domain requests that are not whitelisted by application profile.
+          enabled: true
+          expressions:
+            message: '''Unexpected domain communication: '' + dns.dns_name'
+            rule_expression:
+              - event_type: dns
+                expression: '!dns.dns_name.endsWith(''.svc.cluster.local.'') && !nn.is_domain_in_egress(dns.runtime.container_id, dns.dns_name)'
+            unique_id: dns.comm + '_' + dns.dns_name
+          id: R0005
+          name: DNS Anomalies in container
+          profile_dependency: 0
+          severity: 1
+          support_policy: false
+          tags:
+            - dns
+            - anomaly
+            - networkprofile
+        - description: Detecting unexpected access to service account token.
+          enabled: true
+          expressions:
+            message: '''Unexpected access to service account token: '' + open.full_path + '' with flags: '' + open.flags.join('','')'
+            rule_expression:
+              - event_type: open
+                expression: "((open.full_path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && open.full_path.endsWith('/token')) || \n (open.full_path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && open.full_path.endsWith('/token')) ||\n (open.full_path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && open.full_path.endsWith('/token')) ||\n (open.full_path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && open.full_path.endsWith('/token'))) &&\n!ap.was_path_opened_with_prefix(open.runtime.container_id, '/run/secrets/kubernetes.io/serviceaccount') && !ap.was_path_opened_with_prefix(open.runtime.container_id, '/var/run/secrets/kubernetes.io/serviceaccount') && !ap.was_path_opened_with_prefix(open.runtime.container_id, '/run/secrets/eks.amazonaws.com/serviceaccount') && !ap.was_path_opened_with_prefix(open.runtime.container_id, '/var/run/secrets/eks.amazonaws.com/serviceaccount')\n"
+            unique_id: open.comm
+          id: R0006
+          name: Unexpected service account token access
+          profile_dependency: 1
+          severity: 5
+          support_policy: false
+          tags:
+            - anomaly
+            - serviceaccount
+            - applicationprofile
+        - description: Detecting execution of kubernetes client
+          enabled: true
+          expressions:
+            message: 'event_type == ''exec'' ? ''Kubernetes client ('' + exec.comm + '') was executed with PID '' + string(exec.pid) : ''Network connection to Kubernetes API server from container '' + network.k8s.container_name'
+            rule_expression:
+              - event_type: exec
+                expression: (exec.comm == 'kubectl' || exec.exe_path.endsWith('/kubectl')) && !ap.was_executed(exec.runtime.container_id, parse.get_exec_path(exec.args, exec.comm))
+              - event_type: network
+                expression: network.pkt_type == 'OUTGOING' && k8s.is_api_server_address(network.dst_endpoint.addr) && !nn.was_address_in_egress(network.runtime.container_id, network.dst_endpoint.addr)
+            unique_id: 'event_type == ''exec'' ? ''exec_'' + exec.comm : ''network_'' + network.dst_endpoint.addr'
+          id: R0007
+          name: Workload uses Kubernetes API unexpectedly
+          profile_dependency: 0
+          severity: 5
+          support_policy: false
+          tags:
+            - exec
+            - network
+            - anomaly
+            - applicationprofile
+        - description: Detecting reading environment variables from procfs.
+          enabled: true
+          expressions:
+            message: '''Reading environment variables from procfs: '' + open.full_path + '' by process '' + open.comm'
+            rule_expression:
+              - event_type: open
+                expression: |
+                  open.full_path.startsWith('/proc/') &&  open.full_path.endsWith('/environ') && !ap.was_path_opened_with_suffix(open.runtime.container_id, '/environ')
+            unique_id: open.comm
+          id: R0008
+          name: Read Environment Variables from procfs
+          profile_dependency: 0
+          severity: 5
+          support_policy: false
+          tags:
+            - anomaly
+            - procfs
+            - environment
+            - applicationprofile
+        - description: Detecting eBPF program load.
+          enabled: true
+          expressions:
+            message: '''bpf system call executed in '' + syscall.k8s.container_name'
+            rule_expression:
+              - event_type: syscall
+                expression: syscall.syscall_name == 'bpf' && !ap.was_syscall_used(syscall.runtime.container_id, syscall.syscall_name)
+            unique_id: syscall.comm + '_' + syscall.syscall_name
+          id: R0009
+          name: eBPF Program Load
+          profile_dependency: 1
+          severity: 5
+          support_policy: false
+          tags:
+            - syscall
+            - ebpf
+            - applicationprofile
+        - description: Detecting access to sensitive files.
+          enabled: true
+          expressions:
+            message: '''Unexpected sensitive file access: '' + open.full_path + '' by process '' + open.comm'
+            rule_expression:
+              - event_type: open
+                expression: open.full_path.startsWith('/etc/shadow') && !ap.was_path_opened(open.runtime.container_id, open.full_path)
+            unique_id: open.comm + '_' + open.full_path
+          id: R0010
+          name: Unexpected Sensitive File Access
+          profile_dependency: 1
+          severity: 5
+          support_policy: false
+          tags:
+            - files
+            - anomaly
+            - applicationprofile
+        - description: Detecting unexpected egress network traffic that is not whitelisted by application profile.
+          enabled: false
+          expressions:
+            message: '''Unexpected egress network communication to: '' + network.dst_endpoint.addr + '':'' + string(dyn(network.port)) + '' using '' + network.proto + '' from: '' + network.k8s.container_name'
+            rule_expression:
+              - event_type: network
+                expression: network.pkt_type == 'OUTGOING' && !net.is_private_ip(network.dst_endpoint.addr) && !nn.was_address_in_egress(network.runtime.container_id, network.dst_endpoint.addr)
+            unique_id: network.dst_endpoint.addr + '_' + string(dyn(network.port)) + '_' + network.proto
+          id: R0011
+          name: Unexpected Egress Network Traffic
+          profile_dependency: 0
+          severity: 5
+          support_policy: false
+          tags:
+            - whitelisted
+            - network
+            - anomaly
+            - networkprofile
+        - description: 'Detecting exec calls that are from malicious source like: /dev/shm'
+          enabled: true
+          expressions:
+            message: '''Execution from malicious source: '' + exec.exe_path + '' in directory '' + exec.cwd'
+            rule_expression:
+              - event_type: exec
+                expression: |
+                  (exec.exe_path == '/dev/shm' || exec.exe_path.startsWith('/dev/shm/')) || (exec.cwd == '/dev/shm' || exec.cwd.startsWith('/dev/shm/') ||  (parse.get_exec_path(exec.args, exec.comm).startsWith('/dev/shm/')))
+            unique_id: exec.comm + '_' + exec.exe_path + '_' + exec.pcomm
+          id: R1000
+          name: Process executed from malicious source
+          profile_dependency: 2
+          severity: 8
+          support_policy: false
+          tags:
+            - exec
+            - signature
+            - malicious
+        - description: Detecting exec calls of binaries that are not included in the base image
+          enabled: true
+          expressions:
+            message: '''Process ('' + exec.comm + '') was executed and is not part of the image'''
+            rule_expression:
+              - event_type: exec
+                expression: |
+                  (exec.upper_layer == true ||
+                   exec.pupper_layer == true) &&
+                  !ap.was_executed(exec.runtime.container_id, parse.get_exec_path(exec.args, exec.comm))
+            unique_id: exec.comm + '_' + exec.exe_path + '_' + exec.pcomm
+          id: R1001
+          name: Drifted process executed
+          profile_dependency: 1
+          severity: 8
+          support_policy: false
+          tags:
+            - exec
+            - malicious
+            - binary
+            - base image
+            - applicationprofile
+        - description: Detecting Kernel Module Load.
+          enabled: true
+          expressions:
+            message: '''Kernel module load syscall ('' + syscall.syscall_name + '') was called'''
+            rule_expression:
+              - event_type: syscall
+                expression: |
+                  syscall.syscall_name == 'init_module' || syscall.syscall_name == 'finit_module'
+            unique_id: syscall.syscall_name
+          id: R1002
+          name: Process tries to load a kernel module
+          profile_dependency: 2
+          severity: 10
+          support_policy: false
+          tags:
+            - syscall
+            - kernel
+            - module
+            - load
+        - description: Detecting ssh connection to disallowed port
+          enabled: false
+          expressions:
+            message: '''Malicious SSH connection attempt to '' + ssh.dst_ip + '':'' + string(dyn(ssh.dst_port))'
+            rule_expression:
+              - event_type: ssh
+                expression: dyn(ssh.src_port) >= 32768 && dyn(ssh.src_port) <= 60999 && !(dyn(ssh.dst_port) in [22, 2022]) && !nn.was_address_in_egress(ssh.runtime.container_id, ssh.dst_ip)
+            unique_id: ssh.comm + '_' + ssh.dst_ip + '_' + string(dyn(ssh.dst_port))
+          id: R1003
+          name: Disallowed ssh connection
+          profile_dependency: 1
+          severity: 5
+          support_policy: false
+          tags:
+            - ssh
+            - connection
+            - port
+            - malicious
+            - networkprofile
+        - description: Detecting exec calls from mounted paths.
+          enabled: true
+          expressions:
+            message: '''Process ('' + exec.comm + '') was executed from a mounted path'''
+            rule_expression:
+              - event_type: exec
+                expression: '!ap.was_executed(exec.runtime.container_id, parse.get_exec_path(exec.args, exec.comm)) && k8s.get_container_mount_paths(exec.k8s.namespace, exec.k8s.pod_name, exec.k8s.container_name).exists(mount, exec.exe_path.startsWith(mount) || parse.get_exec_path(exec.args, exec.comm).startsWith(mount))'
+            unique_id: exec.comm + '_' + exec.exe_path
+          id: R1004
+          name: Process executed from mount
+          profile_dependency: 1
+          severity: 5
+          support_policy: false
+          tags:
+            - exec
+            - mount
+            - applicationprofile
+        - description: Detecting Fileless Execution
+          enabled: true
+          expressions:
+            message: '''Fileless execution detected: exec call "'' + exec.comm + ''" is from a malicious source'''
+            rule_expression:
+              - event_type: exec
+                expression: exec.exe_path.contains('memfd') || exec.exe_path.startsWith('/proc/self/fd') || exec.exe_path.matches('/proc/[0-9]+/fd/[0-9]+')
+            unique_id: exec.comm + '_' + exec.exe_path + '_' + exec.pcomm
+          id: R1005
+          name: Fileless execution detected
+          profile_dependency: 2
+          severity: 8
+          support_policy: false
+          tags:
+            - fileless
+            - execution
+            - malicious
+        - description: Detecting Unshare System Call usage, which can be used to escape container.
+          enabled: true
+          expressions:
+            message: '''Unshare system call detected: '' + syscall.syscall_name + '' with PID '' + string(syscall.pid)'
+            rule_expression:
+              - event_type: syscall
+                expression: syscall.syscall_name == 'unshare' && !ap.was_syscall_used(syscall.runtime.container_id, syscall.syscall_name)
+            unique_id: syscall.syscall_name
+          id: R1006
+          name: Process tries to escape container
+          profile_dependency: 2
+          severity: 5
+          support_policy: false
+          tags:
+            - syscall
+            - escape
+            - unshare
+            - anomaly
+            - applicationprofile
+        - description: Detecting XMR Crypto Miners by randomx algorithm usage.
+          enabled: true
+          expressions:
+            message: '''XMR Crypto Miner process: ('' + randomx.exe_path + '') executed'''
+            rule_expression:
+              - event_type: randomx
+                expression: "true"
+            unique_id: randomx.exe_path + '_' + randomx.comm
+          id: R1007
+          name: Crypto miner launched
+          profile_dependency: 2
+          severity: 10
+          support_policy: false
+          tags:
+            - crypto
+            - miners
+            - malicious
+        - description: Detecting Crypto miners communication by domain
+          enabled: true
+          expressions:
+            message: '''Communication with a known crypto mining domain: '' + dns.dns_name'
+            rule_expression:
+              - event_type: dns
+                expression: dns.dns_name in ['2cryptocalc.com.', '2miners.com.', 'antpool.com.', 'asia1.ethpool.org.', 'bohemianpool.com.', 'botbox.dev.', 'btm.antpool.com.', 'c3pool.com.', 'c4pool.org.', 'ca.minexmr.com.', 'cn.stratum.slushpool.com.', 'dash.antpool.com.', 'data.miningpoolstats.stream.', 'de.minexmr.com.', 'eth-ar.dwarfpool.com.', 'eth-asia.dwarfpool.com.', 'eth-asia1.nanopool.org.', 'eth-au.dwarfpool.com.', 'eth-au1.nanopool.org.', 'eth-br.dwarfpool.com.', 'eth-cn.dwarfpool.com.', 'eth-cn2.dwarfpool.com.', 'eth-eu.dwarfpool.com.', 'eth-eu1.nanopool.org.', 'eth-eu2.nanopool.org.', 'eth-hk.dwarfpool.com.', 'eth-jp1.nanopool.org.', 'eth-ru.dwarfpool.com.', 'eth-ru2.dwarfpool.com.', 'eth-sg.dwarfpool.com.', 'eth-us-east1.nanopool.org.', 'eth-us-west1.nanopool.org.', 'eth-us.dwarfpool.com.', 'eth-us2.dwarfpool.com.', 'eth.antpool.com.', 'eu.stratum.slushpool.com.', 'eu1.ethermine.org.', 'eu1.ethpool.org.', 'fastpool.xyz.', 'fr.minexmr.com.', 'kriptokyng.com.', 'mine.moneropool.com.', 'mine.xmrpool.net.', 'miningmadness.com.', 'monero.cedric-crispin.com.', 'monero.crypto-pool.fr.', 'monero.fairhash.org.', 'monero.hashvault.pro.', 'monero.herominers.com.', 'monerod.org.', 'monerohash.com.', 'moneroocean.stream.', 'monerop.com.', 'multi-pools.com.', 'p2pool.io.', 'pool.kryptex.com.', 'pool.minexmr.com.', 'pool.monero.hashvault.pro.', 'pool.rplant.xyz.', 'pool.supportxmr.com.', 'pool.xmr.pt.', 'prohashing.com.', 'rx.unmineable.com.', 'sg.minexmr.com.', 'sg.stratum.slushpool.com.', 'skypool.org.', 'solo-xmr.2miners.com.', 'ss.antpool.com.', 'stratum-btm.antpool.com.', 'stratum-dash.antpool.com.', 'stratum-eth.antpool.com.', 'stratum-ltc.antpool.com.', 'stratum-xmc.antpool.com.', 'stratum-zec.antpool.com.', 'stratum.antpool.com.', 'supportxmr.com.', 'trustpool.cc.', 'us-east.stratum.slushpool.com.', 'us1.ethermine.org.', 'us1.ethpool.org.', 'us2.ethermine.org.', 'us2.ethpool.org.', 'web.xmrpool.eu.', 'www.domajorpool.com.', 'www.dxpool.com.', 'www.mining-dutch.nl.', 'xmc.antpool.com.', 'xmr-asia1.nanopool.org.', 'xmr-au1.nanopool.org.', 'xmr-eu1.nanopool.org.', 'xmr-eu2.nanopool.org.', 'xmr-jp1.nanopool.org.', 'xmr-us-east1.nanopool.org.', 'xmr-us-west1.nanopool.org.', 'xmr.2miners.com.', 'xmr.crypto-pool.fr.', 'xmr.gntl.uk.', 'xmr.nanopool.org.', 'xmr.pool-pay.com.', 'xmr.pool.minergate.com.', 'xmr.solopool.org.', 'xmr.volt-mine.com.', 'xmr.zeropool.io.', 'zec.antpool.com.', 'zergpool.com.', 'auto.c3pool.org.', 'us.monero.herominers.com.']
+            unique_id: dns.dns_name + '_' + dns.comm
+          id: R1008
+          name: Crypto Mining Domain Communication
+          profile_dependency: 2
+          severity: 10
+          support_policy: false
+          tags:
+            - network
+            - crypto
+            - miners
+            - malicious
+            - dns
+        - description: Detecting Crypto Miners by suspicious port usage.
+          enabled: true
+          expressions:
+            message: '''Detected crypto mining related port communication on port '' + string(dyn(network.port)) + '' to '' + network.dst_endpoint.addr + '' with protocol '' + network.proto'
+            rule_expression:
+              - event_type: network
+                expression: network.proto == 'TCP' && network.pkt_type == 'OUTGOING' && dyn(network.port) in [3333, 45700] && !nn.was_address_in_egress(network.runtime.container_id, network.dst_endpoint.addr)
+            unique_id: network.comm + '_' + string(dyn(network.port))
+          id: R1009
+          name: Crypto Mining Related Port Communication
+          profile_dependency: 1
+          severity: 3
+          support_policy: false
+          tags:
+            - network
+            - crypto
+            - miners
+            - malicious
+            - networkprofile
+        - description: Detects symlink creation over sensitive files
+          enabled: true
+          expressions:
+            message: '''Symlink created over sensitive file: '' + symlink.old_path + '' -> '' + symlink.new_path'
+            rule_expression:
+              - event_type: symlink
+                expression: (symlink.old_path.startsWith('/etc/shadow') || symlink.old_path.startsWith('/etc/sudoers')) && !ap.was_path_opened(symlink.runtime.container_id, symlink.old_path)
+            unique_id: symlink.comm + '_' + symlink.old_path
+          id: R1010
+          name: Soft link created over sensitive file
+          profile_dependency: 1
+          severity: 5
+          support_policy: true
+          tags:
+            - anomaly
+            - symlink
+            - applicationprofile
+        - description: Detecting ld_preload hook techniques.
+          enabled: false
+          expressions:
+            message: 'event_type == ''exec'' ? ''Process ('' + exec.comm + '') is using a dynamic linker hook: '' + process.get_ld_hook_var(exec.pid) : ''The dynamic linker configuration file ('' + open.full_path + '') was modified by process ('' + open.comm + '')'''
+            rule_expression:
+              - event_type: exec
+                expression: exec.comm != 'java' && exec.k8s.container_name != 'matlab' && process.get_ld_hook_var(exec.pid) != ''
+              - event_type: open
+                expression: open.full_path == '/etc/ld.so.preload' && has(open.flags_raw) && open.flags_raw != 0
+            unique_id: 'event_type == ''exec'' ? ''exec_'' + exec.comm : ''open_'' + open.full_path'
+          id: R1011
+          name: ld_preload hooks technique detected
+          profile_dependency: 1
+          severity: 5
+          support_policy: true
+          tags:
+            - exec
+            - malicious
+            - applicationprofile
+        - description: Detecting hardlink creation over sensitive files.
+          enabled: true
+          expressions:
+            message: '''Hardlink created over sensitive file: '' + hardlink.old_path + '' - '' + hardlink.new_path'
+            rule_expression:
+              - event_type: hardlink
+                expression: (hardlink.old_path.startsWith('/etc/shadow') || hardlink.old_path.startsWith('/etc/sudoers')) && !ap.was_path_opened(hardlink.runtime.container_id, hardlink.old_path)
+            unique_id: hardlink.comm + '_' + hardlink.old_path
+          id: R1012
+          name: Hard link created over sensitive file
+          profile_dependency: 1
+          severity: 5
+          support_policy: true
+          tags:
+            - files
+            - malicious
+            - applicationprofile
+        - description: Detecting potentially malicious ptrace usage.
+          enabled: true
+          expressions:
+            message: '''Malicious ptrace usage detected from: '' + ptrace.comm'
+            rule_expression:
+              - event_type: ptrace
+                expression: "true"
+            unique_id: ptrace.exe_path + '_' + ptrace.comm
+          id: R1015
+          name: Malicious Ptrace Usage
+          profile_dependency: 2
+          severity: 5
+          support_policy: false
+          tags:
+            - process
+            - malicious
+        - description: Detects io_uring operations that were not recorded during the initial observation period, indicating potential unauthorized activity.
+          enabled: true
+          expressions:
+            message: '''Unexpected io_uring operation detected: (opcode='' + string(iouring.opcode) + '') flags=0x'' + (has(iouring.flags) ? string(iouring.flags) : ''0'') + '' in '' + iouring.comm + ''.'''
+            rule_expression:
+              - event_type: iouring
+                expression: "true"
+            unique_id: string(iouring.opcode) + '_' + iouring.comm
+          id: R1030
+          name: Unexpected io_uring Operation Detected
+          profile_dependency: 0
+          severity: 5
+          support_policy: true
+          tags:
+            - syscalls
+            - io_uring
+            - applicationprofile
+  52: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -2941,7 +3390,7 @@ all capabilities:
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
         - Egress
-  52: |
+  53: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -2967,7 +3416,7 @@ all capabilities:
       - kind: ServiceAccount
         name: node-agent
         namespace: kubescape
-  53: |
+  54: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -2995,7 +3444,7 @@ all capabilities:
         app.kubernetes.io/component: node-agent
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  54: |
+  55: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -3013,7 +3462,7 @@ all capabilities:
         tier: ks-control-plane
       name: node-agent
       namespace: kubescape
-  55: |
+  56: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -3040,7 +3489,7 @@ all capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  56: |
+  57: |
     apiVersion: v1
     data:
       tls.crt: bW9jay1jZXJ0LWNlcnQ=
@@ -3062,7 +3511,7 @@ all capabilities:
       name: kubescape-admission-webhook.kubescape.svc-kubescape-tls-pair
       namespace: kubescape
     type: kubernetes.io/tls
-  57: |
+  58: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingWebhookConfiguration
     metadata:
@@ -3110,7 +3559,7 @@ all capabilities:
               - rolebindings
             scope: '*'
         sideEffects: None
-  58: |
+  59: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -3215,6 +3664,9 @@ all capabilities:
           - get
           - watch
           - list
+          - create
+          - update
+          - patch
       - apiGroups:
           - kubescape.io
         resources:
@@ -3225,7 +3677,7 @@ all capabilities:
           - list
           - update
           - patch
-  59: |
+  60: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -3250,7 +3702,7 @@ all capabilities:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  60: |
+  61: |
     apiVersion: v1
     data:
       config.json: |
@@ -3279,7 +3731,7 @@ all capabilities:
         tier: ks-control-plane
       name: operator
       namespace: kubescape
-  61: |
+  62: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -3481,7 +3933,7 @@ all capabilities:
                     path: matchingRules.json
                 name: cs-matching-rules
               name: cs-matching-rules
-  62: |
+  63: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -3569,7 +4021,7 @@ all capabilities:
         tier: ks-control-plane
       name: kubescape-cronjob-template
       namespace: kubescape
-  63: |
+  64: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -3657,7 +4109,7 @@ all capabilities:
         tier: ks-control-plane
       name: kubevuln-cronjob-template
       namespace: kubescape
-  64: |
+  65: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -3764,7 +4216,7 @@ all capabilities:
       policyTypes:
         - Ingress
         - Egress
-  65: |
+  66: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -3852,7 +4304,7 @@ all capabilities:
         tier: ks-control-plane
       name: registry-scan-cronjob-template
       namespace: kubescape
-  66: |
+  67: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -3896,7 +4348,7 @@ all capabilities:
           - list
           - patch
           - delete
-  67: |
+  68: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -3922,7 +4374,7 @@ all capabilities:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  68: |
+  69: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -3948,7 +4400,7 @@ all capabilities:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  69: |
+  70: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -3976,7 +4428,7 @@ all capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  70: |
+  71: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -3995,7 +4447,7 @@ all capabilities:
         tier: ks-control-plane
       name: operator
       namespace: kubescape
-  71: |
+  72: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -4023,7 +4475,7 @@ all capabilities:
           - get
           - watch
           - list
-  72: |
+  73: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -4047,7 +4499,7 @@ all capabilities:
       - kind: ServiceAccount
         name: prometheus-exporter
         namespace: kubescape
-  73: |
+  74: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -4159,7 +4611,7 @@ all capabilities:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-  74: |
+  75: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -4188,7 +4640,7 @@ all capabilities:
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
         - Ingress
-  75: |
+  76: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -4215,7 +4667,7 @@ all capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: null
-  76: |
+  77: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -4233,7 +4685,7 @@ all capabilities:
         tier: ks-control-plane
       name: prometheus-exporter
       namespace: kubescape
-  77: |
+  78: |
     apiVersion: monitoring.coreos.com/v1
     kind: ServiceMonitor
     metadata:
@@ -4264,7 +4716,7 @@ all capabilities:
           app.kubernetes.io/component: prometheus-exporter
           app.kubernetes.io/instance: RELEASE-NAME
           app.kubernetes.io/name: kubescape-operator
-  78: |
+  79: |
     apiVersion: v1
     data:
       proxy.crt: foo
@@ -4288,7 +4740,7 @@ all capabilities:
       name: kubescape-proxy-certificate
       namespace: kubescape
     type: Opaque
-  79: |
+  80: |
     apiVersion: apiregistration.k8s.io/v1
     kind: APIService
     metadata:
@@ -4314,7 +4766,7 @@ all capabilities:
         namespace: kubescape
       version: v1beta1
       versionPriority: 15
-  80: |
+  81: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -4380,7 +4832,7 @@ all capabilities:
           - get
           - watch
           - list
-  81: |
+  82: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -4405,7 +4857,7 @@ all capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  82: |
+  83: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -4430,7 +4882,7 @@ all capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  83: |
+  84: |
     apiVersion: v1
     data:
       config.json: |
@@ -4461,7 +4913,7 @@ all capabilities:
         tier: ks-control-plane
       name: storage
       namespace: kubescape
-  84: |
+  85: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -4587,7 +5039,7 @@ all capabilities:
                     path: config.json
                 name: storage
               name: config
-  85: |
+  86: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -4652,7 +5104,7 @@ all capabilities:
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
         - Egress
-  86: |
+  87: |
     apiVersion: v1
     kind: PersistentVolumeClaim
     metadata:
@@ -4676,7 +5128,7 @@ all capabilities:
       resources:
         requests:
           storage: 5Gi
-  87: |
+  88: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -4702,7 +5154,7 @@ all capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  88: |
+  89: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -4728,7 +5180,7 @@ all capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  89: |
+  90: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -4756,7 +5208,7 @@ all capabilities:
         app.kubernetes.io/component: storage
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  90: |
+  91: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -4774,7 +5226,7 @@ all capabilities:
         tier: ks-control-plane
       name: storage
       namespace: kubescape
-  91: |
+  92: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -4933,6 +5385,7 @@ all capabilities:
           - kubescape.io
         resources:
           - operatorcommands
+          - rules
         verbs:
           - get
           - watch
@@ -5010,7 +5463,7 @@ all capabilities:
         verbs:
           - update
           - patch
-  92: |
+  93: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -5034,7 +5487,7 @@ all capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  93: |
+  94: |
     apiVersion: v1
     data:
       config.json: |
@@ -5269,6 +5722,12 @@ all capabilities:
                 "version": "v1alpha1",
                 "resource": "operatorcommands",
                 "strategy": "copy"
+              },
+              {
+                "group": "kubescape.io",
+                "version": "v1",
+                "resource": "rules",
+                "strategy": "copy"
               }
             ]
           },
@@ -5319,7 +5778,7 @@ all capabilities:
         tier: ks-control-plane
       name: synchronizer
       namespace: kubescape
-  94: |
+  95: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -5354,7 +5813,7 @@ all capabilities:
             checksum/cloud-config: aaeeb6b6b35a5ebbb0893822c4bf9cd860fba6d3df3bc4e77c8dbdd5841db120
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
-            checksum/synchronizer-configmap: df8fee4a6080fe9af89f3fa7c40b9f8dd98a7080c0ef7de7ce0eb07ac8ac1408
+            checksum/synchronizer-configmap: 76f9d9763830e40fd384363ac834ed9f7f9c8e939c1134d09eb3ffa64fb8d5d6
           labels:
             app: synchronizer
             app.kubernetes.io/component: synchronizer
@@ -5507,7 +5966,7 @@ all capabilities:
                     path: config.json
                 name: synchronizer
               name: config
-  95: |
+  96: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -5586,7 +6045,7 @@ all capabilities:
       policyTypes:
         - Ingress
         - Egress
-  96: |
+  97: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -5629,7 +6088,7 @@ all capabilities:
           - list
           - patch
           - delete
-  97: |
+  98: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -5654,7 +6113,7 @@ all capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  98: |
+  99: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -5679,7 +6138,7 @@ all capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  99: |
+  100: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -5706,7 +6165,7 @@ all capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  100: |
+  101: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -7563,6 +8022,13 @@ default capabilities:
           - create
           - patch
           - get
+      - apiGroups:
+          - kubescape.io
+        resources:
+          - rules
+        verbs:
+          - list
+          - watch
   33: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
@@ -7733,6 +8199,8 @@ default capabilities:
                       fieldPath: metadata.namespace
                 - name: KUBELET_ROOT
                   value: /var/lib/kubelet
+                - name: AGENT_VERSION
+                  value: v0.2.394
                 - name: NodeName
               image: quay.io/kubescape/node-agent:v0.2.394
               imagePullPolicy: IfNotPresent
@@ -7929,83 +8397,523 @@ default capabilities:
               - gmp-public
       rules:
         - ruleName: Unexpected process launched
-        - parameters:
-            ignoreMounts: true
-            ignorePrefixes:
-              - /proc
-              - /run/secrets/kubernetes.io/serviceaccount
-              - /var/run/secrets/kubernetes.io/serviceaccount
-              - /tmp
-            includePrefixes:
-              - /etc
-              - /var/spool/cron/
-              - /var/log/
-              - /var/run/
-              - /dev/shm/
-              - /run/
-              - /var/www/
-              - /var/lib/docker/
-              - /opt/
-              - /usr/local/
-              - /app/
-              - /.dockerenv
-              - /proc/self/environ
-              - /var/lib/kubelet/
-              - /etc/cni/net.d/
-              - /var/run/secrets/kubernetes.io/
-              - /var/run/secrets/kubernetes.io/serviceaccount/
-              - /run/containerd/
-              - /run/flannel/
-              - /run/calico/
-          ruleName: Unexpected file access
-        - ruleName: Unexpected system call
-        - ruleName: Unexpected capability used
-        - ruleName: Unexpected domain request
-        - ruleName: Unexpected Service Account Token Access
-        - ruleName: Kubernetes Client Executed
-        - ruleName: Exec from malicious source
-        - ruleName: Kernel Module Load
-        - ruleName: Exec Binary Not In Base Image
-        - ruleName: Fileless Execution
-        - ruleName: XMR Crypto Mining Detection
-        - ruleName: Exec from mount
+        - ruleName: Files Access Anomalies in container
+        - ruleName: Syscalls Anomalies in container
+        - ruleName: Linux Capabilities Anomalies in container
+        - ruleName: DNS Anomalies in container
+        - ruleName: Unexpected service account token access
+        - ruleName: Workload uses Kubernetes API unexpectedly
+        - ruleName: Process executed from malicious source
+        - ruleName: Process tries to load a kernel module
+        - ruleName: Drifted process executed
+        - ruleName: Disallowed ssh connection
+        - ruleName: Fileless execution detected
+        - ruleName: Crypto miner launched
+        - ruleName: Process executed from mount
         - ruleName: Crypto Mining Related Port Communication
         - ruleName: Crypto Mining Domain Communication
         - ruleName: Read Environment Variables from procfs
         - ruleName: eBPF Program Load
-        - ruleName: Symlink Created Over Sensitive File
+        - ruleName: Soft link created over sensitive file
         - ruleName: Unexpected Sensitive File Access
-        - ruleName: Hardlink Created Over Sensitive File
+        - ruleName: Hard link created over sensitive file
         - ruleName: Exec to pod
         - ruleName: Port forward
+        - ruleName: Unexpected Egress Network Traffic
         - ruleName: Malicious Ptrace Usage
-        - ruleName: Cross-Site Scripting (XSS) Attempt
-        - ruleName: SQL Injection Attempt
-        - ruleName: Server-Side Request Forgery Attack Attempt
-        - ruleName: Remote File Inclusion Attack Attempt
-        - ruleName: Local File Inclusion Attempt
-        - ruleName: XML External Entity Attack Attempt
-        - ruleName: Server-Side Template Injection Attack
-        - ruleName: Command Injection Attempt
-        - ruleName: Unexpected Exec Source
-        - ruleName: Unexpected Open Source
-        - ruleName: Unexpected Symlink Source
-        - ruleName: Unexpected Hardlink Source
         - ruleName: Unexpected io_uring Operation Detected
-        - ruleName: ReDoS Attack
-        - ruleName: Prototype Pollution Attack
-        - ruleName: Execution of base64 Encoded Command
-        - ruleName: Execution of interpreter command
-        - ruleName: Code Sharing Site Access
-        - ruleName: Web Application File Write Access
-        - ruleName: Cron Job File Created or Modified
-        - ruleName: Hidden File Created
-        - ruleName: Reverse Shell Patterens Detected
-        - ruleName: Unauthorized IMDS Connection Attempt
-        - ruleName: Credentials Detection Attempts
-        - ruleName: HTTP Request Smuggling Attempt
-        - ruleName: P2P Tracker Connection Created
   37: |
+    apiVersion: kubescape.io/v1
+    kind: Rules
+    metadata:
+      annotations: null
+      labels:
+        app: node-agent
+        app.kubernetes.io/component: node-agent
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.29.9
+        helm.sh/chart: kubescape-operator-1.29.9
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: default-rules
+      namespace: kubescape
+    spec:
+      rules:
+        - description: Detects unexpected process launches that are not in the baseline
+          enabled: true
+          expressions:
+            message: '''Unexpected process launched: '' + exec.comm + '' with PID '' + string(exec.pid)'
+            rule_expression:
+              - event_type: exec
+                expression: '!ap.was_executed(exec.runtime.container_id, parse.get_exec_path(exec.args, exec.comm))'
+            unique_id: exec.comm + '_' + exec.exe_path
+          id: R0001
+          name: Unexpected process launched
+          profile_dependency: 0
+          severity: 1
+          support_policy: false
+          tags:
+            - anomaly
+            - process
+            - exec
+            - applicationprofile
+        - description: Detects unexpected file access that is not in the baseline
+          enabled: false
+          expressions:
+            message: '''Unexpected file access detected: '' + open.comm + '' with PID '' + string(open.pid) + '' to '' + open.full_path'
+            rule_expression:
+              - event_type: open
+                expression: |
+                  (open.full_path.startsWith('/etc/') || open.full_path.startsWith('/var/log/') || open.full_path.startsWith('/var/run/') || open.full_path.startsWith('/run/') || open.full_path.startsWith('/var/spool/cron/') || open.full_path.startsWith('/var/www/') || open.full_path.startsWith('/var/lib/') || open.full_path.startsWith('/opt/') || open.full_path.startsWith('/usr/local/') || open.full_path.startsWith('/app/') || open.full_path == '/.dockerenv' || open.full_path == '/proc/self/environ') && !(open.full_path.startsWith('/run/secrets/kubernetes.io/serviceaccount') ||
+                    open.full_path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') ||
+                    open.full_path.startsWith('/tmp'))
+                  && !ap.was_path_opened(open.runtime.container_id, open.full_path)
+            unique_id: open.comm + '_' + open.full_path
+          id: R0002
+          name: Files Access Anomalies in container
+          profile_dependency: 0
+          severity: 1
+          support_policy: false
+          tags:
+            - anomaly
+            - file
+            - open
+            - applicationprofile
+        - description: Detects unexpected system calls that are not whitelisted by application profile
+          enabled: true
+          expressions:
+            message: '''Unexpected system call detected: '' + syscall.syscall_name + '' with PID '' + string(syscall.pid)'
+            rule_expression:
+              - event_type: syscall
+                expression: '!ap.was_syscall_used(syscall.runtime.container_id, syscall.syscall_name)'
+            unique_id: syscall.syscall_name
+          id: R0003
+          name: Syscalls Anomalies in container
+          profile_dependency: 0
+          severity: 1
+          support_policy: false
+          tags:
+            - anomaly
+            - syscall
+            - applicationprofile
+        - description: Detects unexpected capabilities that are not whitelisted by application profile
+          enabled: true
+          expressions:
+            message: '''Unexpected capability used: '' + capabilities.cap_name + '' in syscall '' + capabilities.syscall + '' with PID '' + string(capabilities.pid)'
+            rule_expression:
+              - event_type: capabilities
+                expression: '!ap.was_capability_used(capabilities.runtime.container_id, capabilities.cap_name)'
+            unique_id: capabilities.comm + '_' + capabilities.cap_name
+          id: R0004
+          name: Linux Capabilities Anomalies in container
+          profile_dependency: 0
+          severity: 1
+          support_policy: false
+          tags:
+            - anomaly
+            - capabilities
+            - applicationprofile
+        - description: Detecting unexpected domain requests that are not whitelisted by application profile.
+          enabled: true
+          expressions:
+            message: '''Unexpected domain communication: '' + dns.dns_name'
+            rule_expression:
+              - event_type: dns
+                expression: '!dns.dns_name.endsWith(''.svc.cluster.local.'') && !nn.is_domain_in_egress(dns.runtime.container_id, dns.dns_name)'
+            unique_id: dns.comm + '_' + dns.dns_name
+          id: R0005
+          name: DNS Anomalies in container
+          profile_dependency: 0
+          severity: 1
+          support_policy: false
+          tags:
+            - dns
+            - anomaly
+            - networkprofile
+        - description: Detecting unexpected access to service account token.
+          enabled: true
+          expressions:
+            message: '''Unexpected access to service account token: '' + open.full_path + '' with flags: '' + open.flags.join('','')'
+            rule_expression:
+              - event_type: open
+                expression: "((open.full_path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && open.full_path.endsWith('/token')) || \n (open.full_path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && open.full_path.endsWith('/token')) ||\n (open.full_path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && open.full_path.endsWith('/token')) ||\n (open.full_path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && open.full_path.endsWith('/token'))) &&\n!ap.was_path_opened_with_prefix(open.runtime.container_id, '/run/secrets/kubernetes.io/serviceaccount') && !ap.was_path_opened_with_prefix(open.runtime.container_id, '/var/run/secrets/kubernetes.io/serviceaccount') && !ap.was_path_opened_with_prefix(open.runtime.container_id, '/run/secrets/eks.amazonaws.com/serviceaccount') && !ap.was_path_opened_with_prefix(open.runtime.container_id, '/var/run/secrets/eks.amazonaws.com/serviceaccount')\n"
+            unique_id: open.comm
+          id: R0006
+          name: Unexpected service account token access
+          profile_dependency: 1
+          severity: 5
+          support_policy: false
+          tags:
+            - anomaly
+            - serviceaccount
+            - applicationprofile
+        - description: Detecting execution of kubernetes client
+          enabled: true
+          expressions:
+            message: 'event_type == ''exec'' ? ''Kubernetes client ('' + exec.comm + '') was executed with PID '' + string(exec.pid) : ''Network connection to Kubernetes API server from container '' + network.k8s.container_name'
+            rule_expression:
+              - event_type: exec
+                expression: (exec.comm == 'kubectl' || exec.exe_path.endsWith('/kubectl')) && !ap.was_executed(exec.runtime.container_id, parse.get_exec_path(exec.args, exec.comm))
+              - event_type: network
+                expression: network.pkt_type == 'OUTGOING' && k8s.is_api_server_address(network.dst_endpoint.addr) && !nn.was_address_in_egress(network.runtime.container_id, network.dst_endpoint.addr)
+            unique_id: 'event_type == ''exec'' ? ''exec_'' + exec.comm : ''network_'' + network.dst_endpoint.addr'
+          id: R0007
+          name: Workload uses Kubernetes API unexpectedly
+          profile_dependency: 0
+          severity: 5
+          support_policy: false
+          tags:
+            - exec
+            - network
+            - anomaly
+            - applicationprofile
+        - description: Detecting reading environment variables from procfs.
+          enabled: true
+          expressions:
+            message: '''Reading environment variables from procfs: '' + open.full_path + '' by process '' + open.comm'
+            rule_expression:
+              - event_type: open
+                expression: |
+                  open.full_path.startsWith('/proc/') &&  open.full_path.endsWith('/environ') && !ap.was_path_opened_with_suffix(open.runtime.container_id, '/environ')
+            unique_id: open.comm
+          id: R0008
+          name: Read Environment Variables from procfs
+          profile_dependency: 0
+          severity: 5
+          support_policy: false
+          tags:
+            - anomaly
+            - procfs
+            - environment
+            - applicationprofile
+        - description: Detecting eBPF program load.
+          enabled: true
+          expressions:
+            message: '''bpf system call executed in '' + syscall.k8s.container_name'
+            rule_expression:
+              - event_type: syscall
+                expression: syscall.syscall_name == 'bpf' && !ap.was_syscall_used(syscall.runtime.container_id, syscall.syscall_name)
+            unique_id: syscall.comm + '_' + syscall.syscall_name
+          id: R0009
+          name: eBPF Program Load
+          profile_dependency: 1
+          severity: 5
+          support_policy: false
+          tags:
+            - syscall
+            - ebpf
+            - applicationprofile
+        - description: Detecting access to sensitive files.
+          enabled: true
+          expressions:
+            message: '''Unexpected sensitive file access: '' + open.full_path + '' by process '' + open.comm'
+            rule_expression:
+              - event_type: open
+                expression: open.full_path.startsWith('/etc/shadow') && !ap.was_path_opened(open.runtime.container_id, open.full_path)
+            unique_id: open.comm + '_' + open.full_path
+          id: R0010
+          name: Unexpected Sensitive File Access
+          profile_dependency: 1
+          severity: 5
+          support_policy: false
+          tags:
+            - files
+            - anomaly
+            - applicationprofile
+        - description: Detecting unexpected egress network traffic that is not whitelisted by application profile.
+          enabled: false
+          expressions:
+            message: '''Unexpected egress network communication to: '' + network.dst_endpoint.addr + '':'' + string(dyn(network.port)) + '' using '' + network.proto + '' from: '' + network.k8s.container_name'
+            rule_expression:
+              - event_type: network
+                expression: network.pkt_type == 'OUTGOING' && !net.is_private_ip(network.dst_endpoint.addr) && !nn.was_address_in_egress(network.runtime.container_id, network.dst_endpoint.addr)
+            unique_id: network.dst_endpoint.addr + '_' + string(dyn(network.port)) + '_' + network.proto
+          id: R0011
+          name: Unexpected Egress Network Traffic
+          profile_dependency: 0
+          severity: 5
+          support_policy: false
+          tags:
+            - whitelisted
+            - network
+            - anomaly
+            - networkprofile
+        - description: 'Detecting exec calls that are from malicious source like: /dev/shm'
+          enabled: true
+          expressions:
+            message: '''Execution from malicious source: '' + exec.exe_path + '' in directory '' + exec.cwd'
+            rule_expression:
+              - event_type: exec
+                expression: |
+                  (exec.exe_path == '/dev/shm' || exec.exe_path.startsWith('/dev/shm/')) || (exec.cwd == '/dev/shm' || exec.cwd.startsWith('/dev/shm/') ||  (parse.get_exec_path(exec.args, exec.comm).startsWith('/dev/shm/')))
+            unique_id: exec.comm + '_' + exec.exe_path + '_' + exec.pcomm
+          id: R1000
+          name: Process executed from malicious source
+          profile_dependency: 2
+          severity: 8
+          support_policy: false
+          tags:
+            - exec
+            - signature
+            - malicious
+        - description: Detecting exec calls of binaries that are not included in the base image
+          enabled: true
+          expressions:
+            message: '''Process ('' + exec.comm + '') was executed and is not part of the image'''
+            rule_expression:
+              - event_type: exec
+                expression: |
+                  (exec.upper_layer == true ||
+                   exec.pupper_layer == true) &&
+                  !ap.was_executed(exec.runtime.container_id, parse.get_exec_path(exec.args, exec.comm))
+            unique_id: exec.comm + '_' + exec.exe_path + '_' + exec.pcomm
+          id: R1001
+          name: Drifted process executed
+          profile_dependency: 1
+          severity: 8
+          support_policy: false
+          tags:
+            - exec
+            - malicious
+            - binary
+            - base image
+            - applicationprofile
+        - description: Detecting Kernel Module Load.
+          enabled: true
+          expressions:
+            message: '''Kernel module load syscall ('' + syscall.syscall_name + '') was called'''
+            rule_expression:
+              - event_type: syscall
+                expression: |
+                  syscall.syscall_name == 'init_module' || syscall.syscall_name == 'finit_module'
+            unique_id: syscall.syscall_name
+          id: R1002
+          name: Process tries to load a kernel module
+          profile_dependency: 2
+          severity: 10
+          support_policy: false
+          tags:
+            - syscall
+            - kernel
+            - module
+            - load
+        - description: Detecting ssh connection to disallowed port
+          enabled: false
+          expressions:
+            message: '''Malicious SSH connection attempt to '' + ssh.dst_ip + '':'' + string(dyn(ssh.dst_port))'
+            rule_expression:
+              - event_type: ssh
+                expression: dyn(ssh.src_port) >= 32768 && dyn(ssh.src_port) <= 60999 && !(dyn(ssh.dst_port) in [22, 2022]) && !nn.was_address_in_egress(ssh.runtime.container_id, ssh.dst_ip)
+            unique_id: ssh.comm + '_' + ssh.dst_ip + '_' + string(dyn(ssh.dst_port))
+          id: R1003
+          name: Disallowed ssh connection
+          profile_dependency: 1
+          severity: 5
+          support_policy: false
+          tags:
+            - ssh
+            - connection
+            - port
+            - malicious
+            - networkprofile
+        - description: Detecting exec calls from mounted paths.
+          enabled: true
+          expressions:
+            message: '''Process ('' + exec.comm + '') was executed from a mounted path'''
+            rule_expression:
+              - event_type: exec
+                expression: '!ap.was_executed(exec.runtime.container_id, parse.get_exec_path(exec.args, exec.comm)) && k8s.get_container_mount_paths(exec.k8s.namespace, exec.k8s.pod_name, exec.k8s.container_name).exists(mount, exec.exe_path.startsWith(mount) || parse.get_exec_path(exec.args, exec.comm).startsWith(mount))'
+            unique_id: exec.comm + '_' + exec.exe_path
+          id: R1004
+          name: Process executed from mount
+          profile_dependency: 1
+          severity: 5
+          support_policy: false
+          tags:
+            - exec
+            - mount
+            - applicationprofile
+        - description: Detecting Fileless Execution
+          enabled: true
+          expressions:
+            message: '''Fileless execution detected: exec call "'' + exec.comm + ''" is from a malicious source'''
+            rule_expression:
+              - event_type: exec
+                expression: exec.exe_path.contains('memfd') || exec.exe_path.startsWith('/proc/self/fd') || exec.exe_path.matches('/proc/[0-9]+/fd/[0-9]+')
+            unique_id: exec.comm + '_' + exec.exe_path + '_' + exec.pcomm
+          id: R1005
+          name: Fileless execution detected
+          profile_dependency: 2
+          severity: 8
+          support_policy: false
+          tags:
+            - fileless
+            - execution
+            - malicious
+        - description: Detecting Unshare System Call usage, which can be used to escape container.
+          enabled: true
+          expressions:
+            message: '''Unshare system call detected: '' + syscall.syscall_name + '' with PID '' + string(syscall.pid)'
+            rule_expression:
+              - event_type: syscall
+                expression: syscall.syscall_name == 'unshare' && !ap.was_syscall_used(syscall.runtime.container_id, syscall.syscall_name)
+            unique_id: syscall.syscall_name
+          id: R1006
+          name: Process tries to escape container
+          profile_dependency: 2
+          severity: 5
+          support_policy: false
+          tags:
+            - syscall
+            - escape
+            - unshare
+            - anomaly
+            - applicationprofile
+        - description: Detecting XMR Crypto Miners by randomx algorithm usage.
+          enabled: true
+          expressions:
+            message: '''XMR Crypto Miner process: ('' + randomx.exe_path + '') executed'''
+            rule_expression:
+              - event_type: randomx
+                expression: "true"
+            unique_id: randomx.exe_path + '_' + randomx.comm
+          id: R1007
+          name: Crypto miner launched
+          profile_dependency: 2
+          severity: 10
+          support_policy: false
+          tags:
+            - crypto
+            - miners
+            - malicious
+        - description: Detecting Crypto miners communication by domain
+          enabled: true
+          expressions:
+            message: '''Communication with a known crypto mining domain: '' + dns.dns_name'
+            rule_expression:
+              - event_type: dns
+                expression: dns.dns_name in ['2cryptocalc.com.', '2miners.com.', 'antpool.com.', 'asia1.ethpool.org.', 'bohemianpool.com.', 'botbox.dev.', 'btm.antpool.com.', 'c3pool.com.', 'c4pool.org.', 'ca.minexmr.com.', 'cn.stratum.slushpool.com.', 'dash.antpool.com.', 'data.miningpoolstats.stream.', 'de.minexmr.com.', 'eth-ar.dwarfpool.com.', 'eth-asia.dwarfpool.com.', 'eth-asia1.nanopool.org.', 'eth-au.dwarfpool.com.', 'eth-au1.nanopool.org.', 'eth-br.dwarfpool.com.', 'eth-cn.dwarfpool.com.', 'eth-cn2.dwarfpool.com.', 'eth-eu.dwarfpool.com.', 'eth-eu1.nanopool.org.', 'eth-eu2.nanopool.org.', 'eth-hk.dwarfpool.com.', 'eth-jp1.nanopool.org.', 'eth-ru.dwarfpool.com.', 'eth-ru2.dwarfpool.com.', 'eth-sg.dwarfpool.com.', 'eth-us-east1.nanopool.org.', 'eth-us-west1.nanopool.org.', 'eth-us.dwarfpool.com.', 'eth-us2.dwarfpool.com.', 'eth.antpool.com.', 'eu.stratum.slushpool.com.', 'eu1.ethermine.org.', 'eu1.ethpool.org.', 'fastpool.xyz.', 'fr.minexmr.com.', 'kriptokyng.com.', 'mine.moneropool.com.', 'mine.xmrpool.net.', 'miningmadness.com.', 'monero.cedric-crispin.com.', 'monero.crypto-pool.fr.', 'monero.fairhash.org.', 'monero.hashvault.pro.', 'monero.herominers.com.', 'monerod.org.', 'monerohash.com.', 'moneroocean.stream.', 'monerop.com.', 'multi-pools.com.', 'p2pool.io.', 'pool.kryptex.com.', 'pool.minexmr.com.', 'pool.monero.hashvault.pro.', 'pool.rplant.xyz.', 'pool.supportxmr.com.', 'pool.xmr.pt.', 'prohashing.com.', 'rx.unmineable.com.', 'sg.minexmr.com.', 'sg.stratum.slushpool.com.', 'skypool.org.', 'solo-xmr.2miners.com.', 'ss.antpool.com.', 'stratum-btm.antpool.com.', 'stratum-dash.antpool.com.', 'stratum-eth.antpool.com.', 'stratum-ltc.antpool.com.', 'stratum-xmc.antpool.com.', 'stratum-zec.antpool.com.', 'stratum.antpool.com.', 'supportxmr.com.', 'trustpool.cc.', 'us-east.stratum.slushpool.com.', 'us1.ethermine.org.', 'us1.ethpool.org.', 'us2.ethermine.org.', 'us2.ethpool.org.', 'web.xmrpool.eu.', 'www.domajorpool.com.', 'www.dxpool.com.', 'www.mining-dutch.nl.', 'xmc.antpool.com.', 'xmr-asia1.nanopool.org.', 'xmr-au1.nanopool.org.', 'xmr-eu1.nanopool.org.', 'xmr-eu2.nanopool.org.', 'xmr-jp1.nanopool.org.', 'xmr-us-east1.nanopool.org.', 'xmr-us-west1.nanopool.org.', 'xmr.2miners.com.', 'xmr.crypto-pool.fr.', 'xmr.gntl.uk.', 'xmr.nanopool.org.', 'xmr.pool-pay.com.', 'xmr.pool.minergate.com.', 'xmr.solopool.org.', 'xmr.volt-mine.com.', 'xmr.zeropool.io.', 'zec.antpool.com.', 'zergpool.com.', 'auto.c3pool.org.', 'us.monero.herominers.com.']
+            unique_id: dns.dns_name + '_' + dns.comm
+          id: R1008
+          name: Crypto Mining Domain Communication
+          profile_dependency: 2
+          severity: 10
+          support_policy: false
+          tags:
+            - network
+            - crypto
+            - miners
+            - malicious
+            - dns
+        - description: Detecting Crypto Miners by suspicious port usage.
+          enabled: true
+          expressions:
+            message: '''Detected crypto mining related port communication on port '' + string(dyn(network.port)) + '' to '' + network.dst_endpoint.addr + '' with protocol '' + network.proto'
+            rule_expression:
+              - event_type: network
+                expression: network.proto == 'TCP' && network.pkt_type == 'OUTGOING' && dyn(network.port) in [3333, 45700] && !nn.was_address_in_egress(network.runtime.container_id, network.dst_endpoint.addr)
+            unique_id: network.comm + '_' + string(dyn(network.port))
+          id: R1009
+          name: Crypto Mining Related Port Communication
+          profile_dependency: 1
+          severity: 3
+          support_policy: false
+          tags:
+            - network
+            - crypto
+            - miners
+            - malicious
+            - networkprofile
+        - description: Detects symlink creation over sensitive files
+          enabled: true
+          expressions:
+            message: '''Symlink created over sensitive file: '' + symlink.old_path + '' -> '' + symlink.new_path'
+            rule_expression:
+              - event_type: symlink
+                expression: (symlink.old_path.startsWith('/etc/shadow') || symlink.old_path.startsWith('/etc/sudoers')) && !ap.was_path_opened(symlink.runtime.container_id, symlink.old_path)
+            unique_id: symlink.comm + '_' + symlink.old_path
+          id: R1010
+          name: Soft link created over sensitive file
+          profile_dependency: 1
+          severity: 5
+          support_policy: true
+          tags:
+            - anomaly
+            - symlink
+            - applicationprofile
+        - description: Detecting ld_preload hook techniques.
+          enabled: false
+          expressions:
+            message: 'event_type == ''exec'' ? ''Process ('' + exec.comm + '') is using a dynamic linker hook: '' + process.get_ld_hook_var(exec.pid) : ''The dynamic linker configuration file ('' + open.full_path + '') was modified by process ('' + open.comm + '')'''
+            rule_expression:
+              - event_type: exec
+                expression: exec.comm != 'java' && exec.k8s.container_name != 'matlab' && process.get_ld_hook_var(exec.pid) != ''
+              - event_type: open
+                expression: open.full_path == '/etc/ld.so.preload' && has(open.flags_raw) && open.flags_raw != 0
+            unique_id: 'event_type == ''exec'' ? ''exec_'' + exec.comm : ''open_'' + open.full_path'
+          id: R1011
+          name: ld_preload hooks technique detected
+          profile_dependency: 1
+          severity: 5
+          support_policy: true
+          tags:
+            - exec
+            - malicious
+            - applicationprofile
+        - description: Detecting hardlink creation over sensitive files.
+          enabled: true
+          expressions:
+            message: '''Hardlink created over sensitive file: '' + hardlink.old_path + '' - '' + hardlink.new_path'
+            rule_expression:
+              - event_type: hardlink
+                expression: (hardlink.old_path.startsWith('/etc/shadow') || hardlink.old_path.startsWith('/etc/sudoers')) && !ap.was_path_opened(hardlink.runtime.container_id, hardlink.old_path)
+            unique_id: hardlink.comm + '_' + hardlink.old_path
+          id: R1012
+          name: Hard link created over sensitive file
+          profile_dependency: 1
+          severity: 5
+          support_policy: true
+          tags:
+            - files
+            - malicious
+            - applicationprofile
+        - description: Detecting potentially malicious ptrace usage.
+          enabled: true
+          expressions:
+            message: '''Malicious ptrace usage detected from: '' + ptrace.comm'
+            rule_expression:
+              - event_type: ptrace
+                expression: "true"
+            unique_id: ptrace.exe_path + '_' + ptrace.comm
+          id: R1015
+          name: Malicious Ptrace Usage
+          profile_dependency: 2
+          severity: 5
+          support_policy: false
+          tags:
+            - process
+            - malicious
+        - description: Detects io_uring operations that were not recorded during the initial observation period, indicating potential unauthorized activity.
+          enabled: true
+          expressions:
+            message: '''Unexpected io_uring operation detected: (opcode='' + string(iouring.opcode) + '') flags=0x'' + (has(iouring.flags) ? string(iouring.flags) : ''0'') + '' in '' + iouring.comm + ''.'''
+            rule_expression:
+              - event_type: iouring
+                expression: "true"
+            unique_id: string(iouring.opcode) + '_' + iouring.comm
+          id: R1030
+          name: Unexpected io_uring Operation Detected
+          profile_dependency: 0
+          severity: 5
+          support_policy: true
+          tags:
+            - syscalls
+            - io_uring
+            - applicationprofile
+  38: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -8059,7 +8967,7 @@ default capabilities:
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
         - Egress
-  38: |
+  39: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -8087,7 +8995,7 @@ default capabilities:
         app.kubernetes.io/component: node-agent
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  39: |
+  40: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -8105,7 +9013,7 @@ default capabilities:
         tier: ks-control-plane
       name: node-agent
       namespace: kubescape
-  40: |
+  41: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -8210,6 +9118,9 @@ default capabilities:
           - get
           - watch
           - list
+          - create
+          - update
+          - patch
       - apiGroups:
           - kubescape.io
         resources:
@@ -8220,7 +9131,7 @@ default capabilities:
           - list
           - update
           - patch
-  41: |
+  42: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -8245,7 +9156,7 @@ default capabilities:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  42: |
+  43: |
     apiVersion: v1
     data:
       config.json: |
@@ -8274,7 +9185,7 @@ default capabilities:
         tier: ks-control-plane
       name: operator
       namespace: kubescape
-  43: |
+  44: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -8461,7 +9372,7 @@ default capabilities:
                     path: matchingRules.json
                 name: cs-matching-rules
               name: cs-matching-rules
-  44: |
+  45: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -8546,7 +9457,7 @@ default capabilities:
         tier: ks-control-plane
       name: kubescape-cronjob-template
       namespace: kubescape
-  45: |
+  46: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -8631,7 +9542,7 @@ default capabilities:
         tier: ks-control-plane
       name: kubevuln-cronjob-template
       namespace: kubescape
-  46: |
+  47: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -8724,7 +9635,7 @@ default capabilities:
       policyTypes:
         - Ingress
         - Egress
-  47: |
+  48: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -8809,7 +9720,7 @@ default capabilities:
         tier: ks-control-plane
       name: registry-scan-cronjob-template
       namespace: kubescape
-  48: |
+  49: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -8853,7 +9764,7 @@ default capabilities:
           - list
           - patch
           - delete
-  49: |
+  50: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -8879,7 +9790,7 @@ default capabilities:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  50: |
+  51: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -8907,7 +9818,7 @@ default capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  51: |
+  52: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -8926,7 +9837,7 @@ default capabilities:
         tier: ks-control-plane
       name: operator
       namespace: kubescape
-  52: |
+  53: |
     apiVersion: v1
     data:
       proxy.crt: foo
@@ -8950,7 +9861,7 @@ default capabilities:
       name: kubescape-proxy-certificate
       namespace: kubescape
     type: Opaque
-  53: |
+  54: |
     apiVersion: apiregistration.k8s.io/v1
     kind: APIService
     metadata:
@@ -8976,7 +9887,7 @@ default capabilities:
         namespace: kubescape
       version: v1beta1
       versionPriority: 15
-  54: |
+  55: |
     apiVersion: v1
     data:
       ca.crt: bW9jay1jYS1jZXJ0
@@ -8999,7 +9910,7 @@ default capabilities:
       name: storage-ca
       namespace: kubescape
     type: kubernetes.io/tls
-  55: |
+  56: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -9065,7 +9976,7 @@ default capabilities:
           - get
           - watch
           - list
-  56: |
+  57: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -9090,7 +10001,7 @@ default capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  57: |
+  58: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -9115,7 +10026,7 @@ default capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  58: |
+  59: |
     apiVersion: v1
     data:
       config.json: |
@@ -9149,7 +10060,7 @@ default capabilities:
         tier: ks-control-plane
       name: storage
       namespace: kubescape
-  59: |
+  60: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -9276,7 +10187,7 @@ default capabilities:
             - name: ca-certificates
               secret:
                 secretName: storage-ca
-  60: |
+  61: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -9330,7 +10241,7 @@ default capabilities:
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
         - Egress
-  61: |
+  62: |
     apiVersion: v1
     kind: PersistentVolumeClaim
     metadata:
@@ -9354,7 +10265,7 @@ default capabilities:
       resources:
         requests:
           storage: 5Gi
-  62: |
+  63: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -9380,7 +10291,7 @@ default capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  63: |
+  64: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -9408,7 +10319,7 @@ default capabilities:
         app.kubernetes.io/component: storage
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  64: |
+  65: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -9426,7 +10337,7 @@ default capabilities:
         tier: ks-control-plane
       name: storage
       namespace: kubescape
-  65: |
+  66: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -9585,6 +10496,7 @@ default capabilities:
           - kubescape.io
         resources:
           - operatorcommands
+          - rules
         verbs:
           - get
           - watch
@@ -9593,7 +10505,7 @@ default capabilities:
           - update
           - patch
           - delete
-  66: |
+  67: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -9617,7 +10529,7 @@ default capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  67: |
+  68: |
     apiVersion: v1
     data:
       config.json: |
@@ -9834,6 +10746,12 @@ default capabilities:
                 "version": "v1alpha1",
                 "resource": "operatorcommands",
                 "strategy": "copy"
+              },
+              {
+                "group": "kubescape.io",
+                "version": "v1",
+                "resource": "rules",
+                "strategy": "copy"
               }
             ]
           },
@@ -9884,7 +10802,7 @@ default capabilities:
         tier: ks-control-plane
       name: synchronizer
       namespace: kubescape
-  68: |
+  69: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -9919,7 +10837,7 @@ default capabilities:
             checksum/cloud-config: 8e6c3d6c7321da0fccdb7ce24882e7bcf831736b163bb916902ed635fd2809eb
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
-            checksum/synchronizer-configmap: d04a30312a4acce7a0a696f17f8bb210b0f5cccb8b7135df604e79a4d2b7d7d3
+            checksum/synchronizer-configmap: eb64af6b773ffb36f4152311f38e3c82c83f20e541bbf0d3470ddd36f814533b
           labels:
             app: synchronizer
             app.kubernetes.io/component: synchronizer
@@ -10062,7 +10980,7 @@ default capabilities:
                     path: config.json
                 name: synchronizer
               name: config
-  69: |
+  70: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -10130,7 +11048,7 @@ default capabilities:
       policyTypes:
         - Ingress
         - Egress
-  70: |
+  71: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -10173,7 +11091,7 @@ default capabilities:
           - list
           - patch
           - delete
-  71: |
+  72: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -10198,7 +11116,7 @@ default capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  72: |
+  73: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -10225,7 +11143,7 @@ default capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  73: |
+  74: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -11629,6 +12547,13 @@ disable otel:
           - create
           - patch
           - get
+      - apiGroups:
+          - kubescape.io
+        resources:
+          - rules
+        verbs:
+          - list
+          - watch
   25: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
@@ -11799,6 +12724,8 @@ disable otel:
                       fieldPath: metadata.namespace
                 - name: KUBELET_ROOT
                   value: /var/lib/kubelet
+                - name: AGENT_VERSION
+                  value: v0.2.394
                 - name: NodeName
               image: quay.io/kubescape/node-agent:v0.2.394
               imagePullPolicy: IfNotPresent
@@ -12191,6 +13118,9 @@ disable otel:
           - get
           - watch
           - list
+          - create
+          - update
+          - patch
       - apiGroups:
           - kubescape.io
         resources:
@@ -13388,6 +14318,7 @@ disable otel:
           - kubescape.io
         resources:
           - operatorcommands
+          - rules
         verbs:
           - get
           - watch
@@ -13637,6 +14568,12 @@ disable otel:
                 "version": "v1alpha1",
                 "resource": "operatorcommands",
                 "strategy": "copy"
+              },
+              {
+                "group": "kubescape.io",
+                "version": "v1",
+                "resource": "rules",
+                "strategy": "copy"
               }
             ]
           },
@@ -13721,7 +14658,7 @@ disable otel:
           annotations:
             checksum/cloud-config: f8f57ee9b7c136ff44014ae152c2ee1d6437058a776ba359547a4d44896626d0
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
-            checksum/synchronizer-configmap: d04a30312a4acce7a0a696f17f8bb210b0f5cccb8b7135df604e79a4d2b7d7d3
+            checksum/synchronizer-configmap: eb64af6b773ffb36f4152311f38e3c82c83f20e541bbf0d3470ddd36f814533b
           labels:
             app: synchronizer
             app.kubernetes.io/component: synchronizer
@@ -15285,6 +16222,13 @@ minimal capabilities:
           - create
           - patch
           - get
+      - apiGroups:
+          - kubescape.io
+        resources:
+          - rules
+        verbs:
+          - list
+          - watch
   25: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
@@ -15455,6 +16399,8 @@ minimal capabilities:
                       fieldPath: metadata.namespace
                 - name: KUBELET_ROOT
                   value: /var/lib/kubelet
+                - name: AGENT_VERSION
+                  value: v0.2.394
                 - name: NodeName
               image: quay.io/kubescape/node-agent:v0.2.394
               imagePullPolicy: IfNotPresent
@@ -15847,6 +16793,9 @@ minimal capabilities:
           - get
           - watch
           - list
+          - create
+          - update
+          - patch
       - apiGroups:
           - kubescape.io
         resources:
@@ -19261,6 +20210,13 @@ multiple node agents:
           - create
           - patch
           - get
+      - apiGroups:
+          - kubescape.io
+        resources:
+          - rules
+        verbs:
+          - list
+          - watch
   46: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
@@ -19502,6 +20458,8 @@ multiple node agents:
                       fieldPath: metadata.namespace
                 - name: KUBELET_ROOT
                   value: /var/lib/kubelet
+                - name: AGENT_VERSION
+                  value: v0.2.394
                 - name: NodeName
               image: quay.io/kubescape/node-agent:v0.2.394
               imagePullPolicy: IfNotPresent
@@ -19787,6 +20745,8 @@ multiple node agents:
                       fieldPath: metadata.namespace
                 - name: KUBELET_ROOT
                   value: /var/lib/kubelet
+                - name: AGENT_VERSION
+                  value: v0.2.394
                 - name: NodeName
               image: quay.io/kubescape/node-agent:v0.2.394
               imagePullPolicy: IfNotPresent
@@ -19977,83 +20937,523 @@ multiple node agents:
               - my-namespace
       rules:
         - ruleName: Unexpected process launched
-        - parameters:
-            ignoreMounts: true
-            ignorePrefixes:
-              - /proc
-              - /run/secrets/kubernetes.io/serviceaccount
-              - /var/run/secrets/kubernetes.io/serviceaccount
-              - /tmp
-            includePrefixes:
-              - /etc
-              - /var/spool/cron/
-              - /var/log/
-              - /var/run/
-              - /dev/shm/
-              - /run/
-              - /var/www/
-              - /var/lib/docker/
-              - /opt/
-              - /usr/local/
-              - /app/
-              - /.dockerenv
-              - /proc/self/environ
-              - /var/lib/kubelet/
-              - /etc/cni/net.d/
-              - /var/run/secrets/kubernetes.io/
-              - /var/run/secrets/kubernetes.io/serviceaccount/
-              - /run/containerd/
-              - /run/flannel/
-              - /run/calico/
-          ruleName: Unexpected file access
-        - ruleName: Unexpected system call
-        - ruleName: Unexpected capability used
-        - ruleName: Unexpected domain request
-        - ruleName: Unexpected Service Account Token Access
-        - ruleName: Kubernetes Client Executed
-        - ruleName: Exec from malicious source
-        - ruleName: Kernel Module Load
-        - ruleName: Exec Binary Not In Base Image
-        - ruleName: Fileless Execution
-        - ruleName: XMR Crypto Mining Detection
-        - ruleName: Exec from mount
+        - ruleName: Files Access Anomalies in container
+        - ruleName: Syscalls Anomalies in container
+        - ruleName: Linux Capabilities Anomalies in container
+        - ruleName: DNS Anomalies in container
+        - ruleName: Unexpected service account token access
+        - ruleName: Workload uses Kubernetes API unexpectedly
+        - ruleName: Process executed from malicious source
+        - ruleName: Process tries to load a kernel module
+        - ruleName: Drifted process executed
+        - ruleName: Disallowed ssh connection
+        - ruleName: Fileless execution detected
+        - ruleName: Crypto miner launched
+        - ruleName: Process executed from mount
         - ruleName: Crypto Mining Related Port Communication
         - ruleName: Crypto Mining Domain Communication
         - ruleName: Read Environment Variables from procfs
         - ruleName: eBPF Program Load
-        - ruleName: Symlink Created Over Sensitive File
+        - ruleName: Soft link created over sensitive file
         - ruleName: Unexpected Sensitive File Access
-        - ruleName: Hardlink Created Over Sensitive File
+        - ruleName: Hard link created over sensitive file
         - ruleName: Exec to pod
         - ruleName: Port forward
+        - ruleName: Unexpected Egress Network Traffic
         - ruleName: Malicious Ptrace Usage
-        - ruleName: Cross-Site Scripting (XSS) Attempt
-        - ruleName: SQL Injection Attempt
-        - ruleName: Server-Side Request Forgery Attack Attempt
-        - ruleName: Remote File Inclusion Attack Attempt
-        - ruleName: Local File Inclusion Attempt
-        - ruleName: XML External Entity Attack Attempt
-        - ruleName: Server-Side Template Injection Attack
-        - ruleName: Command Injection Attempt
-        - ruleName: Unexpected Exec Source
-        - ruleName: Unexpected Open Source
-        - ruleName: Unexpected Symlink Source
-        - ruleName: Unexpected Hardlink Source
         - ruleName: Unexpected io_uring Operation Detected
-        - ruleName: ReDoS Attack
-        - ruleName: Prototype Pollution Attack
-        - ruleName: Execution of base64 Encoded Command
-        - ruleName: Execution of interpreter command
-        - ruleName: Code Sharing Site Access
-        - ruleName: Web Application File Write Access
-        - ruleName: Cron Job File Created or Modified
-        - ruleName: Hidden File Created
-        - ruleName: Reverse Shell Patterens Detected
-        - ruleName: Unauthorized IMDS Connection Attempt
-        - ruleName: Credentials Detection Attempts
-        - ruleName: HTTP Request Smuggling Attempt
-        - ruleName: P2P Tracker Connection Created
   52: |
+    apiVersion: kubescape.io/v1
+    kind: Rules
+    metadata:
+      annotations: null
+      labels:
+        app: node-agent
+        app.kubernetes.io/component: node-agent
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.29.9
+        helm.sh/chart: kubescape-operator-1.29.9
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: default-rules
+      namespace: kubescape
+    spec:
+      rules:
+        - description: Detects unexpected process launches that are not in the baseline
+          enabled: true
+          expressions:
+            message: '''Unexpected process launched: '' + exec.comm + '' with PID '' + string(exec.pid)'
+            rule_expression:
+              - event_type: exec
+                expression: '!ap.was_executed(exec.runtime.container_id, parse.get_exec_path(exec.args, exec.comm))'
+            unique_id: exec.comm + '_' + exec.exe_path
+          id: R0001
+          name: Unexpected process launched
+          profile_dependency: 0
+          severity: 1
+          support_policy: false
+          tags:
+            - anomaly
+            - process
+            - exec
+            - applicationprofile
+        - description: Detects unexpected file access that is not in the baseline
+          enabled: false
+          expressions:
+            message: '''Unexpected file access detected: '' + open.comm + '' with PID '' + string(open.pid) + '' to '' + open.full_path'
+            rule_expression:
+              - event_type: open
+                expression: |
+                  (open.full_path.startsWith('/etc/') || open.full_path.startsWith('/var/log/') || open.full_path.startsWith('/var/run/') || open.full_path.startsWith('/run/') || open.full_path.startsWith('/var/spool/cron/') || open.full_path.startsWith('/var/www/') || open.full_path.startsWith('/var/lib/') || open.full_path.startsWith('/opt/') || open.full_path.startsWith('/usr/local/') || open.full_path.startsWith('/app/') || open.full_path == '/.dockerenv' || open.full_path == '/proc/self/environ') && !(open.full_path.startsWith('/run/secrets/kubernetes.io/serviceaccount') ||
+                    open.full_path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') ||
+                    open.full_path.startsWith('/tmp'))
+                  && !ap.was_path_opened(open.runtime.container_id, open.full_path)
+            unique_id: open.comm + '_' + open.full_path
+          id: R0002
+          name: Files Access Anomalies in container
+          profile_dependency: 0
+          severity: 1
+          support_policy: false
+          tags:
+            - anomaly
+            - file
+            - open
+            - applicationprofile
+        - description: Detects unexpected system calls that are not whitelisted by application profile
+          enabled: true
+          expressions:
+            message: '''Unexpected system call detected: '' + syscall.syscall_name + '' with PID '' + string(syscall.pid)'
+            rule_expression:
+              - event_type: syscall
+                expression: '!ap.was_syscall_used(syscall.runtime.container_id, syscall.syscall_name)'
+            unique_id: syscall.syscall_name
+          id: R0003
+          name: Syscalls Anomalies in container
+          profile_dependency: 0
+          severity: 1
+          support_policy: false
+          tags:
+            - anomaly
+            - syscall
+            - applicationprofile
+        - description: Detects unexpected capabilities that are not whitelisted by application profile
+          enabled: true
+          expressions:
+            message: '''Unexpected capability used: '' + capabilities.cap_name + '' in syscall '' + capabilities.syscall + '' with PID '' + string(capabilities.pid)'
+            rule_expression:
+              - event_type: capabilities
+                expression: '!ap.was_capability_used(capabilities.runtime.container_id, capabilities.cap_name)'
+            unique_id: capabilities.comm + '_' + capabilities.cap_name
+          id: R0004
+          name: Linux Capabilities Anomalies in container
+          profile_dependency: 0
+          severity: 1
+          support_policy: false
+          tags:
+            - anomaly
+            - capabilities
+            - applicationprofile
+        - description: Detecting unexpected domain requests that are not whitelisted by application profile.
+          enabled: true
+          expressions:
+            message: '''Unexpected domain communication: '' + dns.dns_name'
+            rule_expression:
+              - event_type: dns
+                expression: '!dns.dns_name.endsWith(''.svc.cluster.local.'') && !nn.is_domain_in_egress(dns.runtime.container_id, dns.dns_name)'
+            unique_id: dns.comm + '_' + dns.dns_name
+          id: R0005
+          name: DNS Anomalies in container
+          profile_dependency: 0
+          severity: 1
+          support_policy: false
+          tags:
+            - dns
+            - anomaly
+            - networkprofile
+        - description: Detecting unexpected access to service account token.
+          enabled: true
+          expressions:
+            message: '''Unexpected access to service account token: '' + open.full_path + '' with flags: '' + open.flags.join('','')'
+            rule_expression:
+              - event_type: open
+                expression: "((open.full_path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && open.full_path.endsWith('/token')) || \n (open.full_path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && open.full_path.endsWith('/token')) ||\n (open.full_path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && open.full_path.endsWith('/token')) ||\n (open.full_path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && open.full_path.endsWith('/token'))) &&\n!ap.was_path_opened_with_prefix(open.runtime.container_id, '/run/secrets/kubernetes.io/serviceaccount') && !ap.was_path_opened_with_prefix(open.runtime.container_id, '/var/run/secrets/kubernetes.io/serviceaccount') && !ap.was_path_opened_with_prefix(open.runtime.container_id, '/run/secrets/eks.amazonaws.com/serviceaccount') && !ap.was_path_opened_with_prefix(open.runtime.container_id, '/var/run/secrets/eks.amazonaws.com/serviceaccount')\n"
+            unique_id: open.comm
+          id: R0006
+          name: Unexpected service account token access
+          profile_dependency: 1
+          severity: 5
+          support_policy: false
+          tags:
+            - anomaly
+            - serviceaccount
+            - applicationprofile
+        - description: Detecting execution of kubernetes client
+          enabled: true
+          expressions:
+            message: 'event_type == ''exec'' ? ''Kubernetes client ('' + exec.comm + '') was executed with PID '' + string(exec.pid) : ''Network connection to Kubernetes API server from container '' + network.k8s.container_name'
+            rule_expression:
+              - event_type: exec
+                expression: (exec.comm == 'kubectl' || exec.exe_path.endsWith('/kubectl')) && !ap.was_executed(exec.runtime.container_id, parse.get_exec_path(exec.args, exec.comm))
+              - event_type: network
+                expression: network.pkt_type == 'OUTGOING' && k8s.is_api_server_address(network.dst_endpoint.addr) && !nn.was_address_in_egress(network.runtime.container_id, network.dst_endpoint.addr)
+            unique_id: 'event_type == ''exec'' ? ''exec_'' + exec.comm : ''network_'' + network.dst_endpoint.addr'
+          id: R0007
+          name: Workload uses Kubernetes API unexpectedly
+          profile_dependency: 0
+          severity: 5
+          support_policy: false
+          tags:
+            - exec
+            - network
+            - anomaly
+            - applicationprofile
+        - description: Detecting reading environment variables from procfs.
+          enabled: true
+          expressions:
+            message: '''Reading environment variables from procfs: '' + open.full_path + '' by process '' + open.comm'
+            rule_expression:
+              - event_type: open
+                expression: |
+                  open.full_path.startsWith('/proc/') &&  open.full_path.endsWith('/environ') && !ap.was_path_opened_with_suffix(open.runtime.container_id, '/environ')
+            unique_id: open.comm
+          id: R0008
+          name: Read Environment Variables from procfs
+          profile_dependency: 0
+          severity: 5
+          support_policy: false
+          tags:
+            - anomaly
+            - procfs
+            - environment
+            - applicationprofile
+        - description: Detecting eBPF program load.
+          enabled: true
+          expressions:
+            message: '''bpf system call executed in '' + syscall.k8s.container_name'
+            rule_expression:
+              - event_type: syscall
+                expression: syscall.syscall_name == 'bpf' && !ap.was_syscall_used(syscall.runtime.container_id, syscall.syscall_name)
+            unique_id: syscall.comm + '_' + syscall.syscall_name
+          id: R0009
+          name: eBPF Program Load
+          profile_dependency: 1
+          severity: 5
+          support_policy: false
+          tags:
+            - syscall
+            - ebpf
+            - applicationprofile
+        - description: Detecting access to sensitive files.
+          enabled: true
+          expressions:
+            message: '''Unexpected sensitive file access: '' + open.full_path + '' by process '' + open.comm'
+            rule_expression:
+              - event_type: open
+                expression: open.full_path.startsWith('/etc/shadow') && !ap.was_path_opened(open.runtime.container_id, open.full_path)
+            unique_id: open.comm + '_' + open.full_path
+          id: R0010
+          name: Unexpected Sensitive File Access
+          profile_dependency: 1
+          severity: 5
+          support_policy: false
+          tags:
+            - files
+            - anomaly
+            - applicationprofile
+        - description: Detecting unexpected egress network traffic that is not whitelisted by application profile.
+          enabled: false
+          expressions:
+            message: '''Unexpected egress network communication to: '' + network.dst_endpoint.addr + '':'' + string(dyn(network.port)) + '' using '' + network.proto + '' from: '' + network.k8s.container_name'
+            rule_expression:
+              - event_type: network
+                expression: network.pkt_type == 'OUTGOING' && !net.is_private_ip(network.dst_endpoint.addr) && !nn.was_address_in_egress(network.runtime.container_id, network.dst_endpoint.addr)
+            unique_id: network.dst_endpoint.addr + '_' + string(dyn(network.port)) + '_' + network.proto
+          id: R0011
+          name: Unexpected Egress Network Traffic
+          profile_dependency: 0
+          severity: 5
+          support_policy: false
+          tags:
+            - whitelisted
+            - network
+            - anomaly
+            - networkprofile
+        - description: 'Detecting exec calls that are from malicious source like: /dev/shm'
+          enabled: true
+          expressions:
+            message: '''Execution from malicious source: '' + exec.exe_path + '' in directory '' + exec.cwd'
+            rule_expression:
+              - event_type: exec
+                expression: |
+                  (exec.exe_path == '/dev/shm' || exec.exe_path.startsWith('/dev/shm/')) || (exec.cwd == '/dev/shm' || exec.cwd.startsWith('/dev/shm/') ||  (parse.get_exec_path(exec.args, exec.comm).startsWith('/dev/shm/')))
+            unique_id: exec.comm + '_' + exec.exe_path + '_' + exec.pcomm
+          id: R1000
+          name: Process executed from malicious source
+          profile_dependency: 2
+          severity: 8
+          support_policy: false
+          tags:
+            - exec
+            - signature
+            - malicious
+        - description: Detecting exec calls of binaries that are not included in the base image
+          enabled: true
+          expressions:
+            message: '''Process ('' + exec.comm + '') was executed and is not part of the image'''
+            rule_expression:
+              - event_type: exec
+                expression: |
+                  (exec.upper_layer == true ||
+                   exec.pupper_layer == true) &&
+                  !ap.was_executed(exec.runtime.container_id, parse.get_exec_path(exec.args, exec.comm))
+            unique_id: exec.comm + '_' + exec.exe_path + '_' + exec.pcomm
+          id: R1001
+          name: Drifted process executed
+          profile_dependency: 1
+          severity: 8
+          support_policy: false
+          tags:
+            - exec
+            - malicious
+            - binary
+            - base image
+            - applicationprofile
+        - description: Detecting Kernel Module Load.
+          enabled: true
+          expressions:
+            message: '''Kernel module load syscall ('' + syscall.syscall_name + '') was called'''
+            rule_expression:
+              - event_type: syscall
+                expression: |
+                  syscall.syscall_name == 'init_module' || syscall.syscall_name == 'finit_module'
+            unique_id: syscall.syscall_name
+          id: R1002
+          name: Process tries to load a kernel module
+          profile_dependency: 2
+          severity: 10
+          support_policy: false
+          tags:
+            - syscall
+            - kernel
+            - module
+            - load
+        - description: Detecting ssh connection to disallowed port
+          enabled: false
+          expressions:
+            message: '''Malicious SSH connection attempt to '' + ssh.dst_ip + '':'' + string(dyn(ssh.dst_port))'
+            rule_expression:
+              - event_type: ssh
+                expression: dyn(ssh.src_port) >= 32768 && dyn(ssh.src_port) <= 60999 && !(dyn(ssh.dst_port) in [22, 2022]) && !nn.was_address_in_egress(ssh.runtime.container_id, ssh.dst_ip)
+            unique_id: ssh.comm + '_' + ssh.dst_ip + '_' + string(dyn(ssh.dst_port))
+          id: R1003
+          name: Disallowed ssh connection
+          profile_dependency: 1
+          severity: 5
+          support_policy: false
+          tags:
+            - ssh
+            - connection
+            - port
+            - malicious
+            - networkprofile
+        - description: Detecting exec calls from mounted paths.
+          enabled: true
+          expressions:
+            message: '''Process ('' + exec.comm + '') was executed from a mounted path'''
+            rule_expression:
+              - event_type: exec
+                expression: '!ap.was_executed(exec.runtime.container_id, parse.get_exec_path(exec.args, exec.comm)) && k8s.get_container_mount_paths(exec.k8s.namespace, exec.k8s.pod_name, exec.k8s.container_name).exists(mount, exec.exe_path.startsWith(mount) || parse.get_exec_path(exec.args, exec.comm).startsWith(mount))'
+            unique_id: exec.comm + '_' + exec.exe_path
+          id: R1004
+          name: Process executed from mount
+          profile_dependency: 1
+          severity: 5
+          support_policy: false
+          tags:
+            - exec
+            - mount
+            - applicationprofile
+        - description: Detecting Fileless Execution
+          enabled: true
+          expressions:
+            message: '''Fileless execution detected: exec call "'' + exec.comm + ''" is from a malicious source'''
+            rule_expression:
+              - event_type: exec
+                expression: exec.exe_path.contains('memfd') || exec.exe_path.startsWith('/proc/self/fd') || exec.exe_path.matches('/proc/[0-9]+/fd/[0-9]+')
+            unique_id: exec.comm + '_' + exec.exe_path + '_' + exec.pcomm
+          id: R1005
+          name: Fileless execution detected
+          profile_dependency: 2
+          severity: 8
+          support_policy: false
+          tags:
+            - fileless
+            - execution
+            - malicious
+        - description: Detecting Unshare System Call usage, which can be used to escape container.
+          enabled: true
+          expressions:
+            message: '''Unshare system call detected: '' + syscall.syscall_name + '' with PID '' + string(syscall.pid)'
+            rule_expression:
+              - event_type: syscall
+                expression: syscall.syscall_name == 'unshare' && !ap.was_syscall_used(syscall.runtime.container_id, syscall.syscall_name)
+            unique_id: syscall.syscall_name
+          id: R1006
+          name: Process tries to escape container
+          profile_dependency: 2
+          severity: 5
+          support_policy: false
+          tags:
+            - syscall
+            - escape
+            - unshare
+            - anomaly
+            - applicationprofile
+        - description: Detecting XMR Crypto Miners by randomx algorithm usage.
+          enabled: true
+          expressions:
+            message: '''XMR Crypto Miner process: ('' + randomx.exe_path + '') executed'''
+            rule_expression:
+              - event_type: randomx
+                expression: "true"
+            unique_id: randomx.exe_path + '_' + randomx.comm
+          id: R1007
+          name: Crypto miner launched
+          profile_dependency: 2
+          severity: 10
+          support_policy: false
+          tags:
+            - crypto
+            - miners
+            - malicious
+        - description: Detecting Crypto miners communication by domain
+          enabled: true
+          expressions:
+            message: '''Communication with a known crypto mining domain: '' + dns.dns_name'
+            rule_expression:
+              - event_type: dns
+                expression: dns.dns_name in ['2cryptocalc.com.', '2miners.com.', 'antpool.com.', 'asia1.ethpool.org.', 'bohemianpool.com.', 'botbox.dev.', 'btm.antpool.com.', 'c3pool.com.', 'c4pool.org.', 'ca.minexmr.com.', 'cn.stratum.slushpool.com.', 'dash.antpool.com.', 'data.miningpoolstats.stream.', 'de.minexmr.com.', 'eth-ar.dwarfpool.com.', 'eth-asia.dwarfpool.com.', 'eth-asia1.nanopool.org.', 'eth-au.dwarfpool.com.', 'eth-au1.nanopool.org.', 'eth-br.dwarfpool.com.', 'eth-cn.dwarfpool.com.', 'eth-cn2.dwarfpool.com.', 'eth-eu.dwarfpool.com.', 'eth-eu1.nanopool.org.', 'eth-eu2.nanopool.org.', 'eth-hk.dwarfpool.com.', 'eth-jp1.nanopool.org.', 'eth-ru.dwarfpool.com.', 'eth-ru2.dwarfpool.com.', 'eth-sg.dwarfpool.com.', 'eth-us-east1.nanopool.org.', 'eth-us-west1.nanopool.org.', 'eth-us.dwarfpool.com.', 'eth-us2.dwarfpool.com.', 'eth.antpool.com.', 'eu.stratum.slushpool.com.', 'eu1.ethermine.org.', 'eu1.ethpool.org.', 'fastpool.xyz.', 'fr.minexmr.com.', 'kriptokyng.com.', 'mine.moneropool.com.', 'mine.xmrpool.net.', 'miningmadness.com.', 'monero.cedric-crispin.com.', 'monero.crypto-pool.fr.', 'monero.fairhash.org.', 'monero.hashvault.pro.', 'monero.herominers.com.', 'monerod.org.', 'monerohash.com.', 'moneroocean.stream.', 'monerop.com.', 'multi-pools.com.', 'p2pool.io.', 'pool.kryptex.com.', 'pool.minexmr.com.', 'pool.monero.hashvault.pro.', 'pool.rplant.xyz.', 'pool.supportxmr.com.', 'pool.xmr.pt.', 'prohashing.com.', 'rx.unmineable.com.', 'sg.minexmr.com.', 'sg.stratum.slushpool.com.', 'skypool.org.', 'solo-xmr.2miners.com.', 'ss.antpool.com.', 'stratum-btm.antpool.com.', 'stratum-dash.antpool.com.', 'stratum-eth.antpool.com.', 'stratum-ltc.antpool.com.', 'stratum-xmc.antpool.com.', 'stratum-zec.antpool.com.', 'stratum.antpool.com.', 'supportxmr.com.', 'trustpool.cc.', 'us-east.stratum.slushpool.com.', 'us1.ethermine.org.', 'us1.ethpool.org.', 'us2.ethermine.org.', 'us2.ethpool.org.', 'web.xmrpool.eu.', 'www.domajorpool.com.', 'www.dxpool.com.', 'www.mining-dutch.nl.', 'xmc.antpool.com.', 'xmr-asia1.nanopool.org.', 'xmr-au1.nanopool.org.', 'xmr-eu1.nanopool.org.', 'xmr-eu2.nanopool.org.', 'xmr-jp1.nanopool.org.', 'xmr-us-east1.nanopool.org.', 'xmr-us-west1.nanopool.org.', 'xmr.2miners.com.', 'xmr.crypto-pool.fr.', 'xmr.gntl.uk.', 'xmr.nanopool.org.', 'xmr.pool-pay.com.', 'xmr.pool.minergate.com.', 'xmr.solopool.org.', 'xmr.volt-mine.com.', 'xmr.zeropool.io.', 'zec.antpool.com.', 'zergpool.com.', 'auto.c3pool.org.', 'us.monero.herominers.com.']
+            unique_id: dns.dns_name + '_' + dns.comm
+          id: R1008
+          name: Crypto Mining Domain Communication
+          profile_dependency: 2
+          severity: 10
+          support_policy: false
+          tags:
+            - network
+            - crypto
+            - miners
+            - malicious
+            - dns
+        - description: Detecting Crypto Miners by suspicious port usage.
+          enabled: true
+          expressions:
+            message: '''Detected crypto mining related port communication on port '' + string(dyn(network.port)) + '' to '' + network.dst_endpoint.addr + '' with protocol '' + network.proto'
+            rule_expression:
+              - event_type: network
+                expression: network.proto == 'TCP' && network.pkt_type == 'OUTGOING' && dyn(network.port) in [3333, 45700] && !nn.was_address_in_egress(network.runtime.container_id, network.dst_endpoint.addr)
+            unique_id: network.comm + '_' + string(dyn(network.port))
+          id: R1009
+          name: Crypto Mining Related Port Communication
+          profile_dependency: 1
+          severity: 3
+          support_policy: false
+          tags:
+            - network
+            - crypto
+            - miners
+            - malicious
+            - networkprofile
+        - description: Detects symlink creation over sensitive files
+          enabled: true
+          expressions:
+            message: '''Symlink created over sensitive file: '' + symlink.old_path + '' -> '' + symlink.new_path'
+            rule_expression:
+              - event_type: symlink
+                expression: (symlink.old_path.startsWith('/etc/shadow') || symlink.old_path.startsWith('/etc/sudoers')) && !ap.was_path_opened(symlink.runtime.container_id, symlink.old_path)
+            unique_id: symlink.comm + '_' + symlink.old_path
+          id: R1010
+          name: Soft link created over sensitive file
+          profile_dependency: 1
+          severity: 5
+          support_policy: true
+          tags:
+            - anomaly
+            - symlink
+            - applicationprofile
+        - description: Detecting ld_preload hook techniques.
+          enabled: false
+          expressions:
+            message: 'event_type == ''exec'' ? ''Process ('' + exec.comm + '') is using a dynamic linker hook: '' + process.get_ld_hook_var(exec.pid) : ''The dynamic linker configuration file ('' + open.full_path + '') was modified by process ('' + open.comm + '')'''
+            rule_expression:
+              - event_type: exec
+                expression: exec.comm != 'java' && exec.k8s.container_name != 'matlab' && process.get_ld_hook_var(exec.pid) != ''
+              - event_type: open
+                expression: open.full_path == '/etc/ld.so.preload' && has(open.flags_raw) && open.flags_raw != 0
+            unique_id: 'event_type == ''exec'' ? ''exec_'' + exec.comm : ''open_'' + open.full_path'
+          id: R1011
+          name: ld_preload hooks technique detected
+          profile_dependency: 1
+          severity: 5
+          support_policy: true
+          tags:
+            - exec
+            - malicious
+            - applicationprofile
+        - description: Detecting hardlink creation over sensitive files.
+          enabled: true
+          expressions:
+            message: '''Hardlink created over sensitive file: '' + hardlink.old_path + '' - '' + hardlink.new_path'
+            rule_expression:
+              - event_type: hardlink
+                expression: (hardlink.old_path.startsWith('/etc/shadow') || hardlink.old_path.startsWith('/etc/sudoers')) && !ap.was_path_opened(hardlink.runtime.container_id, hardlink.old_path)
+            unique_id: hardlink.comm + '_' + hardlink.old_path
+          id: R1012
+          name: Hard link created over sensitive file
+          profile_dependency: 1
+          severity: 5
+          support_policy: true
+          tags:
+            - files
+            - malicious
+            - applicationprofile
+        - description: Detecting potentially malicious ptrace usage.
+          enabled: true
+          expressions:
+            message: '''Malicious ptrace usage detected from: '' + ptrace.comm'
+            rule_expression:
+              - event_type: ptrace
+                expression: "true"
+            unique_id: ptrace.exe_path + '_' + ptrace.comm
+          id: R1015
+          name: Malicious Ptrace Usage
+          profile_dependency: 2
+          severity: 5
+          support_policy: false
+          tags:
+            - process
+            - malicious
+        - description: Detects io_uring operations that were not recorded during the initial observation period, indicating potential unauthorized activity.
+          enabled: true
+          expressions:
+            message: '''Unexpected io_uring operation detected: (opcode='' + string(iouring.opcode) + '') flags=0x'' + (has(iouring.flags) ? string(iouring.flags) : ''0'') + '' in '' + iouring.comm + ''.'''
+            rule_expression:
+              - event_type: iouring
+                expression: "true"
+            unique_id: string(iouring.opcode) + '_' + iouring.comm
+          id: R1030
+          name: Unexpected io_uring Operation Detected
+          profile_dependency: 0
+          severity: 5
+          support_policy: true
+          tags:
+            - syscalls
+            - io_uring
+            - applicationprofile
+  53: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -20118,7 +21518,7 @@ multiple node agents:
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
         - Egress
-  53: |
+  54: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -20144,7 +21544,7 @@ multiple node agents:
       - kind: ServiceAccount
         name: node-agent
         namespace: kubescape
-  54: |
+  55: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -20172,7 +21572,7 @@ multiple node agents:
         app.kubernetes.io/component: node-agent
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  55: |
+  56: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -20190,7 +21590,7 @@ multiple node agents:
         tier: ks-control-plane
       name: node-agent
       namespace: kubescape
-  56: |
+  57: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -20217,7 +21617,7 @@ multiple node agents:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  57: |
+  58: |
     apiVersion: v1
     data:
       tls.crt: bW9jay1jZXJ0LWNlcnQ=
@@ -20239,7 +21639,7 @@ multiple node agents:
       name: kubescape-admission-webhook.kubescape.svc-kubescape-tls-pair
       namespace: kubescape
     type: kubernetes.io/tls
-  58: |
+  59: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingWebhookConfiguration
     metadata:
@@ -20287,7 +21687,7 @@ multiple node agents:
               - rolebindings
             scope: '*'
         sideEffects: None
-  59: |
+  60: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -20392,6 +21792,9 @@ multiple node agents:
           - get
           - watch
           - list
+          - create
+          - update
+          - patch
       - apiGroups:
           - kubescape.io
         resources:
@@ -20402,7 +21805,7 @@ multiple node agents:
           - list
           - update
           - patch
-  60: |
+  61: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -20427,7 +21830,7 @@ multiple node agents:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  61: |
+  62: |
     apiVersion: v1
     data:
       config.json: |
@@ -20456,7 +21859,7 @@ multiple node agents:
         tier: ks-control-plane
       name: operator
       namespace: kubescape
-  62: |
+  63: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -20658,7 +22061,7 @@ multiple node agents:
                     path: matchingRules.json
                 name: cs-matching-rules
               name: cs-matching-rules
-  63: |
+  64: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -20746,7 +22149,7 @@ multiple node agents:
         tier: ks-control-plane
       name: kubescape-cronjob-template
       namespace: kubescape
-  64: |
+  65: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -20834,7 +22237,7 @@ multiple node agents:
         tier: ks-control-plane
       name: kubevuln-cronjob-template
       namespace: kubescape
-  65: |
+  66: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -20941,7 +22344,7 @@ multiple node agents:
       policyTypes:
         - Ingress
         - Egress
-  66: |
+  67: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -21029,7 +22432,7 @@ multiple node agents:
         tier: ks-control-plane
       name: registry-scan-cronjob-template
       namespace: kubescape
-  67: |
+  68: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -21073,7 +22476,7 @@ multiple node agents:
           - list
           - patch
           - delete
-  68: |
+  69: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -21099,7 +22502,7 @@ multiple node agents:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  69: |
+  70: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -21125,7 +22528,7 @@ multiple node agents:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  70: |
+  71: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -21153,7 +22556,7 @@ multiple node agents:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  71: |
+  72: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -21172,7 +22575,7 @@ multiple node agents:
         tier: ks-control-plane
       name: operator
       namespace: kubescape
-  72: |
+  73: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -21200,7 +22603,7 @@ multiple node agents:
           - get
           - watch
           - list
-  73: |
+  74: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -21224,7 +22627,7 @@ multiple node agents:
       - kind: ServiceAccount
         name: prometheus-exporter
         namespace: kubescape
-  74: |
+  75: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -21336,7 +22739,7 @@ multiple node agents:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-  75: |
+  76: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -21365,7 +22768,7 @@ multiple node agents:
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
         - Ingress
-  76: |
+  77: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -21392,7 +22795,7 @@ multiple node agents:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: null
-  77: |
+  78: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -21410,7 +22813,7 @@ multiple node agents:
         tier: ks-control-plane
       name: prometheus-exporter
       namespace: kubescape
-  78: |
+  79: |
     apiVersion: monitoring.coreos.com/v1
     kind: ServiceMonitor
     metadata:
@@ -21441,7 +22844,7 @@ multiple node agents:
           app.kubernetes.io/component: prometheus-exporter
           app.kubernetes.io/instance: RELEASE-NAME
           app.kubernetes.io/name: kubescape-operator
-  79: |
+  80: |
     apiVersion: v1
     data:
       proxy.crt: foo
@@ -21465,7 +22868,7 @@ multiple node agents:
       name: kubescape-proxy-certificate
       namespace: kubescape
     type: Opaque
-  80: |
+  81: |
     apiVersion: apiregistration.k8s.io/v1
     kind: APIService
     metadata:
@@ -21491,7 +22894,7 @@ multiple node agents:
         namespace: kubescape
       version: v1beta1
       versionPriority: 15
-  81: |
+  82: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -21557,7 +22960,7 @@ multiple node agents:
           - get
           - watch
           - list
-  82: |
+  83: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -21582,7 +22985,7 @@ multiple node agents:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  83: |
+  84: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -21607,7 +23010,7 @@ multiple node agents:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  84: |
+  85: |
     apiVersion: v1
     data:
       config.json: |
@@ -21638,7 +23041,7 @@ multiple node agents:
         tier: ks-control-plane
       name: storage
       namespace: kubescape
-  85: |
+  86: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -21764,7 +23167,7 @@ multiple node agents:
                     path: config.json
                 name: storage
               name: config
-  86: |
+  87: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -21829,7 +23232,7 @@ multiple node agents:
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
         - Egress
-  87: |
+  88: |
     apiVersion: v1
     kind: PersistentVolumeClaim
     metadata:
@@ -21853,7 +23256,7 @@ multiple node agents:
       resources:
         requests:
           storage: 5Gi
-  88: |
+  89: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -21879,7 +23282,7 @@ multiple node agents:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  89: |
+  90: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -21905,7 +23308,7 @@ multiple node agents:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  90: |
+  91: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -21933,7 +23336,7 @@ multiple node agents:
         app.kubernetes.io/component: storage
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  91: |
+  92: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -21951,7 +23354,7 @@ multiple node agents:
         tier: ks-control-plane
       name: storage
       namespace: kubescape
-  92: |
+  93: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -22110,6 +23513,7 @@ multiple node agents:
           - kubescape.io
         resources:
           - operatorcommands
+          - rules
         verbs:
           - get
           - watch
@@ -22187,7 +23591,7 @@ multiple node agents:
         verbs:
           - update
           - patch
-  93: |
+  94: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -22211,7 +23615,7 @@ multiple node agents:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  94: |
+  95: |
     apiVersion: v1
     data:
       config.json: |
@@ -22446,6 +23850,12 @@ multiple node agents:
                 "version": "v1alpha1",
                 "resource": "operatorcommands",
                 "strategy": "copy"
+              },
+              {
+                "group": "kubescape.io",
+                "version": "v1",
+                "resource": "rules",
+                "strategy": "copy"
               }
             ]
           },
@@ -22496,7 +23906,7 @@ multiple node agents:
         tier: ks-control-plane
       name: synchronizer
       namespace: kubescape
-  95: |
+  96: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -22531,7 +23941,7 @@ multiple node agents:
             checksum/cloud-config: aaeeb6b6b35a5ebbb0893822c4bf9cd860fba6d3df3bc4e77c8dbdd5841db120
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
-            checksum/synchronizer-configmap: df8fee4a6080fe9af89f3fa7c40b9f8dd98a7080c0ef7de7ce0eb07ac8ac1408
+            checksum/synchronizer-configmap: 76f9d9763830e40fd384363ac834ed9f7f9c8e939c1134d09eb3ffa64fb8d5d6
           labels:
             app: synchronizer
             app.kubernetes.io/component: synchronizer
@@ -22684,7 +24094,7 @@ multiple node agents:
                     path: config.json
                 name: synchronizer
               name: config
-  96: |
+  97: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -22763,7 +24173,7 @@ multiple node agents:
       policyTypes:
         - Ingress
         - Egress
-  97: |
+  98: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -22806,7 +24216,7 @@ multiple node agents:
           - list
           - patch
           - delete
-  98: |
+  99: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -22831,7 +24241,7 @@ multiple node agents:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  99: |
+  100: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -22856,7 +24266,7 @@ multiple node agents:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  100: |
+  101: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -22883,7 +24293,7 @@ multiple node agents:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  101: |
+  102: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -24226,6 +25636,13 @@ relevancy only:
           - create
           - patch
           - get
+      - apiGroups:
+          - kubescape.io
+        resources:
+          - rules
+        verbs:
+          - list
+          - watch
   25: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
@@ -24395,6 +25812,8 @@ relevancy only:
                       fieldPath: metadata.namespace
                 - name: KUBELET_ROOT
                   value: /var/lib/kubelet
+                - name: AGENT_VERSION
+                  value: v0.2.394
                 - name: NodeName
               image: quay.io/kubescape/node-agent:v0.2.394
               imagePullPolicy: IfNotPresent
@@ -24692,6 +26111,9 @@ relevancy only:
           - get
           - watch
           - list
+          - create
+          - update
+          - patch
       - apiGroups:
           - kubescape.io
         resources:
