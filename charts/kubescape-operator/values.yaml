@@ -230,6 +230,23 @@ global:
     scc:
       enabled: false
 
+  # Default pod security context for all components (can be overridden per component)
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    runAsGroup: 65532
+    fsGroup: 65532
+    seccompProfile:
+      type: RuntimeDefault
+
+  # Default container security context for all components (can be overridden per component)
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    capabilities:
+      drop: ["ALL"]
+
 # Image scanning configurations
 imageScanning:
   # Provide credentials here when scanning images pulled from private container registries.
@@ -272,6 +289,12 @@ kubescape:
     limits:
       cpu: 600m
       memory: 1Gi
+
+  # Override pod security context for kubescape component (inherits from global if not set)
+  podSecurityContext: {}
+
+  # Override container security context for kubescape component (inherits from global if not set)
+  securityContext: {}
 
   # -- download policies every scan, we recommend it should remain true, you should change to 'false' when running in an air-gapped environment or when scanning with high frequency (when running with Prometheus)
   downloadArtifacts: true
@@ -337,6 +360,12 @@ operator:
       memory: 300Mi
   env: {}
 
+  # Override pod security context for operator component (inherits from global if not set)
+  podSecurityContext: {}
+
+  # Override container security context for operator component (inherits from global if not set)
+  securityContext: {}
+
   podScanGuardTime: "1h"
 
   # Additional volumes to be mounted on the websocket
@@ -389,6 +418,12 @@ kubevuln:
       cpu: 1500m
       memory: 5000Mi
       ephemeral-storage: 10Gi
+
+  # Override pod security context for kubevuln component (inherits from global if not set)
+  podSecurityContext: {}
+
+  # Override container security context for kubevuln component (inherits from global if not set)
+  securityContext: {}
   config:
     maxImageSize: 5368709120 # set the maximum image size for scanning. This refers to the size of the zipped image. If the size of the non-zipped image is larger, increase the ephemeral-storage limits. It is recommended to use the same size as the requested ephemeral-storage
     maxSBOMSize: 20971520
@@ -488,6 +523,12 @@ storage:
       cpu: 1500m
       memory: 1500Mi
 
+  # Override pod security context for storage component (inherits from global if not set)
+  podSecurityContext: {}
+
+  # Override container security context for storage component (inherits from global if not set)
+  securityContext: {}
+
   disableVirtualCRDs: false  # set to true or false to override auto-detection
 
   # -- queue manager configuration
@@ -559,6 +600,16 @@ nodeAgent:
       ruleCooldownAfterCount: 1
       ruleCooldownOnProfileFailure: true
       ruleCooldownMaxSize: 20000
+
+  # Pod security context for node-agent (requires special privileges, defaults to minimal restrictions)
+  podSecurityContext: {}
+
+  # Container security context for node-agent (requires privileged access, overrides global defaults)
+  securityContext:
+    runAsUser: 0
+    privileged: false  # Will be overridden by .Values.nodeAgent.privileged
+    capabilities:
+      add: ["SYS_ADMIN", "SYS_PTRACE", "NET_ADMIN", "SYSLOG", "SYS_RESOURCE", "IPC_LOCK", "NET_RAW"]
 
   # GKE Autopilot allowlist
   gke:
@@ -779,6 +830,12 @@ synchronizer:
     targetPort: 8089
     protocol: TCP
 
+  # Override pod security context for synchronizer component (inherits from global if not set)
+  podSecurityContext: {}
+
+  # Override container security context for synchronizer component (inherits from global if not set)
+  securityContext: {}
+
 # -----------------------------------------------------------------------------------------
 # ------------------------ Microservice - helpers -----------------------------------------
 # -----------------------------------------------------------------------------------------
@@ -815,6 +872,12 @@ otelCollector:
       cpu: 1
       memory: 1Gi
 
+  # Override pod security context for otel-collector component (inherits from global if not set)
+  podSecurityContext: {}
+
+  # Override container security context for otel-collector component (inherits from global if not set)
+  securityContext: {}
+
 # +++++++++++++++++++++++++++++ GrypeOfflineDB ++++++++++++++++++++++++++++++++++++++++++++++++
 
 grypeOfflineDB:
@@ -840,6 +903,12 @@ grypeOfflineDB:
     limits:
       cpu: 150m
       memory: 200Mi
+
+  # Override pod security context for grype-offline-db component (inherits from global if not set)
+  podSecurityContext: {}
+
+  # Override container security context for grype-offline-db component (inherits from global if not set)
+  securityContext: {}
 
 # +++++++++++++++++++++++++++++ Discovery ++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -915,6 +984,12 @@ prometheusExporter:
 
   # Additional volumeMounts to be mounted on the prometheus exporter
   volumeMounts: []
+
+  # Override pod security context for prometheus-exporter component (inherits from global if not set)
+  podSecurityContext: {}
+
+  # Override container security context for prometheus-exporter component (inherits from global if not set)
+  securityContext: {}
 
 # +++++++++++++++++++++++++++++ Upgrader ++++++++++++++++++++++++++++++++++++++++++++++++
 

@@ -53,11 +53,20 @@ spec:
         otel: enabled
       {{- end }}
     spec:
+      {{- with (coalesce .Values.nodeAgent.podSecurityContext) }}
+      securityContext:
+        {{- if ge ($.Capabilities.KubeVersion.Minor | int) 29 }}
+        appArmorProfile:
+          type: Unconfined
+        {{- end }}
+        {{- toYaml . | nindent 8 }}
+      {{- else }}
       securityContext:
         {{- if ge (.Capabilities.KubeVersion.Minor | int) 29 }}
         appArmorProfile:
           type: Unconfined
         {{- end }}
+      {{- end }}
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
       {{- if kindIs "string" .Values.imagePullSecrets }}
@@ -234,6 +243,17 @@ spec:
               value: "{{ .value }}"
             {{- end }}
             {{- end }}
+          {{- with (coalesce .Values.nodeAgent.securityContext) }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+            {{- if not (hasKey . "privileged") }}
+            privileged: {{ $.Values.nodeAgent.privileged }}
+            {{- end }}
+            {{- if not (hasKey . "seLinuxOptions") }}
+            seLinuxOptions:
+              type: {{ $.Values.nodeAgent.seLinuxType }}
+            {{- end }}
+          {{- else }}
           securityContext:
             runAsUser: 0
             privileged: {{ .Values.nodeAgent.privileged }}
@@ -248,6 +268,7 @@ spec:
                 - NET_RAW
             seLinuxOptions:
               type: {{ .Values.nodeAgent.seLinuxType }}
+          {{- end }}
           volumeMounts:
           {{- if .Values.volumeMounts }}
           {{- toYaml .Values.volumeMounts | nindent 10 }}
