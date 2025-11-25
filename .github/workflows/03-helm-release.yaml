@@ -53,6 +53,7 @@ jobs:
 
   helm-chart-release:
     needs: e2e-test
+    if: ${{ !cancelled() && (needs.e2e-test.result == 'success' || needs.e2e-test.result == 'skipped') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -69,15 +70,13 @@ jobs:
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
-      # - name: git checkout to new commit
-      #   run: git checkout ${{ inputs.COMMIT_REF }}
       - name: Install Helm
         uses: azure/setup-helm@v3.5
         # with:
         #   version: v3.4.0
 
       - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.4.1
+        uses: helm/chart-releaser-action@v1.7.0
         env:
           charts_dir: "charts/kubescape-operator"
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
