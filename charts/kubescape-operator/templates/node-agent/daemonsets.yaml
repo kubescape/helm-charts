@@ -2,9 +2,43 @@
 {{- $components := fromYaml (include "components" .) }}
 {{- if and $components.nodeAgent.enabled .Values.nodeAgent.multipleDaemonSets.enabled }}
 {{- $no_proxy_envar_list := (include "no_proxy_envar_list" .) -}}
-{{- range $index, $config := .Values.nodeAgent.multipleDaemonSets.configurations }}
+
+{{- $configurations := .Values.nodeAgent.multipleDaemonSets.configurations }}
+{{- if not $configurations }}
+  {{- $nodes := lookup "v1" "Node" "" "" }}
+  {{- $groups := dict }}
+  {{- range $nodes.items }}
+    {{- $groupName := "" }}
+    {{- $selectorKey := "" }}
+    {{- if hasKey .metadata.labels "kubescape.io/daemonset-group" }}
+      {{- $groupName = index .metadata.labels "kubescape.io/daemonset-group" }}
+      {{- $selectorKey = "kubescape.io/daemonset-group" }}
+    {{- else if hasKey .metadata.labels "node.kubernetes.io/instance-type" }}
+      {{- $groupName = index .metadata.labels "node.kubernetes.io/instance-type" }}
+      {{- $selectorKey = "node.kubernetes.io/instance-type" }}
+    {{- else if hasKey .metadata.labels "beta.kubernetes.io/instance-type" }}
+      {{- $groupName = index .metadata.labels "beta.kubernetes.io/instance-type" }}
+      {{- $selectorKey = "beta.kubernetes.io/instance-type" }}
+    {{- end }}
+
+    {{- if $groupName }}
+      {{- if not (hasKey $groups $groupName) }}
+        {{- $_ := set $groups $groupName (dict "nodeSelector" (dict $selectorKey $groupName) "resources" $.Values.nodeAgent.resources "nameSuffix" $groupName) }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+  {{- $configurations = values $groups }}
+{{- end }}
+
+{{- range $index, $config := $configurations }}
 {{- with $ }}
-{{- $daemonsetName := printf "%s-%d" .Values.nodeAgent.name (add $index 1) }}
+{{- $suffix := "" }}
+{{- if hasKey $config "nameSuffix" }}
+  {{- $suffix = $config.nameSuffix | lower | replace "." "-" | trunc 50 | trimSuffix "-" }}
+{{- else }}
+  {{- $suffix = toString (add $index 1) }}
+{{- end }}
+{{- $daemonsetName := printf "%s-%s" .Values.nodeAgent.name $suffix }}
 apiVersion: apps/v1
 {{- if .Values.capabilities.testing.nodeAgentMultiplication.enabled }}
 kind: Deployment
@@ -26,6 +60,11 @@ spec:
   selector:
     matchLabels:
       {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.nodeAgent.name) | nindent 6 }}
+      {{- if hasKey $config "nameSuffix" }}
+      kubescape.io/daemonset-group: {{ $config.nameSuffix | quote }}
+      {{- else }}
+      kubescape.io/daemonset-group: {{ $suffix | quote }}
+      {{- end }}
   template:
     metadata:
       annotations:
@@ -52,6 +91,11 @@ spec:
         cloud.google.com/matching-allowlist: {{ .Values.nodeAgent.gke.allowlist.name }}
         {{- end }}
         kubescape.io/tier: "core"
+        {{- if hasKey $config "nameSuffix" }}
+        kubescape.io/daemonset-group: {{ $config.nameSuffix | quote }}
+        {{- else }}
+        kubescape.io/daemonset-group: {{ $suffix | quote }}
+        {{- end }}
       {{- if $components.otelCollector.enabled }}
         otel: enabled
       {{- end }}
