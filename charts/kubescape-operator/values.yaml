@@ -139,7 +139,7 @@ configurations:
 
   priorityClass:
     enabled: true
-    daemonset: 100000100  # PriorityClass of the DaemonSet, this should be higher than the other components so the DaemonSet will schedule on all nodes
+    daemonset: 100000100 # PriorityClass of the DaemonSet, this should be higher than the other components so the DaemonSet will schedule on all nodes
 
   # List of json paths to exclude from the pod spec hash computation - used for aggregating CronJob generated CRDs
   excludeJsonPaths:
@@ -488,7 +488,7 @@ storage:
       cpu: 1500m
       memory: 1500Mi
 
-  disableVirtualCRDs: false  # set to true or false to override auto-detection
+  disableVirtualCRDs: false # set to true or false to override auto-detection
 
   # -- queue manager configuration
   queueManagerEnabled: true # set to false to disable the queue manager, this will disable the queue manager for all kinds
@@ -686,6 +686,15 @@ nodeAgent:
 
   multipleDaemonSets:
     enabled: false # set to true to enable multiple DaemonSets for the node-agent, with different configurations.
+    # When configurations is empty and enabled is true, daemonsets are auto-generated
+    # based on node labels (kubescape.io/daemonset-group, node.kubernetes.io/instance-type,
+    # or beta.kubernetes.io/instance-type). Resources are calculated as a percentage
+    # of each node's allocatable capacity using the settings below:
+    autoResources:
+      cpuLimitPercent: 10 # CPU limit as percentage of node allocatable CPU
+      cpuRequestPercent: 5 # CPU request as percentage of node allocatable CPU
+      memoryLimitPercent: 10 # Memory limit as percentage of node allocatable memory
+      memoryRequestPercent: 5 # Memory request as percentage of node allocatable memory
     configurations:
     # - nodeSelector:
     #     kubernetes.io/os: linux
@@ -1019,15 +1028,15 @@ kubevulnScheduler:
   ## scan scheduler container name
   name: kubevuln-scheduler
 
-    # -- Frequency of running the scan
-    #     ┌───────────── minute (0 - 59)
-    #     │ ┌───────────── hour (0 - 23)
-    #     │ │ ┌───────────── day of the month (1 - 31)
-    #     │ │ │ ┌───────────── month (1 - 12)
-    #     │ │ │ │ ┌───────────── day of the week (0 - 6) (Sunday to Saturday;
-    #     │ │ │ │ │                         7 is also Sunday on some systems)
-    #     │ │ │ │ │
-    #     │ │ │ │ │
+  # -- Frequency of running the scan
+  #     ┌───────────── minute (0 - 59)
+  #     │ ┌───────────── hour (0 - 23)
+  #     │ │ ┌───────────── day of the month (1 - 31)
+  #     │ │ │ ┌───────────── month (1 - 12)
+  #     │ │ │ │ ┌───────────── day of the week (0 - 6) (Sunday to Saturday;
+  #     │ │ │ │ │                         7 is also Sunday on some systems)
+  #     │ │ │ │ │
+  #     │ │ │ │ │
   #     * * * * *
   scanSchedule: "0 0 * * *"
   image:
@@ -1066,15 +1075,15 @@ registryScanScheduler:
   # scan scheduler container name
   name: registry-scheduler
 
-    # -- Frequency of running the scan
-    #     ┌───────────── minute (0 - 59)
-    #     │ ┌───────────── hour (0 - 23)
-    #     │ │ ┌───────────── day of the month (1 - 31)
-    #     │ │ │ ┌───────────── month (1 - 12)
-    #     │ │ │ │ ┌───────────── day of the week (0 - 6) (Sunday to Saturday;
-    #     │ │ │ │ │                         7 is also Sunday on some systems)
-    #     │ │ │ │ │
-    #     │ │ │ │ │
+  # -- Frequency of running the scan
+  #     ┌───────────── minute (0 - 59)
+  #     │ ┌───────────── hour (0 - 23)
+  #     │ │ ┌───────────── day of the month (1 - 31)
+  #     │ │ │ ┌───────────── month (1 - 12)
+  #     │ │ │ │ ┌───────────── day of the week (0 - 6) (Sunday to Saturday;
+  #     │ │ │ │ │                         7 is also Sunday on some systems)
+  #     │ │ │ │ │
+  #     │ │ │ │ │
   #     * * * * *
   # -- scan schedule frequency
   scanSchedule: "0 0 * * *"
