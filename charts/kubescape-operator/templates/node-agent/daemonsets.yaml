@@ -77,18 +77,9 @@ spec:
       serviceAccountName: {{ .Values.nodeAgent.name }}
       automountServiceAccountToken: true
       hostPID: true
-      {{- if .Values.nodeAgent.startupJitterContainer.enabled }}
+      {{- with (include "nodeAgent.initContainers" .) }}
       initContainers:
-      - name: startup-jitter
-        image: "busybox:latest"
-        command:
-        - /bin/sh
-        - -c
-        - |
-          SLEEP_TIME=$(( $RANDOM % {{ .Values.nodeAgent.startupJitterContainer.maxStartupJitter }} ))
-          echo "Pod $(hostname) will sleep for $SLEEP_TIME seconds"
-          sleep $SLEEP_TIME
-          echo "Pod $(hostname) finished sleeping after $SLEEP_TIME seconds"
+        {{- . | nindent 8 }}
       {{- end }}
       volumes:
       {{- if .Values.nodeAgent.volumes }}
