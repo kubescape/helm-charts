@@ -2696,6 +2696,10 @@ all capabilities:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
+                - mountPath: /etc/config/services.json
+                  name: services
+                  readOnly: true
+                  subPath: services.json
                 - mountPath: /etc/config/config.json
                   name: config
                   readOnly: true
@@ -2712,6 +2716,37 @@ all capabilities:
           imagePullSecrets:
             - name: foo
             - name: bar
+          initContainers:
+            - args:
+                - -method=get
+                - -scheme=https
+                - -host=api.armosec.io
+                - -path=api/v3/servicediscovery
+                - -path-output=/data/services.json
+              env:
+                - name: HTTPS_PROXY
+                  value: https://foo:bar@baz:1234
+                - name: no_proxy
+                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
+              image: quay.io/kubescape/http-request:v0.2.15
+              imagePullPolicy: IfNotPresent
+              name: url-discovery
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 50Mi
+                requests:
+                  cpu: 10m
+                  memory: 10Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+              volumeMounts:
+                - mountPath: /data
+                  name: services
+                - mountPath: /etc/ssl/certs/proxy.crt
+                  name: proxy-secret
+                  subPath: proxy.crt
           nodeSelector:
             kubernetes.io/os: linux
           priorityClassName: kubescape-critical
@@ -2777,6 +2812,8 @@ all capabilities:
                     path: config.json
                 name: node-agent
               name: config
+            - emptyDir: {}
+              name: services
             - name: proxy-secret
               secret:
                 secretName: kubescape-proxy-certificate
@@ -8357,6 +8394,10 @@ default capabilities:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
+                - mountPath: /etc/config/services.json
+                  name: services
+                  readOnly: true
+                  subPath: services.json
                 - mountPath: /etc/config/config.json
                   name: config
                   readOnly: true
@@ -8374,6 +8415,33 @@ default capabilities:
                   readOnly: true
                   subPath: cert2.pem
           hostPID: true
+          initContainers:
+            - args:
+                - -method=get
+                - -scheme=https
+                - -host=api.armosec.io
+                - -path=api/v3/servicediscovery
+                - -path-output=/data/services.json
+              env: null
+              image: quay.io/kubescape/http-request:v0.2.15
+              imagePullPolicy: IfNotPresent
+              name: url-discovery
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 50Mi
+                requests:
+                  cpu: 10m
+                  memory: 10Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+              volumeMounts:
+                - mountPath: /data
+                  name: services
+                - mountPath: /etc/ssl/certs/proxy.crt
+                  name: proxy-secret
+                  subPath: proxy.crt
           nodeSelector:
             kubernetes.io/os: linux
           priorityClassName: kubescape-critical
@@ -8441,6 +8509,8 @@ default capabilities:
                     path: config.json
                 name: node-agent
               name: config
+            - emptyDir: {}
+              name: services
             - name: proxy-secret
               secret:
                 secretName: kubescape-proxy-certificate
@@ -12964,11 +13034,39 @@ disable otel:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
+                - mountPath: /etc/config/services.json
+                  name: services
+                  readOnly: true
+                  subPath: services.json
                 - mountPath: /etc/config/config.json
                   name: config
                   readOnly: true
                   subPath: config.json
           hostPID: true
+          initContainers:
+            - args:
+                - -method=get
+                - -scheme=https
+                - -host=api.armosec.io
+                - -path=api/v3/servicediscovery
+                - -path-output=/data/services.json
+              env: null
+              image: quay.io/kubescape/http-request:v0.2.15
+              imagePullPolicy: IfNotPresent
+              name: url-discovery
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 50Mi
+                requests:
+                  cpu: 10m
+                  memory: 10Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+              volumeMounts:
+                - mountPath: /data
+                  name: services
           nodeSelector:
             kubernetes.io/os: linux
           priorityClassName: kubescape-critical
@@ -13034,6 +13132,8 @@ disable otel:
                     path: config.json
                 name: node-agent
               name: config
+            - emptyDir: {}
+              name: services
   28: |
     apiVersion: v1
     kind: Service
@@ -16644,6 +16744,7 @@ minimal capabilities:
                   readOnly: true
                   subPath: config.json
           hostPID: true
+          initContainers: null
           nodeSelector:
             kubernetes.io/os: linux
           priorityClassName: kubescape-critical
@@ -20698,6 +20799,10 @@ multiple node agents:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
+                - mountPath: /etc/config/services.json
+                  name: services
+                  readOnly: true
+                  subPath: services.json
                 - mountPath: /etc/config/config.json
                   name: config
                   readOnly: true
@@ -20714,6 +20819,37 @@ multiple node agents:
           imagePullSecrets:
             - name: foo
             - name: bar
+          initContainers:
+            - args:
+                - -method=get
+                - -scheme=https
+                - -host=api.armosec.io
+                - -path=api/v3/servicediscovery
+                - -path-output=/data/services.json
+              env:
+                - name: HTTPS_PROXY
+                  value: https://foo:bar@baz:1234
+                - name: no_proxy
+                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
+              image: quay.io/kubescape/http-request:v0.2.15
+              imagePullPolicy: IfNotPresent
+              name: url-discovery
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 50Mi
+                requests:
+                  cpu: 10m
+                  memory: 10Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+              volumeMounts:
+                - mountPath: /data
+                  name: services
+                - mountPath: /etc/ssl/certs/proxy.crt
+                  name: proxy-secret
+                  subPath: proxy.crt
           nodeSelector:
             doks.digitalocean.com/node-pool: pool-1
             kubernetes.io/os: linux
@@ -20782,6 +20918,8 @@ multiple node agents:
                     path: config.json
                 name: node-agent
               name: config
+            - emptyDir: {}
+              name: services
             - name: proxy-secret
               secret:
                 secretName: kubescape-proxy-certificate
@@ -20985,6 +21123,10 @@ multiple node agents:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
+                - mountPath: /etc/config/services.json
+                  name: services
+                  readOnly: true
+                  subPath: services.json
                 - mountPath: /etc/config/config.json
                   name: config
                   readOnly: true
@@ -21001,6 +21143,37 @@ multiple node agents:
           imagePullSecrets:
             - name: foo
             - name: bar
+          initContainers:
+            - args:
+                - -method=get
+                - -scheme=https
+                - -host=api.armosec.io
+                - -path=api/v3/servicediscovery
+                - -path-output=/data/services.json
+              env:
+                - name: HTTPS_PROXY
+                  value: https://foo:bar@baz:1234
+                - name: no_proxy
+                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
+              image: quay.io/kubescape/http-request:v0.2.15
+              imagePullPolicy: IfNotPresent
+              name: url-discovery
+              resources:
+                limits:
+                  cpu: 100m
+                  memory: 50Mi
+                requests:
+                  cpu: 10m
+                  memory: 10Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+              volumeMounts:
+                - mountPath: /data
+                  name: services
+                - mountPath: /etc/ssl/certs/proxy.crt
+                  name: proxy-secret
+                  subPath: proxy.crt
           nodeSelector:
             doks.digitalocean.com/node-pool: pool-2
             kubernetes.io/os: linux
@@ -21069,6 +21242,8 @@ multiple node agents:
                     path: config.json
                 name: node-agent
               name: config
+            - emptyDir: {}
+              name: services
             - name: proxy-secret
               secret:
                 secretName: kubescape-proxy-certificate
@@ -26139,6 +26314,7 @@ relevancy only:
                   readOnly: true
                   subPath: config.json
           hostPID: true
+          initContainers: null
           nodeSelector:
             kubernetes.io/os: linux
           priorityClassName: kubescape-critical
