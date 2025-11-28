@@ -4,6 +4,18 @@ This example demonstrates how to use an ArgoCD Config Management Plugin (CMP) to
 Helm's `lookup` function for the Kubescape Operator chart. This allows the chart to
 auto-discover node types and calculate resources dynamically, even when deployed via ArgoCD.
 
+## Table of Contents
+
+- [Background](#background)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [How It Works](#how-it-works)
+- [Troubleshooting](#troubleshooting)
+- [Files](#files)
+- [Limitations](#limitations)
+- [Security Considerations](#security-considerations)
+
 ## Background
 
 By default, ArgoCD uses `helm template` to render Helm charts, which does not support the

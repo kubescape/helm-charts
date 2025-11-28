@@ -8,17 +8,32 @@ assignees: ''
 ---
 
 ## Overview
-<!-- A brief overview of the related current state -->
 
-## Problem
-<!-- A clear and concise description of what the problem is. Ex. I'm always frustrated when [...] -->
+<!-- A brief overview of the feature you're proposing -->
 
-## Solution
-<!-- A clear and concise description of what you want to happen. -->
+## Problem Statement
 
-## Alternatives
-<!-- A clear and concise description of any alternative solutions or features you've considered. -->
+<!-- A clear and concise description of what problem this feature would solve -->
+<!-- Example: "I'm always frustrated when [...]" -->
 
-## Additional context
-<!-- Add any other context or screenshots about the feature request here. -->
- 
+## Proposed Solution
+
+<!-- A clear and concise description of what you want to happen -->
+
+## Use Cases
+
+<!-- Describe specific scenarios where this feature would be useful -->
+<!-- 1. As a [type of user], I want to [do something] so that [benefit] -->
+
+## Alternatives Considered
+
+<!-- A clear and concise description of any alternative solutions or features you've considered -->
+
+## Implementation Details (Optional)
+
+<!-- If you have ideas about how this could be implemented, share them here -->
+<!-- This could include API changes, configuration options, etc. -->
+
+## Additional Context
+
+<!-- Add any other context, screenshots, or mockups about the feature request here -->

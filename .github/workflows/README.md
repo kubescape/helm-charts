@@ -1,51 +1,85 @@
-# Helm-charts - CICD Workflow docs
+# Helm Charts - CI/CD Workflow Documentation
 
-## The CICD Pipeline types and steps:
+This document describes the CI/CD pipeline for the Kubescape Helm charts repository.
 
-### Automatically Triggered by in-cluster component
+## Table of Contents
 
-The helm chart CICD runs on GitHub Actions, and in most cases will be automatically triggered by one of the in-cluster components:
-* Operator
-* Kubevuln
+- [Pipeline Types](#pipeline-types)
+  - [Automatically Triggered Pipeline](#automatically-triggered-by-in-cluster-component)
+  - [Manual Full CI/CD Trigger](#manually-trigger-the-full-cicd-process)
+  - [Manual Release Only](#manually-trigger-only-the-release-process)
+- [Pipeline Diagram](#pipeline-diagram)
 
-You can find more about the automatic process of in-cluster components [here](https://github.com/kubescape/workflows/blob/main/README.md).
+---
 
-When the CICD will be triggered by one of them, it will run always on the ```dev``` branch and will do the following steps in this order (High-level explanation):
+## Pipeline Types
 
-1. Check for valid inputs combination to prevent cases of providing incorrect inputs (most useful for manual triggers, see instructions below).
-2. Update the ```values.yaml``` file according to the arguments that passed.
-3. Create a new commit for the new changes.
-4. Create a new PR from the ```main```
-5. Run E2E tests using ```helm_branch=main``` parameter against the ARMO production backend, the tests will run as parallel jobs.
-6. Create a JUnit report for every test.
-7. Only if all the tests successfully passed, the PR will be automatically merged into the ```main``` branch.
-8. The last step will create a new GitHub release and Helm release for the new chart.
+### Automatically Triggered by In-Cluster Component
 
+The Helm chart CI/CD runs on GitHub Actions and is typically triggered automatically by one of the in-cluster components:
 
-### Manually trigger the full CICD process
-If you want to manually trigger the CICD:
-1. Click on the “Actions” tab and click on the ```00-CICD-helm-chart``` workflow on the left side.
-2. Click “Run workflows” on the top of the previous runs list.
-3. A new pop-up will appear with some options:
-    * ```Branch``` - the branch you want to run the workflow from (in most cases will be the “dev” branch)
-    * ```CHANGE_TAG ```- if filled (```true```) the workflows will change the ```values.yaml``` file according to the inputs you provided for ```IMAGE_TAG``` and ```COMPONENT_NAME```
-    * ```COMPONENT_NAME``` - will be the in-cluster component we want to change the tag for.
-    * ```IMAGE_TAG``` - the new docker image tag of the ```COMPONENT_NAME```.
-    * ```HELM_E2E_TEST``` - if filled (```true```), the CICD will run the E2E Tests using ```helm_branch=dev``` parameter
-4. Click on the ```Run workflow``` green button.
+- **Operator**
+- **Kubevuln**
 
+For more details about the automatic process, see the [workflows documentation](https://github.com/kubescape/workflows/blob/main/README.md).
 
+When triggered by one of these components, the pipeline always runs on the `dev` branch and executes the following steps:
 
-### Manually trigger only the release process
+1. **Input Validation** - Check for valid input combinations to prevent incorrect configurations
+2. **Update Values** - Update the `values.yaml` file according to the provided arguments
+3. **Commit Changes** - Create a new commit with the changes
+4. **Create PR** - Open a pull request from `dev` to `main`
+5. **Run E2E Tests** - Execute end-to-end tests using `helm_branch=main` parameter against the production backend (tests run in parallel)
+6. **Generate Reports** - Create a JUnit report for each test
+7. **Auto-Merge** - If all tests pass, automatically merge the PR into `main`
+8. **Release** - Create a new GitHub release and Helm release for the updated chart
 
-This process will run only the release step from the CICD and will create a new GitHub release and will be published the helm charts
+---
 
-1. Click on the “Actions” tab and click on the ```03-Helm chart release ``` workflow on the left side.
-2. Click “Run workflows” on the top of the previous runs list.
-3. Select the branch you want to create a release from by specifying it using the  ```Branch```. in most cases will be the main branch
-4. Click on the ```Run workflow``` green button.
+### Manually Trigger the Full CI/CD Process
 
-**Note that running only the release process will not run any E2E tests**
+To manually trigger the complete CI/CD pipeline:
 
-### A diagram of the full CICD pipeline:
-![Workflow](https://raw.githubusercontent.com/kubescape/workflows/main/assets/incluster_component_flow.jpeg)
+1. Navigate to the **Actions** tab in GitHub
+2. Select the **`00-CICD-helm-chart`** workflow from the left sidebar
+3. Click **"Run workflow"** at the top of the workflow runs list
+4. Configure the workflow options:
+
+   | Parameter | Description |
+   |-----------|-------------|
+   | **Branch** | The branch to run the workflow from (typically `dev`) |
+   | **CHANGE_TAG** | Set to `true` to update the `values.yaml` file with the provided `IMAGE_TAG` and `COMPONENT_NAME` |
+   | **COMPONENT_NAME** | The in-cluster component to update the tag for |
+   | **IMAGE_TAG** | The new Docker image tag for the specified component |
+   | **HELM_E2E_TEST** | Set to `true` to run E2E tests using `helm_branch=dev` parameter |
+
+5. Click the green **"Run workflow"** button
+
+---
+
+### Manually Trigger Only the Release Process
+
+This process runs only the release step, creating a new GitHub release and publishing the Helm charts.
+
+> **⚠️ Warning:** Running only the release process will **not** run any E2E tests.
+
+1. Navigate to the **Actions** tab in GitHub
+2. Select the **`03-Helm chart release`** workflow from the left sidebar
+3. Click **"Run workflow"** at the top of the workflow runs list
+4. Select the branch to create a release from (typically `main`)
+5. Click the green **"Run workflow"** button
+
+---
+
+## Pipeline Diagram
+
+The following diagram illustrates the complete CI/CD pipeline flow:
+
+![Workflow Diagram](https://raw.githubusercontent.com/kubescape/workflows/main/assets/incluster_component_flow.jpeg)
+
+---
+
+## Related Resources
+
+- [Kubescape Workflows Repository](https://github.com/kubescape/workflows)
+- [Helm Chart Documentation](../../charts/kubescape-operator/README.md)

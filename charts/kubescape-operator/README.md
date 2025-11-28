@@ -12,8 +12,13 @@ We cannot guarantee compatibility or provide support for deployments that are in
 
 Run the install command:
 
-```
-helm repo add kubescape https://kubescape.github.io/helm-charts/ ; helm repo update ; helm upgrade --install kubescape kubescape/kubescape-operator -n kubescape --create-namespace --set clusterName=`kubectl config current-context`
+```bash
+helm repo add kubescape https://kubescape.github.io/helm-charts/
+helm repo update
+helm upgrade --install kubescape kubescape/kubescape-operator \
+  -n kubescape \
+  --create-namespace \
+  --set clusterName=$(kubectl config current-context)
 ```
 
 Verify that the installation was successful:
@@ -352,7 +357,7 @@ graph TB
 
 * **Resource Kind:** `Deployment`
 * **Communication:** gRPC, REST API
-* **Responsibility:** This component is in charge of the image vulnerability scanning. It can either produce SBOM object in the *Storage* and match the SBOM entries with vulnerabilities, or relies on the *Node agent* to generate SBOM objects on the nodes and then produce vulnerability manfiests and VEX. All the results are stored in the *Storage* component via the Kubernetes API and optionally sent to external API endpoints.
+* **Responsibility:** This component is in charge of the image vulnerability scanning. It can either produce SBOM object in the *Storage* and match the SBOM entries with vulnerabilities, or relies on the *Node agent* to generate SBOM objects on the nodes and then produce vulnerability manifests and VEX. All the results are stored in the *Storage* component via the Kubernetes API and optionally sent to external API endpoints.
 
 ```mermaid
 graph TB
@@ -448,7 +453,7 @@ class ksCm,recurringScanCm,operator,er,store,masterSync,recurringScanCj,recurrin
 * **Resource Kind:** `Daemonset`
 * **Communication:** gRPC, REST API
 * **Responsibility:** This component has multiple purposes all bound to information available on Kubernetes nodes:
-  * Produces SBOMs from the images avialable on the node (used by *KubeVuln*)
+  * Produces SBOMs from the images available on the node (used by *KubeVuln*)
   * Produces information from the configurations of the Linux host of the Kubernetes node (used by *Kubescape*)
   * Creates *ApplicationProfile* using [Inspektor Gadget](https://inspektor-gadget.io) and eBPF. These profiles log the behavior of each container on the node (file access, processes launched, capabilities used, system calls done) into *ApplicationProfile* objects stored in the *Storage* component via the Kubernetes API and optionally sent to external API endpoints.
   * Creates *NetworkNeighborhood* objects using [Inspektor Gadget](https://inspektor-gadget.io) and eBPF. These profiles log the network activity of each container and they stored as objects in the *Storage* component via the Kubernetes API and optionally sent to external API endpoints.
