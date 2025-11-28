@@ -1,6 +1,7 @@
+{{- /* Define the shared DaemonSet template */}}
+{{- define "node-agent.daemonset" -}}
 {{- $checksums := fromYaml (include "checksums" .) }}
 {{- $components := fromYaml (include "components" .) }}
-{{- if and $components.nodeAgent.enabled (not .Values.nodeAgent.multipleDaemonSets.enabled) }}
 {{- $no_proxy_envar_list := (include "no_proxy_envar_list" .) -}}
 apiVersion: apps/v1
 {{- if .Values.capabilities.testing.nodeAgentMultiplication.enabled }}
@@ -304,4 +305,10 @@ spec:
       {{- else if .Values.customScheduling.tolerations }}
       {{- toYaml .Values.customScheduling.tolerations | nindent 8 }}
       {{- end }}
+{{- end -}}
+
+{{- /* Use the shared template when applyViaConfigMap is false */}}
+{{- $components := fromYaml (include "components" .) }}
+{{- if and $components.nodeAgent.enabled (not .Values.nodeAgent.multipleDaemonSets.enabled) (not .Values.nodeAgent.applyViaConfigMap) }}
+{{- include "node-agent.daemonset" . }}
 {{- end }}
