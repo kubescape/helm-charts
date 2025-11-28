@@ -1,0 +1,53 @@
+# Patch to add the Kubescape Helm Lookup CMP sidecar to argocd-repo-server
+# Apply with: kubectl patch deployment argocd-repo-server -n argocd --patch-file repo-server-patch.yaml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-repo-server
+  namespace: argocd
+spec:
+  template:
+    spec:
+      # Add volumes for the CMP sidecar
+      volumes:
+        - name: cmp-kubescape
+          configMap:
+            name: cmp-kubescape-helm-lookup
+        - name: cmp-tmp
+          emptyDir: {}
+      containers:
+        # CMP sidecar container for Helm lookup support
+        - name: kubescape-helm-lookup
+          # alpine/k8s image includes kubectl, helm, and jq
+          image: alpine/k8s:1.31.2
+          imagePullPolicy: IfNotPresent
+          command: [/var/run/argocd/argocd-cmp-server]
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 999
+          env:
+            # Increase timeout for large clusters with many nodes
+            - name: ARGOCD_EXEC_TIMEOUT
+              value: "120"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          volumeMounts:
+            # Required: argocd binary and socket
+            - mountPath: /var/run/argocd
+              name: var-files
+            # Required: plugin socket directory
+            - mountPath: /home/argocd/cmp-server/plugins
+              name: plugins
+            # Required: plugin configuration
+            - mountPath: /home/argocd/cmp-server/config/plugin.yaml
+              subPath: plugin.yaml
+              name: cmp-kubescape
+            # Required: tmp directory (must be separate from repo-server)
+            - mountPath: /tmp
+              name: cmp-tmp

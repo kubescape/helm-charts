@@ -1,0 +1,32 @@
+# RBAC permissions for the ArgoCD repo-server to read node information
+# This is required for the CMP plugin to query node capacity for resource calculations
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: argocd-repo-server-node-reader
+  labels:
+    app.kubernetes.io/name: argocd-repo-server-node-reader
+    app.kubernetes.io/part-of: argocd
+    app.kubernetes.io/component: repo-server
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: argocd-repo-server-node-reader
+  labels:
+    app.kubernetes.io/name: argocd-repo-server-node-reader
+    app.kubernetes.io/part-of: argocd
+    app.kubernetes.io/component: repo-server
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: argocd-repo-server-node-reader
+subjects:
+  - kind: ServiceAccount
+    name: argocd-repo-server
+    namespace: argocd

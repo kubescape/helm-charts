@@ -689,7 +689,17 @@ nodeAgent:
     # When configurations is empty and enabled is true, daemonsets are auto-generated
     # based on node labels (kubescape.io/daemonset-group, node.kubernetes.io/instance-type,
     # or beta.kubernetes.io/instance-type). Resources are calculated as a percentage
-    # of each node's allocatable capacity using the settings below:
+    # of each node's allocatable capacity using the settings below.
+    #
+    # NOTE: Auto-discovery uses Helm's `lookup` function which only works during
+    # `helm install/upgrade`. It does NOT work with:
+    #   - helm template
+    #   - ArgoCD (renders charts using helm template)
+    #   - Flux Helm Controller
+    #
+    # For GitOps workflows, you have two options:
+    #   1. Use explicit configurations (see examples below)
+    #   2. Use an ArgoCD Config Management Plugin (CMP) - see examples/argocd-cmp/
     autoResources:
       cpuLimitPercent: 10 # CPU limit as percentage of node allocatable CPU
       cpuRequestPercent: 5 # CPU request as percentage of node allocatable CPU

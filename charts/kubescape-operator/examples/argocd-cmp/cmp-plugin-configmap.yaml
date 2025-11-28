@@ -1,0 +1,175 @@
+# ConfigMap containing the ArgoCD Config Management Plugin configuration
+# This plugin enables Helm lookup function support by querying nodes
+# and generating dynamic resource configurations for the Kubescape Operator
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cmp-kubescape-helm-lookup
+  namespace: argocd
+data:
+  plugin.yaml: |
+    apiVersion: argoproj.io/v1alpha1
+    kind: ConfigManagementPlugin
+    metadata:
+      name: kubescape-helm-lookup
+    spec:
+      version: v1.0
+      init:
+        command: [sh, -c]
+        args:
+          - |
+            # Initialize helm dependencies if present
+            if [ -f Chart.lock ]; then
+              helm dependency build 2>/dev/null || true
+            fi
+      generate:
+        command: [sh, -c]
+        args:
+          - |
+            #!/bin/sh
+            set -e
+
+            # Configuration - can be overridden via ARGOCD_ENV_ variables
+            CPU_LIMIT_PERCENT="${ARGOCD_ENV_CPU_LIMIT_PERCENT:-10}"
+            CPU_REQUEST_PERCENT="${ARGOCD_ENV_CPU_REQUEST_PERCENT:-5}"
+            MEMORY_LIMIT_PERCENT="${ARGOCD_ENV_MEMORY_LIMIT_PERCENT:-10}"
+            MEMORY_REQUEST_PERCENT="${ARGOCD_ENV_MEMORY_REQUEST_PERCENT:-5}"
+
+            # Create temporary directory for generated values
+            TEMP_DIR=$(mktemp -d)
+            trap "rm -rf $TEMP_DIR" EXIT
+
+            # Query nodes and generate configurations
+            echo "Querying nodes for auto-discovery..." >&2
+
+            # Get nodes with relevant labels and extract their info
+            NODES_JSON=$(kubectl get nodes -o json)
+
+            # Generate the multipleDaemonSets configurations using jq
+            CONFIGS=$(echo "$NODES_JSON" | jq -r --argjson cpuLimitPct "$CPU_LIMIT_PERCENT" \
+              --argjson cpuReqPct "$CPU_REQUEST_PERCENT" \
+              --argjson memLimitPct "$MEMORY_LIMIT_PERCENT" \
+              --argjson memReqPct "$MEMORY_REQUEST_PERCENT" '
+              # Helper function to parse CPU (handles "4" and "4000m" formats)
+              def parseCpuMillis:
+                if test("m$") then
+                  gsub("m$"; "") | tonumber
+                else
+                  tonumber * 1000
+                end;
+
+              # Helper function to parse memory (handles Ki, Mi, Gi suffixes)
+              def parseMemoryKi:
+                if test("Ki$") then
+                  gsub("Ki$"; "") | tonumber
+                elif test("Mi$") then
+                  gsub("Mi$"; "") | tonumber * 1024
+                elif test("Gi$") then
+                  gsub("Gi$"; "") | tonumber * 1048576
+                else
+                  # Assume bytes, convert to Ki
+                  tonumber / 1024
+                end;
+
+              # Process nodes and group by label
+              [.items[] |
+                # Determine group name and selector key
+                (
+                  if .metadata.labels["kubescape.io/daemonset-group"] then
+                    {
+                      groupName: .metadata.labels["kubescape.io/daemonset-group"],
+                      selectorKey: "kubescape.io/daemonset-group"
+                    }
+                  elif .metadata.labels["node.kubernetes.io/instance-type"] then
+                    {
+                      groupName: .metadata.labels["node.kubernetes.io/instance-type"],
+                      selectorKey: "node.kubernetes.io/instance-type"
+                    }
+                  elif .metadata.labels["beta.kubernetes.io/instance-type"] then
+                    {
+                      groupName: .metadata.labels["beta.kubernetes.io/instance-type"],
+                      selectorKey: "beta.kubernetes.io/instance-type"
+                    }
+                  else
+                    null
+                  end
+                ) as $group |
+                select($group != null) |
+                {
+                  groupName: $group.groupName,
+                  selectorKey: $group.selectorKey,
+                  cpuMillis: (.status.allocatable.cpu | parseCpuMillis),
+                  memoryKi: (.status.allocatable.memory | parseMemoryKi)
+                }
+              ] |
+              # Deduplicate by groupName (take first occurrence)
+              group_by(.groupName) | map(.[0]) |
+              # Generate configurations
+              map({
+                nameSuffix: .groupName,
+                nodeSelector: {
+                  (.selectorKey): .groupName
+                },
+                resources: {
+                  limits: {
+                    cpu: "\(((.cpuMillis * $cpuLimitPct / 100) | floor))m",
+                    memory: "\(((.memoryKi * $memLimitPct / 100 / 1024) | floor))Mi"
+                  },
+                  requests: {
+                    cpu: "\(((.cpuMillis * $cpuReqPct / 100) | floor))m",
+                    memory: "\(((.memoryKi * $memReqPct / 100 / 1024) | floor))Mi"
+                  }
+                }
+              })
+            ')
+
+            # Check if we found any configurations
+            CONFIG_COUNT=$(echo "$CONFIGS" | jq 'length')
+            echo "Found $CONFIG_COUNT node group(s)" >&2
+
+            # Generate the values file
+            if [ "$CONFIG_COUNT" -gt 0 ]; then
+              cat > "$TEMP_DIR/generated-values.yaml" << EOF
+            nodeAgent:
+              multipleDaemonSets:
+                enabled: true
+                configurations:
+            $(echo "$CONFIGS" | jq -r '.[] | "      - nameSuffix: \(.nameSuffix)\n        nodeSelector:\n          \((.nodeSelector | to_entries[0] | "\(.key): \(.value)"))\n        resources:\n          limits:\n            cpu: \(.resources.limits.cpu)\n            memory: \(.resources.limits.memory)\n          requests:\n            cpu: \(.resources.requests.cpu)\n            memory: \(.resources.requests.memory)"')
+            EOF
+              echo "Generated configurations:" >&2
+              cat "$TEMP_DIR/generated-values.yaml" >&2
+            else
+              echo "No node groups found, using default values" >&2
+              touch "$TEMP_DIR/generated-values.yaml"
+            fi
+
+            # Handle additional user-provided values
+            if [ -n "$ARGOCD_ENV_HELM_VALUES" ]; then
+              echo "$ARGOCD_ENV_HELM_VALUES" > "$TEMP_DIR/user-values.yaml"
+              USER_VALUES_ARG="-f $TEMP_DIR/user-values.yaml"
+            else
+              USER_VALUES_ARG=""
+            fi
+
+            # Handle additional values files specified by user
+            VALUES_FILES_ARG=""
+            if [ -n "$ARGOCD_ENV_HELM_VALUES_FILES" ]; then
+              for f in $(echo "$ARGOCD_ENV_HELM_VALUES_FILES" | tr ',' ' '); do
+                if [ -f "$f" ]; then
+                  VALUES_FILES_ARG="$VALUES_FILES_ARG -f $f"
+                fi
+              done
+            fi
+
+            # Run helm template with all values
+            helm template "$ARGOCD_APP_NAME" . \
+              --namespace "$ARGOCD_APP_NAMESPACE" \
+              --include-crds \
+              -f values.yaml \
+              $VALUES_FILES_ARG \
+              $USER_VALUES_ARG \
+              -f "$TEMP_DIR/generated-values.yaml"
+
+      discover:
+        find:
+          glob: "**/Chart.yaml"

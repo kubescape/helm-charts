@@ -1,0 +1,81 @@
+# Example ArgoCD Application using the Kubescape Helm Lookup CMP plugin
+# This enables auto-discovery of node types and dynamic resource calculation
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kubescape
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: kubescape
+    app.kubernetes.io/part-of: kubescape
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    # You can use the official Helm repository or a Git repository
+    repoURL: https://github.com/kubescape/helm-charts.git
+    targetRevision: HEAD
+    path: charts/kubescape-operator
+
+    # Use the CMP plugin instead of native Helm support
+    plugin:
+      # Plugin name must match: <metadata.name>-<spec.version> from the CMP config
+      name: kubescape-helm-lookup-v1.0
+
+      # Environment variables to configure the plugin
+      env:
+        # Resource percentage configuration (optional - these are the defaults)
+        - name: CPU_LIMIT_PERCENT
+          value: "10"
+        - name: CPU_REQUEST_PERCENT
+          value: "5"
+        - name: MEMORY_LIMIT_PERCENT
+          value: "10"
+        - name: MEMORY_REQUEST_PERCENT
+          value: "5"
+
+        # Additional Helm values (optional)
+        # These are merged with the auto-generated configurations
+        - name: HELM_VALUES
+          value: |
+            clusterName: my-cluster
+            account: "<your-account-id>"
+            accessKey: "<your-access-key>"
+            server: api.armosec.io
+
+        # Additional values files from the chart directory (optional)
+        # Comma-separated list of file paths relative to the chart root
+        # - name: HELM_VALUES_FILES
+        #   value: "values-production.yaml,values-custom.yaml"
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kubescape
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  # Ignore differences in fields that may be modified by controllers
+  ignoreDifferences:
+    - group: apps
+      kind: DaemonSet
+      jsonPointers:
+        - /spec/template/metadata/annotations
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/template/metadata/annotations
