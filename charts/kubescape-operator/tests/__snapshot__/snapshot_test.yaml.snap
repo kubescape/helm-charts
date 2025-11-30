@@ -4163,6 +4163,7 @@ all capabilities:
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
+      annotations: null
       labels:
         app: prometheus-exporter
         app.kubernetes.io/component: prometheus-exporter
@@ -4177,6 +4178,45 @@ all capabilities:
       name: prometheus-exporter
       namespace: kubescape
     spec:
+      egress:
+        - ports:
+            - port: 443
+              protocol: TCP
+          to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: default
+              podSelector:
+                matchLabels:
+                  component: apiserver
+                  provider: kubernetes
+        - ports:
+            - port: 53
+              protocol: UDP
+          to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: kube-system
+              podSelector:
+                matchLabels:
+                  k8s-app: kube-dns
+        - ports:
+            - port: 4317
+              protocol: TCP
+            - port: 4318
+              protocol: TCP
+          to:
+            - podSelector:
+                matchLabels:
+                  app.kubernetes.io/component: otel-collector
+                  app.kubernetes.io/instance: RELEASE-NAME
+                  app.kubernetes.io/name: kubescape-operator
+        - ports:
+            - port: 1234
+              protocol: TCP
+          to:
+            - ipBlock:
+                cidr: 1.1.1.1/32
       ingress:
         - ports:
             - port: 8080
@@ -4188,6 +4228,7 @@ all capabilities:
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
         - Ingress
+        - Egress
   75: |
     apiVersion: v1
     kind: Service
@@ -4645,12 +4686,17 @@ all capabilities:
           to:
             - ipBlock:
                 cidr: 1.1.1.1/32
+      ingress:
+        - ports:
+            - port: 8443
+              protocol: TCP
       podSelector:
         matchLabels:
           app.kubernetes.io/component: storage
           app.kubernetes.io/instance: RELEASE-NAME
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
+        - Ingress
         - Egress
   86: |
     apiVersion: v1
@@ -9323,12 +9369,20 @@ default capabilities:
                   app.kubernetes.io/component: otel-collector
                   app.kubernetes.io/instance: RELEASE-NAME
                   app.kubernetes.io/name: kubescape-operator
+      ingress:
+        - from:
+            - ipBlock:
+                cidr: 192.168.49.2/32
+          ports:
+            - port: 8443
+              protocol: TCP
       podSelector:
         matchLabels:
           app.kubernetes.io/component: storage
           app.kubernetes.io/instance: RELEASE-NAME
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
+        - Ingress
         - Egress
   61: |
     apiVersion: v1
@@ -21340,6 +21394,7 @@ multiple node agents:
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
+      annotations: null
       labels:
         app: prometheus-exporter
         app.kubernetes.io/component: prometheus-exporter
@@ -21354,6 +21409,45 @@ multiple node agents:
       name: prometheus-exporter
       namespace: kubescape
     spec:
+      egress:
+        - ports:
+            - port: 443
+              protocol: TCP
+          to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: default
+              podSelector:
+                matchLabels:
+                  component: apiserver
+                  provider: kubernetes
+        - ports:
+            - port: 53
+              protocol: UDP
+          to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: kube-system
+              podSelector:
+                matchLabels:
+                  k8s-app: kube-dns
+        - ports:
+            - port: 4317
+              protocol: TCP
+            - port: 4318
+              protocol: TCP
+          to:
+            - podSelector:
+                matchLabels:
+                  app.kubernetes.io/component: otel-collector
+                  app.kubernetes.io/instance: RELEASE-NAME
+                  app.kubernetes.io/name: kubescape-operator
+        - ports:
+            - port: 1234
+              protocol: TCP
+          to:
+            - ipBlock:
+                cidr: 1.1.1.1/32
       ingress:
         - ports:
             - port: 8080
@@ -21365,6 +21459,7 @@ multiple node agents:
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
         - Ingress
+        - Egress
   76: |
     apiVersion: v1
     kind: Service
@@ -21822,12 +21917,17 @@ multiple node agents:
           to:
             - ipBlock:
                 cidr: 1.1.1.1/32
+      ingress:
+        - ports:
+            - port: 8443
+              protocol: TCP
       podSelector:
         matchLabels:
           app.kubernetes.io/component: storage
           app.kubernetes.io/instance: RELEASE-NAME
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
+        - Ingress
         - Egress
   87: |
     apiVersion: v1

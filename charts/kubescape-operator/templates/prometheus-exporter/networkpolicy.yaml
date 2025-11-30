@@ -5,6 +5,8 @@ kind: NetworkPolicy
 metadata:
   name: {{ .Values.prometheusExporter.name }}
   namespace: {{ .Values.ksNamespace }}
+  annotations:
+    {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
   labels:
     {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.prometheusExporter.name "tier" .Values.global.namespaceTier) | nindent 4 }}
 spec:
@@ -13,6 +15,12 @@ spec:
       {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.prometheusExporter.name) | nindent 6 }}
   policyTypes:
     - Ingress
+  {{- if .Values.global.networkPolicy.createEgressRules }}
+    - Egress
+  egress:
+{{ tpl (.Files.Get "assets/api-server-egress-rules.yaml") . | indent 4 }}
+{{ tpl (.Files.Get "assets/common-egress-rules.yaml") . | indent 4 }}
+  {{- end }}
   ingress:
     - ports:
         - port: {{ .Values.prometheusExporter.service.port }}
