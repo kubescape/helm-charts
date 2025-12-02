@@ -1,5 +1,5 @@
 {{- $components := fromYaml (include "components" .) }}
-{{- if and .Values.global.networkPolicy.enabled .Values.global.networkPolicy.createEgressRules $components.storage.enabled }}
+{{- if and .Values.global.networkPolicy.enabled $components.storage.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -14,8 +14,22 @@ spec:
     matchLabels:
       {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.storage.name) | nindent 6 }}
   policyTypes:
+    - Ingress
+  {{- if .Values.global.networkPolicy.createEgressRules }}
     - Egress
   egress:
 {{ tpl (.Files.Get "assets/api-server-egress-rules.yaml") . | indent 4 }}
 {{ tpl (.Files.Get "assets/common-egress-rules.yaml") . | indent 4 }}
+  {{- end }}
+  ingress:
+    # Allow traffic from kube-apiserver to storage API (port 8443)
+    # This is required for the v1beta1.spdx.softwarecomposition.kubescape.io APIService
+    - ports:
+        - port: {{ .Values.storage.serverPort }}
+          protocol: TCP
+{{- if .Values.global.networkPolicy.apiServerIP }}
+      from:
+        - ipBlock:
+            cidr: {{ .Values.global.networkPolicy.apiServerIP }}/32
+{{- end }}
 {{- end }}
