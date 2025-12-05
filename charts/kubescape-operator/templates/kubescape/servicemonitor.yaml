@@ -21,7 +21,7 @@ spec:
       {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.kubescape.name) | nindent 6 }}
   endpoints:
     - port: http
-      path: /v1/metrics
+      path: /v1/metrics{{- if .Values.kubescape.serviceMonitor.metricsFrameworks }}?frameworks={{ join "," .Values.kubescape.serviceMonitor.metricsFrameworks }}{{- end }}
       interval: {{ .Values.kubescape.serviceMonitor.interval }}
       scrapeTimeout: {{ .Values.kubescape.serviceMonitor.scrapeTimeout }}
 {{ end }}
