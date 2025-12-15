@@ -29,6 +29,7 @@ ksOtel: {{ and $ksOtel $submit }}
 otel: {{ $otel }}
 otelPort : {{ if $otel }}{{ splitList ":" .Values.configurations.otelUrl | last }}{{ else }}""{{ end }}
 runtimeObservability: {{ eq .Values.capabilities.runtimeObservability "enable" }}
+backendStorageEnabled: {{ eq (index .Values.capabilities "backend-storage" | default "") "enable" }}
 virtualCrds: {{ or $virtualCrds (not $submit) }}
 submit: {{ $submit }}
   {{- if $submit -}}
@@ -46,16 +47,19 @@ submit: {{ $submit }}
 
 {{- define "components" -}}
 {{- $configurations := fromYaml (include "configurations" .) }}
+{{- $nodeScanEnabled := and (eq .Values.capabilities.nodeScan "enable") (not $configurations.backendStorageEnabled) }}
+{{- $configurationScanEnabled := and (eq .Values.capabilities.configurationScan "enable") (not $configurations.backendStorageEnabled) }}
+{{- $vulnerabilityScanEnabled := and (eq .Values.capabilities.vulnerabilityScan "enable") (not $configurations.backendStorageEnabled) }}
 hostScanner:
-  enabled: {{ eq .Values.capabilities.nodeScan "enable" }}
+  enabled: {{ $nodeScanEnabled }}
 kubescape:
-  enabled: {{ eq .Values.capabilities.configurationScan "enable" }}
+  enabled: {{ $configurationScanEnabled }}
 kubescapeScheduler:
-  enabled: {{ eq .Values.capabilities.configurationScan "enable" }}
+  enabled: {{ $configurationScanEnabled }}
 kubevuln:
-  enabled: {{ eq .Values.capabilities.vulnerabilityScan "enable" }}
+  enabled: {{ $vulnerabilityScanEnabled }}
 kubevulnScheduler:
-  enabled: {{ eq .Values.capabilities.vulnerabilityScan "enable" }}
+  enabled: {{ $vulnerabilityScanEnabled }}
 nodeAgent:
   enabled: {{ or
    (eq .Values.capabilities.relevancy "enable")
