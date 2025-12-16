@@ -77,7 +77,7 @@ otelCollector:
 serviceDiscovery:
   enabled: {{ $configurations.submit }}
 storage:
-  enabled: true
+  enabled: {{ not $configurations.backendStorageEnabled }}
 prometheusExporter:
   enabled: {{ eq .Values.capabilities.prometheusExporter "enable" }}
 cloudSecret:
