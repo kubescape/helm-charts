@@ -3004,19 +3004,14 @@ all capabilities:
             message: '''Unexpected access to service account token: '' + event.path + '' with flags: '' + event.flags.join('','')'
             ruleExpression:
               - eventType: open
-                expression: |
-                  ((event.path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||
-                   (event.path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||
-                   (event.path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token')) ||
-                   (event.path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token'))) &&
-                  !ap.was_path_opened_with_prefix(event.containerId, '/run/secrets/kubernetes.io/serviceaccount') && !ap.was_path_opened_with_prefix(event.containerId, '/var/run/secrets/kubernetes.io/serviceaccount') && !ap.was_path_opened_with_prefix(event.containerId, '/run/secrets/eks.amazonaws.com/serviceaccount') && !ap.was_path_opened_with_prefix(event.containerId, '/var/run/secrets/eks.amazonaws.com/serviceaccount')
+                expression: "((event.path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) || \n (event.path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||\n (event.path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token')) ||\n (event.path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token'))) &&\n!ap.was_path_opened_with_suffix(event.containerId, '/token')\n"
             uniqueId: event.comm
           id: R0006
           isTriggerAlert: true
           mitreTactic: TA0006
           mitreTechnique: T1528
           name: Unexpected service account token access
-          profileDependency: 1
+          profileDependency: 0
           severity: 5
           supportPolicy: false
           tags:
@@ -3034,7 +3029,7 @@ all capabilities:
                 expression: event.pktType == 'OUTGOING' && k8s.is_api_server_address(event.dstAddr) && !nn.was_address_in_egress(event.containerId, event.dstAddr)
             uniqueId: 'eventType == ''exec'' ? ''exec_'' + event.comm : ''network_'' + event.dstAddr'
           id: R0007
-          isTriggerAlert: true
+          isTriggerAlert: false
           mitreTactic: TA0008
           mitreTechnique: T1210
           name: Workload uses Kubernetes API unexpectedly
@@ -3053,7 +3048,7 @@ all capabilities:
             ruleExpression:
               - eventType: open
                 expression: |
-                  event.path.startsWith('/proc/') && event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
+                  event.path.startsWith('/proc/') &&  event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
             uniqueId: event.comm + '_' + event.path
           id: R0008
           isTriggerAlert: true
@@ -3136,7 +3131,7 @@ all capabilities:
             ruleExpression:
               - eventType: exec
                 expression: |
-                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') || (parse.get_exec_path(event.args, event.comm).startsWith('/dev/shm/')))
+                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') ||  (parse.get_exec_path(event.args, event.comm).startsWith('/dev/shm/')))
             uniqueId: event.comm + '_' + event.exepath + '_' + event.pcomm
           id: R1000
           isTriggerAlert: true
@@ -3225,7 +3220,7 @@ all capabilities:
             ruleExpression:
               - eventType: exec
                 expression: '!ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm)) && k8s.get_container_mount_paths(event.namespace, event.podName, event.containerName).exists(mount, event.exepath.startsWith(mount) || parse.get_exec_path(event.args, event.comm).startsWith(mount))'
-            uniqueId: event.comm + '_' + event.exepath + '_'
+            uniqueId: event.comm
           id: R1004
           isTriggerAlert: true
           mitreTactic: TA0002
@@ -3264,7 +3259,7 @@ all capabilities:
             message: '''Unshare system call (unshare) was called by process ('' + event.comm + '')'''
             ruleExpression:
               - eventType: unshare
-                expression: '!ap.was_syscall_used(event.containerId, ''unshare'')'
+                expression: event.pcomm != 'runc' && !ap.was_syscall_used(event.containerId, 'unshare')
             uniqueId: event.comm + '_' + 'unshare'
           id: R1006
           isTriggerAlert: true
@@ -3306,7 +3301,7 @@ all capabilities:
             message: '''Communication with a known crypto mining domain: '' + event.name'
             ruleExpression:
               - eventType: dns
-                expression: event.name in ['2cryptocalc.com.', '2miners.com.', 'antpool.com.', 'asia1.ethpool.org.', 'bohemianpool.com.', 'botbox.dev.', 'btm.antpool.com.', 'c3pool.com.', 'c4pool.org.', 'ca.minexmr.com.', 'cn.stratum.slushpool.com.', 'dash.antpool.com.', 'data.miningpoolstats.stream.', 'de.minexmr.com.', 'eth-ar.dwarfpool.com.', 'eth-asia.dwarfpool.com.', 'eth-asia1.nanopool.org.', 'eth-au.dwarfpool.com.', 'eth-au1.nanopool.org.', 'eth-br.dwarfpool.com.', 'eth-cn.dwarfpool.com.', 'eth-cn2.dwarfpool.com.', 'eth-eu.dwarfpool.com.', 'eth-eu1.nanopool.org.', 'eth-eu2.nanopool.org.', 'eth-hk.dwarfpool.com.', 'eth-jp1.nanopool.org.', 'eth-ru.dwarfpool.com.', 'eth-ru2.dwarfpool.com.', 'eth-sg.dwarfpool.com.', 'eth-us-east1.nanopool.org.', 'eth-us-west1.nanopool.org.', 'eth-us.dwarfpool.com.', 'eth-us2.dwarfpool.com.', 'eth.antpool.com.', 'eu.stratum.slushpool.com.', 'eu1.ethermine.org.', 'eu1.ethpool.org.', 'fastpool.xyz.', 'fr.minexmr.com.', 'kriptokyng.com.', 'mine.moneropool.com.', 'mine.xmrpool.net.', 'miningmadness.com.', 'monero.cedric-crispin.com.', 'monero.crypto-pool.fr.', 'monero.fairhash.org.', 'monero.hashvault.pro.', 'monero.herominers.com.', 'monerod.org.', 'monerohash.com.', 'moneroocean.stream.', 'monerop.com.', 'multi-pools.com.', 'p2pool.io.', 'pool.kryptex.com.', 'pool.minexmr.com.', 'pool.monero.hashvault.pro.', 'pool.rplant.xyz.', 'pool.supportxmr.com.', 'pool.xmr.pt.', 'prohashing.com.', 'rx.unmineable.com.', 'sg.minexmr.com.', 'sg.stratum.slushpool.com.', 'skypool.org.', 'solo-xmr.2miners.com.', 'ss.antpool.com.', 'stratum-btm.antpool.com.', 'stratum-dash.antpool.com.', 'stratum-eth.antpool.com.', 'stratum-ltc.antpool.com.', 'stratum-xmc.antpool.com.', 'stratum-zec.antpool.com.', 'stratum.antpool.com.', 'supportxmr.com.', 'trustpool.cc.', 'us-east.stratum.slushpool.com.', 'us1.ethermine.org.', 'us1.ethpool.org.', 'us2.ethermine.org.', 'us2.ethpool.org.', 'web.xmrpool.eu.', 'www.domajorpool.com.', 'www.dxpool.com.', 'www.mining-dutch.nl.', 'xmc.antpool.com.', 'xmr-asia1.nanopool.org.', 'xmr-au1.nanopool.org.', 'xmr-eu1.nanopool.org.', 'xmr-eu2.nanopool.org.', 'xmr-jp1.nanopool.org.', 'xmr-us-east1.nanopool.org.', 'xmr-us-west1.nanopool.org.', 'xmr.2miners.com.', 'xmr.crypto-pool.fr.', 'xmr.gntl.uk.', 'xmr.nanopool.org.', 'xmr.pool-pay.com.', 'xmr.pool.minergate.com.', 'xmr.solopool.org.', 'xmr.volt-mine.com.', 'xmr.zeropool.io.', 'zec.antpool.com.', 'zergpool.com.', 'auto.c3pool.org.', 'us.monero.herominers.com.']
+                expression: event.name in ['2cryptocalc.com.', '2miners.com.', 'antpool.com.', 'asia1.ethpool.org.', 'bohemianpool.com.', 'botbox.dev.', 'btm.antpool.com.', 'c3pool.com.', 'c4pool.org.', 'ca.minexmr.com.', 'cn.stratum.slushpool.com.', 'dash.antpool.com.', 'data.miningpoolstats.stream.', 'de.minexmr.com.', 'eth-ar.dwarfpool.com.', 'eth-asia.dwarfpool.com.', 'eth-asia1.nanopool.org.', 'eth-au.dwarfpool.com.', 'eth-au1.nanopool.org.', 'eth-br.dwarfpool.com.', 'eth-cn.dwarfpool.com.', 'eth-cn2.dwarfpool.com.', 'eth-eu.dwarfpool.com.', 'eth-eu1.nanopool.org.', 'eth-eu2.nanopool.org.', 'eth-hk.dwarfpool.com.', 'eth-jp1.nanopool.org.', 'eth-ru.dwarfpool.com.', 'eth-ru2.dwarfpool.com.', 'eth-sg.dwarfpool.com.', 'eth-us-east1.nanopool.org.', 'eth-us-west1.nanopool.org.', 'eth-us.dwarfpool.com.', 'eth-us2.dwarfpool.com.', 'eth.antpool.com.', 'eu.stratum.slushpool.com.', 'eu1.ethermine.org.', 'eu1.ethpool.org.', 'fastpool.xyz.', 'fr.minexmr.com.', 'kriptokyng.com.', 'mine.moneropool.com.', 'mine.xmrpool.net.', 'miningmadness.com.', 'monero.cedric-crispin.com.', 'monero.crypto-pool.fr.', 'monero.fairhash.org.', 'monero.hashvault.pro.', 'monero.herominers.com.', 'monerod.org.', 'monerohash.com.', 'moneroocean.stream.', 'monerop.com.', 'multi-pools.com.', 'p2pool.io.', 'pool.kryptex.com.', 'pool.minexmr.com.', 'pool.monero.hashvault.pro.', 'pool.rplant.xyz.', 'pool.supportxmr.com.', 'pool.xmr.pt.', 'prohashing.com.', 'rx.unmineable.com.', 'sg.minexmr.com.', 'sg.stratum.slushpool.com.', 'skypool.org.', 'solo-xmr.2miners.com.', 'ss.antpool.com.', 'stratum-btm.antpool.com.', 'stratum-dash.antpool.com.', 'stratum-eth.antpool.com.', 'stratum-ltc.antpool.com.', 'stratum-xmc.antpool.com.', 'stratum-zec.antpool.com.', 'stratum.antpool.com.', 'supportxmr.com.', 'trustpool.cc.', 'us-east.stratum.slushpool.com.', 'us1.ethermine.org.', 'us1.ethpool.org.', 'us2.ethermine.org.', 'us2.ethpool.org.', 'web.xmrpool.eu.', 'www.domajorpool.com.', 'www.dxpool.com.', 'www.mining-dutch.nl.', 'xmc.antpool.com.', 'xmr-asia1.nanopool.org.', 'xmr-au1.nanopool.org.', 'xmr-eu1.nanopool.org.', 'xmr-eu2.nanopool.org.', 'xmr-jp1.nanopool.org.', 'xmr-us-east1.nanopool.org.', 'xmr-us-west1.nanopool.org.', 'xmr.2miners.com.', 'xmr.crypto-pool.fr.', 'xmr.gntl.uk.', 'xmr.nanopool.org.', 'xmr.pool-pay.com.', 'xmr.pool.minergate.com.', 'xmr.solopool.org.', 'xmr.volt-mine.com.', 'xmr.zeropool.io.', 'zec.antpool.com.', 'zergpool.com.', 'auto.c3pool.org.', 'us.monero.herominers.com.', 'xmr.kryptex.network.']
             uniqueId: event.name + '_' + event.comm
           id: R1008
           isTriggerAlert: true
@@ -7121,19 +7116,14 @@ backend-storage enabled disables scanning capabilities:
             message: '''Unexpected access to service account token: '' + event.path + '' with flags: '' + event.flags.join('','')'
             ruleExpression:
               - eventType: open
-                expression: |
-                  ((event.path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||
-                   (event.path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||
-                   (event.path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token')) ||
-                   (event.path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token'))) &&
-                  !ap.was_path_opened_with_prefix(event.containerId, '/run/secrets/kubernetes.io/serviceaccount') && !ap.was_path_opened_with_prefix(event.containerId, '/var/run/secrets/kubernetes.io/serviceaccount') && !ap.was_path_opened_with_prefix(event.containerId, '/run/secrets/eks.amazonaws.com/serviceaccount') && !ap.was_path_opened_with_prefix(event.containerId, '/var/run/secrets/eks.amazonaws.com/serviceaccount')
+                expression: "((event.path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) || \n (event.path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||\n (event.path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token')) ||\n (event.path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token'))) &&\n!ap.was_path_opened_with_suffix(event.containerId, '/token')\n"
             uniqueId: event.comm
           id: R0006
           isTriggerAlert: true
           mitreTactic: TA0006
           mitreTechnique: T1528
           name: Unexpected service account token access
-          profileDependency: 1
+          profileDependency: 0
           severity: 5
           supportPolicy: false
           tags:
@@ -7151,7 +7141,7 @@ backend-storage enabled disables scanning capabilities:
                 expression: event.pktType == 'OUTGOING' && k8s.is_api_server_address(event.dstAddr) && !nn.was_address_in_egress(event.containerId, event.dstAddr)
             uniqueId: 'eventType == ''exec'' ? ''exec_'' + event.comm : ''network_'' + event.dstAddr'
           id: R0007
-          isTriggerAlert: true
+          isTriggerAlert: false
           mitreTactic: TA0008
           mitreTechnique: T1210
           name: Workload uses Kubernetes API unexpectedly
@@ -7170,7 +7160,7 @@ backend-storage enabled disables scanning capabilities:
             ruleExpression:
               - eventType: open
                 expression: |
-                  event.path.startsWith('/proc/') && event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
+                  event.path.startsWith('/proc/') &&  event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
             uniqueId: event.comm + '_' + event.path
           id: R0008
           isTriggerAlert: true
@@ -7253,7 +7243,7 @@ backend-storage enabled disables scanning capabilities:
             ruleExpression:
               - eventType: exec
                 expression: |
-                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') || (parse.get_exec_path(event.args, event.comm).startsWith('/dev/shm/')))
+                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') ||  (parse.get_exec_path(event.args, event.comm).startsWith('/dev/shm/')))
             uniqueId: event.comm + '_' + event.exepath + '_' + event.pcomm
           id: R1000
           isTriggerAlert: true
@@ -7342,7 +7332,7 @@ backend-storage enabled disables scanning capabilities:
             ruleExpression:
               - eventType: exec
                 expression: '!ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm)) && k8s.get_container_mount_paths(event.namespace, event.podName, event.containerName).exists(mount, event.exepath.startsWith(mount) || parse.get_exec_path(event.args, event.comm).startsWith(mount))'
-            uniqueId: event.comm + '_' + event.exepath + '_'
+            uniqueId: event.comm
           id: R1004
           isTriggerAlert: true
           mitreTactic: TA0002
@@ -7381,7 +7371,7 @@ backend-storage enabled disables scanning capabilities:
             message: '''Unshare system call (unshare) was called by process ('' + event.comm + '')'''
             ruleExpression:
               - eventType: unshare
-                expression: '!ap.was_syscall_used(event.containerId, ''unshare'')'
+                expression: event.pcomm != 'runc' && !ap.was_syscall_used(event.containerId, 'unshare')
             uniqueId: event.comm + '_' + 'unshare'
           id: R1006
           isTriggerAlert: true
@@ -7423,7 +7413,7 @@ backend-storage enabled disables scanning capabilities:
             message: '''Communication with a known crypto mining domain: '' + event.name'
             ruleExpression:
               - eventType: dns
-                expression: event.name in ['2cryptocalc.com.', '2miners.com.', 'antpool.com.', 'asia1.ethpool.org.', 'bohemianpool.com.', 'botbox.dev.', 'btm.antpool.com.', 'c3pool.com.', 'c4pool.org.', 'ca.minexmr.com.', 'cn.stratum.slushpool.com.', 'dash.antpool.com.', 'data.miningpoolstats.stream.', 'de.minexmr.com.', 'eth-ar.dwarfpool.com.', 'eth-asia.dwarfpool.com.', 'eth-asia1.nanopool.org.', 'eth-au.dwarfpool.com.', 'eth-au1.nanopool.org.', 'eth-br.dwarfpool.com.', 'eth-cn.dwarfpool.com.', 'eth-cn2.dwarfpool.com.', 'eth-eu.dwarfpool.com.', 'eth-eu1.nanopool.org.', 'eth-eu2.nanopool.org.', 'eth-hk.dwarfpool.com.', 'eth-jp1.nanopool.org.', 'eth-ru.dwarfpool.com.', 'eth-ru2.dwarfpool.com.', 'eth-sg.dwarfpool.com.', 'eth-us-east1.nanopool.org.', 'eth-us-west1.nanopool.org.', 'eth-us.dwarfpool.com.', 'eth-us2.dwarfpool.com.', 'eth.antpool.com.', 'eu.stratum.slushpool.com.', 'eu1.ethermine.org.', 'eu1.ethpool.org.', 'fastpool.xyz.', 'fr.minexmr.com.', 'kriptokyng.com.', 'mine.moneropool.com.', 'mine.xmrpool.net.', 'miningmadness.com.', 'monero.cedric-crispin.com.', 'monero.crypto-pool.fr.', 'monero.fairhash.org.', 'monero.hashvault.pro.', 'monero.herominers.com.', 'monerod.org.', 'monerohash.com.', 'moneroocean.stream.', 'monerop.com.', 'multi-pools.com.', 'p2pool.io.', 'pool.kryptex.com.', 'pool.minexmr.com.', 'pool.monero.hashvault.pro.', 'pool.rplant.xyz.', 'pool.supportxmr.com.', 'pool.xmr.pt.', 'prohashing.com.', 'rx.unmineable.com.', 'sg.minexmr.com.', 'sg.stratum.slushpool.com.', 'skypool.org.', 'solo-xmr.2miners.com.', 'ss.antpool.com.', 'stratum-btm.antpool.com.', 'stratum-dash.antpool.com.', 'stratum-eth.antpool.com.', 'stratum-ltc.antpool.com.', 'stratum-xmc.antpool.com.', 'stratum-zec.antpool.com.', 'stratum.antpool.com.', 'supportxmr.com.', 'trustpool.cc.', 'us-east.stratum.slushpool.com.', 'us1.ethermine.org.', 'us1.ethpool.org.', 'us2.ethermine.org.', 'us2.ethpool.org.', 'web.xmrpool.eu.', 'www.domajorpool.com.', 'www.dxpool.com.', 'www.mining-dutch.nl.', 'xmc.antpool.com.', 'xmr-asia1.nanopool.org.', 'xmr-au1.nanopool.org.', 'xmr-eu1.nanopool.org.', 'xmr-eu2.nanopool.org.', 'xmr-jp1.nanopool.org.', 'xmr-us-east1.nanopool.org.', 'xmr-us-west1.nanopool.org.', 'xmr.2miners.com.', 'xmr.crypto-pool.fr.', 'xmr.gntl.uk.', 'xmr.nanopool.org.', 'xmr.pool-pay.com.', 'xmr.pool.minergate.com.', 'xmr.solopool.org.', 'xmr.volt-mine.com.', 'xmr.zeropool.io.', 'zec.antpool.com.', 'zergpool.com.', 'auto.c3pool.org.', 'us.monero.herominers.com.']
+                expression: event.name in ['2cryptocalc.com.', '2miners.com.', 'antpool.com.', 'asia1.ethpool.org.', 'bohemianpool.com.', 'botbox.dev.', 'btm.antpool.com.', 'c3pool.com.', 'c4pool.org.', 'ca.minexmr.com.', 'cn.stratum.slushpool.com.', 'dash.antpool.com.', 'data.miningpoolstats.stream.', 'de.minexmr.com.', 'eth-ar.dwarfpool.com.', 'eth-asia.dwarfpool.com.', 'eth-asia1.nanopool.org.', 'eth-au.dwarfpool.com.', 'eth-au1.nanopool.org.', 'eth-br.dwarfpool.com.', 'eth-cn.dwarfpool.com.', 'eth-cn2.dwarfpool.com.', 'eth-eu.dwarfpool.com.', 'eth-eu1.nanopool.org.', 'eth-eu2.nanopool.org.', 'eth-hk.dwarfpool.com.', 'eth-jp1.nanopool.org.', 'eth-ru.dwarfpool.com.', 'eth-ru2.dwarfpool.com.', 'eth-sg.dwarfpool.com.', 'eth-us-east1.nanopool.org.', 'eth-us-west1.nanopool.org.', 'eth-us.dwarfpool.com.', 'eth-us2.dwarfpool.com.', 'eth.antpool.com.', 'eu.stratum.slushpool.com.', 'eu1.ethermine.org.', 'eu1.ethpool.org.', 'fastpool.xyz.', 'fr.minexmr.com.', 'kriptokyng.com.', 'mine.moneropool.com.', 'mine.xmrpool.net.', 'miningmadness.com.', 'monero.cedric-crispin.com.', 'monero.crypto-pool.fr.', 'monero.fairhash.org.', 'monero.hashvault.pro.', 'monero.herominers.com.', 'monerod.org.', 'monerohash.com.', 'moneroocean.stream.', 'monerop.com.', 'multi-pools.com.', 'p2pool.io.', 'pool.kryptex.com.', 'pool.minexmr.com.', 'pool.monero.hashvault.pro.', 'pool.rplant.xyz.', 'pool.supportxmr.com.', 'pool.xmr.pt.', 'prohashing.com.', 'rx.unmineable.com.', 'sg.minexmr.com.', 'sg.stratum.slushpool.com.', 'skypool.org.', 'solo-xmr.2miners.com.', 'ss.antpool.com.', 'stratum-btm.antpool.com.', 'stratum-dash.antpool.com.', 'stratum-eth.antpool.com.', 'stratum-ltc.antpool.com.', 'stratum-xmc.antpool.com.', 'stratum-zec.antpool.com.', 'stratum.antpool.com.', 'supportxmr.com.', 'trustpool.cc.', 'us-east.stratum.slushpool.com.', 'us1.ethermine.org.', 'us1.ethpool.org.', 'us2.ethermine.org.', 'us2.ethpool.org.', 'web.xmrpool.eu.', 'www.domajorpool.com.', 'www.dxpool.com.', 'www.mining-dutch.nl.', 'xmc.antpool.com.', 'xmr-asia1.nanopool.org.', 'xmr-au1.nanopool.org.', 'xmr-eu1.nanopool.org.', 'xmr-eu2.nanopool.org.', 'xmr-jp1.nanopool.org.', 'xmr-us-east1.nanopool.org.', 'xmr-us-west1.nanopool.org.', 'xmr.2miners.com.', 'xmr.crypto-pool.fr.', 'xmr.gntl.uk.', 'xmr.nanopool.org.', 'xmr.pool-pay.com.', 'xmr.pool.minergate.com.', 'xmr.solopool.org.', 'xmr.volt-mine.com.', 'xmr.zeropool.io.', 'zec.antpool.com.', 'zergpool.com.', 'auto.c3pool.org.', 'us.monero.herominers.com.', 'xmr.kryptex.network.']
             uniqueId: event.name + '_' + event.comm
           id: R1008
           isTriggerAlert: true
@@ -11594,19 +11584,14 @@ default capabilities:
             message: '''Unexpected access to service account token: '' + event.path + '' with flags: '' + event.flags.join('','')'
             ruleExpression:
               - eventType: open
-                expression: |
-                  ((event.path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||
-                   (event.path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||
-                   (event.path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token')) ||
-                   (event.path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token'))) &&
-                  !ap.was_path_opened_with_prefix(event.containerId, '/run/secrets/kubernetes.io/serviceaccount') && !ap.was_path_opened_with_prefix(event.containerId, '/var/run/secrets/kubernetes.io/serviceaccount') && !ap.was_path_opened_with_prefix(event.containerId, '/run/secrets/eks.amazonaws.com/serviceaccount') && !ap.was_path_opened_with_prefix(event.containerId, '/var/run/secrets/eks.amazonaws.com/serviceaccount')
+                expression: "((event.path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) || \n (event.path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||\n (event.path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token')) ||\n (event.path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token'))) &&\n!ap.was_path_opened_with_suffix(event.containerId, '/token')\n"
             uniqueId: event.comm
           id: R0006
           isTriggerAlert: true
           mitreTactic: TA0006
           mitreTechnique: T1528
           name: Unexpected service account token access
-          profileDependency: 1
+          profileDependency: 0
           severity: 5
           supportPolicy: false
           tags:
@@ -11624,7 +11609,7 @@ default capabilities:
                 expression: event.pktType == 'OUTGOING' && k8s.is_api_server_address(event.dstAddr) && !nn.was_address_in_egress(event.containerId, event.dstAddr)
             uniqueId: 'eventType == ''exec'' ? ''exec_'' + event.comm : ''network_'' + event.dstAddr'
           id: R0007
-          isTriggerAlert: true
+          isTriggerAlert: false
           mitreTactic: TA0008
           mitreTechnique: T1210
           name: Workload uses Kubernetes API unexpectedly
@@ -11643,7 +11628,7 @@ default capabilities:
             ruleExpression:
               - eventType: open
                 expression: |
-                  event.path.startsWith('/proc/') && event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
+                  event.path.startsWith('/proc/') &&  event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
             uniqueId: event.comm + '_' + event.path
           id: R0008
           isTriggerAlert: true
@@ -11726,7 +11711,7 @@ default capabilities:
             ruleExpression:
               - eventType: exec
                 expression: |
-                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') || (parse.get_exec_path(event.args, event.comm).startsWith('/dev/shm/')))
+                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') ||  (parse.get_exec_path(event.args, event.comm).startsWith('/dev/shm/')))
             uniqueId: event.comm + '_' + event.exepath + '_' + event.pcomm
           id: R1000
           isTriggerAlert: true
@@ -11815,7 +11800,7 @@ default capabilities:
             ruleExpression:
               - eventType: exec
                 expression: '!ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm)) && k8s.get_container_mount_paths(event.namespace, event.podName, event.containerName).exists(mount, event.exepath.startsWith(mount) || parse.get_exec_path(event.args, event.comm).startsWith(mount))'
-            uniqueId: event.comm + '_' + event.exepath + '_'
+            uniqueId: event.comm
           id: R1004
           isTriggerAlert: true
           mitreTactic: TA0002
@@ -11854,7 +11839,7 @@ default capabilities:
             message: '''Unshare system call (unshare) was called by process ('' + event.comm + '')'''
             ruleExpression:
               - eventType: unshare
-                expression: '!ap.was_syscall_used(event.containerId, ''unshare'')'
+                expression: event.pcomm != 'runc' && !ap.was_syscall_used(event.containerId, 'unshare')
             uniqueId: event.comm + '_' + 'unshare'
           id: R1006
           isTriggerAlert: true
@@ -11896,7 +11881,7 @@ default capabilities:
             message: '''Communication with a known crypto mining domain: '' + event.name'
             ruleExpression:
               - eventType: dns
-                expression: event.name in ['2cryptocalc.com.', '2miners.com.', 'antpool.com.', 'asia1.ethpool.org.', 'bohemianpool.com.', 'botbox.dev.', 'btm.antpool.com.', 'c3pool.com.', 'c4pool.org.', 'ca.minexmr.com.', 'cn.stratum.slushpool.com.', 'dash.antpool.com.', 'data.miningpoolstats.stream.', 'de.minexmr.com.', 'eth-ar.dwarfpool.com.', 'eth-asia.dwarfpool.com.', 'eth-asia1.nanopool.org.', 'eth-au.dwarfpool.com.', 'eth-au1.nanopool.org.', 'eth-br.dwarfpool.com.', 'eth-cn.dwarfpool.com.', 'eth-cn2.dwarfpool.com.', 'eth-eu.dwarfpool.com.', 'eth-eu1.nanopool.org.', 'eth-eu2.nanopool.org.', 'eth-hk.dwarfpool.com.', 'eth-jp1.nanopool.org.', 'eth-ru.dwarfpool.com.', 'eth-ru2.dwarfpool.com.', 'eth-sg.dwarfpool.com.', 'eth-us-east1.nanopool.org.', 'eth-us-west1.nanopool.org.', 'eth-us.dwarfpool.com.', 'eth-us2.dwarfpool.com.', 'eth.antpool.com.', 'eu.stratum.slushpool.com.', 'eu1.ethermine.org.', 'eu1.ethpool.org.', 'fastpool.xyz.', 'fr.minexmr.com.', 'kriptokyng.com.', 'mine.moneropool.com.', 'mine.xmrpool.net.', 'miningmadness.com.', 'monero.cedric-crispin.com.', 'monero.crypto-pool.fr.', 'monero.fairhash.org.', 'monero.hashvault.pro.', 'monero.herominers.com.', 'monerod.org.', 'monerohash.com.', 'moneroocean.stream.', 'monerop.com.', 'multi-pools.com.', 'p2pool.io.', 'pool.kryptex.com.', 'pool.minexmr.com.', 'pool.monero.hashvault.pro.', 'pool.rplant.xyz.', 'pool.supportxmr.com.', 'pool.xmr.pt.', 'prohashing.com.', 'rx.unmineable.com.', 'sg.minexmr.com.', 'sg.stratum.slushpool.com.', 'skypool.org.', 'solo-xmr.2miners.com.', 'ss.antpool.com.', 'stratum-btm.antpool.com.', 'stratum-dash.antpool.com.', 'stratum-eth.antpool.com.', 'stratum-ltc.antpool.com.', 'stratum-xmc.antpool.com.', 'stratum-zec.antpool.com.', 'stratum.antpool.com.', 'supportxmr.com.', 'trustpool.cc.', 'us-east.stratum.slushpool.com.', 'us1.ethermine.org.', 'us1.ethpool.org.', 'us2.ethermine.org.', 'us2.ethpool.org.', 'web.xmrpool.eu.', 'www.domajorpool.com.', 'www.dxpool.com.', 'www.mining-dutch.nl.', 'xmc.antpool.com.', 'xmr-asia1.nanopool.org.', 'xmr-au1.nanopool.org.', 'xmr-eu1.nanopool.org.', 'xmr-eu2.nanopool.org.', 'xmr-jp1.nanopool.org.', 'xmr-us-east1.nanopool.org.', 'xmr-us-west1.nanopool.org.', 'xmr.2miners.com.', 'xmr.crypto-pool.fr.', 'xmr.gntl.uk.', 'xmr.nanopool.org.', 'xmr.pool-pay.com.', 'xmr.pool.minergate.com.', 'xmr.solopool.org.', 'xmr.volt-mine.com.', 'xmr.zeropool.io.', 'zec.antpool.com.', 'zergpool.com.', 'auto.c3pool.org.', 'us.monero.herominers.com.']
+                expression: event.name in ['2cryptocalc.com.', '2miners.com.', 'antpool.com.', 'asia1.ethpool.org.', 'bohemianpool.com.', 'botbox.dev.', 'btm.antpool.com.', 'c3pool.com.', 'c4pool.org.', 'ca.minexmr.com.', 'cn.stratum.slushpool.com.', 'dash.antpool.com.', 'data.miningpoolstats.stream.', 'de.minexmr.com.', 'eth-ar.dwarfpool.com.', 'eth-asia.dwarfpool.com.', 'eth-asia1.nanopool.org.', 'eth-au.dwarfpool.com.', 'eth-au1.nanopool.org.', 'eth-br.dwarfpool.com.', 'eth-cn.dwarfpool.com.', 'eth-cn2.dwarfpool.com.', 'eth-eu.dwarfpool.com.', 'eth-eu1.nanopool.org.', 'eth-eu2.nanopool.org.', 'eth-hk.dwarfpool.com.', 'eth-jp1.nanopool.org.', 'eth-ru.dwarfpool.com.', 'eth-ru2.dwarfpool.com.', 'eth-sg.dwarfpool.com.', 'eth-us-east1.nanopool.org.', 'eth-us-west1.nanopool.org.', 'eth-us.dwarfpool.com.', 'eth-us2.dwarfpool.com.', 'eth.antpool.com.', 'eu.stratum.slushpool.com.', 'eu1.ethermine.org.', 'eu1.ethpool.org.', 'fastpool.xyz.', 'fr.minexmr.com.', 'kriptokyng.com.', 'mine.moneropool.com.', 'mine.xmrpool.net.', 'miningmadness.com.', 'monero.cedric-crispin.com.', 'monero.crypto-pool.fr.', 'monero.fairhash.org.', 'monero.hashvault.pro.', 'monero.herominers.com.', 'monerod.org.', 'monerohash.com.', 'moneroocean.stream.', 'monerop.com.', 'multi-pools.com.', 'p2pool.io.', 'pool.kryptex.com.', 'pool.minexmr.com.', 'pool.monero.hashvault.pro.', 'pool.rplant.xyz.', 'pool.supportxmr.com.', 'pool.xmr.pt.', 'prohashing.com.', 'rx.unmineable.com.', 'sg.minexmr.com.', 'sg.stratum.slushpool.com.', 'skypool.org.', 'solo-xmr.2miners.com.', 'ss.antpool.com.', 'stratum-btm.antpool.com.', 'stratum-dash.antpool.com.', 'stratum-eth.antpool.com.', 'stratum-ltc.antpool.com.', 'stratum-xmc.antpool.com.', 'stratum-zec.antpool.com.', 'stratum.antpool.com.', 'supportxmr.com.', 'trustpool.cc.', 'us-east.stratum.slushpool.com.', 'us1.ethermine.org.', 'us1.ethpool.org.', 'us2.ethermine.org.', 'us2.ethpool.org.', 'web.xmrpool.eu.', 'www.domajorpool.com.', 'www.dxpool.com.', 'www.mining-dutch.nl.', 'xmc.antpool.com.', 'xmr-asia1.nanopool.org.', 'xmr-au1.nanopool.org.', 'xmr-eu1.nanopool.org.', 'xmr-eu2.nanopool.org.', 'xmr-jp1.nanopool.org.', 'xmr-us-east1.nanopool.org.', 'xmr-us-west1.nanopool.org.', 'xmr.2miners.com.', 'xmr.crypto-pool.fr.', 'xmr.gntl.uk.', 'xmr.nanopool.org.', 'xmr.pool-pay.com.', 'xmr.pool.minergate.com.', 'xmr.solopool.org.', 'xmr.volt-mine.com.', 'xmr.zeropool.io.', 'zec.antpool.com.', 'zergpool.com.', 'auto.c3pool.org.', 'us.monero.herominers.com.', 'xmr.kryptex.network.']
             uniqueId: event.name + '_' + event.comm
           id: R1008
           isTriggerAlert: true
@@ -24324,19 +24309,14 @@ multiple node agents:
             message: '''Unexpected access to service account token: '' + event.path + '' with flags: '' + event.flags.join('','')'
             ruleExpression:
               - eventType: open
-                expression: |
-                  ((event.path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||
-                   (event.path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||
-                   (event.path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token')) ||
-                   (event.path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token'))) &&
-                  !ap.was_path_opened_with_prefix(event.containerId, '/run/secrets/kubernetes.io/serviceaccount') && !ap.was_path_opened_with_prefix(event.containerId, '/var/run/secrets/kubernetes.io/serviceaccount') && !ap.was_path_opened_with_prefix(event.containerId, '/run/secrets/eks.amazonaws.com/serviceaccount') && !ap.was_path_opened_with_prefix(event.containerId, '/var/run/secrets/eks.amazonaws.com/serviceaccount')
+                expression: "((event.path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) || \n (event.path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||\n (event.path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token')) ||\n (event.path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token'))) &&\n!ap.was_path_opened_with_suffix(event.containerId, '/token')\n"
             uniqueId: event.comm
           id: R0006
           isTriggerAlert: true
           mitreTactic: TA0006
           mitreTechnique: T1528
           name: Unexpected service account token access
-          profileDependency: 1
+          profileDependency: 0
           severity: 5
           supportPolicy: false
           tags:
@@ -24354,7 +24334,7 @@ multiple node agents:
                 expression: event.pktType == 'OUTGOING' && k8s.is_api_server_address(event.dstAddr) && !nn.was_address_in_egress(event.containerId, event.dstAddr)
             uniqueId: 'eventType == ''exec'' ? ''exec_'' + event.comm : ''network_'' + event.dstAddr'
           id: R0007
-          isTriggerAlert: true
+          isTriggerAlert: false
           mitreTactic: TA0008
           mitreTechnique: T1210
           name: Workload uses Kubernetes API unexpectedly
@@ -24373,7 +24353,7 @@ multiple node agents:
             ruleExpression:
               - eventType: open
                 expression: |
-                  event.path.startsWith('/proc/') && event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
+                  event.path.startsWith('/proc/') &&  event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
             uniqueId: event.comm + '_' + event.path
           id: R0008
           isTriggerAlert: true
@@ -24456,7 +24436,7 @@ multiple node agents:
             ruleExpression:
               - eventType: exec
                 expression: |
-                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') || (parse.get_exec_path(event.args, event.comm).startsWith('/dev/shm/')))
+                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') ||  (parse.get_exec_path(event.args, event.comm).startsWith('/dev/shm/')))
             uniqueId: event.comm + '_' + event.exepath + '_' + event.pcomm
           id: R1000
           isTriggerAlert: true
@@ -24545,7 +24525,7 @@ multiple node agents:
             ruleExpression:
               - eventType: exec
                 expression: '!ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm)) && k8s.get_container_mount_paths(event.namespace, event.podName, event.containerName).exists(mount, event.exepath.startsWith(mount) || parse.get_exec_path(event.args, event.comm).startsWith(mount))'
-            uniqueId: event.comm + '_' + event.exepath + '_'
+            uniqueId: event.comm
           id: R1004
           isTriggerAlert: true
           mitreTactic: TA0002
@@ -24584,7 +24564,7 @@ multiple node agents:
             message: '''Unshare system call (unshare) was called by process ('' + event.comm + '')'''
             ruleExpression:
               - eventType: unshare
-                expression: '!ap.was_syscall_used(event.containerId, ''unshare'')'
+                expression: event.pcomm != 'runc' && !ap.was_syscall_used(event.containerId, 'unshare')
             uniqueId: event.comm + '_' + 'unshare'
           id: R1006
           isTriggerAlert: true
@@ -24626,7 +24606,7 @@ multiple node agents:
             message: '''Communication with a known crypto mining domain: '' + event.name'
             ruleExpression:
               - eventType: dns
-                expression: event.name in ['2cryptocalc.com.', '2miners.com.', 'antpool.com.', 'asia1.ethpool.org.', 'bohemianpool.com.', 'botbox.dev.', 'btm.antpool.com.', 'c3pool.com.', 'c4pool.org.', 'ca.minexmr.com.', 'cn.stratum.slushpool.com.', 'dash.antpool.com.', 'data.miningpoolstats.stream.', 'de.minexmr.com.', 'eth-ar.dwarfpool.com.', 'eth-asia.dwarfpool.com.', 'eth-asia1.nanopool.org.', 'eth-au.dwarfpool.com.', 'eth-au1.nanopool.org.', 'eth-br.dwarfpool.com.', 'eth-cn.dwarfpool.com.', 'eth-cn2.dwarfpool.com.', 'eth-eu.dwarfpool.com.', 'eth-eu1.nanopool.org.', 'eth-eu2.nanopool.org.', 'eth-hk.dwarfpool.com.', 'eth-jp1.nanopool.org.', 'eth-ru.dwarfpool.com.', 'eth-ru2.dwarfpool.com.', 'eth-sg.dwarfpool.com.', 'eth-us-east1.nanopool.org.', 'eth-us-west1.nanopool.org.', 'eth-us.dwarfpool.com.', 'eth-us2.dwarfpool.com.', 'eth.antpool.com.', 'eu.stratum.slushpool.com.', 'eu1.ethermine.org.', 'eu1.ethpool.org.', 'fastpool.xyz.', 'fr.minexmr.com.', 'kriptokyng.com.', 'mine.moneropool.com.', 'mine.xmrpool.net.', 'miningmadness.com.', 'monero.cedric-crispin.com.', 'monero.crypto-pool.fr.', 'monero.fairhash.org.', 'monero.hashvault.pro.', 'monero.herominers.com.', 'monerod.org.', 'monerohash.com.', 'moneroocean.stream.', 'monerop.com.', 'multi-pools.com.', 'p2pool.io.', 'pool.kryptex.com.', 'pool.minexmr.com.', 'pool.monero.hashvault.pro.', 'pool.rplant.xyz.', 'pool.supportxmr.com.', 'pool.xmr.pt.', 'prohashing.com.', 'rx.unmineable.com.', 'sg.minexmr.com.', 'sg.stratum.slushpool.com.', 'skypool.org.', 'solo-xmr.2miners.com.', 'ss.antpool.com.', 'stratum-btm.antpool.com.', 'stratum-dash.antpool.com.', 'stratum-eth.antpool.com.', 'stratum-ltc.antpool.com.', 'stratum-xmc.antpool.com.', 'stratum-zec.antpool.com.', 'stratum.antpool.com.', 'supportxmr.com.', 'trustpool.cc.', 'us-east.stratum.slushpool.com.', 'us1.ethermine.org.', 'us1.ethpool.org.', 'us2.ethermine.org.', 'us2.ethpool.org.', 'web.xmrpool.eu.', 'www.domajorpool.com.', 'www.dxpool.com.', 'www.mining-dutch.nl.', 'xmc.antpool.com.', 'xmr-asia1.nanopool.org.', 'xmr-au1.nanopool.org.', 'xmr-eu1.nanopool.org.', 'xmr-eu2.nanopool.org.', 'xmr-jp1.nanopool.org.', 'xmr-us-east1.nanopool.org.', 'xmr-us-west1.nanopool.org.', 'xmr.2miners.com.', 'xmr.crypto-pool.fr.', 'xmr.gntl.uk.', 'xmr.nanopool.org.', 'xmr.pool-pay.com.', 'xmr.pool.minergate.com.', 'xmr.solopool.org.', 'xmr.volt-mine.com.', 'xmr.zeropool.io.', 'zec.antpool.com.', 'zergpool.com.', 'auto.c3pool.org.', 'us.monero.herominers.com.']
+                expression: event.name in ['2cryptocalc.com.', '2miners.com.', 'antpool.com.', 'asia1.ethpool.org.', 'bohemianpool.com.', 'botbox.dev.', 'btm.antpool.com.', 'c3pool.com.', 'c4pool.org.', 'ca.minexmr.com.', 'cn.stratum.slushpool.com.', 'dash.antpool.com.', 'data.miningpoolstats.stream.', 'de.minexmr.com.', 'eth-ar.dwarfpool.com.', 'eth-asia.dwarfpool.com.', 'eth-asia1.nanopool.org.', 'eth-au.dwarfpool.com.', 'eth-au1.nanopool.org.', 'eth-br.dwarfpool.com.', 'eth-cn.dwarfpool.com.', 'eth-cn2.dwarfpool.com.', 'eth-eu.dwarfpool.com.', 'eth-eu1.nanopool.org.', 'eth-eu2.nanopool.org.', 'eth-hk.dwarfpool.com.', 'eth-jp1.nanopool.org.', 'eth-ru.dwarfpool.com.', 'eth-ru2.dwarfpool.com.', 'eth-sg.dwarfpool.com.', 'eth-us-east1.nanopool.org.', 'eth-us-west1.nanopool.org.', 'eth-us.dwarfpool.com.', 'eth-us2.dwarfpool.com.', 'eth.antpool.com.', 'eu.stratum.slushpool.com.', 'eu1.ethermine.org.', 'eu1.ethpool.org.', 'fastpool.xyz.', 'fr.minexmr.com.', 'kriptokyng.com.', 'mine.moneropool.com.', 'mine.xmrpool.net.', 'miningmadness.com.', 'monero.cedric-crispin.com.', 'monero.crypto-pool.fr.', 'monero.fairhash.org.', 'monero.hashvault.pro.', 'monero.herominers.com.', 'monerod.org.', 'monerohash.com.', 'moneroocean.stream.', 'monerop.com.', 'multi-pools.com.', 'p2pool.io.', 'pool.kryptex.com.', 'pool.minexmr.com.', 'pool.monero.hashvault.pro.', 'pool.rplant.xyz.', 'pool.supportxmr.com.', 'pool.xmr.pt.', 'prohashing.com.', 'rx.unmineable.com.', 'sg.minexmr.com.', 'sg.stratum.slushpool.com.', 'skypool.org.', 'solo-xmr.2miners.com.', 'ss.antpool.com.', 'stratum-btm.antpool.com.', 'stratum-dash.antpool.com.', 'stratum-eth.antpool.com.', 'stratum-ltc.antpool.com.', 'stratum-xmc.antpool.com.', 'stratum-zec.antpool.com.', 'stratum.antpool.com.', 'supportxmr.com.', 'trustpool.cc.', 'us-east.stratum.slushpool.com.', 'us1.ethermine.org.', 'us1.ethpool.org.', 'us2.ethermine.org.', 'us2.ethpool.org.', 'web.xmrpool.eu.', 'www.domajorpool.com.', 'www.dxpool.com.', 'www.mining-dutch.nl.', 'xmc.antpool.com.', 'xmr-asia1.nanopool.org.', 'xmr-au1.nanopool.org.', 'xmr-eu1.nanopool.org.', 'xmr-eu2.nanopool.org.', 'xmr-jp1.nanopool.org.', 'xmr-us-east1.nanopool.org.', 'xmr-us-west1.nanopool.org.', 'xmr.2miners.com.', 'xmr.crypto-pool.fr.', 'xmr.gntl.uk.', 'xmr.nanopool.org.', 'xmr.pool-pay.com.', 'xmr.pool.minergate.com.', 'xmr.solopool.org.', 'xmr.volt-mine.com.', 'xmr.zeropool.io.', 'zec.antpool.com.', 'zergpool.com.', 'auto.c3pool.org.', 'us.monero.herominers.com.', 'xmr.kryptex.network.']
             uniqueId: event.name + '_' + event.comm
           id: R1008
           isTriggerAlert: true
