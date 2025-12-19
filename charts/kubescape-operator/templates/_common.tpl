@@ -71,9 +71,9 @@ nodeAgent:
    (eq .Values.capabilities.seccompProfileService "enable")
   }}
 operator:
-  enabled: true
+  enabled: {{ eq .Values.capabilities.operator "enable" }}
 otelCollector:
-  enabled: {{ and $configurations.ksOtel (not $configurations.otel) }}
+  enabled: {{ and (empty .Values.otelCollector.disable) (or $configurations.ksOtel $configurations.otel) }}
 serviceDiscovery:
   enabled: {{ $configurations.submit }}
 storage:
