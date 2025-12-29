@@ -155,6 +155,12 @@ spec:
               mountPath: /etc/config/config.json
               readOnly: true
               subPath: "config.json"
+            {{- if .Values.nodeAgent.autoscaler.enabled }}
+            - name: node-agent-template
+              mountPath: /etc/templates/daemonset-template.yaml
+              readOnly: true
+              subPath: "daemonset-template.yaml"
+            {{- end }}
             {{- if .Values.global.overrideDefaultCaCertificates.enabled }}
             - name: custom-ca-certificates
               mountPath: /etc/ssl/certs/ca-certificates.crt
@@ -233,6 +239,14 @@ spec:
             items:
               - key: "matchingRules.json"
                 path: "matchingRules.json"
+        {{- if .Values.nodeAgent.autoscaler.enabled }}
+        - name: node-agent-template
+          configMap:
+            name: node-agent-daemonset-template
+            items:
+              - key: "daemonset-template.yaml"
+                path: "daemonset-template.yaml"
+        {{- end }}
 {{- if .Values.volumes }}
 {{ toYaml .Values.volumes | indent 8 }}
 {{- end }}
