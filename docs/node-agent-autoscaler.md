@@ -72,9 +72,10 @@ The autoscaler runs a reconciliation loop at a configurable interval (default: 5
    - Find the smallest allocatable CPU and memory among nodes in the group
    - Calculate resource requests/limits using configured percentages
    - Clamp values to configured min/max bounds
-4. **Compare with existing DaemonSets**:
+   - Render the DaemonSet from the template
+4. **Sync with cluster state**:
    - Create new DaemonSets for new node groups
-   - Update existing DaemonSets if resources changed
+   - Update existing DaemonSets (Kubernetes handles idempotency - pods only restart if spec actually changed)
    - Delete orphaned DaemonSets for removed node groups
 
 ## Configuration
@@ -253,6 +254,30 @@ kubectl get daemonset -n kubescape node-agent-<node-group> -o jsonpath='{.spec.t
    kubectl get nodes -l node.kubernetes.io/instance-type=<expected-value>
    ```
 
+### Template Changes Not Applied
+
+1. **Verify template ConfigMap was updated**:
+   ```bash
+   kubectl get configmap -n kubescape node-agent-daemonset-template -o yaml | head -50
+   ```
+
+2. **Check if template watcher detected the change** (look for "template file changed" or "template reloaded"):
+   ```bash
+   kubectl logs -n kubescape -l app=operator | grep -i template
+   ```
+
+3. **Force immediate reconciliation** by restarting the operator:
+   ```bash
+   kubectl rollout restart deployment/operator -n kubescape
+   ```
+
+### Events Not Appearing
+
+The autoscaler only emits events for Create and Delete operations (not Updates). Check RBAC permissions if Create/Delete events are missing:
+```bash
+kubectl auth can-i create events --as=system:serviceaccount:kubescape:operator -n kubescape
+```
+
 ## Migration from Static DaemonSet
 
 To migrate from a static `node-agent` DaemonSet to the autoscaler:
@@ -327,10 +352,12 @@ annotations:
 
 **Problem**: Difficult to understand why the autoscaler made certain decisions.
 
-**Solution**: The autoscaler emits Kubernetes events on DaemonSet create, update, and delete operations. View events with:
+**Solution**: The autoscaler emits Kubernetes events on DaemonSet create and delete operations. View events with:
 ```bash
-kubectl get events -n kubescape --field-selector reason=Created,reason=Updated,reason=Deleted
+kubectl get events -n kubescape --field-selector reason=Created,reason=Deleted
 ```
+
+Note: Update events are not emitted because the autoscaler uses an idempotent update strategy (see below).
 
 ### Pre-existing Resource Protection
 
@@ -346,13 +373,33 @@ kubectl get events -n kubescape --field-selector reason=Created,reason=Updated,r
 
 **Important Implementation Note**: The ConfigMap is mounted as a directory (not using `subPath`). This is critical because [Kubernetes does not update files mounted with `subPath`](https://kubernetes.io/docs/concepts/configuration/configmap/#mounted-configmaps-are-updated-automatically). When mounted as a directory, Kubernetes atomically swaps symlinks when the ConfigMap changes, which `fsnotify` detects.
 
+### Idempotent Update Strategy
+
+**Problem**: Comparing DaemonSet specs field-by-field is error-prone. Kubernetes adds default values to specs, making deep equality checks unreliable. Missing a field comparison (like annotations) could cause template changes to be silently ignored.
+
+**Solution**: The autoscaler always calls `Update()` on existing DaemonSets and lets Kubernetes handle idempotency. This approach:
+- **Simplifies code**: No complex field-by-field comparison logic to maintain
+- **Catches all changes**: Any template modification is automatically applied
+- **Safe**: Kubernetes only restarts pods if the `PodTemplateSpec` actually changes
+- **Low overhead**: For a component that changes only a few times per year (during Helm upgrades), the extra API calls are negligible
+
 ## Limitations
 
 1. **Single label grouping**: Nodes are grouped by a single label. Complex node selection (multiple labels) is not supported.
 
 2. **Uniform nodes per group**: The autoscaler assumes all nodes with the same label value have similar allocatable resources. The smallest values in the group are used for safety.
 
-3. **No vertical pod autoscaling**: Resources are recalculated only when the reconciliation loop runs, not in response to actual pod resource usage.
+3. **No vertical pod autoscaling**: Resources are recalculated only when the reconciliation loop runs (default: every 5 minutes), not in response to actual pod resource usage.
+
+4. **No update events**: Because the autoscaler uses an idempotent update strategy (always calling Update), it cannot distinguish between "no change" and "change applied". Only Create and Delete events are emitted.
+
+5. **Reconciliation interval latency**: Changes to node groups (new instance types, node additions/removals) are detected at the next reconciliation cycle, not immediately. Adjust `reconcileInterval` if faster detection is needed.
+
+6. **Template changes require reconciliation**: After a Helm upgrade updates the template ConfigMap, changes are applied at the next reconciliation cycle (up to 5 minutes by default). Restart the operator pod for immediate application.
+
+7. **Owner reference scope**: The garbage collection owner reference ties DaemonSets to the operator Deployment. If only the operator is deleted (not via `helm uninstall`), DaemonSets are still cleaned up, which may not always be desired.
+
+8. **No cross-namespace support**: The autoscaler only manages DaemonSets in the same namespace as the operator (typically `kubescape`).
 
 ## Related Documentation
 
