@@ -292,6 +292,60 @@ kubectl get configmap -n kubescape node-agent-daemonset-template -o yaml
 
 This template is mounted into the operator pod and used to render DaemonSets with dynamic values.
 
+## Design Considerations
+
+### ArgoCD / GitOps Compatibility
+
+**Problem**: ArgoCD tracks desired state from Git. Operator-created DaemonSets are not in Git, which can cause ArgoCD to show "OutOfSync" status or prune these resources.
+
+**Solution**: All autoscaler-managed DaemonSets include ArgoCD annotations:
+```yaml
+annotations:
+  argocd.argoproj.io/compare-options: IgnoreExtraneous
+  argocd.argoproj.io/sync-options: Prune=false
+```
+
+### Resource Lifecycle and Cleanup
+
+**Problem**: `helm uninstall` could leave orphaned DaemonSets in the cluster.
+
+**Solution**: All managed DaemonSets have the operator Deployment set as their owner reference. Kubernetes garbage collector automatically deletes owned DaemonSets when the operator is removed.
+
+### Singleton Operator
+
+**Problem**: Multiple operator instances could reconcile simultaneously, causing conflicts.
+
+**Solution**: The operator Deployment is configured with `replicas: 1` and a rolling update strategy (`maxSurge: 0%, maxUnavailable: 100%`) ensuring only one instance runs at any time.
+
+### Naming Collision Detection
+
+**Problem**: Different label values could sanitize to the same DaemonSet name (e.g., `m5.large` and `m5_large` both become `m5-large`).
+
+**Solution**: The autoscaler detects sanitized name collisions and appends a short hash suffix to disambiguate (e.g., `m5-large-a1b2c3`).
+
+### Observability
+
+**Problem**: Difficult to understand why the autoscaler made certain decisions.
+
+**Solution**: The autoscaler emits Kubernetes events on DaemonSet create, update, and delete operations. View events with:
+```bash
+kubectl get events -n kubescape --field-selector reason=Created,reason=Updated,reason=Deleted
+```
+
+### Pre-existing Resource Protection
+
+**Problem**: A DaemonSet with the same name might already exist (created manually or by another tool), and the autoscaler could accidentally overwrite it.
+
+**Solution**: Before updating an existing DaemonSet, the autoscaler checks if it has the `kubescape.io/managed-by: operator-autoscaler` label. If the label is missing or has a different value, the autoscaler skips that DaemonSet and logs a warning.
+
+### Template Auto-Reload
+
+**Problem**: When the Helm chart is upgraded with a new DaemonSet template, the operator would need to be restarted to pick up changes.
+
+**Solution**: The autoscaler watches the template file (mounted from ConfigMap) for changes using `fsnotify`. When the ConfigMap is updated during a Helm upgrade, Kubernetes updates the mounted file, and the autoscaler automatically reloads the template without requiring a restart.
+
+**Important Implementation Note**: The ConfigMap is mounted as a directory (not using `subPath`). This is critical because [Kubernetes does not update files mounted with `subPath`](https://kubernetes.io/docs/concepts/configuration/configmap/#mounted-configmaps-are-updated-automatically). When mounted as a directory, Kubernetes atomically swaps symlinks when the ConfigMap changes, which `fsnotify` detects.
+
 ## Limitations
 
 1. **Single label grouping**: Nodes are grouped by a single label. Complex node selection (multiple labels) is not supported.
