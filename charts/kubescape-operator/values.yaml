@@ -564,6 +564,10 @@ nodeAgent:
       ruleCooldownAfterCount: 1
       ruleCooldownOnProfileFailure: true
       ruleCooldownMaxSize: 20000
+    # Host sensor configuration
+    hostSensor:
+      enabled: true
+      interval: 5m # duration string
 
   # GKE Autopilot allowlist
   gke:
@@ -638,6 +642,9 @@ nodeAgent:
     - mountPath: /clamav
       name: clamrun
       # readOnly: false # EmptyDir volume
+    - mountPath: /host_fs
+      name: host-filesystem
+      readOnly: true
 
   volumes:
     - hostPath:
@@ -671,6 +678,10 @@ nodeAgent:
       name: data
     - emptyDir:
       name: profiles
+    - hostPath:
+        path: /
+        type: Directory
+      name: host-filesystem
 
   affinity:
     nodeAffinity:
