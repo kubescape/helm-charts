@@ -29,7 +29,28 @@ data:
         "Namespace": "{{ .Values.ksNamespace }}"
       },
         {{- end }}
-      "httpExporterConfig": {{- .Values.nodeAgent.config.httpExporterConfig | toJson }}
+      "httpExporterConfig": {{- .Values.nodeAgent.config.httpExporterConfig | toJson }},
+      "nodeAgentAutoscaler": {
+        "enabled": {{ .Values.nodeAgent.autoscaler.enabled }},
+        "nodeGroupLabel": "{{ .Values.nodeAgent.autoscaler.nodeGroupLabel }}",
+        "resourcePercentages": {
+          "requestCPU": {{ .Values.nodeAgent.autoscaler.resourcePercentages.requestCPU }},
+          "requestMemory": {{ .Values.nodeAgent.autoscaler.resourcePercentages.requestMemory }},
+          "limitCPU": {{ .Values.nodeAgent.autoscaler.resourcePercentages.limitCPU }},
+          "limitMemory": {{ .Values.nodeAgent.autoscaler.resourcePercentages.limitMemory }}
+        },
+        "minResources": {
+          "cpu": "{{ .Values.nodeAgent.autoscaler.minResources.cpu }}",
+          "memory": "{{ .Values.nodeAgent.autoscaler.minResources.memory }}"
+        },
+        "maxResources": {
+          "cpu": "{{ .Values.nodeAgent.autoscaler.maxResources.cpu }}",
+          "memory": "{{ .Values.nodeAgent.autoscaler.maxResources.memory }}"
+        },
+        "reconcileInterval": "{{ .Values.nodeAgent.autoscaler.reconcileInterval }}",
+        "templatePath": "/etc/templates/daemonset-template.yaml",
+        "operatorDeploymentName": "{{ .Values.operator.name }}"
+      }
         {{- if and .Values.imageScanning.privateRegistries.credentials (gt (len .Values.imageScanning.privateRegistries.credentials) 0) }}
         {{- $cred := index .Values.imageScanning.privateRegistries.credentials 0 }}
         {{- if $cred.skipTlsVerify }},

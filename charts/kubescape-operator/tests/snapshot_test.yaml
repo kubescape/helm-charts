@@ -59,13 +59,13 @@ tests:
         networkEventsStreaming: enable
         syncSBOM: enable
       excludeLabels:
-        foo: [ bar, baz ]
-        baz: [ qux ]
+        foo: [bar, baz]
+        baz: [qux]
       server: api.armosec.io
       configurations:
         otelUrl: "otelCollector.svc.monitoring:4317"
         excludeJsonPaths:
-          - ".containers[*].env[?(@.name==\"KUBECONFIG\")]"
+          - '.containers[*].env[?(@.name=="KUBECONFIG")]'
       clusterName: kind-kind
       includeNamespaces: "my-namespace"
       global:
@@ -136,7 +136,7 @@ tests:
       server: api.armosec.io
   - it: relevancy only
     asserts:
-      - matchSnapshot: { }
+      - matchSnapshot: {}
     capabilities:
       majorVersion: 1
       minorVersion: 29
@@ -328,13 +328,13 @@ tests:
         networkEventsStreaming: enable
         syncSBOM: enable
       excludeLabels:
-        foo: [ bar, baz ]
-        baz: [ qux ]
+        foo: [bar, baz]
+        baz: [qux]
       server: api.armosec.io
       configurations:
         otelUrl: "otelCollector.svc.monitoring:4317"
         excludeJsonPaths:
-          - ".containers[*].env[?(@.name==\"KUBECONFIG\")]"
+          - '.containers[*].env[?(@.name=="KUBECONFIG")]'
       clusterName: kind-kind
       includeNamespaces: "my-namespace"
       global:
@@ -398,3 +398,27 @@ tests:
       storage.mtls.enabled: false
       prometheusExporter:
         enableWorkloadMetrics: true
+  - it: backend-storage enabled disables scanning capabilities
+    asserts:
+      - matchSnapshot: {}
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      account: 9e6c0c2c-6bd0-4919-815b-55030de7c9a0
+      accessKey: f304d73b-d43c-412b-82ea-e4c859493ce6
+      alertCRD:
+        installDefault: true
+      capabilities:
+        backend-storage: enable
+        configurationScan: enable
+        nodeScan: enable
+        vulnerabilityScan: enable
+        relevancy: enable
+        runtimeObservability: enable
+        networkPolicyService: enable
+        nodeProfileService: enable
+      server: api.armosec.io
+      clusterName: kind-kind
+      excludeNamespaces: "kubescape,kube-system,kube-public,kube-node-lease"
