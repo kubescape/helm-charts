@@ -1,0 +1,44 @@
+{{- $checksums := fromYaml (include "checksums" .) }}
+{{- $components := fromYaml (include "components" .) }}
+{{- if and $components.nodeAgent.enabled .Values.nodeAgent.autoscaler.enabled }}
+{{- $no_proxy_envar_list := (include "no_proxy_envar_list" .) -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: node-agent-daemonset-template
+  namespace: {{ .Values.ksNamespace }}
+  annotations:
+    {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
+  labels:
+    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.nodeAgent.name "tier" .Values.global.namespaceTier) | nindent 4 }}
+    kubescape.io/tier: "core"
+data:
+  daemonset-template.yaml: |
+    apiVersion: apps/v1
+    kind: DaemonSet
+    metadata:
+      name: "{{`{{ .Name }}`}}"
+      namespace: {{ .Values.ksNamespace }}
+      annotations:
+        {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 8 }}
+      labels:
+        {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.nodeAgent.name "tier" .Values.global.namespaceTier) | nindent 8 }}
+        kubescape.io/tier: "core"
+        kubescape.io/managed-by: operator-autoscaler
+        kubescape.io/node-group: "{{`{{ .NodeGroupLabel }}`}}"
+    spec:
+      {{- include "node-agent.daemonsetSpec" (dict
+        "Values" .Values
+        "Chart" .Chart
+        "Release" .Release
+        "Capabilities" .Capabilities
+        "components" $components
+        "checksums" $checksums
+        "no_proxy_envar_list" $no_proxy_envar_list
+        "autoscalerMode" true
+        "testingMode" false
+        "resources" nil
+        "nodeSelector" nil
+        "includeClamAV" false
+      ) | nindent 6 }}
+{{- end }}
