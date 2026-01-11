@@ -422,3 +422,94 @@ tests:
       server: api.armosec.io
       clusterName: kind-kind
       excludeNamespaces: "kubescape,kube-system,kube-public,kube-node-lease"
+  - it: skipPersistence enabled
+    asserts:
+      - matchSnapshot: {}
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      account: 9e6c0c2c-6bd0-4919-815b-55030de7c9a0
+      accessKey: f304d73b-d43c-412b-82ea-e4c859493ce6
+      alertCRD:
+        installDefault: true
+      cloudProviderMetadata:
+        secretRef:
+          name: kubescape-secret
+          subscriptionIdKey: aksSubscriptionID
+          clientIdKey: aksClientID
+          clientSecretKey: aksClientSecret
+          tenantIdKey: aksTenantID
+          resourceGroupKey: aksResourceGroup
+      capabilities:
+        configurationScan: enable
+        continuousScan: enable
+        nodeScan: enable
+        vulnerabilityScan: enable
+        relevancy: enable
+        vexGeneration: enable
+        runtimeObservability: enable
+        networkPolicyService: enable
+        runtimeDetection: enable
+        httpDetection: enable
+        malwareDetection: enable
+        nodeProfileService: enable
+        nodeSbomGeneration: enable
+        scanEmbeddedSBOMs: enable
+        seccompProfileService: enable
+        autoUpgrading: enable
+        prometheusExporter: enable
+        admissionController: enable
+        manageWorkloads: enable
+        networkEventsStreaming: enable
+        syncSBOM: enable
+      excludeLabels:
+        foo: [bar, baz]
+        baz: [qux]
+      server: api.armosec.io
+      configurations:
+        otelUrl: "otelCollector.svc.monitoring:4317"
+        excludeJsonPaths:
+          - '.containers[*].env[?(@.name=="KUBECONFIG")]'
+      clusterName: kind-kind
+      includeNamespaces: "my-namespace"
+      global:
+        httpsProxy: "https://foo:bar@baz:1234"
+        noProxy: "*.foo,bar.baz"
+        networkPolicy:
+          createEgressRules: true
+          enabled: true
+          apiServerPort: 443
+          httpsProxyIP: 1.1.1.1
+          httpsProxyPort: 1234
+        proxySecretFile: foo
+        overrideDefaultCaCertificates:
+          enabled: true
+          caCertificates: "foo"
+        openshift:
+          scc:
+            enabled: true
+      imagePullSecrets: [foo, bar]
+      grypeOfflineDB:
+        enabled: true
+        image:
+          tag: "latest"
+        podAnnotations:
+          foo: bar
+        podLabels:
+          bar: baz
+      nodeAgent.gke.allowlist:
+        enabled: true
+        name: armo-kubescape-node-agent-1.27
+      kubescape.serviceMonitor.enabled: true
+      kubescape.serviceMonitor.skipPersistence: true
+      kubescapeScheduler.scanSchedule: "1 2 3 4 5"
+      kubevuln.config.grypeDbPersistence: true
+      kubevuln.config.useDefaultMatchers: true
+      kubevulnScheduler.scanSchedule: "1 2 3 4 5"
+      nodeAgent.config.skipKernelVersionCheck: true
+      storage.forceVirtualCrds: true
+      storage.mtls.enabled: false
+      prometheusExporter:
+        enableWorkloadMetrics: true
