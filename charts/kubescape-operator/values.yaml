@@ -319,7 +319,7 @@ operator:
   image:
     # -- source code: https://github.com/kubescape/operator
     repository: quay.io/kubescape/operator
-    tag: v0.2.119
+    tag: v0.2.121
     pullPolicy: IfNotPresent
 
   nodeSelector:
@@ -703,6 +703,29 @@ nodeAgent:
     #       memory: 1400Mi
     #
     # uncomment when enabled and add more configurations as needed
+
+  # Node agent autoscaler - dynamically creates and sizes DaemonSets based on node groups
+  autoscaler:
+    # -- enable/disable autoscaler mode
+    enabled: false
+    # -- node label used to group nodes (each unique value creates a separate DaemonSet)
+    nodeGroupLabel: "node.kubernetes.io/instance-type"
+    # -- resource percentages relative to node allocatable resources
+    resourcePercentages:
+      requestCPU: 2      # % of node allocatable CPU for requests
+      requestMemory: 2   # % of node allocatable memory for requests
+      limitCPU: 5        # % of node allocatable CPU for limits
+      limitMemory: 5     # % of node allocatable memory for limits
+    # -- minimum resources regardless of node size
+    minResources:
+      cpu: 100m
+      memory: 180Mi
+    # -- maximum resources regardless of node size
+    maxResources:
+      cpu: 2000m
+      memory: 4Gi
+    # -- interval for reconciliation loop
+    reconcileInterval: 5m
 
 # +++++++++++++++++++++++++++++++ ClamAV ++++++++++++++++++++++++++++++++++++++++++++++++
 clamav:
