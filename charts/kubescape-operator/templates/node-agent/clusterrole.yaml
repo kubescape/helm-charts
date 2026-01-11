@@ -25,8 +25,17 @@ rules:
   resources: ["deployments", "daemonsets", "statefulsets", "replicasets"]
   verbs: ["get", "watch", "list"]
 - apiGroups: ["spdx.softwarecomposition.kubescape.io"]
-  resources: ["applicationprofiles", "networkneighborhoods", "seccompprofiles"]
+  resources: ["applicationprofiles", "networkneighborhoods"]
   verbs: ["get", "watch", "list"]
+{{- if eq .Values.capabilities.seccompProfileBackend "crd" }}
+- apiGroups: ["kubescape.io"]
+  resources: ["seccompprofiles"]
+  verbs: ["get", "watch", "list"]
+{{- else }}
+- apiGroups: ["spdx.softwarecomposition.kubescape.io"]
+  resources: ["seccompprofiles"]
+  verbs: ["get", "watch", "list"]
+{{- end }}
 - apiGroups: ["spdx.softwarecomposition.kubescape.io"]
   resources: ["containerprofiles", "sbomsyfts"]
   verbs: ["create", "get", "update", "watch", "list", "patch"]
