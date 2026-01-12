@@ -110,7 +110,7 @@ helm upgrade --install kubescape kubescape/kubescape-operator \
 | `nodeAgent.autoscaler.resourcePercentages.limitCPU` | CPU limit as % of node allocatable | `5` |
 | `nodeAgent.autoscaler.resourcePercentages.limitMemory` | Memory limit as % of node allocatable | `5` |
 | `nodeAgent.autoscaler.minResources.cpu` | Minimum CPU request/limit | `100m` |
-| `nodeAgent.autoscaler.minResources.memory` | Minimum memory request/limit | `180Mi` |
+| `nodeAgent.autoscaler.minResources.memory` | Minimum memory request/limit | `180Mi` (bumped to `600Mi` when `capabilities.nodeSbomGeneration` is enabled) |
 | `nodeAgent.autoscaler.maxResources.cpu` | Maximum CPU request/limit | `2000m` |
 | `nodeAgent.autoscaler.maxResources.memory` | Maximum memory request/limit | `4Gi` |
 | `nodeAgent.autoscaler.reconcileInterval` | How often to reconcile | `5m` |
