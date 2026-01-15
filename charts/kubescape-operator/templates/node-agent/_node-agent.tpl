@@ -251,7 +251,7 @@ Parameters:
 {{- define "node-agent.initContainers" -}}
 {{- if .Values.nodeAgent.startupJitterContainer.enabled }}
 - name: startup-jitter
-  image: {{ printf "%s:%s" .Values.nodeAgent.startupJitterContainer.image.repository .Values.nodeAgent.startupJitterContainer.image.tag | default "busybox:latest" }}
+  image: {{ .Values.nodeAgent.startupJitterContainer.image.repository | default "busybox" }}:{{ .Values.nodeAgent.startupJitterContainer.image.tag | default "latest" }}
   command:
   - /bin/sh
   - -c
