@@ -60,9 +60,15 @@ rules:
     verbs: [ "get", "watch", "list"]
 {{- end }}
 {{- if eq .Values.capabilities.manageWorkloads "enable" }}
+  {{- if eq .Values.capabilities.seccompProfileBackend "crd" }}
+  - apiGroups: ["kubescape.io"]
+    resources: ["seccompprofiles"]
+    verbs: ["get", "watch", "list", "create", "update", "patch"]
+  {{- else }}
   - apiGroups: ["spdx.softwarecomposition.kubescape.io"]
     resources: ["seccompprofiles"]
     verbs: ["get", "watch", "list", "create", "update", "patch"]
+  {{- end }}
   - apiGroups: ["networking.k8s.io"]
     resources: ["networkpolicies"]
     verbs: ["create", "update", "patch"]

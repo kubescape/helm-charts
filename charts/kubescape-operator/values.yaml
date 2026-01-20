@@ -114,6 +114,8 @@ capabilities:
   admissionController: enable
   httpDetection: enable
   seccompProfileService: enable
+  # Storage backend for SeccompProfile resources: "crd" (Kubernetes CRD) or "storage" (aggregated API)
+  seccompProfileBackend: crd
   manageWorkloads: disable
   syncSBOM: disable
 
@@ -297,6 +299,9 @@ kubescape:
     interval: 200s
     scrapeTimeout: 150s
 
+    # Whether to skip persisting the data after scanning
+    skipPersistence: false
+
     # If needed the service monitor can be deployed to a different namespace than the one kubescape is in
     #namespace: my-namespace
 
@@ -319,7 +324,7 @@ operator:
   image:
     # -- source code: https://github.com/kubescape/operator
     repository: quay.io/kubescape/operator
-    tag: v0.2.119
+    tag: v0.2.121
     pullPolicy: IfNotPresent
 
   nodeSelector:
@@ -437,7 +442,7 @@ storage:
   image:
     # -- source code: https://github.com/kubescape/storage
     repository: quay.io/kubescape/storage
-    tag: v0.0.233
+    tag: v0.0.237
     pullPolicy: IfNotPresent
 
   nodeSelector:
@@ -501,7 +506,7 @@ nodeAgent:
   image:
     # -- source code: https://github.com/kubescape/node-agent
     repository: quay.io/kubescape/node-agent
-    tag: v0.3.3
+    tag: v0.3.17
     pullPolicy: IfNotPresent
 
   config:
@@ -662,6 +667,9 @@ nodeAgent:
   startupJitterContainer:
     enabled: false
     maxStartupJitter: 60
+    image:
+      repository: busybox
+      tag: latest
 
   multipleDaemonSets:
     enabled: false # set to true to enable multiple DaemonSets for the node-agent, with different configurations.
@@ -693,6 +701,7 @@ nodeAgent:
     # -- minimum resources regardless of node size
     minResources:
       cpu: 100m
+      # Note: when `capabilities.nodeSbomGeneration` is enabled, this minimum memory will be bumped to 600Mi (unless changed)
       memory: 180Mi
     # -- maximum resources regardless of node size
     maxResources:

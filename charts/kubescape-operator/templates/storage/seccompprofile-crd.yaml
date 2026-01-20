@@ -1,0 +1,318 @@
+{{- if eq .Values.capabilities.seccompProfileBackend "crd" }}
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: seccompprofiles.kubescape.io
+  annotations:
+    {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
+  labels:
+    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" "seccompprofile" "tier" .Values.global.namespaceTier) | nindent 4 }}
+spec:
+  group: kubescape.io
+  names:
+    plural: seccompprofiles
+    singular: seccompprofile
+    kind: SeccompProfile
+    listKind: SeccompProfileList
+    shortNames:
+      - scp
+  scope: Namespaced
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              type: object
+              properties:
+                containers:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        description: "Name of the container"
+                      path:
+                        type: string
+                        description: "Path to the seccomp profile"
+                      spec:
+                        type: object
+                        x-kubernetes-preserve-unknown-fields: true
+                        properties:
+                          disabled:
+                            type: boolean
+                            description: "Whether the profile is disabled"
+                          baseProfileName:
+                            type: string
+                            description: "Name of base profile to union into this profile"
+                          defaultAction:
+                            type: string
+                            description: "The default action for seccomp"
+                          architectures:
+                            type: array
+                            items:
+                              type: string
+                            description: "The architecture used for system calls"
+                          listenerPath:
+                            type: string
+                            description: "Path of UNIX domain socket to contact a seccomp agent"
+                          listenerMetadata:
+                            type: string
+                            description: "Opaque data to pass to the seccomp agent"
+                          syscalls:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                names:
+                                  type: array
+                                  items:
+                                    type: string
+                                  description: "The names of the syscalls"
+                                action:
+                                  type: string
+                                  description: "The action for seccomp rules"
+                                errnoRet:
+                                  type: integer
+                                  format: int64
+                                  description: "The errno return code to use"
+                                args:
+                                  type: array
+                                  items:
+                                    type: object
+                                    properties:
+                                      index:
+                                        type: integer
+                                        format: int64
+                                        description: "The index for syscall arguments"
+                                      value:
+                                        type: integer
+                                        format: int64
+                                        description: "The value for syscall arguments"
+                                      valueTwo:
+                                        type: integer
+                                        format: int64
+                                        description: "The second value for syscall arguments"
+                                      op:
+                                        type: string
+                                        description: "The operator for syscall arguments"
+                          flags:
+                            type: array
+                            items:
+                              type: string
+                            description: "List of flags to use with seccomp(2)"
+                initContainers:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        description: "Name of the init container"
+                      path:
+                        type: string
+                        description: "Path to the seccomp profile"
+                      spec:
+                        type: object
+                        x-kubernetes-preserve-unknown-fields: true
+                        properties:
+                          disabled:
+                            type: boolean
+                            description: "Whether the profile is disabled"
+                          baseProfileName:
+                            type: string
+                            description: "Name of base profile to union into this profile"
+                          defaultAction:
+                            type: string
+                            description: "The default action for seccomp"
+                          architectures:
+                            type: array
+                            items:
+                              type: string
+                            description: "The architecture used for system calls"
+                          listenerPath:
+                            type: string
+                            description: "Path of UNIX domain socket to contact a seccomp agent"
+                          listenerMetadata:
+                            type: string
+                            description: "Opaque data to pass to the seccomp agent"
+                          syscalls:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                names:
+                                  type: array
+                                  items:
+                                    type: string
+                                  description: "The names of the syscalls"
+                                action:
+                                  type: string
+                                  description: "The action for seccomp rules"
+                                errnoRet:
+                                  type: integer
+                                  format: int64
+                                  description: "The errno return code to use"
+                                args:
+                                  type: array
+                                  items:
+                                    type: object
+                                    properties:
+                                      index:
+                                        type: integer
+                                        format: int64
+                                        description: "The index for syscall arguments"
+                                      value:
+                                        type: integer
+                                        format: int64
+                                        description: "The value for syscall arguments"
+                                      valueTwo:
+                                        type: integer
+                                        format: int64
+                                        description: "The second value for syscall arguments"
+                                      op:
+                                        type: string
+                                        description: "The operator for syscall arguments"
+                          flags:
+                            type: array
+                            items:
+                              type: string
+                            description: "List of flags to use with seccomp(2)"
+                ephemeralContainers:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        description: "Name of the ephemeral container"
+                      path:
+                        type: string
+                        description: "Path to the seccomp profile"
+                      spec:
+                        type: object
+                        x-kubernetes-preserve-unknown-fields: true
+                        properties:
+                          disabled:
+                            type: boolean
+                            description: "Whether the profile is disabled"
+                          baseProfileName:
+                            type: string
+                            description: "Name of base profile to union into this profile"
+                          defaultAction:
+                            type: string
+                            description: "The default action for seccomp"
+                          architectures:
+                            type: array
+                            items:
+                              type: string
+                            description: "The architecture used for system calls"
+                          listenerPath:
+                            type: string
+                            description: "Path of UNIX domain socket to contact a seccomp agent"
+                          listenerMetadata:
+                            type: string
+                            description: "Opaque data to pass to the seccomp agent"
+                          syscalls:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                names:
+                                  type: array
+                                  items:
+                                    type: string
+                                  description: "The names of the syscalls"
+                                action:
+                                  type: string
+                                  description: "The action for seccomp rules"
+                                errnoRet:
+                                  type: integer
+                                  format: int64
+                                  description: "The errno return code to use"
+                                args:
+                                  type: array
+                                  items:
+                                    type: object
+                                    properties:
+                                      index:
+                                        type: integer
+                                        format: int64
+                                        description: "The index for syscall arguments"
+                                      value:
+                                        type: integer
+                                        format: int64
+                                        description: "The value for syscall arguments"
+                                      valueTwo:
+                                        type: integer
+                                        format: int64
+                                        description: "The second value for syscall arguments"
+                                      op:
+                                        type: string
+                                        description: "The operator for syscall arguments"
+                          flags:
+                            type: array
+                            items:
+                              type: string
+                            description: "List of flags to use with seccomp(2)"
+            status:
+              type: object
+              properties:
+                containers:
+                  type: object
+                  additionalProperties:
+                    type: object
+                    properties:
+                      conditions:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            type:
+                              type: string
+                              description: "Type of this condition"
+                            status:
+                              type: string
+                              description: "Status of this condition (True, False, Unknown)"
+                            lastTransitionTime:
+                              type: string
+                              format: date-time
+                              description: "Last time this condition transitioned"
+                            reason:
+                              type: string
+                              description: "Reason for this condition's last transition"
+                            message:
+                              type: string
+                              description: "Message about this condition's last transition"
+                      status:
+                        type: string
+                        description: "Profile state"
+                      path:
+                        type: string
+                        description: "Path to the seccomp profile"
+                      activeWorkloads:
+                        type: array
+                        items:
+                          type: string
+                        description: "Active workloads using this profile"
+                      localhostProfile:
+                        type: string
+                        description: "Path for securityContext.seccompProfile.localhostProfile"
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+{{- end }}
+
