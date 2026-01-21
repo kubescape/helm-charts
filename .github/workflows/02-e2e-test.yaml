@@ -168,8 +168,16 @@ jobs:
                 echo ""
                 echo "Fetching failed job logs..."
                 echo "----------------------------------------------"
-                gh run view "$run_id" --repo "$DISPATCH_REPO" --log-failed 2>/dev/null || \
-                  echo "Could not fetch logs automatically"
+                
+                # Fetch logs and filter to show:
+                # - Test progress (start, setup, Test Run ID)
+                # - Traceback and errors
+                # - Test status and failures
+                gh run view "$run_id" --repo "$DISPATCH_REPO" --log-failed 2>/dev/null | \
+                  grep -E "(Traceback|File \"|AssertionError|ERROR|FAILURE|Exception|failed|Error:|INFO.*start:|INFO.*setup:|INFO.*Test Run ID|INFO.*test_driver)" | \
+                  grep -v "UNKNOWN STEP" | \
+                  head -150 || echo "Could not fetch logs automatically"
+                
                 echo "----------------------------------------------"
                 echo ""
                 echo "::error::E2E tests failed with conclusion: ${conclusion}"
