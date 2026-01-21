@@ -22,9 +22,14 @@ jobs:
   dispatch-e2e-tests:
     runs-on: ubuntu-latest
     steps:
-      - name: Set dispatch start time
-        id: dispatch-start
-        run: echo "start_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> "$GITHUB_OUTPUT"
+      - name: Set dispatch info
+        id: dispatch-info
+        run: |
+          echo "start_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> "$GITHUB_OUTPUT"
+          # Create unique correlation ID: repo-runId-attempt
+          CORRELATION_ID="${GITHUB_REPOSITORY##*/}-${{ github.run_id }}-${{ github.run_attempt }}"
+          echo "correlation_id=${CORRELATION_ID}" >> "$GITHUB_OUTPUT"
+          echo "Correlation ID: ${CORRELATION_ID}"
 
       - name: Generate GitHub App token
         id: app-token
@@ -40,6 +45,7 @@ jobs:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           DISPATCH_REPO: armosec/shared-workflows
           DISPATCH_EVENT: e2e-test-trigger
+          CORRELATION_ID: ${{ steps.dispatch-info.outputs.correlation_id }}
           ENVIRONMENT: production
           TESTS_GROUPS: HELM_CHARTS_E2E_KUBESCAPE
           SYSTESTS_BRANCH: ${{ inputs.TESTS_BRANCH }}
@@ -52,6 +58,7 @@ jobs:
           {
             "event_type": "${DISPATCH_EVENT}",
             "client_payload": {
+              "correlation_id": "${CORRELATION_ID}",
               "github_repository": "${GITHUB_REPOSITORY}",
               "environment": "${ENVIRONMENT}",
               "tests_groups": "${TESTS_GROUPS}",
@@ -65,6 +72,8 @@ jobs:
           JSON
           )
 
+          echo "Dispatching to ${DISPATCH_REPO} with correlation_id: ${CORRELATION_ID}"
+          
           curl -L -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${GH_TOKEN}" \
@@ -76,51 +85,106 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           DISPATCH_REPO: armosec/shared-workflows
-          START_TIME: ${{ steps.dispatch-start.outputs.start_time }}
-          MAX_WAIT_SECONDS: 5400
-          POLL_SECONDS: 20
+          CORRELATION_ID: ${{ steps.dispatch-info.outputs.correlation_id }}
+          START_TIME: ${{ steps.dispatch-info.outputs.start_time }}
+          MAX_WAIT_SECONDS: 3600  # 1 hour max
         run: |
           set -euo pipefail
-          echo "Looking for repository_dispatch run in ${DISPATCH_REPO} after ${START_TIME}"
+          
+          echo "=============================================="
+          echo "Waiting for E2E tests to complete"
+          echo "Correlation ID: ${CORRELATION_ID}"
+          echo "Start time: ${START_TIME}"
+          echo "=============================================="
 
           deadline=$(( $(date +%s) + MAX_WAIT_SECONDS ))
           run_id=""
+          
+          # ──────────────────────────────────────────────────
+          # Phase 1: Find the workflow run
+          # Uses backoff: 10s, 15s, 20s, 30s, 30s, then 60s
+          # ──────────────────────────────────────────────────
+          echo ""
+          echo "Phase 1: Looking for workflow run..."
+          
+          wait_times=(10 15 20 30 30 60 60 60 60 60)
+          attempt=0
+          
           while [ $(date +%s) -lt $deadline ]; do
-            run_id=$(gh api "repos/${DISPATCH_REPO}/actions/runs?event=repository_dispatch&per_page=20" \
-              --jq '.workflow_runs | map(select(.created_at >= "'"$START_TIME"'")) | sort_by(.created_at) | last | .id // empty')
+            # Search for run with our correlation_id in the name
+            run_id=$(gh api "repos/${DISPATCH_REPO}/actions/runs?event=repository_dispatch&per_page=30" \
+              --jq '.workflow_runs | map(select(.name | contains("'"$CORRELATION_ID"'"))) | first | .id // empty' 2>/dev/null || echo "")
+            
             if [ -n "$run_id" ]; then
+              echo "Found run id: $run_id"
               break
             fi
-            echo "No run found yet, sleeping..."
-            sleep "$POLL_SECONDS"
+            
+            # Get wait time (use 60s after predefined times exhausted)
+            sleep_time=${wait_times[$attempt]:-60}
+            echo "   Attempt $((attempt+1)): No run found yet, waiting ${sleep_time}s..."
+            sleep "$sleep_time"
+            ((attempt++))
+            
+            # Safety: give up finding after 10 minutes
+            if [ $attempt -gt 15 ]; then
+              echo "::error::Could not find workflow run after 15 attempts"
+              exit 1
+            fi
           done
 
           if [ -z "$run_id" ]; then
-            echo "Timed out waiting for workflow run to start."
+            echo "::error::Timed out waiting for workflow run to start"
             exit 1
           fi
 
-          echo "Found run id: $run_id"
+          # Get run URL for reference
+          html_url=$(gh api "repos/${DISPATCH_REPO}/actions/runs/${run_id}" --jq '.html_url')
+          echo ""
+          echo "Run URL: ${html_url}"
+          echo ""
+          
+          # ──────────────────────────────────────────────────
+          # Phase 2: Wait for completion
+          # Poll every 60s - for 15-min test: ~15 API calls
+          # ──────────────────────────────────────────────────
+          echo "Phase 2: Monitoring workflow status (polling every 60s)..."
+          echo ""
+          
           while [ $(date +%s) -lt $deadline ]; do
-            status=$(gh api "repos/${DISPATCH_REPO}/actions/runs/${run_id}" --jq '.status')
-            conclusion=$(gh api "repos/${DISPATCH_REPO}/actions/runs/${run_id}" --jq '.conclusion // "null"')
-            html_url=$(gh api "repos/${DISPATCH_REPO}/actions/runs/${run_id}" --jq '.html_url')
-            echo "Run status: ${status}, conclusion: ${conclusion}"
-            echo "Run URL: ${html_url}"
+            run_data=$(gh api "repos/${DISPATCH_REPO}/actions/runs/${run_id}" 2>/dev/null || echo "{}")
+            status=$(echo "$run_data" | jq -r '.status // "unknown"')
+            conclusion=$(echo "$run_data" | jq -r '.conclusion // "null"')
+            
+            echo "   Status: ${status} | Conclusion: ${conclusion}"
 
             if [ "$status" = "completed" ]; then
-              echo "Shared workflow completed. Streaming logs..."
-              gh run view "$run_id" --repo "$DISPATCH_REPO" --log
+              echo ""
+              echo "=============================================="
+              echo "Workflow completed with conclusion: ${conclusion}"
+              echo "=============================================="
+              
               if [ "$conclusion" != "success" ]; then
-                echo "Shared workflow failed with conclusion: ${conclusion}"
+                echo ""
+                echo "Fetching failed job logs..."
+                echo "----------------------------------------------"
+                gh run view "$run_id" --repo "$DISPATCH_REPO" --log-failed 2>/dev/null || \
+                  echo "Could not fetch logs automatically"
+                echo "----------------------------------------------"
+                echo ""
+                echo "::error::E2E tests failed with conclusion: ${conclusion}"
+                echo "Full logs: ${html_url}"
                 exit 1
               fi
-              echo "Shared workflow succeeded."
+              
+              echo ""
+              echo "E2E tests passed successfully!"
               exit 0
             fi
 
-            sleep "$POLL_SECONDS"
+            sleep 60
           done
 
-          echo "Timed out waiting for workflow run to complete."
+          echo "::error::Timed out waiting for workflow to complete"
+          echo "Check status: ${html_url}"
           exit 1
