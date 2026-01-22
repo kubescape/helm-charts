@@ -18,173 +18,121 @@ on:
         type: string
         description: 'kubescape branch name'
 
+  workflow_call:
+    inputs:
+      BRANCH:
+        required: false
+        default: 'main'
+        type: string
+        description: 'helm chart branch name'
+      TESTS_BRANCH:
+        required: false
+        default: 'master'
+        type: string
+        description: 'tests branch name'
+      KS_BRANCH:
+        required: false
+        default: 'release'
+        type: string
+        description: 'kubescape branch name'
+
 jobs:
-  dispatch-e2e-tests:
+  e2e-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        test: [
+              relevant_data_is_appended,
+              relevantCVEs,
+              relevancy_disabled_installation,
+              relevancy_storage_disabled,
+              relevancy_enabled_stop_sniffing,
+              relevancy_large_image,
+              relevancy_fix_vuln,
+              relevancy_python,
+              relevancy_golang,
+              relevancy_java,
+              relevancy_java_and_python,
+              relevancy_golang_dynamic,
+              test_registry_scanning,
+              vuln_scan_triggering_with_cron_job,
+              ks_microservice_cronjob,
+              ks_microservice_on_demand,
+              scan_compliance_score,
+#              network_policy,
+#              network_policy_data_appended,
+#              network_policy_pod_restarted,
+              network_policy_multiple_replicas,
+              network_policy_known_servers,
+              synchronizer,
+              synchronizer_reconciliation,
+              proxy_integration_test
+            ]
+
     runs-on: ubuntu-latest
     steps:
-      - name: Set dispatch info
-        id: dispatch-info
-        run: |
-          echo "start_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> "$GITHUB_OUTPUT"
-          # Create unique correlation ID: repo-runId-attempt
-          CORRELATION_ID="${GITHUB_REPOSITORY##*/}-${{ github.run_id }}-${{ github.run_attempt }}"
-          echo "correlation_id=${CORRELATION_ID}" >> "$GITHUB_OUTPUT"
-          echo "Correlation ID: ${CORRELATION_ID}"
 
-      - name: Generate GitHub App token
-        id: app-token
-        uses: actions/create-github-app-token@v1
+      # - name: echo GitHub var - dev
+      #   id: github_context_step
+      #   run: echo '${{ toJSON(github) }}'
+
+      - name: Checkout systests repo
+        uses: actions/checkout@v3
         with:
-          app-id: ${{ secrets.E2E_DISPATCH_APP_ID }}
-          private-key: ${{ secrets.E2E_DISPATCH_APP_PRIVATE_KEY }}
-          owner: armosec
-          repositories: shared-workflows
+          repository: armosec/system-tests
+          ref: ${{ inputs.TESTS_BRANCH }}
+          path: .
 
-      - name: Dispatch Helm E2E to private repo
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          DISPATCH_REPO: armosec/shared-workflows
-          DISPATCH_EVENT: e2e-test-trigger
-          CORRELATION_ID: ${{ steps.dispatch-info.outputs.correlation_id }}
-          ENVIRONMENT: production
-          TESTS_GROUPS: HELM_CHARTS_E2E_KUBESCAPE
-          SYSTESTS_BRANCH: ${{ inputs.TESTS_BRANCH }}
-          IN_CLUSTER_CHART_BRANCH: ${{ inputs.BRANCH }}
-          KS_BRANCH: ${{ inputs.KS_BRANCH }}
-          CHARTS_NAME: kubescape-operator
-          CHARTS_REPO: ${{ github.repository }}
+      - uses: actions/setup-python@v4
+        name: installing python 3.9
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+
+      - name: create env
+        run: ./create_env.sh
+
+      - name: Generate uuid
+        id: uuid
         run: |
-          payload=$(cat <<JSON
-          {
-            "event_type": "${DISPATCH_EVENT}",
-            "client_payload": {
-              "correlation_id": "${CORRELATION_ID}",
-              "github_repository": "${GITHUB_REPOSITORY}",
-              "environment": "${ENVIRONMENT}",
-              "tests_groups": "${TESTS_GROUPS}",
-              "systests_branch": "${SYSTESTS_BRANCH}",
-              "in_cluster_chart_branch": "${IN_CLUSTER_CHART_BRANCH}",
-              "ks_branch": "${KS_BRANCH}",
-              "charts_name": "${CHARTS_NAME}",
-              "charts_repo": "${CHARTS_REPO}"
-            }
-          }
-          JSON
-          )
+          echo "RANDOM_UUID=systests-$(uuidgen)" >> $GITHUB_OUTPUT
 
-          echo "Dispatching to ${DISPATCH_REPO} with correlation_id: ${CORRELATION_ID}"
-          
-          curl -L -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${GH_TOKEN}" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${DISPATCH_REPO}/dispatches" \
-            -d "$payload"
+      - name: Create k8s Kind Cluster
+        id: kind-cluster-install
+        uses: helm/kind-action@v1.10.0
+        with:
+          cluster_name: ${{ steps.uuid.outputs.RANDOM_UUID }}
 
-      - name: Wait for shared-workflows run and stream logs
+      - name: run-tests
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          DISPATCH_REPO: armosec/shared-workflows
-          CORRELATION_ID: ${{ steps.dispatch-info.outputs.correlation_id }}
-          START_TIME: ${{ steps.dispatch-info.outputs.start_time }}
-          MAX_WAIT_SECONDS: 3600  # 1 hour max
+          CUSTOMER: ${{ secrets.CUSTOMER }}
+          USERNAME: ${{ secrets.USERNAME }}
+          PASSWORD: ${{ secrets.PASSWORD }}
+          CLIENT_ID: ${{ secrets.CLIENT_ID_PROD }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY_PROD }}
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+          QUAY_REGISTRY_ACCESS_TOKEN: "${{ secrets.QUAY_REGISTRY_ACCESS_TOKEN }}"
+          AZURE_REGISTRY_ACCESS_TOKEN: "${{ secrets.AZURE_REGISTRY_ACCESS_TOKEN }}"
+          AWS_REGISTRY_SECRET_KEY: "${{ secrets.AWS_REGISTRY_SECRET_KEY }}"
+          GOOGLE_REGISTRY_KEY: "${{ secrets.GOOGLE_REGISTRY_KEY }}"
         run: |
-          set -euo pipefail
-          
-          echo "=============================================="
-          echo "Waiting for E2E tests to complete"
-          echo "Correlation ID: ${CORRELATION_ID}"
-          echo "Start time: ${START_TIME}"
-          echo "=============================================="
+          echo "Test history:"
+          echo " ${{ matrix.test }} " >/tmp/testhistory
+          cat /tmp/testhistory
+          source systests_python_env/bin/activate
 
-          deadline=$(( $(date +%s) + MAX_WAIT_SECONDS ))
-          run_id=""
-          
-          # ──────────────────────────────────────────────────
-          # Phase 1: Find the workflow run
-          # Uses backoff: 10s, 15s, 20s, 30s, 30s, then 60s
-          # ──────────────────────────────────────────────────
-          echo ""
-          echo "Phase 1: Looking for workflow run..."
-          
-          wait_times=(10 15 20 30 30 60 60 60 60 60)
-          attempt=0
-          
-          while [ $(date +%s) -lt $deadline ]; do
-            # Search for run with our correlation_id in the name
-            run_id=$(gh api "repos/${DISPATCH_REPO}/actions/runs?event=repository_dispatch&per_page=30" \
-              --jq '.workflow_runs | map(select(.name | contains("'"$CORRELATION_ID"'"))) | first | .id // empty' 2>/dev/null || echo "")
-            
-            if [ -n "$run_id" ]; then
-              echo "Found run id: $run_id"
-              break
-            fi
-            
-            # Get wait time (use 60s after predefined times exhausted)
-            sleep_time=${wait_times[$attempt]:-60}
-            echo "   Attempt $((attempt+1)): No run found yet, waiting ${sleep_time}s..."
-            sleep "$sleep_time"
-            attempt=$((attempt + 1))
-            
-            # Safety: give up finding after 10 minutes
-            if [ $attempt -gt 15 ]; then
-              echo "::error::Could not find workflow run after 15 attempts"
-              exit 1
-            fi
-          done
+          python3 systest-cli.py  \
+          -t ${{ matrix.test }}   \
+          -b production           \
+          -c CyberArmorTests      \
+          --logger DEBUG          \
+          --kwargs helm_branch=${{ inputs.BRANCH }} ks_branch=${{ inputs.KS_BRANCH }}
 
-          if [ -z "$run_id" ]; then
-            echo "::error::Timed out waiting for workflow run to start"
-            exit 1
-          fi
+          deactivate
 
-          # Get run URL for reference
-          html_url=$(gh api "repos/${DISPATCH_REPO}/actions/runs/${run_id}" --jq '.html_url')
-          echo ""
-          echo "Run URL: ${html_url}"
-          echo ""
-          
-          # ──────────────────────────────────────────────────
-          # Phase 2: Wait for completion
-          # Poll every 60s - for 15-min test: ~15 API calls
-          # ──────────────────────────────────────────────────
-          echo "Phase 2: Monitoring workflow status (polling every 60s)..."
-          echo ""
-          
-          while [ $(date +%s) -lt $deadline ]; do
-            run_data=$(gh api "repos/${DISPATCH_REPO}/actions/runs/${run_id}" 2>/dev/null || echo "{}")
-            status=$(echo "$run_data" | jq -r '.status // "unknown"')
-            conclusion=$(echo "$run_data" | jq -r '.conclusion // "null"')
-            
-            echo "   Status: ${status} | Conclusion: ${conclusion}"
-
-            if [ "$status" = "completed" ]; then
-              echo ""
-              echo "=============================================="
-              echo "Workflow completed with conclusion: ${conclusion}"
-              echo "=============================================="
-              
-              if [ "$conclusion" != "success" ]; then
-                echo ""
-                echo "Fetching failed job logs..."
-                echo "----------------------------------------------"
-                gh run view "$run_id" --repo "$DISPATCH_REPO" --log-failed 2>/dev/null || \
-                  echo "Could not fetch logs automatically"
-                echo "----------------------------------------------"
-                echo ""
-                echo "::error::E2E tests failed with conclusion: ${conclusion}"
-                echo "Full logs: ${html_url}"
-                exit 1
-              fi
-              
-              echo ""
-              echo "E2E tests passed successfully!"
-              exit 0
-            fi
-
-            sleep 60
-          done
-
-          echo "::error::Timed out waiting for workflow to complete"
-          echo "Check status: ${html_url}"
-          exit 1
+      - name: Test Report
+        uses: mikepenz/action-junit-report@v3
+        if: always() # always run even if the previous step fails
+        with:
+          report_paths: '**/results_xml_format/**.xml'
