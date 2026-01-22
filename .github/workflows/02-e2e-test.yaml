@@ -41,6 +41,7 @@ jobs:
           repositories: shared-workflows
 
       - name: Dispatch Helm E2E to private repo
+        if: ${{ github.run_attempt == 1 }}
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           DISPATCH_REPO: armosec/shared-workflows
@@ -73,7 +74,7 @@ jobs:
           )
 
           echo "Dispatching to ${DISPATCH_REPO} with correlation_id: ${CORRELATION_ID}"
-          
+
           curl -L -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${GH_TOKEN}" \
@@ -81,6 +82,20 @@ jobs:
             "https://api.github.com/repos/${DISPATCH_REPO}/dispatches" \
             -d "$payload"
 
+      # TODO: split run_id extraction logic here, output it for next steps      
+      - name: Determine E2E Run ID      
+        id: determine-run-id
+        run: "..."
+      
+      # TODO: gh api call for rerunning failed jobs only (how do we do this?)
+      - name: Re-run Failed Tests
+        if: ${{ github.run_attempt > 1 }}
+        run: |
+          gh api ...
+
+      # TODO: 
+      # 1 - split run_id extraction logic for determine-run-id step from above
+      # 2 - figure out how to extract logs from a specific run attempt in case we are rerunning
       - name: Wait for shared-workflows run and stream logs
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
@@ -90,7 +105,7 @@ jobs:
           MAX_WAIT_SECONDS: 3600  # 1 hour max
         run: |
           set -euo pipefail
-          
+
           echo "=============================================="
           echo "Waiting for E2E tests to complete"
           echo "Correlation ID: ${CORRELATION_ID}"
@@ -99,33 +114,33 @@ jobs:
 
           deadline=$(( $(date +%s) + MAX_WAIT_SECONDS ))
           run_id=""
-          
+
           # ──────────────────────────────────────────────────
           # Phase 1: Find the workflow run
           # Uses backoff: 10s, 15s, 20s, 30s, 30s, then 60s
           # ──────────────────────────────────────────────────
           echo ""
           echo "Phase 1: Looking for workflow run..."
-          
+
           wait_times=(10 15 20 30 30 60 60 60 60 60)
           attempt=0
-          
+
           while [ $(date +%s) -lt $deadline ]; do
             # Search for run with our correlation_id in the name
             run_id=$(gh api "repos/${DISPATCH_REPO}/actions/runs?event=repository_dispatch&per_page=30" \
               --jq '.workflow_runs | map(select(.name | contains("'"$CORRELATION_ID"'"))) | first | .id // empty' 2>/dev/null || echo "")
-            
+
             if [ -n "$run_id" ]; then
               echo "Found run id: $run_id"
               break
             fi
-            
+
             # Get wait time (use 60s after predefined times exhausted)
             sleep_time=${wait_times[$attempt]:-60}
             echo "   Attempt $((attempt+1)): No run found yet, waiting ${sleep_time}s..."
             sleep "$sleep_time"
             attempt=$((attempt + 1))
-            
+
             # Safety: give up finding after 10 minutes
             if [ $attempt -gt 15 ]; then
               echo "::error::Could not find workflow run after 15 attempts"
@@ -143,19 +158,19 @@ jobs:
           echo ""
           echo "Run URL: ${html_url}"
           echo ""
-          
+
           # ──────────────────────────────────────────────────
           # Phase 2: Wait for completion
           # Poll every 60s - for 15-min test: ~15 API calls
           # ──────────────────────────────────────────────────
           echo "Phase 2: Monitoring workflow status (polling every 60s)..."
           echo ""
-          
+
           while [ $(date +%s) -lt $deadline ]; do
             run_data=$(gh api "repos/${DISPATCH_REPO}/actions/runs/${run_id}" 2>/dev/null || echo "{}")
             status=$(echo "$run_data" | jq -r '.status // "unknown"')
             conclusion=$(echo "$run_data" | jq -r '.conclusion // "null"')
-            
+
             echo "   Status: ${status} | Conclusion: ${conclusion}"
 
             if [ "$status" = "completed" ]; then
@@ -163,12 +178,12 @@ jobs:
               echo "=============================================="
               echo "Workflow completed with conclusion: ${conclusion}"
               echo "=============================================="
-              
+
               if [ "$conclusion" != "success" ]; then
                 echo ""
                 echo "Fetching failed job logs..."
                 echo "----------------------------------------------"
-                
+
                 # Fetch logs and filter to show:
                 # - Test progress (start, setup, Test Run ID)
                 # - Traceback and errors
@@ -177,14 +192,14 @@ jobs:
                   grep -E "(Traceback|File \"|AssertionError|ERROR|FAILURE|Exception|failed|Error:|INFO.*start:|INFO.*setup:|INFO.*Test Run ID|INFO.*test_driver)" | \
                   grep -v "UNKNOWN STEP" | \
                   head -150 || echo "Could not fetch logs automatically"
-                
+
                 echo "----------------------------------------------"
                 echo ""
                 echo "::error::E2E tests failed with conclusion: ${conclusion}"
                 echo "Full logs: ${html_url}"
                 exit 1
               fi
-              
+
               echo ""
               echo "E2E tests passed successfully!"
               exit 0
