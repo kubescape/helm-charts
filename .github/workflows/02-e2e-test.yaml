@@ -109,6 +109,7 @@ jobs:
           done
 
       - name: Wait for E2E tests to complete
+        id: wait-for-e2e-tests
         if: ${{ steps.rerun.outputs.skip != 'true' }}
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
@@ -130,9 +131,34 @@ jobs:
               fi
               
               echo "::error::E2E tests failed: ${conclusion}"
-              echo "Logs: ${URL}"
-              gh run view "$RUN_ID" --repo "armosec/shared-workflows" --log-failed 2>/dev/null | \
-                grep -E "(Traceback|ERROR|FAILURE|Exception|AssertionError)" | head -100 || true
+              echo ""
+              
+              # Create log file
+              > failed_step_logs.txt
+              
+              # Loop through all failed jobs and show errors (using process substitution)
+              while IFS=$'\t' read -r job_id job_name step_name; do
+                echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                echo "${job_name}"
+                echo "   Step: ${step_name}"
+                echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                gh api "repos/armosec/shared-workflows/actions/jobs/${job_id}/logs" 2>/dev/null | \
+                  grep -E "(ERROR|FAILURE)" | tail -10§§
+                echo ""
+                
+                # Save full failed step log to file
+                echo "════════════════════════════════════════" >> failed_step_logs.txt
+                echo "${job_name}" >> failed_step_logs.txt
+                echo "   Step: ${step_name}" >> failed_step_logs.txt
+                echo "════════════════════════════════════════" >> failed_step_logs.txt
+                logs=$(gh api "repos/armosec/shared-workflows/actions/jobs/${job_id}/logs" 2>/dev/null)
+                last_endgroup=$(echo "$logs" | grep -n "##\[endgroup\]" | tail -1 | cut -d: -f1)
+                echo "$logs" | tail -n +$((last_endgroup + 1)) >> failed_step_logs.txt
+                echo "" >> failed_step_logs.txt
+              done < <(gh api "repos/armosec/shared-workflows/actions/runs/${RUN_ID}/jobs" \
+                --jq '.jobs[] | select(.conclusion == "failure") | [.id, .name, (.steps[] | select(.conclusion == "failure") | .name)] | @tsv')
+              
+              echo "View full logs: ${URL}"
               exit 1
             fi
             
@@ -141,3 +167,11 @@ jobs:
           
           echo "::error::Timeout waiting for tests"
           exit 1
+
+      - name: Upload failed step logs
+        if: ${{ steps.wait-for-e2e-tests.outputs.conclusion != 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed-e2e-logs
+          path: failed_step_logs.txt
+          retention-days: 7
