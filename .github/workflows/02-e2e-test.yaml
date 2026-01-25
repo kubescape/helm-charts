@@ -109,7 +109,6 @@ jobs:
           done
 
       - name: Wait for E2E tests to complete
-        id: wait-for-e2e-tests
         if: ${{ steps.rerun.outputs.skip != 'true' }}
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
@@ -133,30 +132,39 @@ jobs:
               echo "::error::E2E tests failed: ${conclusion}"
               echo ""
               
-              # Create log file
+              # Get failed job IDs to a file first
+              gh api "repos/armosec/shared-workflows/actions/runs/${RUN_ID}/jobs" \
+                --jq '.jobs[] | select(.conclusion == "failure") | [.id, .name, (.steps[] | select(.conclusion == "failure") | .name)] | @tsv' > /tmp/failed_jobs.txt
+              
               > failed_step_logs.txt
               
-              # Loop through all failed jobs and show errors (using process substitution)
+              # Process each failed job
               while IFS=$'\t' read -r job_id job_name step_name; do
                 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                 echo "${job_name}"
                 echo "   Step: ${step_name}"
                 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                gh api "repos/armosec/shared-workflows/actions/jobs/${job_id}/logs" 2>/dev/null | \
-                  grep -E "(ERROR|FAILURE)" | tail -10§§
+                
+                # Fetch logs to temp file
+                gh api "repos/armosec/shared-workflows/actions/jobs/${job_id}/logs" 2>/dev/null > /tmp/job_logs.txt
+                
+                # Show summary in console
+                grep -E "(ERROR|FAILURE)" /tmp/job_logs.txt | tail -10
                 echo ""
                 
-                # Save full failed step log to file
+                # Save full failed step log to artifact file
                 echo "════════════════════════════════════════" >> failed_step_logs.txt
                 echo "${job_name}" >> failed_step_logs.txt
                 echo "   Step: ${step_name}" >> failed_step_logs.txt
                 echo "════════════════════════════════════════" >> failed_step_logs.txt
-                logs=$(gh api "repos/armosec/shared-workflows/actions/jobs/${job_id}/logs" 2>/dev/null)
-                last_endgroup=$(echo "$logs" | grep -n "##\[endgroup\]" | tail -1 | cut -d: -f1)
-                echo "$logs" | tail -n +$((last_endgroup + 1)) >> failed_step_logs.txt
+                last_endgroup=$(grep -n "##\[endgroup\]" /tmp/job_logs.txt | tail -1 | cut -d: -f1)
+                if [ -n "$last_endgroup" ]; then
+                  tail -n +$((last_endgroup + 1)) /tmp/job_logs.txt >> failed_step_logs.txt
+                else
+                  tail -500 /tmp/job_logs.txt >> failed_step_logs.txt
+                fi
                 echo "" >> failed_step_logs.txt
-              done < <(gh api "repos/armosec/shared-workflows/actions/runs/${RUN_ID}/jobs" \
-                --jq '.jobs[] | select(.conclusion == "failure") | [.id, .name, (.steps[] | select(.conclusion == "failure") | .name)] | @tsv')
+              done < /tmp/failed_jobs.txt
               
               echo "View full logs: ${URL}"
               exit 1
