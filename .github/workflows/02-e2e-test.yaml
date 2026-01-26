@@ -136,10 +136,11 @@ jobs:
               gh api "repos/armosec/shared-workflows/actions/runs/${RUN_ID}/jobs" \
                 --jq '.jobs[] | select(.conclusion == "failure") | [.id, .name, (.steps[] | select(.conclusion == "failure") | .name)] | @tsv' > /tmp/failed_jobs.txt
               
-              > failed_step_logs.txt
-              
               # Process each failed job
               while IFS=$'\t' read -r job_id job_name step_name; do
+                # Extract test name: "run-helm-e2e / ST (relevancy_python)" → "relevancy_python"
+                test_name=$(echo "$job_name" | sed 's/.*(\(.*\))/\1/')
+                
                 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                 echo "${job_name}"
                 echo "   Step: ${step_name}"
@@ -152,18 +153,18 @@ jobs:
                 grep -E "(ERROR|FAILURE)" /tmp/job_logs.txt | tail -10
                 echo ""
                 
-                # Save full failed step log to artifact file
-                echo "════════════════════════════════════════" >> failed_step_logs.txt
-                echo "${job_name}" >> failed_step_logs.txt
-                echo "   Step: ${step_name}" >> failed_step_logs.txt
-                echo "════════════════════════════════════════" >> failed_step_logs.txt
+                # Save to separate file per test
+                log_file="failed_${test_name}.txt"
+                echo "════════════════════════════════════════" > "$log_file"
+                echo "${job_name}" >> "$log_file"
+                echo "   Step: ${step_name}" >> "$log_file"
+                echo "════════════════════════════════════════" >> "$log_file"
                 last_endgroup=$(grep -n "##\[endgroup\]" /tmp/job_logs.txt | tail -1 | cut -d: -f1)
                 if [ -n "$last_endgroup" ]; then
-                  tail -n +$((last_endgroup + 1)) /tmp/job_logs.txt >> failed_step_logs.txt
+                  tail -n +$((last_endgroup + 1)) /tmp/job_logs.txt >> "$log_file"
                 else
-                  tail -500 /tmp/job_logs.txt >> failed_step_logs.txt
+                  tail -500 /tmp/job_logs.txt >> "$log_file"
                 fi
-                echo "" >> failed_step_logs.txt
               done < /tmp/failed_jobs.txt
               
               echo "View full logs: ${URL}"
@@ -180,6 +181,6 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: failed-e2e-logs
-          path: failed_step_logs.txt
+          name: failed-e2e-logs-attempt-${{ github.run_attempt }}
+          path: failed_*.txt
           retention-days: 7
