@@ -17,6 +17,12 @@ on:
         default: 'release'
         type: string
         description: 'kubescape branch name'
+      CHARTS_NAME:
+        type: choice
+        description: 'What chart do you want to test?'
+        options:
+          - kubescape-operator
+          - rapid7-operator
 
 jobs:
   dispatch-e2e-tests:
@@ -43,17 +49,19 @@ jobs:
         if: ${{ github.run_attempt == 1 }}
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          ENVIRONMENT: ${{ inputs.CHARTS_NAME == 'rapid7-operator' && 'armo-prod-us-east-1' || 'production' }}
+          TESTS_GROUPS: ${{ inputs.CHARTS_NAME == 'rapid7-operator' && 'R7-tests' || 'HELM_CHARTS_E2E' }}
         run: |
           gh api "repos/armosec/shared-workflows/dispatches" \
             -f event_type="e2e-test-trigger" \
             -f "client_payload[correlation_id]=${{ steps.dispatch-info.outputs.correlation_id }}" \
             -f "client_payload[github_repository]=${GITHUB_REPOSITORY}" \
-            -f "client_payload[environment]=production" \
-            -f "client_payload[tests_groups]=HELM_CHARTS_E2E_KUBESCAPE" \
+            -f "client_payload[environment]=${ENVIRONMENT}" \
+            -f "client_payload[tests_groups]=${TESTS_GROUPS}" \
             -f "client_payload[systests_branch]=${{ inputs.TESTS_BRANCH }}" \
             -f "client_payload[in_cluster_chart_branch]=${{ inputs.BRANCH }}" \
             -f "client_payload[ks_branch]=${{ inputs.KS_BRANCH }}" \
-            -f "client_payload[charts_name]=kubescape-operator" \
+            -f "client_payload[charts_name]=${{ inputs.CHARTS_NAME }}" \
             -f "client_payload[charts_repo]=${GITHUB_REPOSITORY}"
 
       - name: Find E2E workflow run
