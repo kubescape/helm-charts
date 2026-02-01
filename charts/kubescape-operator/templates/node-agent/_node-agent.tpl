@@ -192,8 +192,15 @@ Parameters:
     httpGet:
       path: /readyz
       port: 7888
-    initialDelaySeconds: 3
     periodSeconds: 3
+  startupProbe:
+    httpGet:
+      path: /readyz
+      port: 7888
+    initialDelaySeconds: 5
+    periodSeconds: 2
+    failureThreshold: 60
+    timeoutSeconds: 1
   resources:
     {{- include "node-agent.resources" (dict "autoscalerMode" .autoscalerMode "resources" .resources) | nindent 4 }}
   env:
