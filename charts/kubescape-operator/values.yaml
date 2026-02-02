@@ -426,43 +426,6 @@ kubevuln:
     size: 50Gi
     annotations: {}
 
-# +++++++++++++++++++++++++++++++ Host-scanner ++++++++++++++++++++++++++++++++++++++++++++++++
-
-hostScanner:
-  name: host-scanner
-  image:
-    # -- source code: https://github.com/kubescape/host-scanner (public repo)
-    repository: quay.io/kubescape/host-scanner
-    tag: v1.0.78
-    pullPolicy: IfNotPresent
-
-  nodeSelector:
-    kubernetes.io/os: linux
-
-  # Additional volumes to be mounted on the Kubescape host scanner
-  volumes: []
-
-  # Additional volumeMounts to be mounted on the Kubescape host scanner
-  volumeMounts: []
-
-  tolerations:
-    # this toleration is to have the DaemonDet runnable on master nodes
-    # remove it if your masters can't run pods
-    - key: node-role.kubernetes.io/control-plane
-      operator: Exists
-      effect: NoSchedule
-    - key: node-role.kubernetes.io/master
-      operator: Exists
-      effect: NoSchedule
-
-  resources:
-    limits:
-      cpu: 0.4m
-      memory: 400Mi
-    requests:
-      cpu: 0.1m
-      memory: 200Mi
-
 # +++++++++++++++++++++++++++++++ Storage ++++++++++++++++++++++++++++++++++++++++++++++++
 
 # Values for the Kubescape Storage service that Kubescape uses for its internal
@@ -543,7 +506,7 @@ nodeAgent:
   image:
     # -- source code: https://github.com/kubescape/node-agent
     repository: quay.io/kubescape/node-agent
-    tag: v0.3.17
+    tag: v0.3.20
     pullPolicy: IfNotPresent
 
   config:
@@ -569,6 +532,10 @@ nodeAgent:
       ruleCooldownAfterCount: 1
       ruleCooldownOnProfileFailure: true
       ruleCooldownMaxSize: 20000
+    # Host sensor configuration
+    hostSensor:
+      enabled: true
+      interval: 5m # duration string
 
   # GKE Autopilot allowlist
   gke:
@@ -643,7 +610,6 @@ nodeAgent:
     - mountPath: /clamav
       name: clamrun
       # readOnly: false # EmptyDir volume
-
   volumes:
     - hostPath:
         path: /
@@ -676,6 +642,10 @@ nodeAgent:
       name: data
     - emptyDir:
       name: profiles
+    - hostPath:
+        path: /
+        type: Directory
+      name: host-filesystem
 
   affinity:
     nodeAffinity:

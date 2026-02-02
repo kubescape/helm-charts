@@ -7,7 +7,6 @@
 capabilitiesConfig: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.configMapsDirectory "components-configmap.yaml") . | replace .Chart.AppVersion "" | sha256sum }}
 cloudConfig: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.configMapsDirectory "cloudapi-configmap.yaml") . | replace .Chart.AppVersion "" | sha256sum }}
 cloudSecret: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.configMapsDirectory "cloud-secret.yaml" ) . | replace .Chart.AppVersion "" | sha256sum }}
-hostScannerConfig: {{ include (printf "%s/kubescape/host-scanner-definition-configmap.yaml" $.Template.BasePath ) . | replace .Chart.AppVersion "" | sha256sum }}
 matchingRulesConfig: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.configMapsDirectory "matchingRules-configmap.yaml") . | replace .Chart.AppVersion "" | sha256sum }}
 nodeAgentConfig: {{ include (printf "%s/node-agent/configmap.yaml" $.Template.BasePath) . | replace .Chart.AppVersion "" | sha256sum }}
 operatorConfig: {{ include (printf "%s/operator/configmap.yaml" $.Template.BasePath) . | replace .Chart.AppVersion "" | sha256sum }}
@@ -50,8 +49,6 @@ submit: {{ $submit }}
 {{- $nodeScanEnabled := and (eq .Values.capabilities.nodeScan "enable") (not $configurations.backendStorageEnabled) }}
 {{- $configurationScanEnabled := and (eq .Values.capabilities.configurationScan "enable") (not $configurations.backendStorageEnabled) }}
 {{- $vulnerabilityScanEnabled := and (eq .Values.capabilities.vulnerabilityScan "enable") (not $configurations.backendStorageEnabled) }}
-hostScanner:
-  enabled: {{ $nodeScanEnabled }}
 kubescape:
   enabled: {{ $configurationScanEnabled }}
 kubescapeScheduler:
