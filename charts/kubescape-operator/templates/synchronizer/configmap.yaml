@@ -153,6 +153,7 @@ data:
             "resource": "networkpolicies",
             "strategy": "patch"
           },
+          {{- if $components.storage.enabled }}
           {
             "group": "spdx.softwarecomposition.kubescape.io",
             "version": "v1beta1",
@@ -185,15 +186,19 @@ data:
             "strategy": "copy"
           },
           {{- end }}
-          {{- if eq .Values.capabilities.manageWorkloads "enable" }}
+          {{- if and (eq .Values.capabilities.manageWorkloads "enable") (not (eq .Values.capabilities.seccompProfileBackend "crd")) }}
           {
-            {{- if eq .Values.capabilities.seccompProfileBackend "crd" }}
-            "group": "kubescape.io",
-            "version": "v1",
-            {{- else }}
             "group": "spdx.softwarecomposition.kubescape.io",
             "version": "v1beta1",
-            {{- end }}
+            "resource": "seccompprofiles",
+            "strategy": "copy"
+          },
+          {{- end }}
+          {{- end }}
+          {{- if and (eq .Values.capabilities.manageWorkloads "enable") (eq .Values.capabilities.seccompProfileBackend "crd") }}
+          {
+            "group": "kubescape.io",
+            "version": "v1",
             "resource": "seccompprofiles",
             "strategy": "copy"
           },
