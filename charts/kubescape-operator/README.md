@@ -1,6 +1,6 @@
 # Kubescape Operator
 
-![Version: 1.30.5](https://img.shields.io/badge/Version-1.30.5-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.30.5](https://img.shields.io/badge/AppVersion-v1.30.5-informational?style=flat-square)
+![Version: 1.31.0](https://img.shields.io/badge/Version-1.31.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.31.0](https://img.shields.io/badge/AppVersion-v1.31.0-informational?style=flat-square)
 
 [Kubescape operator documentation](https://kubescape.io/docs/install-operator/)
 
@@ -153,8 +153,6 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | operator.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | operator.volumes | object | `[]` | Additional volumes for the web socket |
 | operator.volumeMounts | object | `[]` | Additional volumeMounts for the web socket |
-| hostScanner.volumes | object | `[]` | Additional volumes for the host scanner |
-| hostScanner.volumeMounts | object | `[]` | Additional volumeMounts for the host scanner |
 | awsIamRoleArn | string | `nil` | AWS IAM arn role |
 | cloudProviderMetadata.secretRef.name | string | `nil` | secret name to define values for the provider's metadata |
 | cloudProviderMetadata.cloudRegion | string or through `cloudProviderMetadata.secretRef.cloudRegionKey` if `cloudProviderMetadata.secretRef.name` is set | `nil` | cloud region |
