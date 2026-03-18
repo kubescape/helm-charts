@@ -61,6 +61,12 @@ Parameters:
 - name: CLAMAV_SOCKET
   value: "/clamav/clamd.sock"
 {{- end }}
+{{- if and (eq .Values.capabilities.nodeSbomGeneration "enable") .Values.nodeAgent.sbomScanner.enabled (not .autoscalerMode) }}
+- name: SBOM_SCANNER_SOCKET
+  value: "/sbom-comm/scanner.sock"
+- name: SCANNER_MEMORY_LIMIT
+  value: "{{ .Values.nodeAgent.sbomScanner.resources.limits.memory }}"
+{{- end }}
 {{- if ne .Values.global.overrideRuntimePath "" }}
 - name: RUNTIME_PATH
   value: "{{ .Values.global.overrideRuntimePath }}"
@@ -127,6 +133,10 @@ Parameters:
 {{- end }}
 {{- if .Values.nodeAgent.volumeMounts }}
 {{ toYaml .Values.nodeAgent.volumeMounts | trim }}
+{{- end }}
+{{- if and (eq .Values.capabilities.nodeSbomGeneration "enable") .Values.nodeAgent.sbomScanner.enabled }}
+- name: sbom-comm
+  mountPath: /sbom-comm
 {{- end }}
 - name: {{ .components.cloudSecret.name }}
   mountPath: /etc/credentials
@@ -247,6 +257,44 @@ Parameters:
 {{- end -}}
 
 {{/*
+SBOM Scanner Sidecar Container (optional)
+Parameters:
+  - Values: .Values
+  - components: $components
+*/}}
+{{- define "node-agent.sbomScannerContainer" -}}
+{{- if and (eq .Values.capabilities.nodeSbomGeneration "enable") .Values.nodeAgent.sbomScanner.enabled }}
+- name: {{ .Values.nodeAgent.sbomScanner.name }}
+  image: "{{ .Values.nodeAgent.sbomScanner.image.repository }}:{{ .Values.nodeAgent.sbomScanner.image.tag | default .Values.nodeAgent.image.tag }}"
+  imagePullPolicy: {{ .Values.nodeAgent.sbomScanner.image.pullPolicy }}
+  {{- if .Values.nodeAgent.sbomScanner.command }}
+  command: {{ toYaml .Values.nodeAgent.sbomScanner.command | nindent 4 }}
+  {{- end }}
+  securityContext:
+    runAsUser: 0
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: ["ALL"]
+  resources:
+{{ toYaml .Values.nodeAgent.sbomScanner.resources | indent 4 }}
+  env:
+    - name: GOMEMLIMIT
+      valueFrom:
+        resourceFieldRef:
+          resource: limits.memory
+          divisor: '1'
+    - name: SOCKET_PATH
+      value: "/sbom-comm/scanner.sock"
+    - name: HOST_ROOT
+      value: "/host"
+  {{- if .Values.nodeAgent.sbomScanner.volumeMounts }}
+  volumeMounts:
+    {{- toYaml .Values.nodeAgent.sbomScanner.volumeMounts | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- end -}}
+
+{{/*
 Node Agent Init Containers
 Parameters:
   - Values: .Values
@@ -317,6 +365,11 @@ Parameters:
 {{- end }}
 {{- if .Values.clamav.volumes }}
 {{ toYaml .Values.clamav.volumes | trim }}
+{{- end }}
+{{- if and (eq .Values.capabilities.nodeSbomGeneration "enable") .Values.nodeAgent.sbomScanner.enabled }}
+{{- if .Values.nodeAgent.sbomScanner.volumes }}
+{{ toYaml .Values.nodeAgent.sbomScanner.volumes | trim }}
+{{- end }}
 {{- end }}
 - name: {{ .components.cloudSecret.name }}
   secret:
@@ -426,6 +479,7 @@ Parameters:
   - resources: resources object (when autoscalerMode is false)
   - nodeSelector: optional custom nodeSelector
   - includeClamAV: boolean - whether to include ClamAV container
+  - includeSbomScanner: boolean - whether to include SBOM scanner sidecar container
 */}}
 {{- define "node-agent.podSpec" -}}
 securityContext:
@@ -463,6 +517,9 @@ volumes:
 containers:
 {{- if .includeClamAV }}
 {{ include "node-agent.clamavContainer" (dict "Values" .Values "components" .components) | trim | nindent 0 }}
+{{- end }}
+{{- if .includeSbomScanner }}
+{{ include "node-agent.sbomScannerContainer" (dict "Values" .Values "components" .components) | trim | nindent 0 }}
 {{- end }}
 {{ include "node-agent.container" (dict "Values" .Values "components" .components "no_proxy_envar_list" .no_proxy_envar_list "autoscalerMode" .autoscalerMode "testingMode" .testingMode "resources" .resources) | trim | nindent 0 }}
 nodeSelector:
@@ -510,6 +567,6 @@ template:
     labels:
       {{- include "node-agent.podLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "components" .components "autoscalerMode" .autoscalerMode) | nindent 6 }}
   spec:
-    {{- include "node-agent.podSpec" (dict "Values" .Values "Chart" .Chart "Release" .Release "Capabilities" .Capabilities "components" .components "checksums" .checksums "no_proxy_envar_list" .no_proxy_envar_list "autoscalerMode" .autoscalerMode "testingMode" .testingMode "resources" .resources "nodeSelector" .nodeSelector "includeClamAV" .includeClamAV) | nindent 4 }}
+    {{- include "node-agent.podSpec" (dict "Values" .Values "Chart" .Chart "Release" .Release "Capabilities" .Capabilities "components" .components "checksums" .checksums "no_proxy_envar_list" .no_proxy_envar_list "autoscalerMode" .autoscalerMode "testingMode" .testingMode "resources" .resources "nodeSelector" .nodeSelector "includeClamAV" .includeClamAV "includeSbomScanner" .includeSbomScanner) | nindent 4 }}
 {{- end -}}
 
