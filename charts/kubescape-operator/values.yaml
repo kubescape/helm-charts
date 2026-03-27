@@ -736,6 +736,35 @@ nodeAgent:
     # -- interval for reconciliation loop
     reconcileInterval: 5m
 
+  # SBOM scanner sidecar — runs Syft in a separate container for memory isolation
+  sbomScanner:
+    enabled: true
+    name: sbom-scanner
+    image:
+      # Same image as node-agent — shared pull, different entrypoint
+      repository: quay.io/kubescape/node-agent
+      tag: ""
+      pullPolicy: IfNotPresent
+    command: ["/usr/bin/sbom-scanner"]
+    resources:
+      requests:
+        cpu: 50m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 4Gi
+    volumeMounts:
+      - mountPath: /sbom-comm
+        name: sbom-comm
+      - mountPath: /host
+        name: host
+        readOnly: true
+    volumes:
+      - name: sbom-comm
+        emptyDir:
+          medium: Memory
+          sizeLimit: 10Mi
+
 # +++++++++++++++++++++++++++++++ ClamAV ++++++++++++++++++++++++++++++++++++++++++++++++
 clamav:
   name: clamav
