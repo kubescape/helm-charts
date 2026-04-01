@@ -374,7 +374,7 @@ checksum/cloud-config: {{ .checksums.cloudConfig }}
 {{- if ne .Values.global.proxySecretFile "" }}
 checksum/proxy-config: {{ .checksums.proxySecret }}
 {{- end }}
-{{- if lt (.Capabilities.KubeVersion.Minor | int) 29 }}
+{{- if lt (.Capabilities.KubeVersion.Minor | int) 30 }}
 container.apparmor.security.beta.kubernetes.io/{{ .Values.nodeAgent.name }}: unconfined
 {{- end }}
 {{- if eq .Values.configurations.prometheusAnnotations "enable" }}
@@ -429,7 +429,7 @@ Parameters:
 */}}
 {{- define "node-agent.podSpec" -}}
 securityContext:
-  {{- if ge (.Capabilities.KubeVersion.Minor | int) 29 }}
+  {{- if ge (.Capabilities.KubeVersion.Minor | int) 30 }}
   appArmorProfile:
     type: Unconfined
   {{- end }}
