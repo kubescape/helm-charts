@@ -443,8 +443,12 @@ imagePullSecrets:
 {{- end }}
 {{- end }}
 {{- end }}
-{{- if .Values.configurations.priorityClass.enabled }}
+{{- if .Values.nodeAgent.priorityClassName }}
+priorityClassName: {{ .Values.nodeAgent.priorityClassName }}
+{{- else if .Values.configurations.priorityClass.enabled }}
 priorityClassName: kubescape-critical
+{{- else if .Values.customScheduling.priorityClassName }}
+priorityClassName: {{ .Values.customScheduling.priorityClassName }}
 {{- end }}
 serviceAccountName: {{ .Values.nodeAgent.name }}
 automountServiceAccountToken: true

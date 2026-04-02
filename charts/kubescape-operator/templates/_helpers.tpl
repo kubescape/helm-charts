@@ -66,3 +66,15 @@ app.kubernetes.io/name: {{ include "kubescape-operator.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/component: {{ .app }}
 {{- end }}
+
+{{/*
+Resolve priorityClassName for a component with customScheduling fallback.
+Usage: {{ include "kubescape-operator.priorityClassName" (dict "component" .Values.<component> "global" .Values.customScheduling) }}
+*/}}
+{{- define "kubescape-operator.priorityClassName" -}}
+{{- if .component.priorityClassName }}
+priorityClassName: {{ .component.priorityClassName }}
+{{- else if .global.priorityClassName }}
+priorityClassName: {{ .global.priorityClassName }}
+{{- end }}
+{{- end }}
