@@ -513,3 +513,32 @@ tests:
       storage.mtls.enabled: false
       prometheusExporter:
         enableWorkloadMetrics: true
+  - it: priority class scheduling
+    asserts:
+      - matchSnapshot: {}
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      account: 9e6c0c2c-6bd0-4919-815b-55030de7c9a0
+      accessKey: f304d73b-d43c-412b-82ea-e4c859493ce6
+      server: api.armosec.io
+      clusterName: kind-kind
+      kubescapeScheduler.scanSchedule: "1 2 3 4 5"
+      kubevulnScheduler.scanSchedule: "1 2 3 4 5"
+      capabilities:
+        configurationScan: enable
+        nodeScan: enable
+        vulnerabilityScan: enable
+        relevancy: enable
+        runtimeDetection: enable
+      # global fallback for all deployments
+      customScheduling:
+        priorityClassName: "global-priority"
+      # per-component override takes precedence over global
+      kubescape:
+        priorityClassName: "kubescape-priority"
+      # node-agent override takes precedence over configurations.priorityClass (kubescape-critical)
+      nodeAgent:
+        priorityClassName: "node-agent-priority"
