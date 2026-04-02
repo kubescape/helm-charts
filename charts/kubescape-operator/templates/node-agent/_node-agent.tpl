@@ -61,7 +61,7 @@ Parameters:
 - name: CLAMAV_SOCKET
   value: "/clamav/clamd.sock"
 {{- end }}
-{{- if and (eq .Values.capabilities.nodeSbomGeneration "enable") .Values.nodeAgent.sbomScanner.enabled (not .autoscalerMode) }}
+{{- if and .components.sbomScanner.enabled (not .autoscalerMode) }}
 - name: SBOM_SCANNER_SOCKET
   value: "/sbom-comm/scanner.sock"
 - name: SCANNER_MEMORY_LIMIT
@@ -134,7 +134,7 @@ Parameters:
 {{- if .Values.nodeAgent.volumeMounts }}
 {{ toYaml .Values.nodeAgent.volumeMounts | trim }}
 {{- end }}
-{{- if and (eq .Values.capabilities.nodeSbomGeneration "enable") .Values.nodeAgent.sbomScanner.enabled }}
+{{- if .components.sbomScanner.enabled }}
 - name: sbom-comm
   mountPath: /sbom-comm
 {{- end }}
@@ -263,7 +263,7 @@ Parameters:
   - components: $components
 */}}
 {{- define "node-agent.sbomScannerContainer" -}}
-{{- if and (eq .Values.capabilities.nodeSbomGeneration "enable") .Values.nodeAgent.sbomScanner.enabled }}
+{{- if .components.sbomScanner.enabled }}
 - name: {{ .Values.nodeAgent.sbomScanner.name }}
   image: "{{ .Values.nodeAgent.sbomScanner.image.repository }}:{{ .Values.nodeAgent.sbomScanner.image.tag | default .Values.nodeAgent.image.tag }}"
   imagePullPolicy: {{ .Values.nodeAgent.sbomScanner.image.pullPolicy }}
@@ -366,7 +366,7 @@ Parameters:
 {{- if .Values.clamav.volumes }}
 {{ toYaml .Values.clamav.volumes | trim }}
 {{- end }}
-{{- if and (eq .Values.capabilities.nodeSbomGeneration "enable") .Values.nodeAgent.sbomScanner.enabled }}
+{{- if .components.sbomScanner.enabled }}
 {{- if .Values.nodeAgent.sbomScanner.volumes }}
 {{ toYaml .Values.nodeAgent.sbomScanner.volumes | trim }}
 {{- end }}
