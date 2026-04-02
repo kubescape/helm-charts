@@ -129,6 +129,12 @@ spec:
               value: "{{ .Values.logger.name }}"
             - name: PRINT_POST_JSON
               value: "{{ .Values.kubevuln.verbose }}"
+            {{- if .Values.kubevuln.sbomScanner.enabled }}
+            - name: SBOM_SCANNER_SOCKET
+              value: "/sbom-comm/scanner.sock"
+            - name: SCANNER_MEMORY_LIMIT
+              value: {{ .Values.kubevuln.sbomScanner.resources.limits.memory | quote }}
+            {{- end }}
             {{- range .Values.kubevuln.env }}
             - name: {{ .name }}
               value: "{{ .value }}"
@@ -176,6 +182,10 @@ spec:
             {{- end }}
             - name: grype-db
               mountPath: /home/nonroot/.cache/grype
+            {{- if .Values.kubevuln.sbomScanner.enabled }}
+            - name: sbom-comm
+              mountPath: /sbom-comm
+            {{- end }}
 {{- if .Values.volumeMounts }}
 {{ toYaml .Values.volumeMounts | indent 12 }}
 {{- end }}
@@ -198,6 +208,37 @@ spec:
               mountPath: /etc/ssl/certs/{{ $key }}
               subPath: {{ $key }}
         {{- end }}
+{{- end }}
+{{- if .Values.kubevuln.sbomScanner.enabled }}
+        - name: sbom-scanner
+          image: "{{ .Values.kubevuln.image.repository }}:{{ .Values.kubevuln.image.tag }}"
+          imagePullPolicy: {{ .Values.kubevuln.image.pullPolicy }}
+          command:
+{{ toYaml .Values.kubevuln.sbomScanner.command | indent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+          resources:
+{{ toYaml .Values.kubevuln.sbomScanner.resources | indent 12 }}
+          env:
+            - name: GOMEMLIMIT
+              valueFrom:
+                resourceFieldRef:
+                  resource: limits.memory
+                  containerName: sbom-scanner
+                  divisor: '1'
+            - name: SOCKET_PATH
+              value: "/sbom-comm/scanner.sock"
+            - name: KS_LOGGER_LEVEL
+              value: "{{ .Values.logger.level }}"
+            - name: KS_LOGGER_NAME
+              value: "sbom-scanner"
+          volumeMounts:
+            - name: sbom-comm
+              mountPath: /sbom-comm
+            - name: tmp-dir
+              mountPath: /tmp
 {{- end }}
       volumes:
         - name: {{ $components.cloudSecret.name }}
@@ -244,6 +285,10 @@ spec:
           {{- else }}
           emptyDir: {}
           {{- end }}
+      {{- if .Values.kubevuln.sbomScanner.enabled }}
+        - name: sbom-comm
+          emptyDir: {}
+      {{- end }}
 {{- if .Values.volumes }}
 {{ toYaml .Values.volumes | indent 8 }}
 {{- end }}
