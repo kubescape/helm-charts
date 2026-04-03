@@ -300,7 +300,7 @@ all capabilities:
       capabilities: |
         {
           "capabilities":{"admissionController":"enable","autoUpgrading":"enable","configurationScan":"enable","continuousScan":"enable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"enable","manageWorkloads":"enable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"enable","relevancy":"enable","runtimeDetection":"enable","runtimeObservability":"enable","scanEmbeddedSBOMs":"enable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"enable","vulnerabilityScan":"enable"},
-          "components":{"autoUpdater":{"enabled":true},"clamAV":{"enabled":true},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":true},"sbomScanner":{"enabled":true},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
+          "components":{"autoUpdater":{"enabled":true},"clamAV":{"enabled":true},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":true},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"excludeJsonPaths":[".containers[*].env[?(@.name==\"KUBECONFIG\")]"],"otelUrl":"otelCollector.svc.monitoring:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
         }
@@ -2591,40 +2591,6 @@ all capabilities:
                 - mountPath: /etc/clamav
                   name: etc
                   readOnly: true
-            - command:
-                - /usr/bin/sbom-scanner
-              env:
-                - name: GOMEMLIMIT
-                  valueFrom:
-                    resourceFieldRef:
-                      divisor: "1"
-                      resource: limits.memory
-                - name: SOCKET_PATH
-                  value: /sbom-comm/scanner.sock
-                - name: HOST_ROOT
-                  value: /host
-              image: quay.io/kubescape/node-agent:v0.3.75
-              imagePullPolicy: IfNotPresent
-              name: sbom-scanner
-              resources:
-                limits:
-                  cpu: 1000m
-                  memory: 4Gi
-                requests:
-                  cpu: 50m
-                  memory: 256Mi
-              securityContext:
-                capabilities:
-                  drop:
-                    - ALL
-                readOnlyRootFilesystem: true
-                runAsUser: 0
-              volumeMounts:
-                - mountPath: /sbom-comm
-                  name: sbom-comm
-                - mountPath: /host
-                  name: host
-                  readOnly: true
             - env:
                 - name: GOMEMLIMIT
                   valueFrom:
@@ -2646,10 +2612,6 @@ all capabilities:
                   value: otelCollector.svc.monitoring:4317
                 - name: CLAMAV_SOCKET
                   value: /clamav/clamd.sock
-                - name: SBOM_SCANNER_SOCKET
-                  value: /sbom-comm/scanner.sock
-                - name: SCANNER_MEMORY_LIMIT
-                  value: 4Gi
                 - name: HTTPS_PROXY
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
@@ -2747,8 +2709,6 @@ all capabilities:
                   readOnly: true
                 - mountPath: /clamav
                   name: clamrun
-                - mountPath: /sbom-comm
-                  name: sbom-comm
                 - mountPath: /etc/credentials
                   name: cloud-secret
                   readOnly: true
@@ -2857,10 +2817,6 @@ all capabilities:
                     path: freshclam.conf
                 name: clamav
               name: etc
-            - emptyDir:
-                medium: Memory
-                sizeLimit: 10Mi
-              name: sbom-comm
             - name: cloud-secret
               secret:
                 secretName: cloud-secret
@@ -3998,7 +3954,7 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 4fa19eabda1fece38c97ecffd24e75c2e721c9363ea1330a81821dfb0d4a42a6
+            checksum/capabilities-config: b8bc7b0aa1b20d8eb4ed1c48e5969b2e5d9f70c4506fc495f7dbd33e3098391b
             checksum/cloud-config: aaeeb6b6b35a5ebbb0893822c4bf9cd860fba6d3df3bc4e77c8dbdd5841db120
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
@@ -5251,7 +5207,7 @@ all capabilities:
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
                   value: otelCollector.svc.monitoring:4317
-              image: quay.io/kubescape/storage:v0.0.264
+              image: quay.io/kubescape/storage:v0.0.265
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -6877,7 +6833,7 @@ backend-storage enabled disables scanning capabilities:
       capabilities: |
         {
           "capabilities":{"admissionController":"enable","autoUpgrading":"disable","backend-storage":"enable","configurationScan":"enable","continuousScan":"disable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
-          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":false},"kubescape":{"enabled":false},"kubescapeScheduler":{"enabled":false},"kubevuln":{"enabled":false},"kubevulnScheduler":{"enabled":false},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":true},"serviceDiscovery":{"enabled":true},"storage":{"enabled":false},"synchronizer":{"enabled":true}},
+          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":false},"kubescape":{"enabled":false},"kubescapeScheduler":{"enabled":false},"kubevuln":{"enabled":false},"kubevulnScheduler":{"enabled":false},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":false},"synchronizer":{"enabled":true}},
           "configurations":{"excludeJsonPaths":null,"otelUrl":null,"persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
         }
@@ -7218,40 +7174,6 @@ backend-storage enabled disables scanning capabilities:
                           - linux
           automountServiceAccountToken: true
           containers:
-            - command:
-                - /usr/bin/sbom-scanner
-              env:
-                - name: GOMEMLIMIT
-                  valueFrom:
-                    resourceFieldRef:
-                      divisor: "1"
-                      resource: limits.memory
-                - name: SOCKET_PATH
-                  value: /sbom-comm/scanner.sock
-                - name: HOST_ROOT
-                  value: /host
-              image: quay.io/kubescape/node-agent:v0.3.75
-              imagePullPolicy: IfNotPresent
-              name: sbom-scanner
-              resources:
-                limits:
-                  cpu: 1000m
-                  memory: 4Gi
-                requests:
-                  cpu: 50m
-                  memory: 256Mi
-              securityContext:
-                capabilities:
-                  drop:
-                    - ALL
-                readOnlyRootFilesystem: true
-                runAsUser: 0
-              volumeMounts:
-                - mountPath: /sbom-comm
-                  name: sbom-comm
-                - mountPath: /host
-                  name: host
-                  readOnly: true
             - env:
                 - name: GOMEMLIMIT
                   valueFrom:
@@ -7269,10 +7191,6 @@ backend-storage enabled disables scanning capabilities:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-                - name: SBOM_SCANNER_SOCKET
-                  value: /sbom-comm/scanner.sock
-                - name: SCANNER_MEMORY_LIMIT
-                  value: 4Gi
                 - name: NODE_NAME
                   valueFrom:
                     fieldRef:
@@ -7364,8 +7282,6 @@ backend-storage enabled disables scanning capabilities:
                   readOnly: true
                 - mountPath: /clamav
                   name: clamrun
-                - mountPath: /sbom-comm
-                  name: sbom-comm
                 - mountPath: /etc/credentials
                   name: cloud-secret
                   readOnly: true
@@ -7456,10 +7372,6 @@ backend-storage enabled disables scanning capabilities:
                     path: freshclam.conf
                 name: clamav
               name: etc
-            - emptyDir:
-                medium: Memory
-                sizeLimit: 10Mi
-              name: sbom-comm
             - name: cloud-secret
               secret:
                 secretName: cloud-secret
@@ -8503,7 +8415,7 @@ backend-storage enabled disables scanning capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: a5be2b89f60dcd1599ecb28eeb4225e56da2e7e7284721a81f4dce04cabed57c
+            checksum/capabilities-config: 0676e2566d51852ee5e6ed4cce5a5c8543c921deed9e8fe1baa4ecdfdd722406
             checksum/cloud-config: a86d5156181591681a79c39bb2816f8428bbaa9e3de0ea3bcdba0d21a148debd
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
@@ -10186,7 +10098,7 @@ default capabilities:
       capabilities: |
         {
           "capabilities":{"admissionController":"disable","autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","httpDetection":"disable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"disable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
-          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":true},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
+          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"excludeJsonPaths":null,"otelUrl":null,"persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
         }
@@ -12084,40 +11996,6 @@ default capabilities:
                           - linux
           automountServiceAccountToken: true
           containers:
-            - command:
-                - /usr/bin/sbom-scanner
-              env:
-                - name: GOMEMLIMIT
-                  valueFrom:
-                    resourceFieldRef:
-                      divisor: "1"
-                      resource: limits.memory
-                - name: SOCKET_PATH
-                  value: /sbom-comm/scanner.sock
-                - name: HOST_ROOT
-                  value: /host
-              image: quay.io/kubescape/node-agent:v0.3.75
-              imagePullPolicy: IfNotPresent
-              name: sbom-scanner
-              resources:
-                limits:
-                  cpu: 1000m
-                  memory: 4Gi
-                requests:
-                  cpu: 50m
-                  memory: 256Mi
-              securityContext:
-                capabilities:
-                  drop:
-                    - ALL
-                readOnlyRootFilesystem: true
-                runAsUser: 0
-              volumeMounts:
-                - mountPath: /sbom-comm
-                  name: sbom-comm
-                - mountPath: /host
-                  name: host
-                  readOnly: true
             - env:
                 - name: GOMEMLIMIT
                   valueFrom:
@@ -12135,10 +12013,6 @@ default capabilities:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-                - name: SBOM_SCANNER_SOCKET
-                  value: /sbom-comm/scanner.sock
-                - name: SCANNER_MEMORY_LIMIT
-                  value: 4Gi
                 - name: NODE_NAME
                   valueFrom:
                     fieldRef:
@@ -12230,8 +12104,6 @@ default capabilities:
                   readOnly: true
                 - mountPath: /clamav
                   name: clamrun
-                - mountPath: /sbom-comm
-                  name: sbom-comm
                 - mountPath: /etc/credentials
                   name: cloud-secret
                   readOnly: true
@@ -12337,10 +12209,6 @@ default capabilities:
                     path: freshclam.conf
                 name: clamav
               name: etc
-            - emptyDir:
-                medium: Memory
-                sizeLimit: 10Mi
-              name: sbom-comm
             - name: cloud-secret
               secret:
                 secretName: cloud-secret
@@ -13350,7 +13218,7 @@ default capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 600b76f566d599bbd8ef0d256738ff59d1ac1fb2f73aae9402611d042bd65ce1
+            checksum/capabilities-config: cd48143b0fc590552f7ebfcdc4c072fe00d2d3a113c6cd1245502cf48c0bfe4d
             checksum/cloud-config: 8e6c3d6c7321da0fccdb7ce24882e7bcf831736b163bb916902ed635fd2809eb
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
@@ -14253,7 +14121,7 @@ default capabilities:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/storage:v0.0.264
+              image: quay.io/kubescape/storage:v0.0.265
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -15723,7 +15591,7 @@ disable otel:
       capabilities: |
         {
           "capabilities":{"admissionController":"enable","autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
-          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":true},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
+          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"excludeJsonPaths":null,"otelUrl":null,"persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
         }
@@ -17165,40 +17033,6 @@ disable otel:
                           - linux
           automountServiceAccountToken: true
           containers:
-            - command:
-                - /usr/bin/sbom-scanner
-              env:
-                - name: GOMEMLIMIT
-                  valueFrom:
-                    resourceFieldRef:
-                      divisor: "1"
-                      resource: limits.memory
-                - name: SOCKET_PATH
-                  value: /sbom-comm/scanner.sock
-                - name: HOST_ROOT
-                  value: /host
-              image: quay.io/kubescape/node-agent:v0.3.75
-              imagePullPolicy: IfNotPresent
-              name: sbom-scanner
-              resources:
-                limits:
-                  cpu: 1000m
-                  memory: 4Gi
-                requests:
-                  cpu: 50m
-                  memory: 256Mi
-              securityContext:
-                capabilities:
-                  drop:
-                    - ALL
-                readOnlyRootFilesystem: true
-                runAsUser: 0
-              volumeMounts:
-                - mountPath: /sbom-comm
-                  name: sbom-comm
-                - mountPath: /host
-                  name: host
-                  readOnly: true
             - env:
                 - name: GOMEMLIMIT
                   valueFrom:
@@ -17216,10 +17050,6 @@ disable otel:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-                - name: SBOM_SCANNER_SOCKET
-                  value: /sbom-comm/scanner.sock
-                - name: SCANNER_MEMORY_LIMIT
-                  value: 4Gi
                 - name: NODE_NAME
                   valueFrom:
                     fieldRef:
@@ -17311,8 +17141,6 @@ disable otel:
                   readOnly: true
                 - mountPath: /clamav
                   name: clamrun
-                - mountPath: /sbom-comm
-                  name: sbom-comm
                 - mountPath: /etc/credentials
                   name: cloud-secret
                   readOnly: true
@@ -17403,10 +17231,6 @@ disable otel:
                     path: freshclam.conf
                 name: clamav
               name: etc
-            - emptyDir:
-                medium: Memory
-                sizeLimit: 10Mi
-              name: sbom-comm
             - name: cloud-secret
               secret:
                 secretName: cloud-secret
@@ -17802,7 +17626,7 @@ disable otel:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: a66b7782dd38438434b288e2f3b1b3c547dd815f13bddf30be294a3dfbe0a8df
+            checksum/capabilities-config: a643b38c6219889bb16d586f6988fd7bb8d39a43c171cdd4e4c4f6a7f3fb17fd
             checksum/cloud-config: f8f57ee9b7c136ff44014ae152c2ee1d6437058a776ba359547a4d44896626d0
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
@@ -18581,7 +18405,7 @@ disable otel:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/storage:v0.0.264
+              image: quay.io/kubescape/storage:v0.0.265
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -19902,7 +19726,7 @@ minimal capabilities:
       capabilities: |
         {
           "capabilities":{"admissionController":"enable","autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"disable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
-          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":true},"serviceDiscovery":{"enabled":false},"storage":{"enabled":true},"synchronizer":{"enabled":false}},
+          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":false},"storage":{"enabled":true},"synchronizer":{"enabled":false}},
           "configurations":{"excludeJsonPaths":null,"otelUrl":"otelCollector.svc.monitoring:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
         }
@@ -21282,40 +21106,6 @@ minimal capabilities:
                           - linux
           automountServiceAccountToken: true
           containers:
-            - command:
-                - /usr/bin/sbom-scanner
-              env:
-                - name: GOMEMLIMIT
-                  valueFrom:
-                    resourceFieldRef:
-                      divisor: "1"
-                      resource: limits.memory
-                - name: SOCKET_PATH
-                  value: /sbom-comm/scanner.sock
-                - name: HOST_ROOT
-                  value: /host
-              image: quay.io/kubescape/node-agent:v0.3.75
-              imagePullPolicy: IfNotPresent
-              name: sbom-scanner
-              resources:
-                limits:
-                  cpu: 1000m
-                  memory: 4Gi
-                requests:
-                  cpu: 50m
-                  memory: 256Mi
-              securityContext:
-                capabilities:
-                  drop:
-                    - ALL
-                readOnlyRootFilesystem: true
-                runAsUser: 0
-              volumeMounts:
-                - mountPath: /sbom-comm
-                  name: sbom-comm
-                - mountPath: /host
-                  name: host
-                  readOnly: true
             - env:
                 - name: GOMEMLIMIT
                   valueFrom:
@@ -21335,10 +21125,6 @@ minimal capabilities:
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
                   value: otelCollector.svc.monitoring:4317
-                - name: SBOM_SCANNER_SOCKET
-                  value: /sbom-comm/scanner.sock
-                - name: SCANNER_MEMORY_LIMIT
-                  value: 4Gi
                 - name: NODE_NAME
                   valueFrom:
                     fieldRef:
@@ -21430,8 +21216,6 @@ minimal capabilities:
                   readOnly: true
                 - mountPath: /clamav
                   name: clamrun
-                - mountPath: /sbom-comm
-                  name: sbom-comm
                 - mountPath: /etc/credentials
                   name: cloud-secret
                   readOnly: true
@@ -21494,10 +21278,6 @@ minimal capabilities:
                     path: freshclam.conf
                 name: clamav
               name: etc
-            - emptyDir:
-                medium: Memory
-                sizeLimit: 10Mi
-              name: sbom-comm
             - name: cloud-secret
               secret:
                 secretName: cloud-secret
@@ -21890,7 +21670,7 @@ minimal capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 4bbdedb6ca2c878bc2e052a692dad9c4db62857a699229cf4ac6424e0b95e594
+            checksum/capabilities-config: afbd6542164d7dc46a393360ec5ad8595641b295a3d4f2b3ddba2242c33b9523
             checksum/cloud-config: 8f40f001a3e31db9895e7bbb06ab070f25ab66c83b31d1929b273cfd22402097
             checksum/cloud-secret: 3248919273cee6d6f750f97ea378fc79fff1f03b131f21d584a00258bf475a80
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
@@ -22673,7 +22453,7 @@ minimal capabilities:
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
                   value: otelCollector.svc.monitoring:4317
-              image: quay.io/kubescape/storage:v0.0.264
+              image: quay.io/kubescape/storage:v0.0.265
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -23460,7 +23240,7 @@ multiple node agents:
       capabilities: |
         {
           "capabilities":{"admissionController":"enable","autoUpgrading":"enable","configurationScan":"enable","continuousScan":"enable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"enable","manageWorkloads":"enable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"enable","relevancy":"enable","runtimeDetection":"enable","runtimeObservability":"enable","scanEmbeddedSBOMs":"enable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"enable","vulnerabilityScan":"enable"},
-          "components":{"autoUpdater":{"enabled":true},"clamAV":{"enabled":true},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":true},"sbomScanner":{"enabled":true},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
+          "components":{"autoUpdater":{"enabled":true},"clamAV":{"enabled":true},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":true},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"excludeJsonPaths":[".containers[*].env[?(@.name==\"KUBECONFIG\")]"],"otelUrl":"otelCollector.svc.monitoring:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
         }
@@ -25751,40 +25531,6 @@ multiple node agents:
                 - mountPath: /etc/clamav
                   name: etc
                   readOnly: true
-            - command:
-                - /usr/bin/sbom-scanner
-              env:
-                - name: GOMEMLIMIT
-                  valueFrom:
-                    resourceFieldRef:
-                      divisor: "1"
-                      resource: limits.memory
-                - name: SOCKET_PATH
-                  value: /sbom-comm/scanner.sock
-                - name: HOST_ROOT
-                  value: /host
-              image: quay.io/kubescape/node-agent:v0.3.75
-              imagePullPolicy: IfNotPresent
-              name: sbom-scanner
-              resources:
-                limits:
-                  cpu: 1000m
-                  memory: 4Gi
-                requests:
-                  cpu: 50m
-                  memory: 256Mi
-              securityContext:
-                capabilities:
-                  drop:
-                    - ALL
-                readOnlyRootFilesystem: true
-                runAsUser: 0
-              volumeMounts:
-                - mountPath: /sbom-comm
-                  name: sbom-comm
-                - mountPath: /host
-                  name: host
-                  readOnly: true
             - env:
                 - name: GOMEMLIMIT
                   valueFrom:
@@ -25806,10 +25552,6 @@ multiple node agents:
                   value: otelCollector.svc.monitoring:4317
                 - name: CLAMAV_SOCKET
                   value: /clamav/clamd.sock
-                - name: SBOM_SCANNER_SOCKET
-                  value: /sbom-comm/scanner.sock
-                - name: SCANNER_MEMORY_LIMIT
-                  value: 4Gi
                 - name: HTTPS_PROXY
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
@@ -25907,8 +25649,6 @@ multiple node agents:
                   readOnly: true
                 - mountPath: /clamav
                   name: clamrun
-                - mountPath: /sbom-comm
-                  name: sbom-comm
                 - mountPath: /etc/credentials
                   name: cloud-secret
                   readOnly: true
@@ -26018,10 +25758,6 @@ multiple node agents:
                     path: freshclam.conf
                 name: clamav
               name: etc
-            - emptyDir:
-                medium: Memory
-                sizeLimit: 10Mi
-              name: sbom-comm
             - name: cloud-secret
               secret:
                 secretName: cloud-secret
@@ -26126,40 +25862,6 @@ multiple node agents:
                 - mountPath: /etc/clamav
                   name: etc
                   readOnly: true
-            - command:
-                - /usr/bin/sbom-scanner
-              env:
-                - name: GOMEMLIMIT
-                  valueFrom:
-                    resourceFieldRef:
-                      divisor: "1"
-                      resource: limits.memory
-                - name: SOCKET_PATH
-                  value: /sbom-comm/scanner.sock
-                - name: HOST_ROOT
-                  value: /host
-              image: quay.io/kubescape/node-agent:v0.3.75
-              imagePullPolicy: IfNotPresent
-              name: sbom-scanner
-              resources:
-                limits:
-                  cpu: 1000m
-                  memory: 4Gi
-                requests:
-                  cpu: 50m
-                  memory: 256Mi
-              securityContext:
-                capabilities:
-                  drop:
-                    - ALL
-                readOnlyRootFilesystem: true
-                runAsUser: 0
-              volumeMounts:
-                - mountPath: /sbom-comm
-                  name: sbom-comm
-                - mountPath: /host
-                  name: host
-                  readOnly: true
             - env:
                 - name: GOMEMLIMIT
                   valueFrom:
@@ -26181,10 +25883,6 @@ multiple node agents:
                   value: otelCollector.svc.monitoring:4317
                 - name: CLAMAV_SOCKET
                   value: /clamav/clamd.sock
-                - name: SBOM_SCANNER_SOCKET
-                  value: /sbom-comm/scanner.sock
-                - name: SCANNER_MEMORY_LIMIT
-                  value: 4Gi
                 - name: HTTPS_PROXY
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
@@ -26282,8 +25980,6 @@ multiple node agents:
                   readOnly: true
                 - mountPath: /clamav
                   name: clamrun
-                - mountPath: /sbom-comm
-                  name: sbom-comm
                 - mountPath: /etc/credentials
                   name: cloud-secret
                   readOnly: true
@@ -26393,10 +26089,6 @@ multiple node agents:
                     path: freshclam.conf
                 name: clamav
               name: etc
-            - emptyDir:
-                medium: Memory
-                sizeLimit: 10Mi
-              name: sbom-comm
             - name: cloud-secret
               secret:
                 secretName: cloud-secret
@@ -27534,7 +27226,7 @@ multiple node agents:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 4fa19eabda1fece38c97ecffd24e75c2e721c9363ea1330a81821dfb0d4a42a6
+            checksum/capabilities-config: b8bc7b0aa1b20d8eb4ed1c48e5969b2e5d9f70c4506fc495f7dbd33e3098391b
             checksum/cloud-config: aaeeb6b6b35a5ebbb0893822c4bf9cd860fba6d3df3bc4e77c8dbdd5841db120
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
@@ -28787,7 +28479,7 @@ multiple node agents:
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
                   value: otelCollector.svc.monitoring:4317
-              image: quay.io/kubescape/storage:v0.0.264
+              image: quay.io/kubescape/storage:v0.0.265
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -30421,7 +30113,7 @@ priority class scheduling:
       capabilities: |
         {
           "capabilities":{"admissionController":"enable","autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","runtimeDetection":"enable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
-          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":true},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
+          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"excludeJsonPaths":null,"otelUrl":null,"persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
         }
@@ -31867,40 +31559,6 @@ priority class scheduling:
                           - linux
           automountServiceAccountToken: true
           containers:
-            - command:
-                - /usr/bin/sbom-scanner
-              env:
-                - name: GOMEMLIMIT
-                  valueFrom:
-                    resourceFieldRef:
-                      divisor: "1"
-                      resource: limits.memory
-                - name: SOCKET_PATH
-                  value: /sbom-comm/scanner.sock
-                - name: HOST_ROOT
-                  value: /host
-              image: quay.io/kubescape/node-agent:v0.3.75
-              imagePullPolicy: IfNotPresent
-              name: sbom-scanner
-              resources:
-                limits:
-                  cpu: 1000m
-                  memory: 4Gi
-                requests:
-                  cpu: 50m
-                  memory: 256Mi
-              securityContext:
-                capabilities:
-                  drop:
-                    - ALL
-                readOnlyRootFilesystem: true
-                runAsUser: 0
-              volumeMounts:
-                - mountPath: /sbom-comm
-                  name: sbom-comm
-                - mountPath: /host
-                  name: host
-                  readOnly: true
             - env:
                 - name: GOMEMLIMIT
                   valueFrom:
@@ -31918,10 +31576,6 @@ priority class scheduling:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-                - name: SBOM_SCANNER_SOCKET
-                  value: /sbom-comm/scanner.sock
-                - name: SCANNER_MEMORY_LIMIT
-                  value: 4Gi
                 - name: NODE_NAME
                   valueFrom:
                     fieldRef:
@@ -32013,8 +31667,6 @@ priority class scheduling:
                   readOnly: true
                 - mountPath: /clamav
                   name: clamrun
-                - mountPath: /sbom-comm
-                  name: sbom-comm
                 - mountPath: /etc/credentials
                   name: cloud-secret
                   readOnly: true
@@ -32105,10 +31757,6 @@ priority class scheduling:
                     path: freshclam.conf
                 name: clamav
               name: etc
-            - emptyDir:
-                medium: Memory
-                sizeLimit: 10Mi
-              name: sbom-comm
             - name: cloud-secret
               secret:
                 secretName: cloud-secret
@@ -32504,7 +32152,7 @@ priority class scheduling:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 751483df52596ab43c1b23956ed36d8ae3b20a07091a217dd3ef37c25600fce6
+            checksum/capabilities-config: 1363515edabb1d011e2c2bd81949305f9e0599f0b1c385120c70e7cf832288b1
             checksum/cloud-config: f8f57ee9b7c136ff44014ae152c2ee1d6437058a776ba359547a4d44896626d0
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
@@ -33284,7 +32932,7 @@ priority class scheduling:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/storage:v0.0.264
+              image: quay.io/kubescape/storage:v0.0.265
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -37227,7 +36875,7 @@ relevancy only:
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
                   value: otelCollector.svc.monitoring:4317
-              image: quay.io/kubescape/storage:v0.0.264
+              image: quay.io/kubescape/storage:v0.0.265
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -38014,7 +37662,7 @@ skipPersistence enabled:
       capabilities: |
         {
           "capabilities":{"admissionController":"enable","autoUpgrading":"enable","configurationScan":"enable","continuousScan":"enable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"enable","manageWorkloads":"enable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"enable","relevancy":"enable","runtimeDetection":"enable","runtimeObservability":"enable","scanEmbeddedSBOMs":"enable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"enable","vulnerabilityScan":"enable"},
-          "components":{"autoUpdater":{"enabled":true},"clamAV":{"enabled":true},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":true},"sbomScanner":{"enabled":true},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
+          "components":{"autoUpdater":{"enabled":true},"clamAV":{"enabled":true},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"hostScanner":{"enabled":true},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":true},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"excludeJsonPaths":[".containers[*].env[?(@.name==\"KUBECONFIG\")]"],"otelUrl":"otelCollector.svc.monitoring:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
         }
@@ -40308,40 +39956,6 @@ skipPersistence enabled:
                 - mountPath: /etc/clamav
                   name: etc
                   readOnly: true
-            - command:
-                - /usr/bin/sbom-scanner
-              env:
-                - name: GOMEMLIMIT
-                  valueFrom:
-                    resourceFieldRef:
-                      divisor: "1"
-                      resource: limits.memory
-                - name: SOCKET_PATH
-                  value: /sbom-comm/scanner.sock
-                - name: HOST_ROOT
-                  value: /host
-              image: quay.io/kubescape/node-agent:v0.3.75
-              imagePullPolicy: IfNotPresent
-              name: sbom-scanner
-              resources:
-                limits:
-                  cpu: 1000m
-                  memory: 4Gi
-                requests:
-                  cpu: 50m
-                  memory: 256Mi
-              securityContext:
-                capabilities:
-                  drop:
-                    - ALL
-                readOnlyRootFilesystem: true
-                runAsUser: 0
-              volumeMounts:
-                - mountPath: /sbom-comm
-                  name: sbom-comm
-                - mountPath: /host
-                  name: host
-                  readOnly: true
             - env:
                 - name: GOMEMLIMIT
                   valueFrom:
@@ -40363,10 +39977,6 @@ skipPersistence enabled:
                   value: otelCollector.svc.monitoring:4317
                 - name: CLAMAV_SOCKET
                   value: /clamav/clamd.sock
-                - name: SBOM_SCANNER_SOCKET
-                  value: /sbom-comm/scanner.sock
-                - name: SCANNER_MEMORY_LIMIT
-                  value: 4Gi
                 - name: HTTPS_PROXY
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
@@ -40464,8 +40074,6 @@ skipPersistence enabled:
                   readOnly: true
                 - mountPath: /clamav
                   name: clamrun
-                - mountPath: /sbom-comm
-                  name: sbom-comm
                 - mountPath: /etc/credentials
                   name: cloud-secret
                   readOnly: true
@@ -40574,10 +40182,6 @@ skipPersistence enabled:
                     path: freshclam.conf
                 name: clamav
               name: etc
-            - emptyDir:
-                medium: Memory
-                sizeLimit: 10Mi
-              name: sbom-comm
             - name: cloud-secret
               secret:
                 secretName: cloud-secret
@@ -41715,7 +41319,7 @@ skipPersistence enabled:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 4fa19eabda1fece38c97ecffd24e75c2e721c9363ea1330a81821dfb0d4a42a6
+            checksum/capabilities-config: b8bc7b0aa1b20d8eb4ed1c48e5969b2e5d9f70c4506fc495f7dbd33e3098391b
             checksum/cloud-config: aaeeb6b6b35a5ebbb0893822c4bf9cd860fba6d3df3bc4e77c8dbdd5841db120
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
@@ -42968,7 +42572,7 @@ skipPersistence enabled:
                   value: zap
                 - name: OTEL_COLLECTOR_SVC
                   value: otelCollector.svc.monitoring:4317
-              image: quay.io/kubescape/storage:v0.0.264
+              image: quay.io/kubescape/storage:v0.0.265
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
