@@ -100,12 +100,22 @@ autoUpdater:
 {{- $ca := dict "Key" "mock-ca-key" "Cert" "mock-ca-cert" -}}
 {{- $cert := dict "Key" "mock-cert-key" "Cert" "mock-cert-cert" -}}
 {{- if not .Values.unittest }}
-  {{- $generatedCA := genCA (printf "*.%s.svc" .Values.ksNamespace) 1024 -}}
-  {{- $generatedCert := genSignedCert $svcName nil (list $svcName) 1024 $generatedCA -}}
-  {{- $_ := set $ca "Key" $generatedCA.Key -}}
-  {{- $_ := set $ca "Cert" $generatedCA.Cert -}}
-  {{- $_ := set $cert "Key" $generatedCert.Key -}}
-  {{- $_ := set $cert "Cert" $generatedCert.Cert -}}
+  {{- $existingCASecret := (lookup "v1" "Secret" .Values.ksNamespace "kubescape-admission-ca") -}}
+  {{- if and $existingCASecret $existingCASecret.data -}}
+    {{- $_ := set $ca "Key" (index $existingCASecret.data "ca.key" | b64dec) -}}
+    {{- $_ := set $ca "Cert" (index $existingCASecret.data "ca.crt" | b64dec) -}}
+    {{- $existingCA := buildCustomCert ($ca.Cert | b64enc) ($ca.Key | b64enc) -}}
+    {{- $generatedCert := genSignedCert $svcName nil (list $svcName) 1024 $existingCA -}}
+    {{- $_ := set $cert "Key" $generatedCert.Key -}}
+    {{- $_ := set $cert "Cert" $generatedCert.Cert -}}
+  {{- else -}}
+    {{- $generatedCA := genCA (printf "*.%s.svc" .Values.ksNamespace) 1024 -}}
+    {{- $generatedCert := genSignedCert $svcName nil (list $svcName) 1024 $generatedCA -}}
+    {{- $_ := set $ca "Key" $generatedCA.Key -}}
+    {{- $_ := set $ca "Cert" $generatedCA.Cert -}}
+    {{- $_ := set $cert "Key" $generatedCert.Key -}}
+    {{- $_ := set $cert "Cert" $generatedCert.Cert -}}
+  {{- end -}}
 {{- end -}}
 {{- $certData := dict "ca" $ca "cert" $cert -}}
 {{- toYaml $certData -}}
