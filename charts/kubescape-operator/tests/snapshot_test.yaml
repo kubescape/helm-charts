@@ -212,6 +212,26 @@ tests:
       kubescape.serviceMonitor.enabled: true
       kubescapeScheduler.scanSchedule: "1 2 3 4 5"
       kubevulnScheduler.scanSchedule: "1 2 3 4 5"
+  - it: storage service configuration
+    template: storage/service.yaml
+    documentSelector:
+      path: metadata.name
+      value: storage
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      storage.service.type: LoadBalancer
+      storage.service.annotations:
+        io.cilium/lb-ipam-ips: 10.103.145.148
+    asserts:
+      - equal:
+          path: spec.type
+          value: LoadBalancer
+      - equal:
+          path: metadata.annotations["io.cilium/lb-ipam-ips"]
+          value: 10.103.145.148
   - it: with single private registry credentials
     template: configs/private-registries-creds-secret.yaml
     documentSelector:

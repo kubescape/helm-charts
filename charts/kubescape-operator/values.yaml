@@ -293,6 +293,7 @@ kubescape:
   service:
     type: ClusterIP
     port: 8080
+    annotations: {}
 
   # deploy a service monitor for prometheus (operator) integration
   serviceMonitor:
@@ -340,6 +341,13 @@ operator:
     port: 4002
     targetPort: 4002
     protocol: TCP
+    annotations: {}
+
+  admissionService:
+    type: ClusterIP
+    port: 443
+    targetPort: 8443
+    annotations: {}
 
   podAnnotations: {}
   podLabels: {}
@@ -391,6 +399,7 @@ kubevuln:
     port: 8080
     targetPort: 8080
     protocol: TCP
+    annotations: {}
 
   podAnnotations: {}
   podLabels: {}
@@ -493,6 +502,9 @@ storage:
     enabled: true
     certificateValidityInDays: 730
   serverPort: 8443
+  service:
+    type: ClusterIP
+    annotations: {}
 
   # -- source code: https://github.com/kubescape/storage
   image:
@@ -781,11 +793,16 @@ nodeAgent:
       - mountPath: /host
         name: host
         readOnly: true
+      # Syft's Java cataloger needs writable temp space to process JAR archives
+      - mountPath: /tmp
+        name: sbom-scanner-tmp
     volumes:
       - name: sbom-comm
         emptyDir:
           medium: Memory
           sizeLimit: 10Mi
+      - name: sbom-scanner-tmp
+        emptyDir: {}
 
 # +++++++++++++++++++++++++++++++ ClamAV ++++++++++++++++++++++++++++++++++++++++++++++++
 clamav:
@@ -867,6 +884,7 @@ synchronizer:
     port: 8089
     targetPort: 8089
     protocol: TCP
+    annotations: {}
 
 # -----------------------------------------------------------------------------------------
 # ------------------------ Microservice - helpers -----------------------------------------
