@@ -1,10 +1,18 @@
+{{- define "daily_scan_cron_tab_seed" -}}
+  {{- printf "%s/%s/%s" .Values.clusterName .Release.Namespace .Release.Name -}}
+{{- end -}}
+
 {{- define "daily_scan_cron_tab_minute" -}}
-{{  mod (randNumeric 2) 60 }}
-{{- end }}
+  {{- $hash := sha256sum (printf "minute-%s" (include "daily_scan_cron_tab_seed" .)) -}}
+  {{- $digits := mustRegexFind "[0-9]+" $hash -}}
+  {{- mod (atoi (trunc 4 $digits)) 60 -}}
+{{- end -}}
 
 {{- define "daily_scan_cron_tab_hour" -}}
-{{mod (randNumeric 2) 24 }}
-{{- end }}
+  {{- $hash := sha256sum (printf "hour-%s" (include "daily_scan_cron_tab_seed" .)) -}}
+  {{- $digits := mustRegexFind "[0-9]+" $hash -}}
+  {{- mod (atoi (trunc 4 $digits)) 24 -}}
+{{- end -}}
 
 {{/* calc values for kubescape cronjobs */}}
 {{- define "kubescape_daily_scan_cron_tab" -}}
