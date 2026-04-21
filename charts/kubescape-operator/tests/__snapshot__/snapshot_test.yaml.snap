@@ -3332,11 +3332,11 @@ all capabilities:
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - process
             - exec
             - applicationprofile
-            - context:kubernetes
         - description: Detects unexpected file access that is not in the baseline
           enabled: false
           expressions:
@@ -3358,11 +3358,11 @@ all capabilities:
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - file
             - open
             - applicationprofile
-            - context:kubernetes
         - description: Detects unexpected system calls that are not whitelisted by application profile
           enabled: true
           expressions:
@@ -3380,10 +3380,10 @@ all capabilities:
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - syscall
             - applicationprofile
-            - context:kubernetes
         - description: Detects unexpected capabilities that are not whitelisted by application profile
           enabled: true
           expressions:
@@ -3401,10 +3401,10 @@ all capabilities:
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - capabilities
             - applicationprofile
-            - context:kubernetes
         - description: Detecting unexpected domain requests that are not whitelisted by application profile.
           enabled: true
           expressions:
@@ -3422,10 +3422,10 @@ all capabilities:
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - dns
             - anomaly
             - networkprofile
-            - context:kubernetes
         - description: Detecting unexpected access to service account token.
           enabled: true
           expressions:
@@ -3441,12 +3441,16 @@ all capabilities:
           name: Unexpected service account token access
           profileDependency: 0
           severity: 5
+          state:
+            includePrefixes:
+              - /run/secrets
+              - /var/run/secrets
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - serviceaccount
             - applicationprofile
-            - context:kubernetes
         - description: Detecting execution of kubernetes client
           enabled: true
           expressions:
@@ -3466,11 +3470,11 @@ all capabilities:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - exec
             - network
             - anomaly
             - applicationprofile
-            - context:kubernetes
         - description: Detecting reading environment variables from procfs.
           enabled: true
           expressions:
@@ -3479,7 +3483,7 @@ all capabilities:
               - eventType: open
                 expression: |
                   event.path.startsWith('/proc/') &&  event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
-            uniqueId: event.comm + '_' + event.path
+            uniqueId: event.comm
           id: R0008
           isTriggerAlert: true
           mitreTactic: TA0006
@@ -3487,13 +3491,16 @@ all capabilities:
           name: Read Environment Variables from procfs
           profileDependency: 0
           severity: 5
+          state:
+            includePrefixes:
+              - /proc
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - procfs
             - environment
             - applicationprofile
-            - context:kubernetes
         - description: Detecting eBPF program load.
           enabled: true
           expressions:
@@ -3511,10 +3518,11 @@ all capabilities:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - bpf
             - ebpf
             - applicationprofile
-            - context:kubernetes
         - description: Detecting access to sensitive files.
           enabled: true
           expressions:
@@ -3532,10 +3540,11 @@ all capabilities:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - files
             - anomaly
             - applicationprofile
-            - context:kubernetes
         - description: Detecting unexpected egress network traffic that is not whitelisted by application profile.
           enabled: false
           expressions:
@@ -3553,11 +3562,11 @@ all capabilities:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - whitelisted
             - network
             - anomaly
             - networkprofile
-            - context:kubernetes
         - description: 'Detecting exec calls that are from malicious source like: /dev/shm'
           enabled: true
           expressions:
@@ -3576,10 +3585,11 @@ all capabilities:
           severity: 8
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - exec
             - signature
             - malicious
-            - context:kubernetes
         - description: Detecting exec calls of binaries that are not included in the base image
           enabled: true
           expressions:
@@ -3600,12 +3610,12 @@ all capabilities:
           severity: 8
           supportPolicy: false
           tags:
+            - context:kubernetes
             - exec
             - malicious
             - binary
             - base image
             - applicationprofile
-            - context:kubernetes
         - description: Detecting Kernel Module Load.
           enabled: true
           expressions:
@@ -3623,11 +3633,12 @@ all capabilities:
           severity: 10
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - kmod
             - kernel
             - module
             - load
-            - context:kubernetes
         - description: Detecting ssh connection to disallowed port
           enabled: false
           expressions:
@@ -3645,12 +3656,12 @@ all capabilities:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - ssh
             - connection
             - port
             - malicious
             - networkprofile
-            - context:kubernetes
         - description: Detecting exec calls from mounted paths.
           enabled: true
           expressions:
@@ -3668,10 +3679,10 @@ all capabilities:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - exec
             - mount
             - applicationprofile
-            - context:kubernetes
         - description: Detecting Fileless Execution
           enabled: true
           expressions:
@@ -3689,10 +3700,11 @@ all capabilities:
           severity: 8
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - fileless
             - execution
             - malicious
-            - context:kubernetes
         - description: Detecting Unshare System Call usage, which can be used to escape container.
           enabled: true
           expressions:
@@ -3710,12 +3722,12 @@ all capabilities:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - unshare
             - escape
             - unshare
             - anomaly
             - applicationprofile
-            - context:kubernetes
         - description: Detecting XMR Crypto Miners by randomx algorithm usage.
           enabled: true
           expressions:
@@ -3733,10 +3745,10 @@ all capabilities:
           severity: 10
           supportPolicy: false
           tags:
+            - context:kubernetes
             - crypto
             - miners
             - malicious
-            - context:kubernetes
         - description: Detecting Crypto miners communication by domain
           enabled: true
           expressions:
@@ -3754,12 +3766,13 @@ all capabilities:
           severity: 10
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - network
             - crypto
             - miners
             - malicious
             - dns
-            - context:kubernetes
         - description: Detecting Crypto Miners by suspicious port usage.
           enabled: true
           expressions:
@@ -3775,14 +3788,19 @@ all capabilities:
           name: Crypto Mining Related Port Communication
           profileDependency: 1
           severity: 3
+          state:
+            ports:
+              - 3333
+              - 45700
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - network
             - crypto
             - miners
             - malicious
             - networkprofile
-            - context:kubernetes
         - description: Detects symlink creation over sensitive files
           enabled: true
           expressions:
@@ -3800,10 +3818,11 @@ all capabilities:
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
+            - context:host
             - anomaly
             - symlink
             - applicationprofile
-            - context:kubernetes
         - description: Detecting ld_preload hook techniques.
           enabled: false
           expressions:
@@ -3823,10 +3842,10 @@ all capabilities:
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
             - exec
             - malicious
             - applicationprofile
-            - context:kubernetes
         - description: Detecting hardlink creation over sensitive files.
           enabled: true
           expressions:
@@ -3844,10 +3863,10 @@ all capabilities:
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
             - files
             - malicious
             - applicationprofile
-            - context:kubernetes
         - description: Detecting potentially malicious ptrace usage.
           enabled: true
           expressions:
@@ -3865,9 +3884,10 @@ all capabilities:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - process
             - malicious
-            - context:kubernetes
         - description: Detects io_uring operations that were not recorded during the initial observation period, indicating potential unauthorized activity.
           enabled: true
           expressions:
@@ -3885,10 +3905,10 @@ all capabilities:
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
             - syscalls
             - io_uring
             - applicationprofile
-            - context:kubernetes
   62: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
@@ -8294,11 +8314,11 @@ backend-storage enabled disables scanning capabilities:
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - process
             - exec
             - applicationprofile
-            - context:kubernetes
         - description: Detects unexpected file access that is not in the baseline
           enabled: false
           expressions:
@@ -8320,11 +8340,11 @@ backend-storage enabled disables scanning capabilities:
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - file
             - open
             - applicationprofile
-            - context:kubernetes
         - description: Detects unexpected system calls that are not whitelisted by application profile
           enabled: true
           expressions:
@@ -8342,10 +8362,10 @@ backend-storage enabled disables scanning capabilities:
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - syscall
             - applicationprofile
-            - context:kubernetes
         - description: Detects unexpected capabilities that are not whitelisted by application profile
           enabled: true
           expressions:
@@ -8363,10 +8383,10 @@ backend-storage enabled disables scanning capabilities:
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - capabilities
             - applicationprofile
-            - context:kubernetes
         - description: Detecting unexpected domain requests that are not whitelisted by application profile.
           enabled: true
           expressions:
@@ -8384,10 +8404,10 @@ backend-storage enabled disables scanning capabilities:
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - dns
             - anomaly
             - networkprofile
-            - context:kubernetes
         - description: Detecting unexpected access to service account token.
           enabled: true
           expressions:
@@ -8403,12 +8423,16 @@ backend-storage enabled disables scanning capabilities:
           name: Unexpected service account token access
           profileDependency: 0
           severity: 5
+          state:
+            includePrefixes:
+              - /run/secrets
+              - /var/run/secrets
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - serviceaccount
             - applicationprofile
-            - context:kubernetes
         - description: Detecting execution of kubernetes client
           enabled: true
           expressions:
@@ -8428,11 +8452,11 @@ backend-storage enabled disables scanning capabilities:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - exec
             - network
             - anomaly
             - applicationprofile
-            - context:kubernetes
         - description: Detecting reading environment variables from procfs.
           enabled: true
           expressions:
@@ -8441,7 +8465,7 @@ backend-storage enabled disables scanning capabilities:
               - eventType: open
                 expression: |
                   event.path.startsWith('/proc/') &&  event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
-            uniqueId: event.comm + '_' + event.path
+            uniqueId: event.comm
           id: R0008
           isTriggerAlert: true
           mitreTactic: TA0006
@@ -8449,13 +8473,16 @@ backend-storage enabled disables scanning capabilities:
           name: Read Environment Variables from procfs
           profileDependency: 0
           severity: 5
+          state:
+            includePrefixes:
+              - /proc
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - procfs
             - environment
             - applicationprofile
-            - context:kubernetes
         - description: Detecting eBPF program load.
           enabled: true
           expressions:
@@ -8473,10 +8500,11 @@ backend-storage enabled disables scanning capabilities:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - bpf
             - ebpf
             - applicationprofile
-            - context:kubernetes
         - description: Detecting access to sensitive files.
           enabled: true
           expressions:
@@ -8494,10 +8522,11 @@ backend-storage enabled disables scanning capabilities:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - files
             - anomaly
             - applicationprofile
-            - context:kubernetes
         - description: Detecting unexpected egress network traffic that is not whitelisted by application profile.
           enabled: false
           expressions:
@@ -8515,11 +8544,11 @@ backend-storage enabled disables scanning capabilities:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - whitelisted
             - network
             - anomaly
             - networkprofile
-            - context:kubernetes
         - description: 'Detecting exec calls that are from malicious source like: /dev/shm'
           enabled: true
           expressions:
@@ -8538,10 +8567,11 @@ backend-storage enabled disables scanning capabilities:
           severity: 8
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - exec
             - signature
             - malicious
-            - context:kubernetes
         - description: Detecting exec calls of binaries that are not included in the base image
           enabled: true
           expressions:
@@ -8562,12 +8592,12 @@ backend-storage enabled disables scanning capabilities:
           severity: 8
           supportPolicy: false
           tags:
+            - context:kubernetes
             - exec
             - malicious
             - binary
             - base image
             - applicationprofile
-            - context:kubernetes
         - description: Detecting Kernel Module Load.
           enabled: true
           expressions:
@@ -8585,11 +8615,12 @@ backend-storage enabled disables scanning capabilities:
           severity: 10
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - kmod
             - kernel
             - module
             - load
-            - context:kubernetes
         - description: Detecting ssh connection to disallowed port
           enabled: false
           expressions:
@@ -8607,12 +8638,12 @@ backend-storage enabled disables scanning capabilities:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - ssh
             - connection
             - port
             - malicious
             - networkprofile
-            - context:kubernetes
         - description: Detecting exec calls from mounted paths.
           enabled: true
           expressions:
@@ -8630,10 +8661,10 @@ backend-storage enabled disables scanning capabilities:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - exec
             - mount
             - applicationprofile
-            - context:kubernetes
         - description: Detecting Fileless Execution
           enabled: true
           expressions:
@@ -8651,10 +8682,11 @@ backend-storage enabled disables scanning capabilities:
           severity: 8
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - fileless
             - execution
             - malicious
-            - context:kubernetes
         - description: Detecting Unshare System Call usage, which can be used to escape container.
           enabled: true
           expressions:
@@ -8672,12 +8704,12 @@ backend-storage enabled disables scanning capabilities:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - unshare
             - escape
             - unshare
             - anomaly
             - applicationprofile
-            - context:kubernetes
         - description: Detecting XMR Crypto Miners by randomx algorithm usage.
           enabled: true
           expressions:
@@ -8695,10 +8727,10 @@ backend-storage enabled disables scanning capabilities:
           severity: 10
           supportPolicy: false
           tags:
+            - context:kubernetes
             - crypto
             - miners
             - malicious
-            - context:kubernetes
         - description: Detecting Crypto miners communication by domain
           enabled: true
           expressions:
@@ -8716,12 +8748,13 @@ backend-storage enabled disables scanning capabilities:
           severity: 10
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - network
             - crypto
             - miners
             - malicious
             - dns
-            - context:kubernetes
         - description: Detecting Crypto Miners by suspicious port usage.
           enabled: true
           expressions:
@@ -8737,14 +8770,19 @@ backend-storage enabled disables scanning capabilities:
           name: Crypto Mining Related Port Communication
           profileDependency: 1
           severity: 3
+          state:
+            ports:
+              - 3333
+              - 45700
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - network
             - crypto
             - miners
             - malicious
             - networkprofile
-            - context:kubernetes
         - description: Detects symlink creation over sensitive files
           enabled: true
           expressions:
@@ -8762,10 +8800,11 @@ backend-storage enabled disables scanning capabilities:
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
+            - context:host
             - anomaly
             - symlink
             - applicationprofile
-            - context:kubernetes
         - description: Detecting ld_preload hook techniques.
           enabled: false
           expressions:
@@ -8785,10 +8824,10 @@ backend-storage enabled disables scanning capabilities:
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
             - exec
             - malicious
             - applicationprofile
-            - context:kubernetes
         - description: Detecting hardlink creation over sensitive files.
           enabled: true
           expressions:
@@ -8806,10 +8845,10 @@ backend-storage enabled disables scanning capabilities:
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
             - files
             - malicious
             - applicationprofile
-            - context:kubernetes
         - description: Detecting potentially malicious ptrace usage.
           enabled: true
           expressions:
@@ -8827,9 +8866,10 @@ backend-storage enabled disables scanning capabilities:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - process
             - malicious
-            - context:kubernetes
         - description: Detects io_uring operations that were not recorded during the initial observation period, indicating potential unauthorized activity.
           enabled: true
           expressions:
@@ -8847,10 +8887,10 @@ backend-storage enabled disables scanning capabilities:
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
             - syscalls
             - io_uring
             - applicationprofile
-            - context:kubernetes
   23: |
     apiVersion: v1
     kind: Service
@@ -13555,11 +13595,11 @@ default capabilities:
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - process
             - exec
             - applicationprofile
-            - context:kubernetes
         - description: Detects unexpected file access that is not in the baseline
           enabled: false
           expressions:
@@ -13581,11 +13621,11 @@ default capabilities:
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - file
             - open
             - applicationprofile
-            - context:kubernetes
         - description: Detects unexpected system calls that are not whitelisted by application profile
           enabled: true
           expressions:
@@ -13603,10 +13643,10 @@ default capabilities:
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - syscall
             - applicationprofile
-            - context:kubernetes
         - description: Detects unexpected capabilities that are not whitelisted by application profile
           enabled: true
           expressions:
@@ -13624,10 +13664,10 @@ default capabilities:
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - capabilities
             - applicationprofile
-            - context:kubernetes
         - description: Detecting unexpected domain requests that are not whitelisted by application profile.
           enabled: true
           expressions:
@@ -13645,10 +13685,10 @@ default capabilities:
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - dns
             - anomaly
             - networkprofile
-            - context:kubernetes
         - description: Detecting unexpected access to service account token.
           enabled: true
           expressions:
@@ -13664,12 +13704,16 @@ default capabilities:
           name: Unexpected service account token access
           profileDependency: 0
           severity: 5
+          state:
+            includePrefixes:
+              - /run/secrets
+              - /var/run/secrets
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - serviceaccount
             - applicationprofile
-            - context:kubernetes
         - description: Detecting execution of kubernetes client
           enabled: true
           expressions:
@@ -13689,11 +13733,11 @@ default capabilities:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - exec
             - network
             - anomaly
             - applicationprofile
-            - context:kubernetes
         - description: Detecting reading environment variables from procfs.
           enabled: true
           expressions:
@@ -13702,7 +13746,7 @@ default capabilities:
               - eventType: open
                 expression: |
                   event.path.startsWith('/proc/') &&  event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
-            uniqueId: event.comm + '_' + event.path
+            uniqueId: event.comm
           id: R0008
           isTriggerAlert: true
           mitreTactic: TA0006
@@ -13710,13 +13754,16 @@ default capabilities:
           name: Read Environment Variables from procfs
           profileDependency: 0
           severity: 5
+          state:
+            includePrefixes:
+              - /proc
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - procfs
             - environment
             - applicationprofile
-            - context:kubernetes
         - description: Detecting eBPF program load.
           enabled: true
           expressions:
@@ -13734,10 +13781,11 @@ default capabilities:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - bpf
             - ebpf
             - applicationprofile
-            - context:kubernetes
         - description: Detecting access to sensitive files.
           enabled: true
           expressions:
@@ -13755,10 +13803,11 @@ default capabilities:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - files
             - anomaly
             - applicationprofile
-            - context:kubernetes
         - description: Detecting unexpected egress network traffic that is not whitelisted by application profile.
           enabled: false
           expressions:
@@ -13776,11 +13825,11 @@ default capabilities:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - whitelisted
             - network
             - anomaly
             - networkprofile
-            - context:kubernetes
         - description: 'Detecting exec calls that are from malicious source like: /dev/shm'
           enabled: true
           expressions:
@@ -13799,10 +13848,11 @@ default capabilities:
           severity: 8
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - exec
             - signature
             - malicious
-            - context:kubernetes
         - description: Detecting exec calls of binaries that are not included in the base image
           enabled: true
           expressions:
@@ -13823,12 +13873,12 @@ default capabilities:
           severity: 8
           supportPolicy: false
           tags:
+            - context:kubernetes
             - exec
             - malicious
             - binary
             - base image
             - applicationprofile
-            - context:kubernetes
         - description: Detecting Kernel Module Load.
           enabled: true
           expressions:
@@ -13846,11 +13896,12 @@ default capabilities:
           severity: 10
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - kmod
             - kernel
             - module
             - load
-            - context:kubernetes
         - description: Detecting ssh connection to disallowed port
           enabled: false
           expressions:
@@ -13868,12 +13919,12 @@ default capabilities:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - ssh
             - connection
             - port
             - malicious
             - networkprofile
-            - context:kubernetes
         - description: Detecting exec calls from mounted paths.
           enabled: true
           expressions:
@@ -13891,10 +13942,10 @@ default capabilities:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - exec
             - mount
             - applicationprofile
-            - context:kubernetes
         - description: Detecting Fileless Execution
           enabled: true
           expressions:
@@ -13912,10 +13963,11 @@ default capabilities:
           severity: 8
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - fileless
             - execution
             - malicious
-            - context:kubernetes
         - description: Detecting Unshare System Call usage, which can be used to escape container.
           enabled: true
           expressions:
@@ -13933,12 +13985,12 @@ default capabilities:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - unshare
             - escape
             - unshare
             - anomaly
             - applicationprofile
-            - context:kubernetes
         - description: Detecting XMR Crypto Miners by randomx algorithm usage.
           enabled: true
           expressions:
@@ -13956,10 +14008,10 @@ default capabilities:
           severity: 10
           supportPolicy: false
           tags:
+            - context:kubernetes
             - crypto
             - miners
             - malicious
-            - context:kubernetes
         - description: Detecting Crypto miners communication by domain
           enabled: true
           expressions:
@@ -13977,12 +14029,13 @@ default capabilities:
           severity: 10
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - network
             - crypto
             - miners
             - malicious
             - dns
-            - context:kubernetes
         - description: Detecting Crypto Miners by suspicious port usage.
           enabled: true
           expressions:
@@ -13998,14 +14051,19 @@ default capabilities:
           name: Crypto Mining Related Port Communication
           profileDependency: 1
           severity: 3
+          state:
+            ports:
+              - 3333
+              - 45700
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - network
             - crypto
             - miners
             - malicious
             - networkprofile
-            - context:kubernetes
         - description: Detects symlink creation over sensitive files
           enabled: true
           expressions:
@@ -14023,10 +14081,11 @@ default capabilities:
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
+            - context:host
             - anomaly
             - symlink
             - applicationprofile
-            - context:kubernetes
         - description: Detecting ld_preload hook techniques.
           enabled: false
           expressions:
@@ -14046,10 +14105,10 @@ default capabilities:
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
             - exec
             - malicious
             - applicationprofile
-            - context:kubernetes
         - description: Detecting hardlink creation over sensitive files.
           enabled: true
           expressions:
@@ -14067,10 +14126,10 @@ default capabilities:
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
             - files
             - malicious
             - applicationprofile
-            - context:kubernetes
         - description: Detecting potentially malicious ptrace usage.
           enabled: true
           expressions:
@@ -14088,9 +14147,10 @@ default capabilities:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - process
             - malicious
-            - context:kubernetes
         - description: Detects io_uring operations that were not recorded during the initial observation period, indicating potential unauthorized activity.
           enabled: true
           expressions:
@@ -14108,10 +14168,10 @@ default capabilities:
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
             - syscalls
             - io_uring
             - applicationprofile
-            - context:kubernetes
   48: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
@@ -28645,11 +28705,11 @@ multiple node agents:
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - process
             - exec
             - applicationprofile
-            - context:kubernetes
         - description: Detects unexpected file access that is not in the baseline
           enabled: false
           expressions:
@@ -28671,11 +28731,11 @@ multiple node agents:
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - file
             - open
             - applicationprofile
-            - context:kubernetes
         - description: Detects unexpected system calls that are not whitelisted by application profile
           enabled: true
           expressions:
@@ -28693,10 +28753,10 @@ multiple node agents:
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - syscall
             - applicationprofile
-            - context:kubernetes
         - description: Detects unexpected capabilities that are not whitelisted by application profile
           enabled: true
           expressions:
@@ -28714,10 +28774,10 @@ multiple node agents:
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - capabilities
             - applicationprofile
-            - context:kubernetes
         - description: Detecting unexpected domain requests that are not whitelisted by application profile.
           enabled: true
           expressions:
@@ -28735,10 +28795,10 @@ multiple node agents:
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - dns
             - anomaly
             - networkprofile
-            - context:kubernetes
         - description: Detecting unexpected access to service account token.
           enabled: true
           expressions:
@@ -28754,12 +28814,16 @@ multiple node agents:
           name: Unexpected service account token access
           profileDependency: 0
           severity: 5
+          state:
+            includePrefixes:
+              - /run/secrets
+              - /var/run/secrets
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - serviceaccount
             - applicationprofile
-            - context:kubernetes
         - description: Detecting execution of kubernetes client
           enabled: true
           expressions:
@@ -28779,11 +28843,11 @@ multiple node agents:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - exec
             - network
             - anomaly
             - applicationprofile
-            - context:kubernetes
         - description: Detecting reading environment variables from procfs.
           enabled: true
           expressions:
@@ -28792,7 +28856,7 @@ multiple node agents:
               - eventType: open
                 expression: |
                   event.path.startsWith('/proc/') &&  event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
-            uniqueId: event.comm + '_' + event.path
+            uniqueId: event.comm
           id: R0008
           isTriggerAlert: true
           mitreTactic: TA0006
@@ -28800,13 +28864,16 @@ multiple node agents:
           name: Read Environment Variables from procfs
           profileDependency: 0
           severity: 5
+          state:
+            includePrefixes:
+              - /proc
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - procfs
             - environment
             - applicationprofile
-            - context:kubernetes
         - description: Detecting eBPF program load.
           enabled: true
           expressions:
@@ -28824,10 +28891,11 @@ multiple node agents:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - bpf
             - ebpf
             - applicationprofile
-            - context:kubernetes
         - description: Detecting access to sensitive files.
           enabled: true
           expressions:
@@ -28845,10 +28913,11 @@ multiple node agents:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - files
             - anomaly
             - applicationprofile
-            - context:kubernetes
         - description: Detecting unexpected egress network traffic that is not whitelisted by application profile.
           enabled: false
           expressions:
@@ -28866,11 +28935,11 @@ multiple node agents:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - whitelisted
             - network
             - anomaly
             - networkprofile
-            - context:kubernetes
         - description: 'Detecting exec calls that are from malicious source like: /dev/shm'
           enabled: true
           expressions:
@@ -28889,10 +28958,11 @@ multiple node agents:
           severity: 8
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - exec
             - signature
             - malicious
-            - context:kubernetes
         - description: Detecting exec calls of binaries that are not included in the base image
           enabled: true
           expressions:
@@ -28913,12 +28983,12 @@ multiple node agents:
           severity: 8
           supportPolicy: false
           tags:
+            - context:kubernetes
             - exec
             - malicious
             - binary
             - base image
             - applicationprofile
-            - context:kubernetes
         - description: Detecting Kernel Module Load.
           enabled: true
           expressions:
@@ -28936,11 +29006,12 @@ multiple node agents:
           severity: 10
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - kmod
             - kernel
             - module
             - load
-            - context:kubernetes
         - description: Detecting ssh connection to disallowed port
           enabled: false
           expressions:
@@ -28958,12 +29029,12 @@ multiple node agents:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - ssh
             - connection
             - port
             - malicious
             - networkprofile
-            - context:kubernetes
         - description: Detecting exec calls from mounted paths.
           enabled: true
           expressions:
@@ -28981,10 +29052,10 @@ multiple node agents:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - exec
             - mount
             - applicationprofile
-            - context:kubernetes
         - description: Detecting Fileless Execution
           enabled: true
           expressions:
@@ -29002,10 +29073,11 @@ multiple node agents:
           severity: 8
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - fileless
             - execution
             - malicious
-            - context:kubernetes
         - description: Detecting Unshare System Call usage, which can be used to escape container.
           enabled: true
           expressions:
@@ -29023,12 +29095,12 @@ multiple node agents:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - unshare
             - escape
             - unshare
             - anomaly
             - applicationprofile
-            - context:kubernetes
         - description: Detecting XMR Crypto Miners by randomx algorithm usage.
           enabled: true
           expressions:
@@ -29046,10 +29118,10 @@ multiple node agents:
           severity: 10
           supportPolicy: false
           tags:
+            - context:kubernetes
             - crypto
             - miners
             - malicious
-            - context:kubernetes
         - description: Detecting Crypto miners communication by domain
           enabled: true
           expressions:
@@ -29067,12 +29139,13 @@ multiple node agents:
           severity: 10
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - network
             - crypto
             - miners
             - malicious
             - dns
-            - context:kubernetes
         - description: Detecting Crypto Miners by suspicious port usage.
           enabled: true
           expressions:
@@ -29088,14 +29161,19 @@ multiple node agents:
           name: Crypto Mining Related Port Communication
           profileDependency: 1
           severity: 3
+          state:
+            ports:
+              - 3333
+              - 45700
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - network
             - crypto
             - miners
             - malicious
             - networkprofile
-            - context:kubernetes
         - description: Detects symlink creation over sensitive files
           enabled: true
           expressions:
@@ -29113,10 +29191,11 @@ multiple node agents:
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
+            - context:host
             - anomaly
             - symlink
             - applicationprofile
-            - context:kubernetes
         - description: Detecting ld_preload hook techniques.
           enabled: false
           expressions:
@@ -29136,10 +29215,10 @@ multiple node agents:
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
             - exec
             - malicious
             - applicationprofile
-            - context:kubernetes
         - description: Detecting hardlink creation over sensitive files.
           enabled: true
           expressions:
@@ -29157,10 +29236,10 @@ multiple node agents:
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
             - files
             - malicious
             - applicationprofile
-            - context:kubernetes
         - description: Detecting potentially malicious ptrace usage.
           enabled: true
           expressions:
@@ -29178,9 +29257,10 @@ multiple node agents:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - process
             - malicious
-            - context:kubernetes
         - description: Detects io_uring operations that were not recorded during the initial observation period, indicating potential unauthorized activity.
           enabled: true
           expressions:
@@ -29198,10 +29278,10 @@ multiple node agents:
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
             - syscalls
             - io_uring
             - applicationprofile
-            - context:kubernetes
   63: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
@@ -43959,11 +44039,11 @@ skipPersistence enabled:
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - process
             - exec
             - applicationprofile
-            - context:kubernetes
         - description: Detects unexpected file access that is not in the baseline
           enabled: false
           expressions:
@@ -43985,11 +44065,11 @@ skipPersistence enabled:
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - file
             - open
             - applicationprofile
-            - context:kubernetes
         - description: Detects unexpected system calls that are not whitelisted by application profile
           enabled: true
           expressions:
@@ -44007,10 +44087,10 @@ skipPersistence enabled:
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - syscall
             - applicationprofile
-            - context:kubernetes
         - description: Detects unexpected capabilities that are not whitelisted by application profile
           enabled: true
           expressions:
@@ -44028,10 +44108,10 @@ skipPersistence enabled:
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - capabilities
             - applicationprofile
-            - context:kubernetes
         - description: Detecting unexpected domain requests that are not whitelisted by application profile.
           enabled: true
           expressions:
@@ -44049,10 +44129,10 @@ skipPersistence enabled:
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - dns
             - anomaly
             - networkprofile
-            - context:kubernetes
         - description: Detecting unexpected access to service account token.
           enabled: true
           expressions:
@@ -44068,12 +44148,16 @@ skipPersistence enabled:
           name: Unexpected service account token access
           profileDependency: 0
           severity: 5
+          state:
+            includePrefixes:
+              - /run/secrets
+              - /var/run/secrets
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - serviceaccount
             - applicationprofile
-            - context:kubernetes
         - description: Detecting execution of kubernetes client
           enabled: true
           expressions:
@@ -44093,11 +44177,11 @@ skipPersistence enabled:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - exec
             - network
             - anomaly
             - applicationprofile
-            - context:kubernetes
         - description: Detecting reading environment variables from procfs.
           enabled: true
           expressions:
@@ -44106,7 +44190,7 @@ skipPersistence enabled:
               - eventType: open
                 expression: |
                   event.path.startsWith('/proc/') &&  event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
-            uniqueId: event.comm + '_' + event.path
+            uniqueId: event.comm
           id: R0008
           isTriggerAlert: true
           mitreTactic: TA0006
@@ -44114,13 +44198,16 @@ skipPersistence enabled:
           name: Read Environment Variables from procfs
           profileDependency: 0
           severity: 5
+          state:
+            includePrefixes:
+              - /proc
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - procfs
             - environment
             - applicationprofile
-            - context:kubernetes
         - description: Detecting eBPF program load.
           enabled: true
           expressions:
@@ -44138,10 +44225,11 @@ skipPersistence enabled:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - bpf
             - ebpf
             - applicationprofile
-            - context:kubernetes
         - description: Detecting access to sensitive files.
           enabled: true
           expressions:
@@ -44159,10 +44247,11 @@ skipPersistence enabled:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - files
             - anomaly
             - applicationprofile
-            - context:kubernetes
         - description: Detecting unexpected egress network traffic that is not whitelisted by application profile.
           enabled: false
           expressions:
@@ -44180,11 +44269,11 @@ skipPersistence enabled:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - whitelisted
             - network
             - anomaly
             - networkprofile
-            - context:kubernetes
         - description: 'Detecting exec calls that are from malicious source like: /dev/shm'
           enabled: true
           expressions:
@@ -44203,10 +44292,11 @@ skipPersistence enabled:
           severity: 8
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - exec
             - signature
             - malicious
-            - context:kubernetes
         - description: Detecting exec calls of binaries that are not included in the base image
           enabled: true
           expressions:
@@ -44227,12 +44317,12 @@ skipPersistence enabled:
           severity: 8
           supportPolicy: false
           tags:
+            - context:kubernetes
             - exec
             - malicious
             - binary
             - base image
             - applicationprofile
-            - context:kubernetes
         - description: Detecting Kernel Module Load.
           enabled: true
           expressions:
@@ -44250,11 +44340,12 @@ skipPersistence enabled:
           severity: 10
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - kmod
             - kernel
             - module
             - load
-            - context:kubernetes
         - description: Detecting ssh connection to disallowed port
           enabled: false
           expressions:
@@ -44272,12 +44363,12 @@ skipPersistence enabled:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - ssh
             - connection
             - port
             - malicious
             - networkprofile
-            - context:kubernetes
         - description: Detecting exec calls from mounted paths.
           enabled: true
           expressions:
@@ -44295,10 +44386,10 @@ skipPersistence enabled:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - exec
             - mount
             - applicationprofile
-            - context:kubernetes
         - description: Detecting Fileless Execution
           enabled: true
           expressions:
@@ -44316,10 +44407,11 @@ skipPersistence enabled:
           severity: 8
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - fileless
             - execution
             - malicious
-            - context:kubernetes
         - description: Detecting Unshare System Call usage, which can be used to escape container.
           enabled: true
           expressions:
@@ -44337,12 +44429,12 @@ skipPersistence enabled:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - unshare
             - escape
             - unshare
             - anomaly
             - applicationprofile
-            - context:kubernetes
         - description: Detecting XMR Crypto Miners by randomx algorithm usage.
           enabled: true
           expressions:
@@ -44360,10 +44452,10 @@ skipPersistence enabled:
           severity: 10
           supportPolicy: false
           tags:
+            - context:kubernetes
             - crypto
             - miners
             - malicious
-            - context:kubernetes
         - description: Detecting Crypto miners communication by domain
           enabled: true
           expressions:
@@ -44381,12 +44473,13 @@ skipPersistence enabled:
           severity: 10
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - network
             - crypto
             - miners
             - malicious
             - dns
-            - context:kubernetes
         - description: Detecting Crypto Miners by suspicious port usage.
           enabled: true
           expressions:
@@ -44402,14 +44495,19 @@ skipPersistence enabled:
           name: Crypto Mining Related Port Communication
           profileDependency: 1
           severity: 3
+          state:
+            ports:
+              - 3333
+              - 45700
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - network
             - crypto
             - miners
             - malicious
             - networkprofile
-            - context:kubernetes
         - description: Detects symlink creation over sensitive files
           enabled: true
           expressions:
@@ -44427,10 +44525,11 @@ skipPersistence enabled:
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
+            - context:host
             - anomaly
             - symlink
             - applicationprofile
-            - context:kubernetes
         - description: Detecting ld_preload hook techniques.
           enabled: false
           expressions:
@@ -44450,10 +44549,10 @@ skipPersistence enabled:
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
             - exec
             - malicious
             - applicationprofile
-            - context:kubernetes
         - description: Detecting hardlink creation over sensitive files.
           enabled: true
           expressions:
@@ -44471,10 +44570,10 @@ skipPersistence enabled:
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
             - files
             - malicious
             - applicationprofile
-            - context:kubernetes
         - description: Detecting potentially malicious ptrace usage.
           enabled: true
           expressions:
@@ -44492,9 +44591,10 @@ skipPersistence enabled:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - process
             - malicious
-            - context:kubernetes
         - description: Detects io_uring operations that were not recorded during the initial observation period, indicating potential unauthorized activity.
           enabled: true
           expressions:
@@ -44512,10 +44612,10 @@ skipPersistence enabled:
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
             - syscalls
             - io_uring
             - applicationprofile
-            - context:kubernetes
   62: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
