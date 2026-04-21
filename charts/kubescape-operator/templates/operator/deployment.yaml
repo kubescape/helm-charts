@@ -2,9 +2,6 @@
 {{- $components := fromYaml (include "components" .) }}
 {{- if $components.operator.enabled }}
 {{- $no_proxy_envar_list := (include "no_proxy_envar_list" .) -}}
-{{- $admissionWebhookName := (include "kubescape-admission.name" .) -}}
-{{- $admissionSecretName := $admissionWebhookName -}}
-{{- $admissionSvcName := (include "kubescape-admission.svcName" .) -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -62,42 +59,6 @@ spec:
           type: RuntimeDefault
         runAsUser: 65532
         fsGroup: 65532
-      {{- if eq .Values.capabilities.admissionController "enable" }}
-      {{- $registry := .Values.operator.admissionWebhooks.patch.image.registry }}
-      initContainers:
-        - name: admission-create
-          {{- if .Values.operator.admissionWebhooks.patch.image.sha }}
-          image: {{ $registry }}/{{ .Values.operator.admissionWebhooks.patch.image.repository }}:{{ .Values.operator.admissionWebhooks.patch.image.tag }}@sha256:{{ .Values.operator.admissionWebhooks.patch.image.sha }}
-          {{- else }}
-          image: {{ $registry }}/{{ .Values.operator.admissionWebhooks.patch.image.repository }}:{{ .Values.operator.admissionWebhooks.patch.image.tag }}
-          {{- end }}
-          imagePullPolicy: {{ .Values.operator.admissionWebhooks.patch.image.pullPolicy }}
-          args:
-            - create
-            - --host={{ $admissionSvcName }}
-            - --namespace={{ .Values.ksNamespace }}
-            - --secret-name={{ $admissionSecretName }}
-            - --ca-name="ca.crt"
-            - --cert-name="tls.crt"
-            - --key-name="tls.key"
-          resources:
-{{ toYaml .Values.operator.admissionWebhooks.patch.resources | indent 12 }}
-        - name: admission-patch
-          {{- if .Values.operator.admissionWebhooks.patch.image.sha }}
-          image: {{ $registry }}/{{ .Values.operator.admissionWebhooks.patch.image.repository }}:{{ .Values.operator.admissionWebhooks.patch.image.tag }}@sha256:{{ .Values.operator.admissionWebhooks.patch.image.sha }}
-          {{- else }}
-          image: {{ $registry }}/{{ .Values.operator.admissionWebhooks.patch.image.repository }}:{{ .Values.operator.admissionWebhooks.patch.image.tag }}
-          {{- end }}
-          imagePullPolicy: {{ .Values.operator.admissionWebhooks.patch.image.pullPolicy }}
-          args:
-            - patch
-            - --webhook-name={{ $admissionWebhookName }}
-            - --namespace={{ .Values.ksNamespace }}
-            - --secret-name={{ $admissionSecretName }}
-            - --ca-name="ca.crt"
-          resources:
-{{ toYaml .Values.operator.admissionWebhooks.patch.resources | indent 12 }}
-      {{- end }}
       containers:
         - name: {{ .Values.operator.name }}
           image: "{{ .Values.operator.image.repository }}:{{ .Values.operator.image.tag }}"
@@ -248,7 +209,7 @@ spec:
         {{- if eq .Values.capabilities.admissionController "enable" }}
         - name: tls-certs
           secret:
-            secretName: {{ $admissionSecretName }}
+            secretName: {{ include "kubescape-admission.name" . }}
         {{- end }}
         - name: tmp-dir
           emptyDir: {}
