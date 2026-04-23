@@ -1,5 +1,10 @@
 {{- $components := fromYaml (include "components" .) }}
 {{- if $components.storage.enabled }}
+{{- $strategy := include "kubescape.certificates.strategy" . }}
+{{- $certData := dict }}
+{{- if and .Values.storage.mtls.enabled (eq $strategy "helm") }}
+{{- $certData = include "storage.certgen.certificateData" . | fromJson }}
+{{- end }}
 apiVersion: apiregistration.k8s.io/v1
 kind: APIService
 metadata:
@@ -16,7 +21,9 @@ spec:
   service:
     name: {{ .Values.storage.name }}
     namespace: {{ .Values.ksNamespace }}
-  {{- if not .Values.storage.mtls.enabled }}
+  {{- if and .Values.storage.mtls.enabled (eq $strategy "helm") }}
+  caBundle: {{ $certData.caCrt | b64enc }}
+  {{- else if not .Values.storage.mtls.enabled }}
   insecureSkipTLSVerify: true
   {{- end }}
 {{- end }}
