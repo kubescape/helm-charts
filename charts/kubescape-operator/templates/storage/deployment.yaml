@@ -21,9 +21,12 @@ spec:
       {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.storage.name) | nindent 6 }}
   template:
     metadata:
+      {{- $podAnnotations := include "kubescape-operator.annotations" (dict "Values" .Values) }}
+      {{- if or $podAnnotations .Values.storage.podAnnotations }}
       annotations:
-        {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 8 }}
+        {{- with $podAnnotations }}{{- . | nindent 8 }}{{- end }}
         {{- with .Values.storage.podAnnotations }}{{- toYaml . | nindent 8 }}{{- end }}
+      {{- end }}
       labels:
         {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.storage.name "tier" .Values.global.namespaceTier) | nindent 8 }}
         {{- with .Values.storage.podLabels }}{{- toYaml . | nindent 8 }}{{- end }}
