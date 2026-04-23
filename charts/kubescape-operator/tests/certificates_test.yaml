@@ -1,0 +1,104 @@
+suite: Certificate strategy
+tests:
+  - it: renders the admission certificate secret in helm mode
+    template: operator/admission-webhook/secret.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+    asserts:
+      - isKind:
+          of: Secret
+      - equal:
+          path: metadata.name
+          value: kubescape-admission-webhook
+      - equal:
+          path: data["ca.crt"]
+          value: bW9jay1jYS1jZXJ0
+  - it: renders the admission webhook caBundle in helm mode
+    template: operator/admission-webhook/admission-webhook.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+    asserts:
+      - equal:
+          path: webhooks[0].clientConfig.caBundle
+          value: bW9jay1jYS1jZXJ0
+  - it: renders the storage certificate secret in helm mode
+    template: storage/certgen/secret.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+    asserts:
+      - isKind:
+          of: Secret
+      - equal:
+          path: metadata.name
+          value: storage-tls
+      - equal:
+          path: data["ca.crt"]
+          value: bW9jay1jYS1jZXJ0
+  - it: renders the storage apiservice caBundle in helm mode
+    template: storage/apiservice.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+    asserts:
+      - equal:
+          path: spec.caBundle
+          value: bW9jay1jYS1jZXJ0
+  - it: renders hook resources for the admission webhook when requested
+    template: operator/admission-webhook/job-create.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      certificates:
+        strategy: hook
+    asserts:
+      - isKind:
+          of: Job
+      - matchSnapshot: {}
+  - it: renders hook resources for storage when requested
+    template: storage/certgen/job-create.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      certificates:
+        strategy: hook
+    asserts:
+      - isKind:
+          of: Job
+      - matchSnapshot: {}
+  - it: omits webhook cabundles in hook mode
+    template: operator/admission-webhook/admission-webhook.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      certificates:
+        strategy: hook
+    asserts:
+      - matchSnapshot: {}
+  - it: omits the storage apiservice cabundle in hook mode
+    template: storage/apiservice.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      certificates:
+        strategy: hook
+    asserts:
+      - matchSnapshot: {}

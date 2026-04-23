@@ -1,0 +1,190 @@
+omits the storage apiservice cabundle in hook mode:
+  1: |
+    apiVersion: apiregistration.k8s.io/v1
+    kind: APIService
+    metadata:
+      annotations: null
+      labels:
+        app: storage
+        app.kubernetes.io/component: storage
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.30.7
+        helm.sh/chart: kubescape-operator-1.30.7
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: v1beta1.spdx.softwarecomposition.kubescape.io
+    spec:
+      group: spdx.softwarecomposition.kubescape.io
+      groupPriorityMinimum: 1000
+      service:
+        name: storage
+        namespace: kubescape
+      version: v1beta1
+      versionPriority: 15
+omits webhook cabundles in hook mode:
+  1: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingWebhookConfiguration
+    metadata:
+      annotations: null
+      labels:
+        app: operator
+        app.kubernetes.io/component: operator
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.30.7
+        helm.sh/chart: kubescape-operator-1.30.7
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: kubescape-admission-webhook
+    webhooks:
+      - admissionReviewVersions:
+          - v1
+        clientConfig:
+          service:
+            name: kubescape-admission-webhook
+            namespace: kubescape
+            path: /validate
+            port: 443
+        failurePolicy: Ignore
+        name: validation.kubescape.admission
+        rules:
+          - apiGroups:
+              - '*'
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+              - DELETE
+              - CONNECT
+            resources:
+              - pods
+              - pods/exec
+              - pods/portforward
+              - pods/attach
+              - clusterrolebindings
+              - rolebindings
+            scope: '*'
+        sideEffects: None
+renders hook resources for storage when requested:
+  1: |
+    apiVersion: batch/v1
+    kind: Job
+    metadata:
+      annotations:
+        helm.sh/hook: pre-install,pre-upgrade
+        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+      labels:
+        app: storage-certgen
+        app.kubernetes.io/component: storage-certgen
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.30.7
+        helm.sh/chart: kubescape-operator-1.30.7
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: storage-certgen-create
+      namespace: kubescape
+    spec:
+      template:
+        metadata:
+          labels:
+            app: storage-certgen-create
+            app.kubernetes.io/component: storage-certgen-create
+            app.kubernetes.io/instance: RELEASE-NAME
+            app.kubernetes.io/managed-by: Helm
+            app.kubernetes.io/name: kubescape-operator
+            app.kubernetes.io/part-of: kubescape
+            app.kubernetes.io/version: 1.30.7
+            helm.sh/chart: kubescape-operator-1.30.7
+            kubescape.io/ignore: "true"
+            tier: ks-control-plane
+          name: storage-certgen-create
+        spec:
+          containers:
+            - args:
+                - create
+                - --host=storage,storage.kubescape.svc
+                - --namespace=kubescape
+                - --secret-name=storage-tls
+                - --ca-name=ca.crt
+                - --cert-name=tls.crt
+                - --key-name=tls.key
+              image: ghcr.io/jkroepke/kube-webhook-certgen:1.8.1
+              imagePullPolicy: IfNotPresent
+              name: storage-certgen-create
+              resources: {}
+          restartPolicy: OnFailure
+          securityContext:
+            fsGroup: 65532
+            runAsUser: 65532
+            seccompProfile:
+              type: RuntimeDefault
+          serviceAccountName: storage-certgen
+      ttlSecondsAfterFinished: 60
+renders hook resources for the admission webhook when requested:
+  1: |
+    apiVersion: batch/v1
+    kind: Job
+    metadata:
+      annotations:
+        helm.sh/hook: pre-install,pre-upgrade
+        helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+      labels:
+        app: kubescape-admission-webhook
+        app.kubernetes.io/component: kubescape-admission-webhook
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.30.7
+        helm.sh/chart: kubescape-operator-1.30.7
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: kubescape-admission-webhook-create
+      namespace: kubescape
+    spec:
+      template:
+        metadata:
+          labels:
+            app: kubescape-admission-webhook-create
+            app.kubernetes.io/component: kubescape-admission-webhook-create
+            app.kubernetes.io/instance: RELEASE-NAME
+            app.kubernetes.io/managed-by: Helm
+            app.kubernetes.io/name: kubescape-operator
+            app.kubernetes.io/part-of: kubescape
+            app.kubernetes.io/version: 1.30.7
+            helm.sh/chart: kubescape-operator-1.30.7
+            kubescape.io/ignore: "true"
+            tier: ks-control-plane
+          name: kubescape-admission-webhook-create
+        spec:
+          containers:
+            - args:
+                - create
+                - --host=kubescape-admission-webhook,kubescape-admission-webhook.kubescape.svc
+                - --namespace=kubescape
+                - --secret-name=kubescape-admission-webhook
+                - --ca-name=ca.crt
+                - --cert-name=tls.crt
+                - --key-name=tls.key
+              image: ghcr.io/jkroepke/kube-webhook-certgen:1.8.1
+              imagePullPolicy: IfNotPresent
+              name: admission-create
+              resources: {}
+          restartPolicy: OnFailure
+          securityContext:
+            fsGroup: 65532
+            runAsUser: 65532
+            seccompProfile:
+              type: RuntimeDefault
+          serviceAccountName: kubescape-admission-webhook
+      ttlSecondsAfterFinished: 60
