@@ -5,14 +5,10 @@
 {{- define "storage.certgen.secretName" -}}
 {{- $strategy := include "kubescape.certificates.strategy" . }}
 {{- if eq $strategy "hook" -}}
-{{- printf "%s-tls" .Values.storage.name -}}
+{{- printf "%s-tls-hook" .Values.storage.name -}}
 {{- else -}}
-{{- include "storage.certgen.templatedSecretName" . -}}
+{{- printf "%s-tls" .Values.storage.name -}}
 {{- end -}}
-{{- end }}
-
-{{- define "storage.certgen.templatedSecretName" -}}
-{{- printf "%s-ca" .Values.storage.name -}}
 {{- end }}
 
 {{- define "storage.certgen.apiServiceName" -}}
