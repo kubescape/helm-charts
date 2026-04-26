@@ -13,68 +13,19 @@ spec:
     repoURL: 'https://github.com/kubescape/helm-charts'
     targetRevision: HEAD
     helm:
-      valueFiles:
-        - values.yaml
-      parameters:
-        - name: clusterName
-          value: '' # add cluster name
-          required: true
-          type: string
-        # Add adaptor server and account
-        # - name: account
-        #   value: '' # add account ID
-        # - name: accessKey
-        #   value: '' # add accessKey
-        # - name: server
-        #   value: '' # add Kubescape-compatible backend service URL
+      valuesObject:
+        certificates:
+          strategy: hook # Important - prevents ArgoCD drift!
+        clusterName: '' # add cluster name
+        server: '' # add Kubescape-compatible backend service URL
+        # imagePullSecrets: "" # reference to existing secret in same namespace
+        # credentials:
+        #   cloudSecret: "" # reference to existing secret in same namespace, contains `account` & `accessKey`
   project: default
   syncPolicy:
     syncOptions:
       - CreateNamespace=true
       - RespectIgnoreDifferences=true
-    automated: 
-      prune: false 
-      selfHeal: true 
-  ignoreDifferences:
-    - group: core
-      kind: ConfigMap
-      name: ks-cloud-config
-      namespace: kubescape
-      jsonPointers:
-        - /data
-        - /metadata
-    - group: batch
-      kind: CronJob
-      name: kubescape-scheduler
-      namespace: kubescape
-      jsonPointers:
-        - /spec/schedule
-    - group: batch
-      kind: CronJob
-      name: kubevuln-scheduler
-      namespace: kubescape
-      jsonPointers:
-        - /spec/schedule
-    - kind: Secret
-      name: storage-ca
-      namespace: kubescape
-      jsonPointers:
-        - /data
-    - group: apiregistration.k8s.io
-      kind: APIService
-      name: v1beta1.spdx.softwarecomposition.kubescape.io
-      jsonPointers:
-        - /spec/caBundle
-    - kind: Secret
-      name: kubescape-admission-webhook.kubescape.svc-kubescape-tls-pair
-      namespace: kubescape
-      jsonPointers:
-        - /data
-    - group: admissionregistration.k8s.io
-      kind: ValidatingWebhookConfiguration
-      jqPathExpressions:
-        - .webhooks[].clientConfig.caBundle
-    - group: apiregistration.k8s.io
-      kind: APIService
-      jqPathExpressions:
-        - .spec.caBundle
+    automated:
+      prune: false
+      selfHeal: true
