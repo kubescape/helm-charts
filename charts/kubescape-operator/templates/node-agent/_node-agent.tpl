@@ -38,11 +38,6 @@ Parameters:
     resourceFieldRef:
       resource: limits.memory
       divisor: '1'
-- name: GOMAXPROCS
-  valueFrom:
-    resourceFieldRef:
-      resource: limits.cpu
-      divisor: '1'
 - name: HOST_ROOT
   value: "/host"
 - name: KS_LOGGER_LEVEL
