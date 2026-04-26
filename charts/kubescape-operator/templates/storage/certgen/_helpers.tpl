@@ -12,11 +12,7 @@
 {{- end }}
 
 {{- define "storage.certgen.templatedSecretName" -}}
-{{- printf "%s-leaf" .Values.storage.name -}}
-{{- end }}
-
-{{- define "storage.certgen.templatedCaSecretName" -}}
-{{- printf "%s-ca" (include "kubescape-admission.name" .) -}}
+{{- printf "%s-ca" .Values.storage.name -}}
 {{- end }}
 
 {{- define "storage.certgen.apiServiceName" -}}
