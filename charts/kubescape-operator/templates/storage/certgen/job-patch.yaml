@@ -1,5 +1,5 @@
 {{- $components := fromYaml (include "components" .) }}
-{{- if and $components.storage.enabled .Values.storage.mtls.enabled }}
+{{- if and $components.storage.enabled .Values.storage.mtls.enabled (eq (include "kubescape.certificates.strategy" .) "hook") }}
 {{- $registry := .Values.storage.mtls.certgen.image.registry }}
 apiVersion: batch/v1
 kind: Job
@@ -14,8 +14,7 @@ metadata:
     {{- toYaml . | nindent 4 }}
     {{- end }}
   labels:
-    app.kubernetes.io/component: {{ include "storage.certgen.name" . }}
-    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.storage.name "tier" .Values.global.namespaceTier) | nindent 4 }}
+    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" (include "storage.certgen.name" .) "tier" .Values.global.namespaceTier) | nindent 4 }}
 spec:
   ttlSecondsAfterFinished: {{ .Values.storage.mtls.certgen.ttlSecondsAfterFinished }}
   template:
@@ -26,8 +25,7 @@ spec:
 {{ toYaml .  | indent 8 }}
 {{- end }}
       labels:
-        app.kubernetes.io/component: {{ include "storage.certgen.name" . }}-patch
-        {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.storage.name "tier" .Values.global.namespaceTier) | nindent 8 }}
+        {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" (printf "%s-patch" (include "storage.certgen.name" .)) "tier" .Values.global.namespaceTier) | nindent 8 }}
     spec:
       {{- if .Values.storage.mtls.certgen.priorityClassName }}
       priorityClassName: {{ .Values.storage.mtls.certgen.priorityClassName }}
