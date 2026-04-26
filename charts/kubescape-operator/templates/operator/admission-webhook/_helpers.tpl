@@ -3,11 +3,12 @@ kubescape-admission-webhook
 {{- end }}
 
 {{- define "kubescape-admission.secretName" -}}
-{{- $strategy := default "helm" .Values.certificates.strategy -}}
+{{- $strategy := include "kubescape.certificates.strategy" . }}
 {{- if eq $strategy "hook" -}}
 {{- include "kubescape-admission.name" . -}}
 {{- else -}}
 {{- include "kubescape-admission.templatedSecretName" . -}}
+{{- end -}}
 {{- end }}
 
 {{- define "kubescape-admission.templatedSecretName" -}}

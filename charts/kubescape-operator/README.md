@@ -108,7 +108,7 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | global.overrideDefaultCaCertificates.caCertificates | string | `""` | Set the custom CA Certificates file in all container |
 | global.extraCaCertificates.enabled | bool | `false` | Use to enable mapping extra CA Certificate files |
 | global.extraCaCertificates.secretName | bool | `""` | Name of the secret that contents will be mapped to `/etc/ssl/certs` in each workload |
-| certificates.strategy | string | `"helm"` | Certificate management mode for the admission webhook and storage mTLS endpoints. Use `helm` for standard Helm installs and `hook` for ArgoCD/GitOps-safe runtime certificate generation. |
+| certificates.strategy | string | `"template"` | Certificate management mode for the admission webhook and storage mTLS endpoints. Use `template` for standard Helm installs and `hook` for ArgoCD/GitOps-safe runtime certificate generation. |
 | customScheduling.affinity | yaml |  | Use the `affinity` sub-section to define affinity rules that will apply to all of the workloads managed by the kubescape-operator |
 | customScheduling.nodeSelector | yaml | | Configure `nodeSelector` rules under the nodeSelector sub-section that will apply to all of the workloads managed by the kubescape-operator |
 | customScheduling.tolerations | yaml | | Define `tolerations` in the tolerations sub-section that will apply to all of the workloads managed by the kubescape-operator |

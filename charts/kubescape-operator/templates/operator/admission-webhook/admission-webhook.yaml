@@ -1,7 +1,7 @@
 {{- $components := fromYaml (include "components" .) }}
 {{- if and $components.operator.enabled (eq .Values.capabilities.admissionController "enable") }}
 {{- $strategy := include "kubescape.certificates.strategy" . }}
-{{- $certData := fromYaml (include "kubescape-admission.certificateData") }}
+{{- $certData := fromYaml (include "kubescape-admission.certificateData" .) }}
 {{- $ca := $certData.ca -}}
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
@@ -19,7 +19,7 @@ webhooks:
         namespace: {{ .Values.ksNamespace }}
         path: /validate
         port: 443
-      {{- if eq $strategy "helm" }}
+      {{- if eq $strategy "template" }}
       caBundle: {{ $ca.Cert | b64enc }}
       {{- end }}
     admissionReviewVersions: ["v1"]
