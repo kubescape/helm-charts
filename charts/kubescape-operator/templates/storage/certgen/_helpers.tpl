@@ -3,50 +3,50 @@
 {{- end }}
 
 {{- define "storage.certgen.secretName" -}}
+{{- if eq $strategy "hook" -}}
 {{- printf "%s-tls" .Values.storage.name -}}
+{{- else -}}
+{{- include "kubescape-admission.templatedSecretName" . -}}
 {{- end }}
 
-{{- define "storage.certgen.legacySecretName" -}}
-{{- printf "%s-ca" .Values.storage.name -}}
+{{- define "storage.certgen.templatedSecretName" -}}
+{{- printf "%s-leaf" .Values.storage.name -}}
+{{- end }}
+
+{{- define "storage.certgen.templatedCaSecretName" -}}
+{{- printf "%s-ca" (include "kubescape-admission.name" .) -}}
 {{- end }}
 
 {{- define "storage.certgen.apiServiceName" -}}
 v1beta1.spdx.softwarecomposition.kubescape.io
 {{- end }}
 
-{{- define "storage.certgen.certificateData" -}}
-{{- $secretName := include "storage.certgen.secretName" . -}}
-{{- if not (hasKey .Values.global "_storageCertificateData") -}}
-{{- $_ := set .Values.global "_storageCertificateData" dict -}}
+{{/*
+  Generate a private key and certificate pair for mTLS
+*/}}
+{{- define "storage.generateCerts.ca" -}}
+{{- if not .Values.global.storageCA -}}
+  {{- if .Values.unittest }}
+    {{- $ca := dict "Key" "mock-ca-key" "Cert" "mock-ca-cert" -}}
+    {{- $_ := set .Values.global "storageCA" $ca -}}
+  {{- else }}
+    {{- $cn := printf "%s-%s" .Values.storage.name (randAlphaNum 10) -}}
+    {{- $ca := genCA (printf "%s-ca" $cn) (int .Values.storage.mtls.certificateValidityInDays) -}}
+    {{- $_ := set .Values.global "storageCA" $ca -}}
+  {{- end -}}
 {{- end -}}
-{{- $cache := .Values.global._storageCertificateData -}}
-{{- if hasKey $cache $secretName -}}
-{{- get $cache $secretName | toJson -}}
-{{- else -}}
-{{- $serviceName := .Values.storage.name -}}
-{{- $serviceFQDN := printf "%s.%s.svc" .Values.storage.name .Values.ksNamespace -}}
-{{- $data := dict "caCrt" "mock-ca-cert" "tlsCrt" "mock-cert-cert" "tlsKey" "mock-cert-key" -}}
-{{- $currentSecret := lookup "v1" "Secret" .Values.ksNamespace $secretName -}}
-{{- if and $currentSecret $currentSecret.data (hasKey $currentSecret.data "ca.crt") (hasKey $currentSecret.data "tls.crt") (hasKey $currentSecret.data "tls.key") -}}
-{{- $_ := set $data "caCrt" (index $currentSecret.data "ca.crt" | b64dec) -}}
-{{- $_ := set $data "tlsCrt" (index $currentSecret.data "tls.crt" | b64dec) -}}
-{{- $_ := set $data "tlsKey" (index $currentSecret.data "tls.key" | b64dec) -}}
-{{- else -}}
-{{- $legacySecret := lookup "v1" "Secret" .Values.ksNamespace (include "storage.certgen.legacySecretName" .) -}}
-{{- if and $legacySecret $legacySecret.data (hasKey $legacySecret.data "ca.crt") (hasKey $legacySecret.data "tls.crt") (hasKey $legacySecret.data "tls.key") -}}
-{{- $_ := set $data "caCrt" (index $legacySecret.data "ca.crt" | b64dec) -}}
-{{- $_ := set $data "tlsCrt" (index $legacySecret.data "tls.crt" | b64dec) -}}
-{{- $_ := set $data "tlsKey" (index $legacySecret.data "tls.key" | b64dec) -}}
-{{- else if not .Values.unittest -}}
-{{- $validity := int .Values.storage.mtls.certificateValidityInDays -}}
-{{- $ca := genCA (printf "%s-ca" $serviceName) $validity -}}
-{{- $cert := genSignedCert $serviceFQDN nil (list $serviceName $serviceFQDN (printf "%s.cluster.local" $serviceFQDN)) $validity $ca -}}
-{{- $_ := set $data "caCrt" $ca.Cert -}}
-{{- $_ := set $data "tlsCrt" $cert.Cert -}}
-{{- $_ := set $data "tlsKey" $cert.Key -}}
+{{- .Values.global.storageCA | toJson -}}
+{{- end -}}
+
+{{- define "storage.generateCerts.cert" -}}
+{{- if .Values.unittest }}
+  {{- $cert := dict "Key" "mock-cert-key" "Cert" "mock-cert-cert" -}}
+  {{- $cert | toJson -}}
+{{- else }}
+  {{- $cn := printf "%s.%s.svc-%s" .Values.storage.name .Values.ksNamespace (randAlphaNum 10) -}}
+  {{- $dnsNames := list (printf "%s.%s.svc" .Values.storage.name .Values.ksNamespace) (printf "%s.%s.svc.cluster.local" .Values.storage.name .Values.ksNamespace) -}}
+  {{- $cert := genSignedCert $cn nil $dnsNames (int .Values.storage.mtls.certificateValidityInDays) .Values.global.storageCA -}}
+  {{- $cert | toJson -}}
 {{- end -}}
 {{- end -}}
-{{- $_ := set $cache $secretName $data -}}
-{{- $data | toJson -}}
-{{- end -}}
-{{- end }}
+
