@@ -47,6 +47,13 @@ spec:
         fsGroup: 65532
       containers:
         - name: storage-certgen-create
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
           {{- if .Values.storage.mtls.certgen.image.sha }}
           image: {{ $registry }}/{{ .Values.storage.mtls.certgen.image.repository }}:{{ .Values.storage.mtls.certgen.image.tag }}@sha256:{{ .Values.storage.mtls.certgen.image.sha }}
           {{- else }}

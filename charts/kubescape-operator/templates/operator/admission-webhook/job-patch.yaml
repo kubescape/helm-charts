@@ -47,6 +47,13 @@ spec:
         fsGroup: 65532
       containers:
         - name: admission-patch
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
           {{- if .Values.operator.admissionWebhooks.patch.image.sha }}
           image: {{ $registry }}/{{ .Values.operator.admissionWebhooks.patch.image.repository }}:{{ .Values.operator.admissionWebhooks.patch.image.tag }}@sha256:{{ .Values.operator.admissionWebhooks.patch.image.sha }}
           {{- else }}
