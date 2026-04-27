@@ -3,6 +3,9 @@
 {{- $strategy := include "kubescape.certificates.strategy" . }}
 {{- $certData := fromYaml (include "kubescape-admission.certificateData" .) }}
 {{- $ca := $certData.ca -}}
+{{- /* operator.admissionService.* is deprecated; coalesce with the new operator.admissionWebhooks.service.* path so legacy overrides win. */ -}}
+{{- $legacy := .Values.operator.admissionService | default dict -}}
+{{- $svc := .Values.operator.admissionWebhooks.service -}}
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
@@ -18,7 +21,7 @@ webhooks:
         name: {{ include "kubescape-admission.name" . }}
         namespace: {{ .Values.ksNamespace }}
         path: /validate
-        port: 443
+        port: {{ coalesce $legacy.port $svc.port }}
       {{- if eq $strategy "template" }}
       caBundle: {{ $ca.Cert | b64enc }}
       {{- end }}
