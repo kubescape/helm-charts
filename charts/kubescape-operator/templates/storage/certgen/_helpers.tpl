@@ -2,6 +2,10 @@
 {{- printf "%s-certgen" .Values.storage.name -}}
 {{- end }}
 
+{{- define "storage.certgen.clusterScopedName" -}}
+{{- printf "%s-%s" (include "storage.certgen.name" .) .Values.ksNamespace | trunc 63 | trimSuffix "-" -}}
+{{- end }}
+
 {{- define "storage.certgen.secretName" -}}
 {{- $strategy := include "kubescape.certificates.strategy" . }}
 {{- if eq $strategy "hook" -}}

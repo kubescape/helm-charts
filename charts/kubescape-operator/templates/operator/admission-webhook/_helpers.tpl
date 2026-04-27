@@ -2,6 +2,10 @@
 kubescape-admission-webhook
 {{- end }}
 
+{{- define "kubescape-admission.clusterScopedName" -}}
+{{- printf "%s-%s" (include "kubescape-admission.name" .) .Values.ksNamespace | trunc 63 | trimSuffix "-" -}}
+{{- end }}
+
 {{- define "kubescape-admission.secretName" -}}
 {{- $strategy := include "kubescape.certificates.strategy" . }}
 {{- if eq $strategy "hook" -}}
