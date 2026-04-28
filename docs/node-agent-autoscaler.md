@@ -110,10 +110,12 @@ helm upgrade --install kubescape kubescape/kubescape-operator \
 | `nodeAgent.autoscaler.resourcePercentages.limitCPU` | CPU limit as % of node allocatable | `5` |
 | `nodeAgent.autoscaler.resourcePercentages.limitMemory` | Memory limit as % of node allocatable | `5` |
 | `nodeAgent.autoscaler.minResources.cpu` | Minimum CPU request/limit | `100m` |
-| `nodeAgent.autoscaler.minResources.memory` | Minimum memory request/limit | `180Mi` (bumped to `600Mi` when `capabilities.nodeSbomGeneration` is enabled) |
+| `nodeAgent.autoscaler.minResources.memory` | Minimum memory request/limit | `180Mi` (bumped to `600Mi` when `capabilities.nodeSbomGeneration=enable` AND `nodeAgent.sbomScanner.enabled=false`) |
 | `nodeAgent.autoscaler.maxResources.cpu` | Maximum CPU request/limit | `2000m` |
 | `nodeAgent.autoscaler.maxResources.memory` | Maximum memory request/limit | `4Gi` |
 | `nodeAgent.autoscaler.reconcileInterval` | How often to reconcile | `5m` |
+| `nodeAgent.gomemlimitPercentage` | `GOMEMLIMIT` as a fraction of the computed memory limit | `0.8` (80%) |
+| `nodeAgent.sbomScanner.enabled` | Include the SBOM scanner sidecar in autoscaler-managed DaemonSets | `false` |
 
 ### Full Configuration Example
 
@@ -177,6 +179,47 @@ With default percentages (2% request, 5% limit):
 
 If the calculated value falls below `minResources`, the minimum is used instead.
 If it exceeds `maxResources`, the maximum is used instead.
+
+### GOMEMLIMIT
+
+The autoscaler also computes the `GOMEMLIMIT` environment variable for each DaemonSet at reconcile time. It is set to a configurable percentage (default 80%) of the calculated memory limit:
+
+```
+GOMEMLIMIT = floor(memoryLimit × gomemlimitPercentage)
+```
+
+Using the example above (memory limit 819Mi, default 80%):
+
+| Metric | Calculation | Result |
+|--------|-------------|--------|
+| Memory Limit | 16Gi × 5% (clamped to max) | 819Mi |
+| GOMEMLIMIT | 819Mi × 80% | 655MiB |
+
+This ensures the Go runtime's soft memory limit always tracks the actual container limit, regardless of which node group the DaemonSet targets. To adjust the percentage:
+
+```yaml
+nodeAgent:
+  gomemlimitPercentage: 0.9  # 90% of memory limit
+```
+
+### SBOM Scanner Sidecar
+
+When `nodeAgent.sbomScanner.enabled=true`, the autoscaler includes the SBOM scanner sidecar container in every managed DaemonSet. The sidecar runs Syft in a separate container for memory isolation, communicating with the main `node-agent` via a Unix socket.
+
+The sidecar has its own static resource limits (from `values.yaml`) and its own `GOMEMLIMIT` computed at Helm install time. The main `node-agent` container's `GOMEMLIMIT` is still computed dynamically per node group as described above.
+
+When the sidecar is present, the 600Mi memory minimum bump for SBOM generation does **not** apply to the main container (the sidecar handles SBOM work instead):
+
+```yaml
+nodeAgent:
+  autoscaler:
+    enabled: true
+  sbomScanner:
+    enabled: true   # sidecar handles SBOM; main container keeps 180Mi minimum
+
+capabilities:
+  nodeSbomGeneration: enable
+```
 
 ## Deployment Modes Comparison
 
