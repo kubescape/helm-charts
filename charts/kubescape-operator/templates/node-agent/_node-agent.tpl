@@ -33,11 +33,10 @@ Parameters:
   - testingMode: boolean - for MULTIPLY env var
 */}}
 {{- define "node-agent.env" -}}
+{{- if .Values.nodeAgent.resources.limits.memory }}
 - name: GOMEMLIMIT
-  valueFrom:
-    resourceFieldRef:
-      resource: limits.memory
-      divisor: '1'
+  value: {{ include "kubescape-operator.gomemlimit" (dict "memory" .Values.nodeAgent.resources.limits.memory "percentage" .Values.nodeAgent.gomemlimitPercentage) | quote }}
+{{- end }}
 - name: HOST_ROOT
   value: "/host"
 - name: KS_LOGGER_LEVEL
@@ -273,11 +272,10 @@ Parameters:
   resources:
 {{ toYaml .Values.nodeAgent.sbomScanner.resources | indent 4 }}
   env:
+    {{- if .Values.nodeAgent.sbomScanner.resources.limits.memory }}
     - name: GOMEMLIMIT
-      valueFrom:
-        resourceFieldRef:
-          resource: limits.memory
-          divisor: '1'
+      value: {{ include "kubescape-operator.gomemlimit" (dict "memory" .Values.nodeAgent.sbomScanner.resources.limits.memory "percentage" .Values.nodeAgent.gomemlimitPercentage) | quote }}
+    {{- end }}
     - name: SOCKET_PATH
       value: "/sbom-comm/scanner.sock"
     - name: HOST_ROOT
