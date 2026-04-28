@@ -33,6 +33,10 @@ Parameters:
   - testingMode: boolean - for MULTIPLY env var
 */}}
 {{- define "node-agent.env" -}}
+{{- if .autoscalerMode }}
+- name: GOMEMLIMIT
+  value: "{{`{{ .GoMemLimit }}`}}"
+{{- else }}
 {{- $memory := .Values.nodeAgent.resources.limits.memory -}}
 {{- if .resources -}}
 {{- if .resources.limits -}}
@@ -44,6 +48,7 @@ Parameters:
 {{- if $memory }}
 - name: GOMEMLIMIT
   value: {{ include "kubescape-operator.gomemlimit" (dict "memory" $memory "percentage" .Values.nodeAgent.gomemlimitPercentage) | quote }}
+{{- end }}
 {{- end }}
 - name: HOST_ROOT
   value: "/host"
@@ -63,7 +68,7 @@ Parameters:
 - name: CLAMAV_SOCKET
   value: "/clamav/clamd.sock"
 {{- end }}
-{{- if and .components.sbomScanner.enabled (not .autoscalerMode) }}
+{{- if .components.sbomScanner.enabled }}
 - name: SBOM_SCANNER_SOCKET
   value: "/sbom-comm/scanner.sock"
 - name: SCANNER_MEMORY_LIMIT
