@@ -78,3 +78,53 @@ priorityClassName: {{ .component.priorityClassName }}
 priorityClassName: {{ .global.priorityClassName }}
 {{- end }}
 {{- end }}
+
+{{/*
+Convert a Kubernetes memory string (e.g. "1Gi", "512Mi", "2147483648") to bytes
+as a float. Adapted from traefik.convertMemToBytes — supports SI (k/M/G/T/P/E)
+and IEC (Ki/Mi/Gi/Ti/Pi/Ei) prefixes plus the milli (m) suffix and bare numbers.
+
+Usage: {{ include "kubescape-operator.convertMemToBytes" "1Gi" }}
+*/}}
+{{- define "kubescape-operator.convertMemToBytes" }}
+  {{- $mem := lower . -}}
+  {{- if hasSuffix "e" $mem -}}
+    {{- $mem = mulf (trimSuffix "e" $mem | float64) 1e18 -}}
+  {{- else if hasSuffix "ei" $mem -}}
+    {{- $mem = mulf (trimSuffix "ei" $mem | float64) 0x1p60 -}}
+  {{- else if hasSuffix "p" $mem -}}
+    {{- $mem = mulf (trimSuffix "p" $mem | float64) 1e15 -}}
+  {{- else if hasSuffix "pi" $mem -}}
+    {{- $mem = mulf (trimSuffix "pi" $mem | float64) 0x1p50 -}}
+  {{- else if hasSuffix "t" $mem -}}
+    {{- $mem = mulf (trimSuffix "t" $mem | float64) 1e12 -}}
+  {{- else if hasSuffix "ti" $mem -}}
+    {{- $mem = mulf (trimSuffix "ti" $mem | float64) 0x1p40 -}}
+  {{- else if hasSuffix "g" $mem -}}
+    {{- $mem = mulf (trimSuffix "g" $mem | float64) 1e9 -}}
+  {{- else if hasSuffix "gi" $mem -}}
+    {{- $mem = mulf (trimSuffix "gi" $mem | float64) 0x1p30 -}}
+  {{- else if hasSuffix "mi" $mem -}}
+    {{- $mem = mulf (trimSuffix "mi" $mem | float64) 0x1p20 -}}
+  {{- else if hasSuffix "m" $mem -}}
+    {{- $mem = divf (trimSuffix "m" $mem | float64) 1e3 -}}
+  {{- else if hasSuffix "k" $mem -}}
+    {{- $mem = mulf (trimSuffix "k" $mem | float64) 1e3 -}}
+  {{- else if hasSuffix "ki" $mem -}}
+    {{- $mem = mulf (trimSuffix "ki" $mem | float64) 0x1p10 -}}
+  {{- end }}
+{{- $mem }}
+{{- end }}
+
+{{/*
+Compute GOMEMLIMIT as a percentage of a memory limit string.
+Returns a string formatted as "<N>MiB" suitable for the Go runtime.
+
+Usage:
+  {{ include "kubescape-operator.gomemlimit" (dict "memory" .Values.foo.resources.limits.memory "percentage" .Values.foo.gomemlimitPercentage) }}
+*/}}
+{{- define "kubescape-operator.gomemlimit" }}
+{{- $percentage := .percentage -}}
+{{- $bytes := include "kubescape-operator.convertMemToBytes" .memory | mulf $percentage -}}
+{{- printf "%dMiB" (divf $bytes 0x1p20 | floor | int64) -}}
+{{- end }}
