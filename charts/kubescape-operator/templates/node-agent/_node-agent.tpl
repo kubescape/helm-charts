@@ -33,9 +33,17 @@ Parameters:
   - testingMode: boolean - for MULTIPLY env var
 */}}
 {{- define "node-agent.env" -}}
-{{- if .Values.nodeAgent.resources.limits.memory }}
+{{- $memory := .Values.nodeAgent.resources.limits.memory -}}
+{{- if .resources -}}
+{{- if .resources.limits -}}
+{{- if .resources.limits.memory -}}
+{{- $memory = .resources.limits.memory -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- if $memory }}
 - name: GOMEMLIMIT
-  value: {{ include "kubescape-operator.gomemlimit" (dict "memory" .Values.nodeAgent.resources.limits.memory "percentage" .Values.nodeAgent.gomemlimitPercentage) | quote }}
+  value: {{ include "kubescape-operator.gomemlimit" (dict "memory" $memory "percentage" .Values.nodeAgent.gomemlimitPercentage) | quote }}
 {{- end }}
 - name: HOST_ROOT
   value: "/host"
@@ -206,7 +214,7 @@ Parameters:
   resources:
     {{- include "node-agent.resources" (dict "autoscalerMode" .autoscalerMode "resources" .resources) | nindent 4 }}
   env:
-    {{- include "node-agent.env" (dict "Values" .Values "components" .components "no_proxy_envar_list" .no_proxy_envar_list "autoscalerMode" .autoscalerMode "testingMode" .testingMode) | nindent 4 }}
+    {{- include "node-agent.env" (dict "Values" .Values "components" .components "no_proxy_envar_list" .no_proxy_envar_list "autoscalerMode" .autoscalerMode "testingMode" .testingMode "resources" .resources) | nindent 4 }}
   securityContext:
     runAsUser: 0
     privileged: {{ .Values.nodeAgent.privileged }}

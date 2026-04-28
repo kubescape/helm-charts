@@ -87,31 +87,33 @@ and IEC (Ki/Mi/Gi/Ti/Pi/Ei) prefixes plus the milli (m) suffix and bare numbers.
 Usage: {{ include "kubescape-operator.convertMemToBytes" "1Gi" }}
 */}}
 {{- define "kubescape-operator.convertMemToBytes" }}
-  {{- $mem := lower . -}}
-  {{- if hasSuffix "e" $mem -}}
-    {{- $mem = mulf (trimSuffix "e" $mem | float64) 1e18 -}}
-  {{- else if hasSuffix "ei" $mem -}}
-    {{- $mem = mulf (trimSuffix "ei" $mem | float64) 0x1p60 -}}
-  {{- else if hasSuffix "p" $mem -}}
-    {{- $mem = mulf (trimSuffix "p" $mem | float64) 1e15 -}}
-  {{- else if hasSuffix "pi" $mem -}}
-    {{- $mem = mulf (trimSuffix "pi" $mem | float64) 0x1p50 -}}
-  {{- else if hasSuffix "t" $mem -}}
-    {{- $mem = mulf (trimSuffix "t" $mem | float64) 1e12 -}}
-  {{- else if hasSuffix "ti" $mem -}}
-    {{- $mem = mulf (trimSuffix "ti" $mem | float64) 0x1p40 -}}
-  {{- else if hasSuffix "g" $mem -}}
-    {{- $mem = mulf (trimSuffix "g" $mem | float64) 1e9 -}}
-  {{- else if hasSuffix "gi" $mem -}}
-    {{- $mem = mulf (trimSuffix "gi" $mem | float64) 0x1p30 -}}
-  {{- else if hasSuffix "mi" $mem -}}
-    {{- $mem = mulf (trimSuffix "mi" $mem | float64) 0x1p20 -}}
-  {{- else if hasSuffix "m" $mem -}}
-    {{- $mem = divf (trimSuffix "m" $mem | float64) 1e3 -}}
+  {{- $mem := . -}}
+  {{- if hasSuffix "Ei" $mem -}}
+    {{- $mem = mulf (trimSuffix "Ei" $mem | float64) 0x1p60 -}}
+  {{- else if hasSuffix "E" $mem -}}
+    {{- $mem = mulf (trimSuffix "E" $mem | float64) 1e18 -}}
+  {{- else if hasSuffix "Pi" $mem -}}
+    {{- $mem = mulf (trimSuffix "Pi" $mem | float64) 0x1p50 -}}
+  {{- else if hasSuffix "P" $mem -}}
+    {{- $mem = mulf (trimSuffix "P" $mem | float64) 1e15 -}}
+  {{- else if hasSuffix "Ti" $mem -}}
+    {{- $mem = mulf (trimSuffix "Ti" $mem | float64) 0x1p40 -}}
+  {{- else if hasSuffix "T" $mem -}}
+    {{- $mem = mulf (trimSuffix "T" $mem | float64) 1e12 -}}
+  {{- else if hasSuffix "Gi" $mem -}}
+    {{- $mem = mulf (trimSuffix "Gi" $mem | float64) 0x1p30 -}}
+  {{- else if hasSuffix "G" $mem -}}
+    {{- $mem = mulf (trimSuffix "G" $mem | float64) 1e9 -}}
+  {{- else if hasSuffix "Mi" $mem -}}
+    {{- $mem = mulf (trimSuffix "Mi" $mem | float64) 0x1p20 -}}
+  {{- else if hasSuffix "M" $mem -}}
+    {{- $mem = mulf (trimSuffix "M" $mem | float64) 1e6 -}}
+  {{- else if hasSuffix "Ki" $mem -}}
+    {{- $mem = mulf (trimSuffix "Ki" $mem | float64) 0x1p10 -}}
   {{- else if hasSuffix "k" $mem -}}
     {{- $mem = mulf (trimSuffix "k" $mem | float64) 1e3 -}}
-  {{- else if hasSuffix "ki" $mem -}}
-    {{- $mem = mulf (trimSuffix "ki" $mem | float64) 0x1p10 -}}
+  {{- else if hasSuffix "m" $mem -}}
+    {{- $mem = divf (trimSuffix "m" $mem | float64) 1e3 -}}
   {{- end }}
 {{- $mem }}
 {{- end }}
