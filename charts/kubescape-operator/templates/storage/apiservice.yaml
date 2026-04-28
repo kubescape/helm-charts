@@ -3,7 +3,8 @@
 {{- $strategy := include "kubescape.certificates.strategy" . }}
 {{- $ca := dict }}
 {{- if and .Values.storage.mtls.enabled (eq $strategy "template") }}
-{{- $ca = include "storage.generateCerts.ca" . | fromJson }}
+{{- $certData := fromYaml (include "storage.certgen.certificateData" .) }}
+{{- $ca = $certData.ca -}}
 {{- end }}
 apiVersion: apiregistration.k8s.io/v1
 kind: APIService
