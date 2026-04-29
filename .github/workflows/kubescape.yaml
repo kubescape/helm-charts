@@ -4,21 +4,75 @@ on:
     paths:
       - 'charts/**.yaml'
       - 'charts/**.tpl'
+permissions:
+  contents: read
+  security-events: write
 jobs:
   kubescape:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: kubescape/github-action@main
-      continue-on-error: true
-      with:
-        frameworks: "allcontrols,workloadscan"
-        format: sarif
-        outputFile: results.sarif
-        severityThreshold: critical
-        account: ${{secrets.KUBESCAPE_ACCOUNT }}
-        accessKey: ${{secrets.KUBESCAPE_ACCESS_KEY }}
-    - name: Upload Kubescape scan results to Github Code Scanning
-      uses: github/codeql-action/upload-sarif@v2
-      with:
-        sarif_file: results.sarif
+      - uses: actions/checkout@v4
+      - name: Resolve Kubescape version
+        id: kubescape-version
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          version="$(curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/repos/kubescape/kubescape/releases/latest | jq -r .tag_name)"
+          test -n "$version"
+          test "$version" != "null"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Install Kubescape CLI
+        env:
+          KUBESCAPE_VERSION: ${{ steps.kubescape-version.outputs.version }}
+          RUNNER_ARCH: ${{ runner.arch }}
+        run: |
+          case "$RUNNER_ARCH" in
+            X64) arch=amd64 ;;
+            ARM64) arch=arm64 ;;
+            *)
+              echo "Unsupported runner architecture: $RUNNER_ARCH" >&2
+              exit 1
+              ;;
+          esac
+
+          version_no_prefix="${KUBESCAPE_VERSION#v}"
+          binary="$RUNNER_TEMP/bin/kubescape"
+          mkdir -p "$(dirname "$binary")"
+          curl -fsSL "https://github.com/kubescape/kubescape/releases/download/${KUBESCAPE_VERSION}/kubescape_${version_no_prefix}_linux_${arch}" -o "$binary"
+          chmod +x "$binary"
+          echo "$(dirname "$binary")" >> "$GITHUB_PATH"
+          "$binary" version
+      - name: Run Kubescape scan
+        continue-on-error: true
+        env:
+          KS_CLIENT: github_actions
+        run: |
+          kubescape scan framework allcontrols,workloadscan . \
+            --severity-threshold critical \
+            --format sarif \
+            --output results.sarif \
+            --account "${{ secrets.KUBESCAPE_ACCOUNT }}" \
+            --access-key "${{ secrets.KUBESCAPE_ACCESS_KEY }}"
+      - name: Normalize Kubescape SARIF
+        if: ${{ hashFiles('results.sarif') != '' }}
+        run: |
+          jq '
+            walk(if type == "object" and has("uri") and (.uri | type == "string") then
+              .uri |= sub("^file:///github/workspace/"; "") |
+              .uri |= sub("^/github/workspace/"; "") |
+              .uri |= sub("^file://"; "") |
+              .uri |= sub("^/"; "") |
+              .uri |= sub("^./"; "")
+            else . end) |
+            .runs[].results |= map(select(
+              .locations[0].physicalLocation.artifactLocation.uri != "" and
+              .locations[0].physicalLocation.artifactLocation.uri != null
+            ))
+          ' results.sarif > results.sarif.tmp
+          mv results.sarif.tmp results.sarif
+      - name: Ensure Kubescape scan produced SARIF
+        run: test -s results.sarif
+      - name: Upload Kubescape scan results to Github Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
