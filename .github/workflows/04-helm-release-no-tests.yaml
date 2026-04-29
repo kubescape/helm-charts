@@ -20,13 +20,17 @@ on:
 
 jobs:
   helm-chart-release:
+    permissions:
+      id-token: write      # Required: OIDC token for keyless attestation signing
+      contents: write      # Required: chart-releaser creates GitHub Releases and pushes gh-pages index
+      attestations: write  # Required: upload attestation to GitHub's transparency log
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
         with:
+          ref: ${{ inputs.COMMIT_REF }}
           fetch-depth: 0
-          # will change to: ref: release
 
       - name: git status
         run: git status
@@ -44,8 +48,45 @@ jobs:
         # with:
         #   version: v3.4.0
 
-      - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.4.1
-        env: 
-          charts_dir: "charts/kubescape-operator"
-          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - name: Install chart-releaser CLI
+        env:
+          CR_VERSION: "1.6.1"
+        run: |
+          curl -sSLo cr.tar.gz \
+            "https://github.com/helm/chart-releaser/releases/download/v${CR_VERSION}/chart-releaser_${CR_VERSION}_linux_amd64.tar.gz"
+          tar -xzf cr.tar.gz cr
+          sudo install -m 755 cr /usr/local/bin/cr
+          rm -f cr.tar.gz
+
+      - name: Package charts
+        run: |
+          mkdir -p .cr-release-packages/
+          helm package charts/kubescape-operator --destination .cr-release-packages/
+
+      - name: Attest chart provenance
+        if: hashFiles('.cr-release-packages/*.tgz') != ''
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
+        with:
+          subject-path: '.cr-release-packages/*.tgz'
+
+      - name: Publish chart release
+        if: hashFiles('.cr-release-packages/*.tgz') != ''
+        env:
+          CR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER}"
+          repo="${GITHUB_REPOSITORY#*/}"
+          commit="$(git rev-parse HEAD)"
+          cr upload \
+            --owner "${owner}" \
+            --git-repo "${repo}" \
+            --token "${CR_TOKEN}" \
+            --commit "${commit}" \
+            --skip-existing
+          mkdir -p .cr-index/
+          cr index \
+            --owner "${owner}" \
+            --git-repo "${repo}" \
+            --charts-repo "https://${owner}.github.io/${repo}/" \
+            --token "${CR_TOKEN}" \
+            --push
