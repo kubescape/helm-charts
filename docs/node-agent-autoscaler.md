@@ -208,6 +208,22 @@ When `nodeAgent.sbomScanner.enabled=true`, the autoscaler includes the SBOM scan
 
 The sidecar has its own static resource limits (from `values.yaml`) and its own `GOMEMLIMIT` computed at Helm install time. The main `node-agent` container's `GOMEMLIMIT` is still computed dynamically per node group as described above.
 
+**You can control the sidecar's resource limits via Helm values** — they apply uniformly across all node groups (unlike the main container which scales per node group):
+
+```yaml
+nodeAgent:
+  sbomScanner:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 4Gi   # sidecar GOMEMLIMIT = 4Gi × gomemlimitPercentage = 3276MiB
+```
+
+Running `helm upgrade` with updated sidecar resources updates the template ConfigMap. The operator reloads the template automatically (via fsnotify) and applies the new values at the next reconciliation — no operator restart required.
+
 When the sidecar is present, the 600Mi memory minimum bump for SBOM generation does **not** apply to the main container (the sidecar handles SBOM work instead):
 
 ```yaml
