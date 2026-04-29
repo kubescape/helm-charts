@@ -2,7 +2,6 @@
 {{- $components := fromYaml (include "components" .) }}
 {{- if $components.operator.enabled }}
 {{- $no_proxy_envar_list := (include "no_proxy_envar_list" .) -}}
-{{- $svcName := (printf "kubescape-admission-webhook.%s.svc" .Values.ksNamespace) -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -205,7 +204,7 @@ spec:
         {{- if eq .Values.capabilities.admissionController "enable" }}
         - name: tls-certs
           secret:
-            secretName: {{ $svcName }}-kubescape-tls-pair
+            secretName: {{ include "kubescape-admission.secretName" . }}
         {{- end }}
         - name: tmp-dir
           emptyDir: {}

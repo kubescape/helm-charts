@@ -10,6 +10,8 @@
 Using alternative installation methods, such as Kustomize, Helmfile or using custom scripts, may lead to unexpected behavior and issues.
 We cannot guarantee compatibility or provide support for deployments that are installed using methods other than Helm or ArgoCD.
 
+When installing with ArgoCD or another GitOps controller that continuously re-renders Helm charts, set `certificates.strategy=hook` so the admission and storage certificates are generated and patched at runtime instead of during template rendering.
+
 Run the install command:
 
 ```
@@ -106,6 +108,8 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | global.overrideDefaultCaCertificates.caCertificates | string | `""` | Set the custom CA Certificates file in all container |
 | global.extraCaCertificates.enabled | bool | `false` | Use to enable mapping extra CA Certificate files |
 | global.extraCaCertificates.secretName | bool | `""` | Name of the secret that contents will be mapped to `/etc/ssl/certs` in each workload |
+| certificates.strategy | string | `"template"` | Certificate management mode for the admission webhook and storage mTLS endpoints. Use `template` for standard Helm installs and `hook` for ArgoCD/GitOps-safe runtime certificate generation. |
+| operator.admissionService | object | `{}` | **DEPRECATED** — use `operator.admissionWebhooks.service.*` instead. If set, takes precedence over the new path for backward compatibility. Will be removed in a future release. |
 | customScheduling.affinity | yaml |  | Use the `affinity` sub-section to define affinity rules that will apply to all of the workloads managed by the kubescape-operator |
 | customScheduling.nodeSelector | yaml | | Configure `nodeSelector` rules under the nodeSelector sub-section that will apply to all of the workloads managed by the kubescape-operator |
 | customScheduling.tolerations | yaml | | Define `tolerations` in the tolerations sub-section that will apply to all of the workloads managed by the kubescape-operator |
