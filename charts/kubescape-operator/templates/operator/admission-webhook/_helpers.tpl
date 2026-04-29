@@ -19,6 +19,10 @@ kubescape-admission-webhook
 {{- printf "%s-ca" (include "kubescape-admission.name" .) -}}
 {{- end }}
 
+{{- define "kubescape-admission.legacyCaSecretName" -}}
+kubescape-admission-ca
+{{- end }}
+
 {{- define "kubescape-admission.svcDomainName" -}}
 {{- printf "kubescape-admission-webhook.%s.svc" .Values.ksNamespace -}}
 {{- end }}
@@ -30,6 +34,10 @@ kubescape-admission-webhook
   {{- $cert := dict "Key" "mock-cert-key" "Cert" "mock-cert-cert" -}}
   {{- if not .Values.unittest }}
     {{- $existingCASecret := (lookup "v1" "Secret" .Values.ksNamespace (include "kubescape-admission.caSecretName" .)) -}}
+    {{- if not (and $existingCASecret $existingCASecret.data) -}}
+      {{/* Fallback to legacy CA secret name to preserve the webhook trust chain across the first upgrade after the rename. */}}
+      {{- $existingCASecret = (lookup "v1" "Secret" .Values.ksNamespace (include "kubescape-admission.legacyCaSecretName" .)) -}}
+    {{- end -}}
     {{- if and $existingCASecret $existingCASecret.data -}}
       {{- $_ := set $ca "Key" (index $existingCASecret.data "tls.key" | b64dec) -}}
       {{- $_ := set $ca "Cert" (index $existingCASecret.data "tls.crt" | b64dec) -}}
