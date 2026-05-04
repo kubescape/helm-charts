@@ -2911,15 +2911,17 @@ all capabilities:
           mitreTactic: TA0002
           mitreTechnique: T1059
           name: Unexpected process launched
+          profileDataRequired:
+            execs: all
           profileDependency: 0
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - process
             - exec
             - applicationprofile
-            - context:kubernetes
         - description: Detects unexpected file access that is not in the baseline
           enabled: false
           expressions:
@@ -2937,15 +2939,29 @@ all capabilities:
           mitreTactic: TA0009
           mitreTechnique: T1005
           name: Files Access Anomalies in container
+          profileDataRequired:
+            opens:
+              - prefix: /etc/
+              - prefix: /var/log/
+              - prefix: /var/run/
+              - prefix: /run/
+              - prefix: /var/spool/cron/
+              - prefix: /var/www/
+              - prefix: /var/lib/
+              - prefix: /opt/
+              - prefix: /usr/local/
+              - prefix: /app/
+              - exact: /.dockerenv
+              - exact: /proc/self/environ
           profileDependency: 0
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - file
             - open
             - applicationprofile
-            - context:kubernetes
         - description: Detects unexpected system calls that are not whitelisted by application profile
           enabled: true
           expressions:
@@ -2959,14 +2975,16 @@ all capabilities:
           mitreTactic: TA0002
           mitreTechnique: T1059
           name: Syscalls Anomalies in container
+          profileDataRequired:
+            syscalls: all
           profileDependency: 0
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - syscall
             - applicationprofile
-            - context:kubernetes
         - description: Detects unexpected capabilities that are not whitelisted by application profile
           enabled: true
           expressions:
@@ -2980,14 +2998,16 @@ all capabilities:
           mitreTactic: TA0002
           mitreTechnique: T1059
           name: Linux Capabilities Anomalies in container
+          profileDataRequired:
+            capabilities: all
           profileDependency: 0
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - capabilities
             - applicationprofile
-            - context:kubernetes
         - description: Detecting unexpected domain requests that are not whitelisted by application profile.
           enabled: true
           expressions:
@@ -3001,35 +3021,49 @@ all capabilities:
           mitreTactic: TA0011
           mitreTechnique: T1071.004
           name: DNS Anomalies in container
+          profileDataRequired:
+            egressDomains: all
           profileDependency: 0
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - dns
             - anomaly
             - networkprofile
-            - context:kubernetes
         - description: Detecting unexpected access to service account token.
           enabled: true
           expressions:
             message: '''Unexpected access to service account token: '' + event.path + '' with flags: '' + event.flags.join('','')'
             ruleExpression:
               - eventType: open
-                expression: "((event.path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) || \n (event.path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||\n (event.path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token')) ||\n (event.path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token'))) &&\n!ap.was_path_opened_with_suffix(event.containerId, '/token')\n"
+                expression: |
+                  ((event.path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||
+                   (event.path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||
+                   (event.path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token')) ||
+                   (event.path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token'))) &&
+                  !ap.was_path_opened_with_suffix(event.containerId, '/token')
             uniqueId: event.comm
           id: R0006
           isTriggerAlert: true
           mitreTactic: TA0006
           mitreTechnique: T1528
           name: Unexpected service account token access
+          profileDataRequired:
+            opens:
+              - suffix: /token
           profileDependency: 0
           severity: 5
+          state:
+            includePrefixes:
+              - /run/secrets
+              - /var/run/secrets
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - serviceaccount
             - applicationprofile
-            - context:kubernetes
         - description: Detecting execution of kubernetes client
           enabled: true
           expressions:
@@ -3045,15 +3079,18 @@ all capabilities:
           mitreTactic: TA0008
           mitreTechnique: T1210
           name: Workload uses Kubernetes API unexpectedly
+          profileDataRequired:
+            egressAddresses: all
+            execs: all
           profileDependency: 0
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - exec
             - network
             - anomaly
             - applicationprofile
-            - context:kubernetes
         - description: Detecting reading environment variables from procfs.
           enabled: true
           expressions:
@@ -3061,22 +3098,28 @@ all capabilities:
             ruleExpression:
               - eventType: open
                 expression: |
-                  event.path.startsWith('/proc/') &&  event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
-            uniqueId: event.comm + '_' + event.path
+                  event.path.startsWith('/proc/') && event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
+            uniqueId: event.comm
           id: R0008
           isTriggerAlert: true
           mitreTactic: TA0006
           mitreTechnique: T1552.001
           name: Read Environment Variables from procfs
+          profileDataRequired:
+            opens:
+              - suffix: /environ
           profileDependency: 0
           severity: 5
+          state:
+            includePrefixes:
+              - /proc
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - procfs
             - environment
             - applicationprofile
-            - context:kubernetes
         - description: Detecting eBPF program load.
           enabled: true
           expressions:
@@ -3090,14 +3133,18 @@ all capabilities:
           mitreTactic: TA0005
           mitreTechnique: T1218
           name: eBPF Program Load
+          profileDataRequired:
+            syscalls:
+              - exact: bpf
           profileDependency: 1
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - bpf
             - ebpf
             - applicationprofile
-            - context:kubernetes
         - description: Detecting access to sensitive files.
           enabled: true
           expressions:
@@ -3111,14 +3158,18 @@ all capabilities:
           mitreTactic: TA0006
           mitreTechnique: T1005
           name: Unexpected Sensitive File Access
+          profileDataRequired:
+            opens:
+              - prefix: /etc/shadow
           profileDependency: 1
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - files
             - anomaly
             - applicationprofile
-            - context:kubernetes
         - description: Detecting unexpected egress network traffic that is not whitelisted by application profile.
           enabled: false
           expressions:
@@ -3132,15 +3183,17 @@ all capabilities:
           mitreTactic: TA0010
           mitreTechnique: T1041
           name: Unexpected Egress Network Traffic
+          profileDataRequired:
+            egressAddresses: all
           profileDependency: 0
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - whitelisted
             - network
             - anomaly
             - networkprofile
-            - context:kubernetes
         - description: 'Detecting exec calls that are from malicious source like: /dev/shm'
           enabled: true
           expressions:
@@ -3148,7 +3201,7 @@ all capabilities:
             ruleExpression:
               - eventType: exec
                 expression: |
-                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') ||  (parse.get_exec_path(event.args, event.comm).startsWith('/dev/shm/')))
+                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') || (parse.get_exec_path(event.args, event.comm).startsWith('/dev/shm/')))
             uniqueId: event.comm + '_' + event.exepath + '_' + event.pcomm
           id: R1000
           isTriggerAlert: true
@@ -3159,10 +3212,11 @@ all capabilities:
           severity: 8
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - exec
             - signature
             - malicious
-            - context:kubernetes
         - description: Detecting exec calls of binaries that are not included in the base image
           enabled: true
           expressions:
@@ -3179,16 +3233,18 @@ all capabilities:
           mitreTactic: TA0005
           mitreTechnique: T1036
           name: Drifted process executed
+          profileDataRequired:
+            execs: all
           profileDependency: 1
           severity: 8
           supportPolicy: false
           tags:
+            - context:kubernetes
             - exec
             - malicious
             - binary
             - base image
             - applicationprofile
-            - context:kubernetes
         - description: Detecting Kernel Module Load.
           enabled: true
           expressions:
@@ -3206,11 +3262,12 @@ all capabilities:
           severity: 10
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - kmod
             - kernel
             - module
             - load
-            - context:kubernetes
         - description: Detecting ssh connection to disallowed port
           enabled: false
           expressions:
@@ -3224,16 +3281,18 @@ all capabilities:
           mitreTactic: TA0008
           mitreTechnique: T1021.001
           name: Disallowed ssh connection
+          profileDataRequired:
+            egressAddresses: all
           profileDependency: 1
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - ssh
             - connection
             - port
             - malicious
             - networkprofile
-            - context:kubernetes
         - description: Detecting exec calls from mounted paths.
           enabled: true
           expressions:
@@ -3247,14 +3306,16 @@ all capabilities:
           mitreTactic: TA0002
           mitreTechnique: T1059
           name: Process executed from mount
+          profileDataRequired:
+            execs: all
           profileDependency: 1
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - exec
             - mount
             - applicationprofile
-            - context:kubernetes
         - description: Detecting Fileless Execution
           enabled: true
           expressions:
@@ -3272,10 +3333,11 @@ all capabilities:
           severity: 8
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - fileless
             - execution
             - malicious
-            - context:kubernetes
         - description: Detecting Unshare System Call usage, which can be used to escape container.
           enabled: true
           expressions:
@@ -3289,16 +3351,19 @@ all capabilities:
           mitreTactic: TA0004
           mitreTechnique: T1611
           name: Process tries to escape container
-          profileDependency: 2
+          profileDataRequired:
+            syscalls:
+              - exact: unshare
+          profileDependency: 1
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - unshare
             - escape
             - unshare
             - anomaly
             - applicationprofile
-            - context:kubernetes
         - description: Detecting XMR Crypto Miners by randomx algorithm usage.
           enabled: true
           expressions:
@@ -3316,10 +3381,10 @@ all capabilities:
           severity: 10
           supportPolicy: false
           tags:
+            - context:kubernetes
             - crypto
             - miners
             - malicious
-            - context:kubernetes
         - description: Detecting Crypto miners communication by domain
           enabled: true
           expressions:
@@ -3337,12 +3402,13 @@ all capabilities:
           severity: 10
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - network
             - crypto
             - miners
             - malicious
             - dns
-            - context:kubernetes
         - description: Detecting Crypto Miners by suspicious port usage.
           enabled: true
           expressions:
@@ -3356,16 +3422,23 @@ all capabilities:
           mitreTactic: TA0011
           mitreTechnique: T1071
           name: Crypto Mining Related Port Communication
+          profileDataRequired:
+            egressAddresses: all
           profileDependency: 1
           severity: 3
+          state:
+            ports:
+              - 3333
+              - 45700
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - network
             - crypto
             - miners
             - malicious
             - networkprofile
-            - context:kubernetes
         - description: Detects symlink creation over sensitive files
           enabled: true
           expressions:
@@ -3379,14 +3452,19 @@ all capabilities:
           mitreTactic: TA0006
           mitreTechnique: T1005
           name: Soft link created over sensitive file
+          profileDataRequired:
+            opens:
+              - prefix: /etc/shadow
+              - prefix: /etc/sudoers
           profileDependency: 1
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
+            - context:host
             - anomaly
             - symlink
             - applicationprofile
-            - context:kubernetes
         - description: Detecting ld_preload hook techniques.
           enabled: false
           expressions:
@@ -3402,14 +3480,17 @@ all capabilities:
           mitreTactic: TA0005
           mitreTechnique: T1574.006
           name: ld_preload hooks technique detected
+          profileDataRequired:
+            opens:
+              - exact: /etc/ld.so.preload
           profileDependency: 1
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
             - exec
             - malicious
             - applicationprofile
-            - context:kubernetes
         - description: Detecting hardlink creation over sensitive files.
           enabled: true
           expressions:
@@ -3423,14 +3504,18 @@ all capabilities:
           mitreTactic: TA0006
           mitreTechnique: T1005
           name: Hard link created over sensitive file
+          profileDataRequired:
+            opens:
+              - prefix: /etc/shadow
+              - prefix: /etc/sudoers
           profileDependency: 1
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
             - files
             - malicious
             - applicationprofile
-            - context:kubernetes
         - description: Detecting potentially malicious ptrace usage.
           enabled: true
           expressions:
@@ -3448,9 +3533,10 @@ all capabilities:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - process
             - malicious
-            - context:kubernetes
         - description: Detects io_uring operations that were not recorded during the initial observation period, indicating potential unauthorized activity.
           enabled: true
           expressions:
@@ -3464,14 +3550,16 @@ all capabilities:
           mitreTactic: TA0002
           mitreTechnique: T1218
           name: Unexpected io_uring Operation Detected
+          profileDataRequired:
+            syscalls: all
           profileDependency: 0
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
             - syscalls
             - io_uring
             - applicationprofile
-            - context:kubernetes
   52: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
@@ -15334,15 +15422,17 @@ backend-storage enabled disables scanning capabilities:
           mitreTactic: TA0002
           mitreTechnique: T1059
           name: Unexpected process launched
+          profileDataRequired:
+            execs: all
           profileDependency: 0
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - process
             - exec
             - applicationprofile
-            - context:kubernetes
         - description: Detects unexpected file access that is not in the baseline
           enabled: false
           expressions:
@@ -15360,15 +15450,29 @@ backend-storage enabled disables scanning capabilities:
           mitreTactic: TA0009
           mitreTechnique: T1005
           name: Files Access Anomalies in container
+          profileDataRequired:
+            opens:
+              - prefix: /etc/
+              - prefix: /var/log/
+              - prefix: /var/run/
+              - prefix: /run/
+              - prefix: /var/spool/cron/
+              - prefix: /var/www/
+              - prefix: /var/lib/
+              - prefix: /opt/
+              - prefix: /usr/local/
+              - prefix: /app/
+              - exact: /.dockerenv
+              - exact: /proc/self/environ
           profileDependency: 0
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - file
             - open
             - applicationprofile
-            - context:kubernetes
         - description: Detects unexpected system calls that are not whitelisted by application profile
           enabled: true
           expressions:
@@ -15382,14 +15486,16 @@ backend-storage enabled disables scanning capabilities:
           mitreTactic: TA0002
           mitreTechnique: T1059
           name: Syscalls Anomalies in container
+          profileDataRequired:
+            syscalls: all
           profileDependency: 0
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - syscall
             - applicationprofile
-            - context:kubernetes
         - description: Detects unexpected capabilities that are not whitelisted by application profile
           enabled: true
           expressions:
@@ -15403,14 +15509,16 @@ backend-storage enabled disables scanning capabilities:
           mitreTactic: TA0002
           mitreTechnique: T1059
           name: Linux Capabilities Anomalies in container
+          profileDataRequired:
+            capabilities: all
           profileDependency: 0
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - capabilities
             - applicationprofile
-            - context:kubernetes
         - description: Detecting unexpected domain requests that are not whitelisted by application profile.
           enabled: true
           expressions:
@@ -15424,35 +15532,49 @@ backend-storage enabled disables scanning capabilities:
           mitreTactic: TA0011
           mitreTechnique: T1071.004
           name: DNS Anomalies in container
+          profileDataRequired:
+            egressDomains: all
           profileDependency: 0
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - dns
             - anomaly
             - networkprofile
-            - context:kubernetes
         - description: Detecting unexpected access to service account token.
           enabled: true
           expressions:
             message: '''Unexpected access to service account token: '' + event.path + '' with flags: '' + event.flags.join('','')'
             ruleExpression:
               - eventType: open
-                expression: "((event.path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) || \n (event.path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||\n (event.path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token')) ||\n (event.path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token'))) &&\n!ap.was_path_opened_with_suffix(event.containerId, '/token')\n"
+                expression: |
+                  ((event.path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||
+                   (event.path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||
+                   (event.path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token')) ||
+                   (event.path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token'))) &&
+                  !ap.was_path_opened_with_suffix(event.containerId, '/token')
             uniqueId: event.comm
           id: R0006
           isTriggerAlert: true
           mitreTactic: TA0006
           mitreTechnique: T1528
           name: Unexpected service account token access
+          profileDataRequired:
+            opens:
+              - suffix: /token
           profileDependency: 0
           severity: 5
+          state:
+            includePrefixes:
+              - /run/secrets
+              - /var/run/secrets
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - serviceaccount
             - applicationprofile
-            - context:kubernetes
         - description: Detecting execution of kubernetes client
           enabled: true
           expressions:
@@ -15468,15 +15590,18 @@ backend-storage enabled disables scanning capabilities:
           mitreTactic: TA0008
           mitreTechnique: T1210
           name: Workload uses Kubernetes API unexpectedly
+          profileDataRequired:
+            egressAddresses: all
+            execs: all
           profileDependency: 0
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - exec
             - network
             - anomaly
             - applicationprofile
-            - context:kubernetes
         - description: Detecting reading environment variables from procfs.
           enabled: true
           expressions:
@@ -15484,22 +15609,28 @@ backend-storage enabled disables scanning capabilities:
             ruleExpression:
               - eventType: open
                 expression: |
-                  event.path.startsWith('/proc/') &&  event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
-            uniqueId: event.comm + '_' + event.path
+                  event.path.startsWith('/proc/') && event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
+            uniqueId: event.comm
           id: R0008
           isTriggerAlert: true
           mitreTactic: TA0006
           mitreTechnique: T1552.001
           name: Read Environment Variables from procfs
+          profileDataRequired:
+            opens:
+              - suffix: /environ
           profileDependency: 0
           severity: 5
+          state:
+            includePrefixes:
+              - /proc
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - procfs
             - environment
             - applicationprofile
-            - context:kubernetes
         - description: Detecting eBPF program load.
           enabled: true
           expressions:
@@ -15513,14 +15644,18 @@ backend-storage enabled disables scanning capabilities:
           mitreTactic: TA0005
           mitreTechnique: T1218
           name: eBPF Program Load
+          profileDataRequired:
+            syscalls:
+              - exact: bpf
           profileDependency: 1
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - bpf
             - ebpf
             - applicationprofile
-            - context:kubernetes
         - description: Detecting access to sensitive files.
           enabled: true
           expressions:
@@ -15534,14 +15669,18 @@ backend-storage enabled disables scanning capabilities:
           mitreTactic: TA0006
           mitreTechnique: T1005
           name: Unexpected Sensitive File Access
+          profileDataRequired:
+            opens:
+              - prefix: /etc/shadow
           profileDependency: 1
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - files
             - anomaly
             - applicationprofile
-            - context:kubernetes
         - description: Detecting unexpected egress network traffic that is not whitelisted by application profile.
           enabled: false
           expressions:
@@ -15555,15 +15694,17 @@ backend-storage enabled disables scanning capabilities:
           mitreTactic: TA0010
           mitreTechnique: T1041
           name: Unexpected Egress Network Traffic
+          profileDataRequired:
+            egressAddresses: all
           profileDependency: 0
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - whitelisted
             - network
             - anomaly
             - networkprofile
-            - context:kubernetes
         - description: 'Detecting exec calls that are from malicious source like: /dev/shm'
           enabled: true
           expressions:
@@ -15571,7 +15712,7 @@ backend-storage enabled disables scanning capabilities:
             ruleExpression:
               - eventType: exec
                 expression: |
-                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') ||  (parse.get_exec_path(event.args, event.comm).startsWith('/dev/shm/')))
+                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') || (parse.get_exec_path(event.args, event.comm).startsWith('/dev/shm/')))
             uniqueId: event.comm + '_' + event.exepath + '_' + event.pcomm
           id: R1000
           isTriggerAlert: true
@@ -15582,10 +15723,11 @@ backend-storage enabled disables scanning capabilities:
           severity: 8
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - exec
             - signature
             - malicious
-            - context:kubernetes
         - description: Detecting exec calls of binaries that are not included in the base image
           enabled: true
           expressions:
@@ -15602,16 +15744,18 @@ backend-storage enabled disables scanning capabilities:
           mitreTactic: TA0005
           mitreTechnique: T1036
           name: Drifted process executed
+          profileDataRequired:
+            execs: all
           profileDependency: 1
           severity: 8
           supportPolicy: false
           tags:
+            - context:kubernetes
             - exec
             - malicious
             - binary
             - base image
             - applicationprofile
-            - context:kubernetes
         - description: Detecting Kernel Module Load.
           enabled: true
           expressions:
@@ -15629,11 +15773,12 @@ backend-storage enabled disables scanning capabilities:
           severity: 10
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - kmod
             - kernel
             - module
             - load
-            - context:kubernetes
         - description: Detecting ssh connection to disallowed port
           enabled: false
           expressions:
@@ -15647,16 +15792,18 @@ backend-storage enabled disables scanning capabilities:
           mitreTactic: TA0008
           mitreTechnique: T1021.001
           name: Disallowed ssh connection
+          profileDataRequired:
+            egressAddresses: all
           profileDependency: 1
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - ssh
             - connection
             - port
             - malicious
             - networkprofile
-            - context:kubernetes
         - description: Detecting exec calls from mounted paths.
           enabled: true
           expressions:
@@ -15670,14 +15817,16 @@ backend-storage enabled disables scanning capabilities:
           mitreTactic: TA0002
           mitreTechnique: T1059
           name: Process executed from mount
+          profileDataRequired:
+            execs: all
           profileDependency: 1
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - exec
             - mount
             - applicationprofile
-            - context:kubernetes
         - description: Detecting Fileless Execution
           enabled: true
           expressions:
@@ -15695,10 +15844,11 @@ backend-storage enabled disables scanning capabilities:
           severity: 8
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - fileless
             - execution
             - malicious
-            - context:kubernetes
         - description: Detecting Unshare System Call usage, which can be used to escape container.
           enabled: true
           expressions:
@@ -15712,16 +15862,19 @@ backend-storage enabled disables scanning capabilities:
           mitreTactic: TA0004
           mitreTechnique: T1611
           name: Process tries to escape container
-          profileDependency: 2
+          profileDataRequired:
+            syscalls:
+              - exact: unshare
+          profileDependency: 1
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - unshare
             - escape
             - unshare
             - anomaly
             - applicationprofile
-            - context:kubernetes
         - description: Detecting XMR Crypto Miners by randomx algorithm usage.
           enabled: true
           expressions:
@@ -15739,10 +15892,10 @@ backend-storage enabled disables scanning capabilities:
           severity: 10
           supportPolicy: false
           tags:
+            - context:kubernetes
             - crypto
             - miners
             - malicious
-            - context:kubernetes
         - description: Detecting Crypto miners communication by domain
           enabled: true
           expressions:
@@ -15760,12 +15913,13 @@ backend-storage enabled disables scanning capabilities:
           severity: 10
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - network
             - crypto
             - miners
             - malicious
             - dns
-            - context:kubernetes
         - description: Detecting Crypto Miners by suspicious port usage.
           enabled: true
           expressions:
@@ -15779,16 +15933,23 @@ backend-storage enabled disables scanning capabilities:
           mitreTactic: TA0011
           mitreTechnique: T1071
           name: Crypto Mining Related Port Communication
+          profileDataRequired:
+            egressAddresses: all
           profileDependency: 1
           severity: 3
+          state:
+            ports:
+              - 3333
+              - 45700
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - network
             - crypto
             - miners
             - malicious
             - networkprofile
-            - context:kubernetes
         - description: Detects symlink creation over sensitive files
           enabled: true
           expressions:
@@ -15802,14 +15963,19 @@ backend-storage enabled disables scanning capabilities:
           mitreTactic: TA0006
           mitreTechnique: T1005
           name: Soft link created over sensitive file
+          profileDataRequired:
+            opens:
+              - prefix: /etc/shadow
+              - prefix: /etc/sudoers
           profileDependency: 1
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
+            - context:host
             - anomaly
             - symlink
             - applicationprofile
-            - context:kubernetes
         - description: Detecting ld_preload hook techniques.
           enabled: false
           expressions:
@@ -15825,14 +15991,17 @@ backend-storage enabled disables scanning capabilities:
           mitreTactic: TA0005
           mitreTechnique: T1574.006
           name: ld_preload hooks technique detected
+          profileDataRequired:
+            opens:
+              - exact: /etc/ld.so.preload
           profileDependency: 1
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
             - exec
             - malicious
             - applicationprofile
-            - context:kubernetes
         - description: Detecting hardlink creation over sensitive files.
           enabled: true
           expressions:
@@ -15846,14 +16015,18 @@ backend-storage enabled disables scanning capabilities:
           mitreTactic: TA0006
           mitreTechnique: T1005
           name: Hard link created over sensitive file
+          profileDataRequired:
+            opens:
+              - prefix: /etc/shadow
+              - prefix: /etc/sudoers
           profileDependency: 1
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
             - files
             - malicious
             - applicationprofile
-            - context:kubernetes
         - description: Detecting potentially malicious ptrace usage.
           enabled: true
           expressions:
@@ -15871,9 +16044,10 @@ backend-storage enabled disables scanning capabilities:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - process
             - malicious
-            - context:kubernetes
         - description: Detects io_uring operations that were not recorded during the initial observation period, indicating potential unauthorized activity.
           enabled: true
           expressions:
@@ -15887,14 +16061,16 @@ backend-storage enabled disables scanning capabilities:
           mitreTactic: TA0002
           mitreTechnique: T1218
           name: Unexpected io_uring Operation Detected
+          profileDataRequired:
+            syscalls: all
           profileDependency: 0
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
             - syscalls
             - io_uring
             - applicationprofile
-            - context:kubernetes
   13: |
     apiVersion: v1
     kind: Service
@@ -24133,15 +24309,17 @@ default capabilities:
           mitreTactic: TA0002
           mitreTechnique: T1059
           name: Unexpected process launched
+          profileDataRequired:
+            execs: all
           profileDependency: 0
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - process
             - exec
             - applicationprofile
-            - context:kubernetes
         - description: Detects unexpected file access that is not in the baseline
           enabled: false
           expressions:
@@ -24159,15 +24337,29 @@ default capabilities:
           mitreTactic: TA0009
           mitreTechnique: T1005
           name: Files Access Anomalies in container
+          profileDataRequired:
+            opens:
+              - prefix: /etc/
+              - prefix: /var/log/
+              - prefix: /var/run/
+              - prefix: /run/
+              - prefix: /var/spool/cron/
+              - prefix: /var/www/
+              - prefix: /var/lib/
+              - prefix: /opt/
+              - prefix: /usr/local/
+              - prefix: /app/
+              - exact: /.dockerenv
+              - exact: /proc/self/environ
           profileDependency: 0
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - file
             - open
             - applicationprofile
-            - context:kubernetes
         - description: Detects unexpected system calls that are not whitelisted by application profile
           enabled: true
           expressions:
@@ -24181,14 +24373,16 @@ default capabilities:
           mitreTactic: TA0002
           mitreTechnique: T1059
           name: Syscalls Anomalies in container
+          profileDataRequired:
+            syscalls: all
           profileDependency: 0
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - syscall
             - applicationprofile
-            - context:kubernetes
         - description: Detects unexpected capabilities that are not whitelisted by application profile
           enabled: true
           expressions:
@@ -24202,14 +24396,16 @@ default capabilities:
           mitreTactic: TA0002
           mitreTechnique: T1059
           name: Linux Capabilities Anomalies in container
+          profileDataRequired:
+            capabilities: all
           profileDependency: 0
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - capabilities
             - applicationprofile
-            - context:kubernetes
         - description: Detecting unexpected domain requests that are not whitelisted by application profile.
           enabled: true
           expressions:
@@ -24223,35 +24419,49 @@ default capabilities:
           mitreTactic: TA0011
           mitreTechnique: T1071.004
           name: DNS Anomalies in container
+          profileDataRequired:
+            egressDomains: all
           profileDependency: 0
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - dns
             - anomaly
             - networkprofile
-            - context:kubernetes
         - description: Detecting unexpected access to service account token.
           enabled: true
           expressions:
             message: '''Unexpected access to service account token: '' + event.path + '' with flags: '' + event.flags.join('','')'
             ruleExpression:
               - eventType: open
-                expression: "((event.path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) || \n (event.path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||\n (event.path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token')) ||\n (event.path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token'))) &&\n!ap.was_path_opened_with_suffix(event.containerId, '/token')\n"
+                expression: |
+                  ((event.path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||
+                   (event.path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||
+                   (event.path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token')) ||
+                   (event.path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token'))) &&
+                  !ap.was_path_opened_with_suffix(event.containerId, '/token')
             uniqueId: event.comm
           id: R0006
           isTriggerAlert: true
           mitreTactic: TA0006
           mitreTechnique: T1528
           name: Unexpected service account token access
+          profileDataRequired:
+            opens:
+              - suffix: /token
           profileDependency: 0
           severity: 5
+          state:
+            includePrefixes:
+              - /run/secrets
+              - /var/run/secrets
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - serviceaccount
             - applicationprofile
-            - context:kubernetes
         - description: Detecting execution of kubernetes client
           enabled: true
           expressions:
@@ -24267,15 +24477,18 @@ default capabilities:
           mitreTactic: TA0008
           mitreTechnique: T1210
           name: Workload uses Kubernetes API unexpectedly
+          profileDataRequired:
+            egressAddresses: all
+            execs: all
           profileDependency: 0
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - exec
             - network
             - anomaly
             - applicationprofile
-            - context:kubernetes
         - description: Detecting reading environment variables from procfs.
           enabled: true
           expressions:
@@ -24283,22 +24496,28 @@ default capabilities:
             ruleExpression:
               - eventType: open
                 expression: |
-                  event.path.startsWith('/proc/') &&  event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
-            uniqueId: event.comm + '_' + event.path
+                  event.path.startsWith('/proc/') && event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
+            uniqueId: event.comm
           id: R0008
           isTriggerAlert: true
           mitreTactic: TA0006
           mitreTechnique: T1552.001
           name: Read Environment Variables from procfs
+          profileDataRequired:
+            opens:
+              - suffix: /environ
           profileDependency: 0
           severity: 5
+          state:
+            includePrefixes:
+              - /proc
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - procfs
             - environment
             - applicationprofile
-            - context:kubernetes
         - description: Detecting eBPF program load.
           enabled: true
           expressions:
@@ -24312,14 +24531,18 @@ default capabilities:
           mitreTactic: TA0005
           mitreTechnique: T1218
           name: eBPF Program Load
+          profileDataRequired:
+            syscalls:
+              - exact: bpf
           profileDependency: 1
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - bpf
             - ebpf
             - applicationprofile
-            - context:kubernetes
         - description: Detecting access to sensitive files.
           enabled: true
           expressions:
@@ -24333,14 +24556,18 @@ default capabilities:
           mitreTactic: TA0006
           mitreTechnique: T1005
           name: Unexpected Sensitive File Access
+          profileDataRequired:
+            opens:
+              - prefix: /etc/shadow
           profileDependency: 1
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - files
             - anomaly
             - applicationprofile
-            - context:kubernetes
         - description: Detecting unexpected egress network traffic that is not whitelisted by application profile.
           enabled: false
           expressions:
@@ -24354,15 +24581,17 @@ default capabilities:
           mitreTactic: TA0010
           mitreTechnique: T1041
           name: Unexpected Egress Network Traffic
+          profileDataRequired:
+            egressAddresses: all
           profileDependency: 0
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - whitelisted
             - network
             - anomaly
             - networkprofile
-            - context:kubernetes
         - description: 'Detecting exec calls that are from malicious source like: /dev/shm'
           enabled: true
           expressions:
@@ -24370,7 +24599,7 @@ default capabilities:
             ruleExpression:
               - eventType: exec
                 expression: |
-                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') ||  (parse.get_exec_path(event.args, event.comm).startsWith('/dev/shm/')))
+                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') || (parse.get_exec_path(event.args, event.comm).startsWith('/dev/shm/')))
             uniqueId: event.comm + '_' + event.exepath + '_' + event.pcomm
           id: R1000
           isTriggerAlert: true
@@ -24381,10 +24610,11 @@ default capabilities:
           severity: 8
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - exec
             - signature
             - malicious
-            - context:kubernetes
         - description: Detecting exec calls of binaries that are not included in the base image
           enabled: true
           expressions:
@@ -24401,16 +24631,18 @@ default capabilities:
           mitreTactic: TA0005
           mitreTechnique: T1036
           name: Drifted process executed
+          profileDataRequired:
+            execs: all
           profileDependency: 1
           severity: 8
           supportPolicy: false
           tags:
+            - context:kubernetes
             - exec
             - malicious
             - binary
             - base image
             - applicationprofile
-            - context:kubernetes
         - description: Detecting Kernel Module Load.
           enabled: true
           expressions:
@@ -24428,11 +24660,12 @@ default capabilities:
           severity: 10
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - kmod
             - kernel
             - module
             - load
-            - context:kubernetes
         - description: Detecting ssh connection to disallowed port
           enabled: false
           expressions:
@@ -24446,16 +24679,18 @@ default capabilities:
           mitreTactic: TA0008
           mitreTechnique: T1021.001
           name: Disallowed ssh connection
+          profileDataRequired:
+            egressAddresses: all
           profileDependency: 1
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - ssh
             - connection
             - port
             - malicious
             - networkprofile
-            - context:kubernetes
         - description: Detecting exec calls from mounted paths.
           enabled: true
           expressions:
@@ -24469,14 +24704,16 @@ default capabilities:
           mitreTactic: TA0002
           mitreTechnique: T1059
           name: Process executed from mount
+          profileDataRequired:
+            execs: all
           profileDependency: 1
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - exec
             - mount
             - applicationprofile
-            - context:kubernetes
         - description: Detecting Fileless Execution
           enabled: true
           expressions:
@@ -24494,10 +24731,11 @@ default capabilities:
           severity: 8
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - fileless
             - execution
             - malicious
-            - context:kubernetes
         - description: Detecting Unshare System Call usage, which can be used to escape container.
           enabled: true
           expressions:
@@ -24511,16 +24749,19 @@ default capabilities:
           mitreTactic: TA0004
           mitreTechnique: T1611
           name: Process tries to escape container
-          profileDependency: 2
+          profileDataRequired:
+            syscalls:
+              - exact: unshare
+          profileDependency: 1
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - unshare
             - escape
             - unshare
             - anomaly
             - applicationprofile
-            - context:kubernetes
         - description: Detecting XMR Crypto Miners by randomx algorithm usage.
           enabled: true
           expressions:
@@ -24538,10 +24779,10 @@ default capabilities:
           severity: 10
           supportPolicy: false
           tags:
+            - context:kubernetes
             - crypto
             - miners
             - malicious
-            - context:kubernetes
         - description: Detecting Crypto miners communication by domain
           enabled: true
           expressions:
@@ -24559,12 +24800,13 @@ default capabilities:
           severity: 10
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - network
             - crypto
             - miners
             - malicious
             - dns
-            - context:kubernetes
         - description: Detecting Crypto Miners by suspicious port usage.
           enabled: true
           expressions:
@@ -24578,16 +24820,23 @@ default capabilities:
           mitreTactic: TA0011
           mitreTechnique: T1071
           name: Crypto Mining Related Port Communication
+          profileDataRequired:
+            egressAddresses: all
           profileDependency: 1
           severity: 3
+          state:
+            ports:
+              - 3333
+              - 45700
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - network
             - crypto
             - miners
             - malicious
             - networkprofile
-            - context:kubernetes
         - description: Detects symlink creation over sensitive files
           enabled: true
           expressions:
@@ -24601,14 +24850,19 @@ default capabilities:
           mitreTactic: TA0006
           mitreTechnique: T1005
           name: Soft link created over sensitive file
+          profileDataRequired:
+            opens:
+              - prefix: /etc/shadow
+              - prefix: /etc/sudoers
           profileDependency: 1
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
+            - context:host
             - anomaly
             - symlink
             - applicationprofile
-            - context:kubernetes
         - description: Detecting ld_preload hook techniques.
           enabled: false
           expressions:
@@ -24624,14 +24878,17 @@ default capabilities:
           mitreTactic: TA0005
           mitreTechnique: T1574.006
           name: ld_preload hooks technique detected
+          profileDataRequired:
+            opens:
+              - exact: /etc/ld.so.preload
           profileDependency: 1
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
             - exec
             - malicious
             - applicationprofile
-            - context:kubernetes
         - description: Detecting hardlink creation over sensitive files.
           enabled: true
           expressions:
@@ -24645,14 +24902,18 @@ default capabilities:
           mitreTactic: TA0006
           mitreTechnique: T1005
           name: Hard link created over sensitive file
+          profileDataRequired:
+            opens:
+              - prefix: /etc/shadow
+              - prefix: /etc/sudoers
           profileDependency: 1
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
             - files
             - malicious
             - applicationprofile
-            - context:kubernetes
         - description: Detecting potentially malicious ptrace usage.
           enabled: true
           expressions:
@@ -24670,9 +24931,10 @@ default capabilities:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - process
             - malicious
-            - context:kubernetes
         - description: Detects io_uring operations that were not recorded during the initial observation period, indicating potential unauthorized activity.
           enabled: true
           expressions:
@@ -24686,14 +24948,16 @@ default capabilities:
           mitreTactic: TA0002
           mitreTechnique: T1218
           name: Unexpected io_uring Operation Detected
+          profileDataRequired:
+            syscalls: all
           profileDependency: 0
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
             - syscalls
             - io_uring
             - applicationprofile
-            - context:kubernetes
   38: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
@@ -38036,15 +38300,17 @@ multiple node agents:
           mitreTactic: TA0002
           mitreTechnique: T1059
           name: Unexpected process launched
+          profileDataRequired:
+            execs: all
           profileDependency: 0
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - process
             - exec
             - applicationprofile
-            - context:kubernetes
         - description: Detects unexpected file access that is not in the baseline
           enabled: false
           expressions:
@@ -38062,15 +38328,29 @@ multiple node agents:
           mitreTactic: TA0009
           mitreTechnique: T1005
           name: Files Access Anomalies in container
+          profileDataRequired:
+            opens:
+              - prefix: /etc/
+              - prefix: /var/log/
+              - prefix: /var/run/
+              - prefix: /run/
+              - prefix: /var/spool/cron/
+              - prefix: /var/www/
+              - prefix: /var/lib/
+              - prefix: /opt/
+              - prefix: /usr/local/
+              - prefix: /app/
+              - exact: /.dockerenv
+              - exact: /proc/self/environ
           profileDependency: 0
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - file
             - open
             - applicationprofile
-            - context:kubernetes
         - description: Detects unexpected system calls that are not whitelisted by application profile
           enabled: true
           expressions:
@@ -38084,14 +38364,16 @@ multiple node agents:
           mitreTactic: TA0002
           mitreTechnique: T1059
           name: Syscalls Anomalies in container
+          profileDataRequired:
+            syscalls: all
           profileDependency: 0
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - syscall
             - applicationprofile
-            - context:kubernetes
         - description: Detects unexpected capabilities that are not whitelisted by application profile
           enabled: true
           expressions:
@@ -38105,14 +38387,16 @@ multiple node agents:
           mitreTactic: TA0002
           mitreTechnique: T1059
           name: Linux Capabilities Anomalies in container
+          profileDataRequired:
+            capabilities: all
           profileDependency: 0
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - capabilities
             - applicationprofile
-            - context:kubernetes
         - description: Detecting unexpected domain requests that are not whitelisted by application profile.
           enabled: true
           expressions:
@@ -38126,35 +38410,49 @@ multiple node agents:
           mitreTactic: TA0011
           mitreTechnique: T1071.004
           name: DNS Anomalies in container
+          profileDataRequired:
+            egressDomains: all
           profileDependency: 0
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - dns
             - anomaly
             - networkprofile
-            - context:kubernetes
         - description: Detecting unexpected access to service account token.
           enabled: true
           expressions:
             message: '''Unexpected access to service account token: '' + event.path + '' with flags: '' + event.flags.join('','')'
             ruleExpression:
               - eventType: open
-                expression: "((event.path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) || \n (event.path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||\n (event.path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token')) ||\n (event.path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token'))) &&\n!ap.was_path_opened_with_suffix(event.containerId, '/token')\n"
+                expression: |
+                  ((event.path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||
+                   (event.path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||
+                   (event.path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token')) ||
+                   (event.path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token'))) &&
+                  !ap.was_path_opened_with_suffix(event.containerId, '/token')
             uniqueId: event.comm
           id: R0006
           isTriggerAlert: true
           mitreTactic: TA0006
           mitreTechnique: T1528
           name: Unexpected service account token access
+          profileDataRequired:
+            opens:
+              - suffix: /token
           profileDependency: 0
           severity: 5
+          state:
+            includePrefixes:
+              - /run/secrets
+              - /var/run/secrets
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - serviceaccount
             - applicationprofile
-            - context:kubernetes
         - description: Detecting execution of kubernetes client
           enabled: true
           expressions:
@@ -38170,15 +38468,18 @@ multiple node agents:
           mitreTactic: TA0008
           mitreTechnique: T1210
           name: Workload uses Kubernetes API unexpectedly
+          profileDataRequired:
+            egressAddresses: all
+            execs: all
           profileDependency: 0
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - exec
             - network
             - anomaly
             - applicationprofile
-            - context:kubernetes
         - description: Detecting reading environment variables from procfs.
           enabled: true
           expressions:
@@ -38186,22 +38487,28 @@ multiple node agents:
             ruleExpression:
               - eventType: open
                 expression: |
-                  event.path.startsWith('/proc/') &&  event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
-            uniqueId: event.comm + '_' + event.path
+                  event.path.startsWith('/proc/') && event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
+            uniqueId: event.comm
           id: R0008
           isTriggerAlert: true
           mitreTactic: TA0006
           mitreTechnique: T1552.001
           name: Read Environment Variables from procfs
+          profileDataRequired:
+            opens:
+              - suffix: /environ
           profileDependency: 0
           severity: 5
+          state:
+            includePrefixes:
+              - /proc
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - procfs
             - environment
             - applicationprofile
-            - context:kubernetes
         - description: Detecting eBPF program load.
           enabled: true
           expressions:
@@ -38215,14 +38522,18 @@ multiple node agents:
           mitreTactic: TA0005
           mitreTechnique: T1218
           name: eBPF Program Load
+          profileDataRequired:
+            syscalls:
+              - exact: bpf
           profileDependency: 1
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - bpf
             - ebpf
             - applicationprofile
-            - context:kubernetes
         - description: Detecting access to sensitive files.
           enabled: true
           expressions:
@@ -38236,14 +38547,18 @@ multiple node agents:
           mitreTactic: TA0006
           mitreTechnique: T1005
           name: Unexpected Sensitive File Access
+          profileDataRequired:
+            opens:
+              - prefix: /etc/shadow
           profileDependency: 1
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - files
             - anomaly
             - applicationprofile
-            - context:kubernetes
         - description: Detecting unexpected egress network traffic that is not whitelisted by application profile.
           enabled: false
           expressions:
@@ -38257,15 +38572,17 @@ multiple node agents:
           mitreTactic: TA0010
           mitreTechnique: T1041
           name: Unexpected Egress Network Traffic
+          profileDataRequired:
+            egressAddresses: all
           profileDependency: 0
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - whitelisted
             - network
             - anomaly
             - networkprofile
-            - context:kubernetes
         - description: 'Detecting exec calls that are from malicious source like: /dev/shm'
           enabled: true
           expressions:
@@ -38273,7 +38590,7 @@ multiple node agents:
             ruleExpression:
               - eventType: exec
                 expression: |
-                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') ||  (parse.get_exec_path(event.args, event.comm).startsWith('/dev/shm/')))
+                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') || (parse.get_exec_path(event.args, event.comm).startsWith('/dev/shm/')))
             uniqueId: event.comm + '_' + event.exepath + '_' + event.pcomm
           id: R1000
           isTriggerAlert: true
@@ -38284,10 +38601,11 @@ multiple node agents:
           severity: 8
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - exec
             - signature
             - malicious
-            - context:kubernetes
         - description: Detecting exec calls of binaries that are not included in the base image
           enabled: true
           expressions:
@@ -38304,16 +38622,18 @@ multiple node agents:
           mitreTactic: TA0005
           mitreTechnique: T1036
           name: Drifted process executed
+          profileDataRequired:
+            execs: all
           profileDependency: 1
           severity: 8
           supportPolicy: false
           tags:
+            - context:kubernetes
             - exec
             - malicious
             - binary
             - base image
             - applicationprofile
-            - context:kubernetes
         - description: Detecting Kernel Module Load.
           enabled: true
           expressions:
@@ -38331,11 +38651,12 @@ multiple node agents:
           severity: 10
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - kmod
             - kernel
             - module
             - load
-            - context:kubernetes
         - description: Detecting ssh connection to disallowed port
           enabled: false
           expressions:
@@ -38349,16 +38670,18 @@ multiple node agents:
           mitreTactic: TA0008
           mitreTechnique: T1021.001
           name: Disallowed ssh connection
+          profileDataRequired:
+            egressAddresses: all
           profileDependency: 1
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - ssh
             - connection
             - port
             - malicious
             - networkprofile
-            - context:kubernetes
         - description: Detecting exec calls from mounted paths.
           enabled: true
           expressions:
@@ -38372,14 +38695,16 @@ multiple node agents:
           mitreTactic: TA0002
           mitreTechnique: T1059
           name: Process executed from mount
+          profileDataRequired:
+            execs: all
           profileDependency: 1
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - exec
             - mount
             - applicationprofile
-            - context:kubernetes
         - description: Detecting Fileless Execution
           enabled: true
           expressions:
@@ -38397,10 +38722,11 @@ multiple node agents:
           severity: 8
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - fileless
             - execution
             - malicious
-            - context:kubernetes
         - description: Detecting Unshare System Call usage, which can be used to escape container.
           enabled: true
           expressions:
@@ -38414,16 +38740,19 @@ multiple node agents:
           mitreTactic: TA0004
           mitreTechnique: T1611
           name: Process tries to escape container
-          profileDependency: 2
+          profileDataRequired:
+            syscalls:
+              - exact: unshare
+          profileDependency: 1
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - unshare
             - escape
             - unshare
             - anomaly
             - applicationprofile
-            - context:kubernetes
         - description: Detecting XMR Crypto Miners by randomx algorithm usage.
           enabled: true
           expressions:
@@ -38441,10 +38770,10 @@ multiple node agents:
           severity: 10
           supportPolicy: false
           tags:
+            - context:kubernetes
             - crypto
             - miners
             - malicious
-            - context:kubernetes
         - description: Detecting Crypto miners communication by domain
           enabled: true
           expressions:
@@ -38462,12 +38791,13 @@ multiple node agents:
           severity: 10
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - network
             - crypto
             - miners
             - malicious
             - dns
-            - context:kubernetes
         - description: Detecting Crypto Miners by suspicious port usage.
           enabled: true
           expressions:
@@ -38481,16 +38811,23 @@ multiple node agents:
           mitreTactic: TA0011
           mitreTechnique: T1071
           name: Crypto Mining Related Port Communication
+          profileDataRequired:
+            egressAddresses: all
           profileDependency: 1
           severity: 3
+          state:
+            ports:
+              - 3333
+              - 45700
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - network
             - crypto
             - miners
             - malicious
             - networkprofile
-            - context:kubernetes
         - description: Detects symlink creation over sensitive files
           enabled: true
           expressions:
@@ -38504,14 +38841,19 @@ multiple node agents:
           mitreTactic: TA0006
           mitreTechnique: T1005
           name: Soft link created over sensitive file
+          profileDataRequired:
+            opens:
+              - prefix: /etc/shadow
+              - prefix: /etc/sudoers
           profileDependency: 1
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
+            - context:host
             - anomaly
             - symlink
             - applicationprofile
-            - context:kubernetes
         - description: Detecting ld_preload hook techniques.
           enabled: false
           expressions:
@@ -38527,14 +38869,17 @@ multiple node agents:
           mitreTactic: TA0005
           mitreTechnique: T1574.006
           name: ld_preload hooks technique detected
+          profileDataRequired:
+            opens:
+              - exact: /etc/ld.so.preload
           profileDependency: 1
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
             - exec
             - malicious
             - applicationprofile
-            - context:kubernetes
         - description: Detecting hardlink creation over sensitive files.
           enabled: true
           expressions:
@@ -38548,14 +38893,18 @@ multiple node agents:
           mitreTactic: TA0006
           mitreTechnique: T1005
           name: Hard link created over sensitive file
+          profileDataRequired:
+            opens:
+              - prefix: /etc/shadow
+              - prefix: /etc/sudoers
           profileDependency: 1
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
             - files
             - malicious
             - applicationprofile
-            - context:kubernetes
         - description: Detecting potentially malicious ptrace usage.
           enabled: true
           expressions:
@@ -38573,9 +38922,10 @@ multiple node agents:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - process
             - malicious
-            - context:kubernetes
         - description: Detects io_uring operations that were not recorded during the initial observation period, indicating potential unauthorized activity.
           enabled: true
           expressions:
@@ -38589,14 +38939,16 @@ multiple node agents:
           mitreTactic: TA0002
           mitreTechnique: T1218
           name: Unexpected io_uring Operation Detected
+          profileDataRequired:
+            syscalls: all
           profileDependency: 0
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
             - syscalls
             - io_uring
             - applicationprofile
-            - context:kubernetes
   53: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
@@ -52147,15 +52499,17 @@ skipPersistence enabled:
           mitreTactic: TA0002
           mitreTechnique: T1059
           name: Unexpected process launched
+          profileDataRequired:
+            execs: all
           profileDependency: 0
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - process
             - exec
             - applicationprofile
-            - context:kubernetes
         - description: Detects unexpected file access that is not in the baseline
           enabled: false
           expressions:
@@ -52173,15 +52527,29 @@ skipPersistence enabled:
           mitreTactic: TA0009
           mitreTechnique: T1005
           name: Files Access Anomalies in container
+          profileDataRequired:
+            opens:
+              - prefix: /etc/
+              - prefix: /var/log/
+              - prefix: /var/run/
+              - prefix: /run/
+              - prefix: /var/spool/cron/
+              - prefix: /var/www/
+              - prefix: /var/lib/
+              - prefix: /opt/
+              - prefix: /usr/local/
+              - prefix: /app/
+              - exact: /.dockerenv
+              - exact: /proc/self/environ
           profileDependency: 0
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - file
             - open
             - applicationprofile
-            - context:kubernetes
         - description: Detects unexpected system calls that are not whitelisted by application profile
           enabled: true
           expressions:
@@ -52195,14 +52563,16 @@ skipPersistence enabled:
           mitreTactic: TA0002
           mitreTechnique: T1059
           name: Syscalls Anomalies in container
+          profileDataRequired:
+            syscalls: all
           profileDependency: 0
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - syscall
             - applicationprofile
-            - context:kubernetes
         - description: Detects unexpected capabilities that are not whitelisted by application profile
           enabled: true
           expressions:
@@ -52216,14 +52586,16 @@ skipPersistence enabled:
           mitreTactic: TA0002
           mitreTechnique: T1059
           name: Linux Capabilities Anomalies in container
+          profileDataRequired:
+            capabilities: all
           profileDependency: 0
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - capabilities
             - applicationprofile
-            - context:kubernetes
         - description: Detecting unexpected domain requests that are not whitelisted by application profile.
           enabled: true
           expressions:
@@ -52237,35 +52609,49 @@ skipPersistence enabled:
           mitreTactic: TA0011
           mitreTechnique: T1071.004
           name: DNS Anomalies in container
+          profileDataRequired:
+            egressDomains: all
           profileDependency: 0
           severity: 1
           supportPolicy: false
           tags:
+            - context:kubernetes
             - dns
             - anomaly
             - networkprofile
-            - context:kubernetes
         - description: Detecting unexpected access to service account token.
           enabled: true
           expressions:
             message: '''Unexpected access to service account token: '' + event.path + '' with flags: '' + event.flags.join('','')'
             ruleExpression:
               - eventType: open
-                expression: "((event.path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) || \n (event.path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||\n (event.path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token')) ||\n (event.path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token'))) &&\n!ap.was_path_opened_with_suffix(event.containerId, '/token')\n"
+                expression: |
+                  ((event.path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||
+                   (event.path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||
+                   (event.path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token')) ||
+                   (event.path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token'))) &&
+                  !ap.was_path_opened_with_suffix(event.containerId, '/token')
             uniqueId: event.comm
           id: R0006
           isTriggerAlert: true
           mitreTactic: TA0006
           mitreTechnique: T1528
           name: Unexpected service account token access
+          profileDataRequired:
+            opens:
+              - suffix: /token
           profileDependency: 0
           severity: 5
+          state:
+            includePrefixes:
+              - /run/secrets
+              - /var/run/secrets
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - serviceaccount
             - applicationprofile
-            - context:kubernetes
         - description: Detecting execution of kubernetes client
           enabled: true
           expressions:
@@ -52281,15 +52667,18 @@ skipPersistence enabled:
           mitreTactic: TA0008
           mitreTechnique: T1210
           name: Workload uses Kubernetes API unexpectedly
+          profileDataRequired:
+            egressAddresses: all
+            execs: all
           profileDependency: 0
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - exec
             - network
             - anomaly
             - applicationprofile
-            - context:kubernetes
         - description: Detecting reading environment variables from procfs.
           enabled: true
           expressions:
@@ -52297,22 +52686,28 @@ skipPersistence enabled:
             ruleExpression:
               - eventType: open
                 expression: |
-                  event.path.startsWith('/proc/') &&  event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
-            uniqueId: event.comm + '_' + event.path
+                  event.path.startsWith('/proc/') && event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
+            uniqueId: event.comm
           id: R0008
           isTriggerAlert: true
           mitreTactic: TA0006
           mitreTechnique: T1552.001
           name: Read Environment Variables from procfs
+          profileDataRequired:
+            opens:
+              - suffix: /environ
           profileDependency: 0
           severity: 5
+          state:
+            includePrefixes:
+              - /proc
           supportPolicy: false
           tags:
+            - context:kubernetes
             - anomaly
             - procfs
             - environment
             - applicationprofile
-            - context:kubernetes
         - description: Detecting eBPF program load.
           enabled: true
           expressions:
@@ -52326,14 +52721,18 @@ skipPersistence enabled:
           mitreTactic: TA0005
           mitreTechnique: T1218
           name: eBPF Program Load
+          profileDataRequired:
+            syscalls:
+              - exact: bpf
           profileDependency: 1
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - bpf
             - ebpf
             - applicationprofile
-            - context:kubernetes
         - description: Detecting access to sensitive files.
           enabled: true
           expressions:
@@ -52347,14 +52746,18 @@ skipPersistence enabled:
           mitreTactic: TA0006
           mitreTechnique: T1005
           name: Unexpected Sensitive File Access
+          profileDataRequired:
+            opens:
+              - prefix: /etc/shadow
           profileDependency: 1
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - files
             - anomaly
             - applicationprofile
-            - context:kubernetes
         - description: Detecting unexpected egress network traffic that is not whitelisted by application profile.
           enabled: false
           expressions:
@@ -52368,15 +52771,17 @@ skipPersistence enabled:
           mitreTactic: TA0010
           mitreTechnique: T1041
           name: Unexpected Egress Network Traffic
+          profileDataRequired:
+            egressAddresses: all
           profileDependency: 0
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - whitelisted
             - network
             - anomaly
             - networkprofile
-            - context:kubernetes
         - description: 'Detecting exec calls that are from malicious source like: /dev/shm'
           enabled: true
           expressions:
@@ -52384,7 +52789,7 @@ skipPersistence enabled:
             ruleExpression:
               - eventType: exec
                 expression: |
-                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') ||  (parse.get_exec_path(event.args, event.comm).startsWith('/dev/shm/')))
+                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') || (parse.get_exec_path(event.args, event.comm).startsWith('/dev/shm/')))
             uniqueId: event.comm + '_' + event.exepath + '_' + event.pcomm
           id: R1000
           isTriggerAlert: true
@@ -52395,10 +52800,11 @@ skipPersistence enabled:
           severity: 8
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - exec
             - signature
             - malicious
-            - context:kubernetes
         - description: Detecting exec calls of binaries that are not included in the base image
           enabled: true
           expressions:
@@ -52415,16 +52821,18 @@ skipPersistence enabled:
           mitreTactic: TA0005
           mitreTechnique: T1036
           name: Drifted process executed
+          profileDataRequired:
+            execs: all
           profileDependency: 1
           severity: 8
           supportPolicy: false
           tags:
+            - context:kubernetes
             - exec
             - malicious
             - binary
             - base image
             - applicationprofile
-            - context:kubernetes
         - description: Detecting Kernel Module Load.
           enabled: true
           expressions:
@@ -52442,11 +52850,12 @@ skipPersistence enabled:
           severity: 10
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - kmod
             - kernel
             - module
             - load
-            - context:kubernetes
         - description: Detecting ssh connection to disallowed port
           enabled: false
           expressions:
@@ -52460,16 +52869,18 @@ skipPersistence enabled:
           mitreTactic: TA0008
           mitreTechnique: T1021.001
           name: Disallowed ssh connection
+          profileDataRequired:
+            egressAddresses: all
           profileDependency: 1
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - ssh
             - connection
             - port
             - malicious
             - networkprofile
-            - context:kubernetes
         - description: Detecting exec calls from mounted paths.
           enabled: true
           expressions:
@@ -52483,14 +52894,16 @@ skipPersistence enabled:
           mitreTactic: TA0002
           mitreTechnique: T1059
           name: Process executed from mount
+          profileDataRequired:
+            execs: all
           profileDependency: 1
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - exec
             - mount
             - applicationprofile
-            - context:kubernetes
         - description: Detecting Fileless Execution
           enabled: true
           expressions:
@@ -52508,10 +52921,11 @@ skipPersistence enabled:
           severity: 8
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - fileless
             - execution
             - malicious
-            - context:kubernetes
         - description: Detecting Unshare System Call usage, which can be used to escape container.
           enabled: true
           expressions:
@@ -52525,16 +52939,19 @@ skipPersistence enabled:
           mitreTactic: TA0004
           mitreTechnique: T1611
           name: Process tries to escape container
-          profileDependency: 2
+          profileDataRequired:
+            syscalls:
+              - exact: unshare
+          profileDependency: 1
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
             - unshare
             - escape
             - unshare
             - anomaly
             - applicationprofile
-            - context:kubernetes
         - description: Detecting XMR Crypto Miners by randomx algorithm usage.
           enabled: true
           expressions:
@@ -52552,10 +52969,10 @@ skipPersistence enabled:
           severity: 10
           supportPolicy: false
           tags:
+            - context:kubernetes
             - crypto
             - miners
             - malicious
-            - context:kubernetes
         - description: Detecting Crypto miners communication by domain
           enabled: true
           expressions:
@@ -52573,12 +52990,13 @@ skipPersistence enabled:
           severity: 10
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - network
             - crypto
             - miners
             - malicious
             - dns
-            - context:kubernetes
         - description: Detecting Crypto Miners by suspicious port usage.
           enabled: true
           expressions:
@@ -52592,16 +53010,23 @@ skipPersistence enabled:
           mitreTactic: TA0011
           mitreTechnique: T1071
           name: Crypto Mining Related Port Communication
+          profileDataRequired:
+            egressAddresses: all
           profileDependency: 1
           severity: 3
+          state:
+            ports:
+              - 3333
+              - 45700
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - network
             - crypto
             - miners
             - malicious
             - networkprofile
-            - context:kubernetes
         - description: Detects symlink creation over sensitive files
           enabled: true
           expressions:
@@ -52615,14 +53040,19 @@ skipPersistence enabled:
           mitreTactic: TA0006
           mitreTechnique: T1005
           name: Soft link created over sensitive file
+          profileDataRequired:
+            opens:
+              - prefix: /etc/shadow
+              - prefix: /etc/sudoers
           profileDependency: 1
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
+            - context:host
             - anomaly
             - symlink
             - applicationprofile
-            - context:kubernetes
         - description: Detecting ld_preload hook techniques.
           enabled: false
           expressions:
@@ -52638,14 +53068,17 @@ skipPersistence enabled:
           mitreTactic: TA0005
           mitreTechnique: T1574.006
           name: ld_preload hooks technique detected
+          profileDataRequired:
+            opens:
+              - exact: /etc/ld.so.preload
           profileDependency: 1
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
             - exec
             - malicious
             - applicationprofile
-            - context:kubernetes
         - description: Detecting hardlink creation over sensitive files.
           enabled: true
           expressions:
@@ -52659,14 +53092,18 @@ skipPersistence enabled:
           mitreTactic: TA0006
           mitreTechnique: T1005
           name: Hard link created over sensitive file
+          profileDataRequired:
+            opens:
+              - prefix: /etc/shadow
+              - prefix: /etc/sudoers
           profileDependency: 1
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
             - files
             - malicious
             - applicationprofile
-            - context:kubernetes
         - description: Detecting potentially malicious ptrace usage.
           enabled: true
           expressions:
@@ -52684,9 +53121,10 @@ skipPersistence enabled:
           severity: 5
           supportPolicy: false
           tags:
+            - context:kubernetes
+            - context:host
             - process
             - malicious
-            - context:kubernetes
         - description: Detects io_uring operations that were not recorded during the initial observation period, indicating potential unauthorized activity.
           enabled: true
           expressions:
@@ -52700,14 +53138,16 @@ skipPersistence enabled:
           mitreTactic: TA0002
           mitreTechnique: T1218
           name: Unexpected io_uring Operation Detected
+          profileDataRequired:
+            syscalls: all
           profileDependency: 0
           severity: 5
           supportPolicy: true
           tags:
+            - context:kubernetes
             - syscalls
             - io_uring
             - applicationprofile
-            - context:kubernetes
   52: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
