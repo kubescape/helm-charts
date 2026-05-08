@@ -542,6 +542,7 @@ all capabilities:
           securityContext:
             seccompProfile:
               type: RuntimeDefault
+          serviceAccountName: grype-offline-db
           tolerations: null
   15: |
     apiVersion: networking.k8s.io/v1
@@ -23866,6 +23867,7 @@ default capabilities:
           securityContext:
             seccompProfile:
               type: RuntimeDefault
+          serviceAccountName: grype-offline-db
           tolerations: null
   8: |
     apiVersion: networking.k8s.io/v1
@@ -23931,6 +23933,24 @@ default capabilities:
       type: ClusterIP
   10: |
     apiVersion: v1
+    automountServiceAccountToken: false
+    kind: ServiceAccount
+    metadata:
+      labels:
+        app: grype-offline-db
+        app.kubernetes.io/component: grype-offline-db
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.40.1
+        helm.sh/chart: kubescape-operator-1.40.1
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: grype-offline-db
+      namespace: kubescape
+  11: |
+    apiVersion: v1
     data:
       request-body.json: '{"commands":[{"CommandName":"kubescapeScan","args":{"scanV1":{}}}]}'
     kind: ConfigMap
@@ -23950,7 +23970,7 @@ default capabilities:
         tier: ks-control-plane
       name: kubescape-scheduler
       namespace: kubescape
-  11: |
+  12: |
     apiVersion: batch/v1
     kind: CronJob
     metadata:
@@ -24035,7 +24055,7 @@ default capabilities:
                   name: kubescape-scheduler
       schedule: 1 2 3 4 5
       successfulJobsHistoryLimit: 3
-  12: |
+  13: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -24091,7 +24111,7 @@ default capabilities:
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
         - Egress
-  13: |
+  14: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -24361,7 +24381,7 @@ default capabilities:
           - get
           - list
           - watch
-  14: |
+  15: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -24386,7 +24406,7 @@ default capabilities:
       - kind: ServiceAccount
         name: kubescape
         namespace: kubescape
-  15: |
+  16: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -24599,7 +24619,7 @@ default capabilities:
               name: results
             - emptyDir: {}
               name: failed
-  16: |
+  17: |
     apiVersion: v1
     data:
       host-scanner-yaml: ""
@@ -24620,7 +24640,7 @@ default capabilities:
         tier: ks-control-plane
       name: host-scanner-definition
       namespace: kubescape
-  17: |
+  18: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -24697,7 +24717,7 @@ default capabilities:
       policyTypes:
         - Ingress
         - Egress
-  18: |
+  19: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -24728,7 +24748,7 @@ default capabilities:
           - list
           - patch
           - delete
-  19: |
+  20: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -24754,7 +24774,7 @@ default capabilities:
       - kind: ServiceAccount
         name: kubescape
         namespace: kubescape
-  20: |
+  21: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -24783,7 +24803,7 @@ default capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  21: |
+  22: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -24802,7 +24822,7 @@ default capabilities:
         tier: ks-control-plane
       name: kubescape
       namespace: kubescape
-  22: |
+  23: |
     apiVersion: monitoring.coreos.com/v1
     kind: ServiceMonitor
     metadata:
@@ -24834,7 +24854,7 @@ default capabilities:
           app.kubernetes.io/component: kubescape
           app.kubernetes.io/instance: RELEASE-NAME
           app.kubernetes.io/name: kubescape-operator
-  23: |
+  24: |
     apiVersion: v1
     data:
       request-body.json: '{"commands":[{"commandName":"scan","designators":[{"designatorType":"Attributes","attributes":{}}]}]}'
@@ -24854,7 +24874,7 @@ default capabilities:
         tier: ks-control-plane
       name: kubevuln-scheduler
       namespace: kubescape
-  24: |
+  25: |
     apiVersion: batch/v1
     kind: CronJob
     metadata:
@@ -24939,7 +24959,7 @@ default capabilities:
                   name: kubevuln-scheduler
       schedule: 1 2 3 4 5
       successfulJobsHistoryLimit: 3
-  25: |
+  26: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -24995,7 +25015,7 @@ default capabilities:
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
         - Egress
-  26: |
+  27: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -25036,7 +25056,7 @@ default capabilities:
           - get
           - watch
           - list
-  27: |
+  28: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -25061,7 +25081,7 @@ default capabilities:
       - kind: ServiceAccount
         name: kubevuln
         namespace: kubescape
-  28: |
+  29: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -25244,7 +25264,7 @@ default capabilities:
               name: services
             - emptyDir: {}
               name: grype-db
-  29: |
+  30: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -25306,7 +25326,7 @@ default capabilities:
       policyTypes:
         - Ingress
         - Egress
-  30: |
+  31: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -25334,7 +25354,7 @@ default capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  31: |
+  32: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -25353,7 +25373,7 @@ default capabilities:
         tier: ks-control-plane
       name: kubevuln
       namespace: kubescape
-  32: |
+  33: |
     apiVersion: apiextensions.k8s.io/v1
     kind: CustomResourceDefinition
     metadata:
@@ -25387,7 +25407,7 @@ default capabilities:
               type: object
           served: true
           storage: true
-  33: |
+  34: |
     apiVersion: apiextensions.k8s.io/v1
     kind: CustomResourceDefinition
     metadata:
@@ -25421,7 +25441,7 @@ default capabilities:
               type: object
           served: true
           storage: true
-  34: |
+  35: |
     apiVersion: apiextensions.k8s.io/v1
     kind: CustomResourceDefinition
     metadata:
@@ -25455,7 +25475,7 @@ default capabilities:
               type: object
           served: true
           storage: true
-  35: |
+  36: |
     apiVersion: apiextensions.k8s.io/v1
     kind: CustomResourceDefinition
     metadata:
@@ -25489,7 +25509,7 @@ default capabilities:
               type: object
           served: true
           storage: true
-  36: |
+  37: |
     apiVersion: apiextensions.k8s.io/v1
     kind: CustomResourceDefinition
     metadata:
@@ -25523,7 +25543,7 @@ default capabilities:
               type: object
           served: true
           storage: true
-  37: |
+  38: |
     apiVersion: apiextensions.k8s.io/v1
     kind: CustomResourceDefinition
     metadata:
@@ -25557,7 +25577,7 @@ default capabilities:
               type: object
           served: true
           storage: true
-  38: |
+  39: |
     apiVersion: apiextensions.k8s.io/v1
     kind: CustomResourceDefinition
     metadata:
@@ -25591,7 +25611,7 @@ default capabilities:
               type: object
           served: true
           storage: true
-  39: |
+  40: |
     apiVersion: apiextensions.k8s.io/v1
     kind: CustomResourceDefinition
     metadata:
@@ -25625,7 +25645,7 @@ default capabilities:
               type: object
           served: true
           storage: true
-  40: |
+  41: |
     apiVersion: apiextensions.k8s.io/v1
     kind: CustomResourceDefinition
     metadata:
@@ -25659,7 +25679,7 @@ default capabilities:
               type: object
           served: true
           storage: true
-  41: |
+  42: |
     apiVersion: apiextensions.k8s.io/v1
     kind: CustomResourceDefinition
     metadata:
@@ -25722,7 +25742,7 @@ default capabilities:
               type: object
           served: true
           storage: true
-  42: |
+  43: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -25879,7 +25899,7 @@ default capabilities:
           - patch
           - list
           - watch
-  43: |
+  44: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -25904,7 +25924,7 @@ default capabilities:
       - kind: ServiceAccount
         name: node-agent
         namespace: kubescape
-  44: |
+  45: |
     apiVersion: v1
     data:
       config.json: |
@@ -25966,7 +25986,7 @@ default capabilities:
         tier: ks-control-plane
       name: node-agent
       namespace: kubescape
-  45: |
+  46: |
     apiVersion: apps/v1
     kind: DaemonSet
     metadata:
@@ -26255,7 +26275,7 @@ default capabilities:
             - name: extra-ca-certificates
               secret:
                 secretName: extra-certificates
-  46: |
+  47: |
     apiVersion: kubescape.io/v1
     kind: RuntimeRuleAlertBinding
     metadata:
@@ -26312,7 +26332,7 @@ default capabilities:
         - ruleName: Unexpected Egress Network Traffic
         - ruleName: Malicious Ptrace Usage
         - ruleName: Unexpected io_uring Operation Detected
-  47: |
+  48: |
     apiVersion: kubescape.io/v1
     kind: Rules
     metadata:
@@ -26994,7 +27014,7 @@ default capabilities:
             - syscalls
             - io_uring
             - applicationprofile
-  48: |
+  49: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -27048,7 +27068,7 @@ default capabilities:
           app.kubernetes.io/name: kubescape-operator
       policyTypes:
         - Egress
-  49: |
+  50: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -27076,7 +27096,7 @@ default capabilities:
         app.kubernetes.io/component: node-agent
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  50: |
+  51: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -27094,7 +27114,7 @@ default capabilities:
         tier: ks-control-plane
       name: node-agent
       namespace: kubescape
-  51: |
+  52: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -27219,7 +27239,7 @@ default capabilities:
           - list
           - update
           - patch
-  52: |
+  53: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -27244,7 +27264,7 @@ default capabilities:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  53: |
+  54: |
     apiVersion: v1
     data:
       config.json: |
@@ -27295,7 +27315,7 @@ default capabilities:
         tier: ks-control-plane
       name: operator
       namespace: kubescape
-  54: |
+  55: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -27477,7 +27497,7 @@ default capabilities:
                     path: matchingRules.json
                 name: cs-matching-rules
               name: cs-matching-rules
-  55: |
+  56: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -27562,7 +27582,7 @@ default capabilities:
         tier: ks-control-plane
       name: kubescape-cronjob-template
       namespace: kubescape
-  56: |
+  57: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -27647,7 +27667,7 @@ default capabilities:
         tier: ks-control-plane
       name: kubevuln-cronjob-template
       namespace: kubescape
-  57: |
+  58: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -27740,7 +27760,7 @@ default capabilities:
       policyTypes:
         - Ingress
         - Egress
-  58: |
+  59: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -27825,7 +27845,7 @@ default capabilities:
         tier: ks-control-plane
       name: registry-scan-cronjob-template
       namespace: kubescape
-  59: |
+  60: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -27869,7 +27889,7 @@ default capabilities:
           - list
           - patch
           - delete
-  60: |
+  61: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -27895,7 +27915,7 @@ default capabilities:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  61: |
+  62: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -27923,7 +27943,7 @@ default capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  62: |
+  63: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -27942,7 +27962,7 @@ default capabilities:
         tier: ks-control-plane
       name: operator
       namespace: kubescape
-  63: |
+  64: |
     apiVersion: v1
     data:
       proxy.crt: foo
@@ -27966,7 +27986,7 @@ default capabilities:
       name: kubescape-proxy-certificate
       namespace: kubescape
     type: Opaque
-  64: |
+  65: |
     apiVersion: apiregistration.k8s.io/v1
     kind: APIService
     metadata:
@@ -27992,7 +28012,7 @@ default capabilities:
         namespace: kubescape
       version: v1beta1
       versionPriority: 15
-  65: |
+  66: |
     apiVersion: v1
     data:
       tls.crt: bW9jay1jYS1jZXJ0
@@ -28015,7 +28035,7 @@ default capabilities:
       name: storage-tls-ca
       namespace: kubescape
     type: kubernetes.io/tls
-  66: |
+  67: |
     apiVersion: v1
     data:
       ca.crt: bW9jay1jYS1jZXJ0
@@ -28038,7 +28058,7 @@ default capabilities:
       name: storage-tls
       namespace: kubescape
     type: kubernetes.io/tls
-  67: |
+  68: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -28104,7 +28124,7 @@ default capabilities:
           - get
           - watch
           - list
-  68: |
+  69: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -28129,7 +28149,7 @@ default capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  69: |
+  70: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -28154,7 +28174,7 @@ default capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  70: |
+  71: |
     apiVersion: v1
     data:
       config.json: |
@@ -28189,7 +28209,7 @@ default capabilities:
         tier: ks-control-plane
       name: storage
       namespace: kubescape
-  71: |
+  72: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -28310,7 +28330,7 @@ default capabilities:
             - name: ca-certificates
               secret:
                 secretName: storage-tls
-  72: |
+  73: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -28372,7 +28392,7 @@ default capabilities:
       policyTypes:
         - Ingress
         - Egress
-  73: |
+  74: |
     apiVersion: v1
     kind: PersistentVolumeClaim
     metadata:
@@ -28396,7 +28416,7 @@ default capabilities:
       resources:
         requests:
           storage: 5Gi
-  74: |
+  75: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -28422,7 +28442,7 @@ default capabilities:
       - kind: ServiceAccount
         name: storage
         namespace: kubescape
-  75: |
+  76: |
     apiVersion: apiextensions.k8s.io/v1
     kind: CustomResourceDefinition
     metadata:
@@ -28746,7 +28766,7 @@ default capabilities:
           storage: true
           subresources:
             status: {}
-  76: |
+  77: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -28775,7 +28795,7 @@ default capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  77: |
+  78: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -28793,7 +28813,7 @@ default capabilities:
         tier: ks-control-plane
       name: storage
       namespace: kubescape
-  78: |
+  79: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -28962,7 +28982,7 @@ default capabilities:
           - update
           - patch
           - delete
-  79: |
+  80: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -28986,7 +29006,7 @@ default capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  80: |
+  81: |
     apiVersion: v1
     data:
       config.json: |
@@ -29265,7 +29285,7 @@ default capabilities:
         tier: ks-control-plane
       name: synchronizer
       namespace: kubescape
-  81: |
+  82: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -29438,7 +29458,7 @@ default capabilities:
                     path: config.json
                 name: synchronizer
               name: config
-  82: |
+  83: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
     metadata:
@@ -29506,7 +29526,7 @@ default capabilities:
       policyTypes:
         - Ingress
         - Egress
-  83: |
+  84: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -29549,7 +29569,7 @@ default capabilities:
           - list
           - patch
           - delete
-  84: |
+  85: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -29574,7 +29594,7 @@ default capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  85: |
+  86: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -29601,7 +29621,7 @@ default capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  86: |
+  87: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -38466,6 +38486,7 @@ multiple node agents:
           securityContext:
             seccompProfile:
               type: RuntimeDefault
+          serviceAccountName: grype-offline-db
           tolerations: null
   15: |
     apiVersion: networking.k8s.io/v1
@@ -54225,6 +54246,7 @@ skipPersistence enabled:
           securityContext:
             seccompProfile:
               type: RuntimeDefault
+          serviceAccountName: grype-offline-db
           tolerations: null
   15: |
     apiVersion: networking.k8s.io/v1
