@@ -23,10 +23,10 @@ spec:
         metadata:
           annotations:
             {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 12 }}
-            {{- with .Values.grypeOfflineDB.podAnnotations }}{{- toYaml . | nindent 12 }}{{- end }}
+            {{- with .Values.grypeOfflineDB.rollout.podAnnotations }}{{- toYaml . | nindent 12 }}{{- end }}
           labels:
             {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.grypeOfflineDB.name "tier" .Values.global.namespaceTier) | nindent 12 }}
-            {{- with .Values.grypeOfflineDB.podLabels }}{{- toYaml . | nindent 12 }}{{- end }}
+            {{- with .Values.grypeOfflineDB.rollout.podLabels }}{{- toYaml . | nindent 12 }}{{- end }}
             armo.tier: "vuln-scan"
             kubescape.io/tier: "core"
         spec:
@@ -45,10 +45,10 @@ spec:
           {{- end }}
           containers:
           - name: {{ .Values.grypeOfflineDB.name }}
-            image: "{{ .Values.serviceDiscovery.configMapUpdate.image.repository }}:{{ .Values.serviceDiscovery.configMapUpdate.image.tag }}"
-            imagePullPolicy: IfNotPresent
+            image: "{{ .Values.grypeOfflineDB.rollout.image.repository }}:{{ .Values.grypeOfflineDB.rollout.image.tag }}"
+            imagePullPolicy: {{ .Values.grypeOfflineDB.rollout.image.pullPolicy }}
             resources:
-{{ toYaml .Values.serviceDiscovery.resources | indent 14 }}
+{{ toYaml .Values.grypeOfflineDB.rollout.resources | indent 14 }}
             securityContext:
               allowPrivilegeEscalation: false
               readOnlyRootFilesystem: true
@@ -68,7 +68,9 @@ spec:
           serviceAccountName: {{ .Values.grypeOfflineDB.name }}
           automountServiceAccountToken: true
           nodeSelector:
-          {{- if .Values.grypeOfflineDB.nodeSelector }}
+          {{- if .Values.grypeOfflineDB.rollout.nodeSelector }}
+          {{- toYaml .Values.grypeOfflineDB.rollout.nodeSelector | nindent 12 }}
+          {{- else if .Values.grypeOfflineDB.nodeSelector }}
           {{- toYaml .Values.grypeOfflineDB.nodeSelector | nindent 12 }}
           {{- else if .Values.customScheduling.nodeSelector }}
           {{- toYaml .Values.customScheduling.nodeSelector | nindent 12 }}

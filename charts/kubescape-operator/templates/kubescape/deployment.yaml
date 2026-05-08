@@ -62,42 +62,6 @@ spec:
           type: RuntimeDefault
         runAsUser: 65532
         fsGroup: 65532
-      {{- if $components.serviceDiscovery.enabled }}
-      initContainers:
-      - name: {{ .Values.serviceDiscovery.urlDiscovery.name }}
-        image: "{{ .Values.serviceDiscovery.urlDiscovery.image.repository }}:{{ .Values.serviceDiscovery.urlDiscovery.image.tag }}"
-        imagePullPolicy: {{ .Values.serviceDiscovery.urlDiscovery.image.pullPolicy }}
-        securityContext:
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: true
-          runAsNonRoot: true
-        resources:
-{{ toYaml .Values.serviceDiscovery.resources | indent 14 }}
-        env:
-      {{- if ne .Values.global.httpsProxy "" }}
-          - name: HTTPS_PROXY
-            value: "{{ .Values.global.httpsProxy }}"
-          - name : no_proxy
-            value: "{{ $no_proxy_envar_list }}"
-      {{- end }}
-        args:
-          - -method=get
-          - -scheme=https
-          - -host={{ .Values.server }}
-          - -path=api/v2/servicediscovery
-          - -path-output=/data/services.json
-      {{- if .Values.serviceDiscovery.urlDiscovery.insecureSkipTLSVerify }}
-          - -skip-ssl-verify=true
-      {{- end}}
-        volumeMounts:
-          - name: services
-            mountPath: /data
-      {{- if ne .Values.global.proxySecretFile "" }}
-          - name: proxy-secret
-            mountPath: /etc/ssl/certs/proxy.crt
-            subPath: proxy.crt
-      {{- end }}
-      {{- end }}
       containers:
       - name: kubescape
         image: "{{ .Values.kubescape.image.repository }}:{{ .Values.kubescape.image.tag }}"
@@ -152,6 +116,10 @@ spec:
           value: "/home/nonroot/.kubescape/host-scanner.yaml"
         - name: LARGE_CLUSTER_SIZE
           value: "1500"
+        {{- if .Values.server }}
+        - name: API_URL
+          value: "https://{{ .Values.server }}"
+        {{- end }}
         {{- range .Values.kubescape.env }}
         - name: {{ .name }}
           value: "{{ .value }}"
@@ -306,12 +274,6 @@ spec:
           mountPath: /etc/config/clusterData.json
           readOnly: true
           subPath: "clusterData.json"
-        {{- if $components.serviceDiscovery.enabled }}
-        - name: "services"
-          mountPath: /etc/config/services.json
-          readOnly: true
-          subPath: "services.json"
-        {{- end }}
 {{- if .Values.volumeMounts }}
 {{ toYaml .Values.volumeMounts | indent 8 }}
 {{- end }}
@@ -360,10 +322,6 @@ spec:
           items:
           - key: "clusterData"
             path: "clusterData.json"
-      {{- if $components.serviceDiscovery.enabled }}
-      - name: "services"
-        emptyDir: {}
-      {{- end }}
       - name: host-scanner-definition
         configMap:
           name: host-scanner-definition

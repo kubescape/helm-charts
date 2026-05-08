@@ -412,8 +412,7 @@ all capabilities:
         spec:
           template:
             metadata:
-              annotations:
-                foo: bar
+              annotations: null
               labels:
                 app: grype-offline-db
                 app.kubernetes.io/component: grype-offline-db
@@ -423,7 +422,6 @@ all capabilities:
                 app.kubernetes.io/part-of: kubescape
                 app.kubernetes.io/version: 1.40.1
                 armo.tier: vuln-scan
-                bar: baz
                 helm.sh/chart: kubescape-operator-1.40.1
                 kubescape.io/ignore: "true"
                 kubescape.io/tier: core
@@ -1225,6 +1223,8 @@ all capabilities:
                   value: /home/nonroot/.kubescape/host-scanner.yaml
                 - name: LARGE_CLUSTER_SIZE
                   value: "1500"
+                - name: API_URL
+                  value: https://api.armosec.io
                 - name: AZURE_SUBSCRIPTION_ID
                   valueFrom:
                     secretKeyRef:
@@ -1258,7 +1258,7 @@ all capabilities:
                   value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
                 - name: KS_INCLUDE_NAMESPACES
                   value: my-namespace
-              image: quay.io/kubescape/kubescape:v4.0.6
+              image: quay.io/kubescape/kubescape:v4.0.7
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -1306,10 +1306,6 @@ all capabilities:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /etc/ssl/certs/proxy.crt
                   name: proxy-secret
                   subPath: proxy.crt
@@ -1319,38 +1315,6 @@ all capabilities:
           imagePullSecrets:
             - name: foo
             - name: bar
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env:
-                - name: HTTPS_PROXY
-                  value: https://foo:bar@baz:1234
-                - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-                runAsNonRoot: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
-                - mountPath: /etc/ssl/certs/proxy.crt
-                  name: proxy-secret
-                  subPath: proxy.crt
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -1376,8 +1340,6 @@ all capabilities:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-            - emptyDir: {}
-              name: services
             - configMap:
                 name: host-scanner-definition
               name: host-scanner-definition
@@ -1968,6 +1930,8 @@ all capabilities:
                   value: zap
                 - name: PRINT_POST_JSON
                   value: ""
+                - name: API_URL
+                  value: https://api.armosec.io
                 - name: CA_MAX_VULN_SCAN_ROUTINES
                   value: "1"
                 - name: OTEL_COLLECTOR_SVC
@@ -1976,7 +1940,7 @@ all capabilities:
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
                   value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/kubevuln:v0.3.137
+              image: quay.io/kubescape/kubevuln:v0.3.138
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -2017,10 +1981,6 @@ all capabilities:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /home/nonroot/.cache/grype
                   name: grype-db
                 - mountPath: /etc/ssl/certs/proxy.crt
@@ -2032,38 +1992,6 @@ all capabilities:
           imagePullSecrets:
             - name: foo
             - name: bar
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env:
-                - name: HTTPS_PROXY
-                  value: https://foo:bar@baz:1234
-                - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-                runAsNonRoot: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
-                - mountPath: /etc/ssl/certs/proxy.crt
-                  name: proxy-secret
-                  subPath: proxy.crt
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -2093,8 +2021,6 @@ all capabilities:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-            - emptyDir: {}
-              name: services
             - name: grype-db
               persistentVolumeClaim:
                 claimName: kubescape-kubevuln
@@ -3028,12 +2954,14 @@ all capabilities:
                 - name: KUBELET_ROOT
                   value: /var/lib/kubelet
                 - name: AGENT_VERSION
-                  value: v0.3.111
+                  value: v0.3.112
+                - name: API_URL
+                  value: https://api.armosec.io
                 - name: NodeName
                   valueFrom:
                     fieldRef:
                       fieldPath: spec.nodeName
-              image: quay.io/kubescape/node-agent:v0.3.111
+              image: quay.io/kubescape/node-agent:v0.3.112
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -3111,10 +3039,6 @@ all capabilities:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /etc/config/config.json
                   name: config
                   readOnly: true
@@ -3131,37 +3055,6 @@ all capabilities:
           imagePullSecrets:
             - name: foo
             - name: bar
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v3/servicediscovery
-                - -path-output=/data/services.json
-              env:
-                - name: HTTPS_PROXY
-                  value: https://foo:bar@baz:1234
-                - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
-                - mountPath: /etc/ssl/certs/proxy.crt
-                  name: proxy-secret
-                  subPath: proxy.crt
           nodeSelector:
             kubernetes.io/os: linux
           priorityClassName: kubescape-critical
@@ -3231,8 +3124,6 @@ all capabilities:
                     path: config.json
                 name: node-agent
               name: config
-            - emptyDir: {}
-              name: services
             - name: proxy-secret
               secret:
                 secretName: kubescape-proxy-certificate
@@ -6916,13 +6807,15 @@ all capabilities:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
+                - name: API_URL
+                  value: https://api.armosec.io
                 - name: OTEL_COLLECTOR_SVC
                   value: otelCollector.svc.monitoring:4317
                 - name: HTTPS_PROXY
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
                   value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/synchronizer:v0.0.141
+              image: quay.io/kubescape/synchronizer:v0.0.144
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -6951,10 +6844,6 @@ all capabilities:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /etc/ssl/certs/ca-certificates.crt
                   name: custom-ca-certificates
                   subPath: ca-certificates.crt
@@ -6968,38 +6857,6 @@ all capabilities:
           imagePullSecrets:
             - name: foo
             - name: bar
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env:
-                - name: HTTPS_PROXY
-                  value: https://foo:bar@baz:1234
-                - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-                runAsNonRoot: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
-                - mountPath: /etc/ssl/certs/proxy.crt
-                  name: proxy-secret
-                  subPath: proxy.crt
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -7025,8 +6882,6 @@ all capabilities:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-            - emptyDir: {}
-              name: services
             - configMap:
                 items:
                   - key: config.json
@@ -7899,9 +7754,11 @@ autoscaler mode with sbom sidecar:
                   value: /home/nonroot/.kubescape/host-scanner.yaml
                 - name: LARGE_CLUSTER_SIZE
                   value: "1500"
+                - name: API_URL
+                  value: https://api.armosec.io
                 - name: KS_EXCLUDE_NAMESPACES
                   value: kubescape,kube-system,kube-public,kube-node-lease,kubeconfig,gmp-system,gmp-public
-              image: quay.io/kubescape/kubescape:v4.0.6
+              image: quay.io/kubescape/kubescape:v4.0.7
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -7949,35 +7806,6 @@ autoscaler mode with sbom sidecar:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env: null
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-                runAsNonRoot: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -7997,8 +7825,6 @@ autoscaler mode with sbom sidecar:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-            - emptyDir: {}
-              name: services
             - configMap:
                 name: host-scanner-definition
               name: host-scanner-definition
@@ -8368,9 +8194,11 @@ autoscaler mode with sbom sidecar:
                   value: zap
                 - name: PRINT_POST_JSON
                   value: ""
+                - name: API_URL
+                  value: https://api.armosec.io
                 - name: CA_MAX_VULN_SCAN_ROUTINES
                   value: "1"
-              image: quay.io/kubescape/kubevuln:v0.3.137
+              image: quay.io/kubescape/kubevuln:v0.3.138
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -8411,37 +8239,8 @@ autoscaler mode with sbom sidecar:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /home/nonroot/.cache/grype
                   name: grype-db
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env: null
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-                runAsNonRoot: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -8465,8 +8264,6 @@ autoscaler mode with sbom sidecar:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-            - emptyDir: {}
-              name: services
             - emptyDir: {}
               name: grype-db
   22: |
@@ -9178,7 +8975,7 @@ autoscaler mode with sbom sidecar:
   39: |
     apiVersion: v1
     data:
-      daemonset-template.yaml: "apiVersion: apps/v1\nkind: DaemonSet\nmetadata:\n  name: \"{{ .Name }}\"\n  namespace: kubescape\n  annotations:\n    \n  labels:\n    helm.sh/chart: kubescape-operator-1.40.1\n    app.kubernetes.io/name: kubescape-operator\n    app.kubernetes.io/instance: RELEASE-NAME\n    app.kubernetes.io/component: node-agent\n    app.kubernetes.io/version: \"1.40.1\"\n    app.kubernetes.io/managed-by: Helm\n    app.kubernetes.io/part-of: kubescape\n    app: node-agent\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\n    kubescape.io/tier: \"core\"\n    kubescape.io/managed-by: operator-autoscaler\n    kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\nspec:\n  selector:\n    matchLabels:\n      app.kubernetes.io/name: kubescape-operator\n      app.kubernetes.io/instance: RELEASE-NAME\n      app.kubernetes.io/component: node-agent\n      kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\n  template:\n    metadata:\n      annotations:\n        \n        checksum/node-agent-config: 921a39bfca3fd64ae481a3b3b37e9c48df1332841321f999bd0cf0896ae88136\n        checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424\n        checksum/cloud-config: f7a445313c8a4c7668278b23c4aa82e5179084364812bb863962a5cc129e608b\n        container.apparmor.security.beta.kubernetes.io/node-agent: unconfined\n      labels:\n        helm.sh/chart: kubescape-operator-1.40.1\n        app.kubernetes.io/name: kubescape-operator\n        app.kubernetes.io/instance: RELEASE-NAME\n        app.kubernetes.io/component: node-agent\n        app.kubernetes.io/version: \"1.40.1\"\n        app.kubernetes.io/managed-by: Helm\n        app.kubernetes.io/part-of: kubescape\n        app: node-agent\n        tier: ks-control-plane\n        kubescape.io/ignore: \"true\"\n        kubescape.io/tier: \"core\"\n        kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\n    spec:\n      securityContext:\n      priorityClassName: kubescape-critical\n      serviceAccountName: node-agent\n      automountServiceAccountToken: true\n      hostPID: true\n      initContainers:\n      \n      - name: url-discovery\n        image: \"quay.io/kubescape/http-request:v0.2.19\"\n        imagePullPolicy: IfNotPresent\n        securityContext:\n          allowPrivilegeEscalation: false\n          readOnlyRootFilesystem: true\n        resources:\n          limits:\n            cpu: 100m\n            memory: 50Mi\n          requests:\n            cpu: 10m\n            memory: 10Mi\n        env:\n        args:\n          - -method=get\n          - -scheme=https\n          - -host=api.armosec.io\n          - -path=api/v3/servicediscovery\n          - -path-output=/data/services.json\n        volumeMounts:\n          - name: services\n            mountPath: /data\n      volumes:\n      \n      - hostPath:\n          path: /\n        name: host\n      - hostPath:\n          path: /var/lib/kubelet\n        name: kubeletdir\n      - hostPath:\n          path: /run\n        name: run\n      - hostPath:\n          path: /var\n        name: var\n      - hostPath:\n          path: /sys/fs/cgroup\n        name: cgroup\n      - hostPath:\n          path: /lib/modules\n        name: modules\n      - hostPath:\n          path: /sys/fs/bpf\n        name: bpffs\n      - hostPath:\n          path: /sys/kernel/debug\n        name: debugfs\n      - hostPath:\n          path: /boot\n        name: boot\n      - emptyDir: null\n        name: data\n      - emptyDir: null\n        name: profiles\n      - hostPath:\n          path: /\n          type: Directory\n        name: host-filesystem\n      - emptyDir: {}\n        name: clamdb\n      - emptyDir: {}\n        name: clamrun\n      - configMap:\n          items:\n          - key: clamd.conf\n            path: clamd.conf\n          - key: freshclam.conf\n            path: freshclam.conf\n          name: clamav\n        name: etc\n      - emptyDir:\n          medium: Memory\n          sizeLimit: 10Mi\n        name: sbom-comm\n      - emptyDir: {}\n        name: sbom-scanner-tmp\n      - name: cloud-secret\n        secret:\n          secretName: cloud-secret\n      - name: ks-cloud-config\n        configMap:\n          name: ks-cloud-config\n          items:\n            - key: \"clusterData\"\n              path: \"clusterData.json\"\n      - name: config\n        configMap:\n          name: node-agent\n          items:\n            - key: \"config.json\"\n              path: \"config.json\"\n      - name: \"services\"\n        emptyDir: {}\n      containers:\n      \n      - name: sbom-scanner\n        image: \"quay.io/kubescape/node-agent:v0.3.111\"\n        imagePullPolicy: IfNotPresent\n        command: \n          - /usr/bin/sbom-scanner\n        securityContext:\n          runAsUser: 0\n          readOnlyRootFilesystem: true\n          capabilities:\n            drop: [\"ALL\"]\n        resources:\n          limits:\n            cpu: 1000m\n            memory: 4Gi\n          requests:\n            cpu: 50m\n            memory: 256Mi\n        env:\n          - name: GOMEMLIMIT\n            value: \"3276MiB\"\n          - name: SOCKET_PATH\n            value: \"/sbom-comm/scanner.sock\"\n          - name: HOST_ROOT\n            value: \"/host\"\n        volumeMounts:\n          - mountPath: /sbom-comm\n            name: sbom-comm\n          - mountPath: /host\n            name: host\n            readOnly: true\n          - mountPath: /tmp\n            name: sbom-scanner-tmp\n      \n      - name: node-agent\n        image: \"quay.io/kubescape/node-agent:v0.3.111\"\n        imagePullPolicy: IfNotPresent\n        livenessProbe:\n          httpGet:\n            path: /livez\n            port: 7888\n          periodSeconds: 3\n        readinessProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          periodSeconds: 3\n        startupProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          periodSeconds: 10\n          failureThreshold: 30\n          timeoutSeconds: 1\n        resources:\n          \n          requests:\n            cpu: \"{{ .Resources.Requests.CPU }}\"\n            memory: \"{{ .Resources.Requests.Memory }}\"\n          limits:\n            cpu: \"{{ .Resources.Limits.CPU }}\"\n            memory: \"{{ .Resources.Limits.Memory }}\"\n        env:\n          \n          - name: GOMEMLIMIT\n            value: \"{{ .GoMemLimit }}\"\n          - name: HOST_ROOT\n            value: \"/host\"\n          - name: KS_LOGGER_LEVEL\n            value: \"info\"\n          - name: KS_LOGGER_NAME\n            value: \"zap\"\n          - name: SBOM_SCANNER_SOCKET\n            value: \"/sbom-comm/scanner.sock\"\n          - name: SCANNER_MEMORY_LIMIT\n            value: \"4Gi\"\n          - name: NODE_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: spec.nodeName\n          - name: POD_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: metadata.name\n          - name: NAMESPACE_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: metadata.namespace\n          - name: KUBELET_ROOT\n            value: \"/var/lib/kubelet\"\n          - name: AGENT_VERSION\n            value: \"v0.3.111\"\n          - name: NodeName\n            valueFrom:\n              fieldRef:\n                fieldPath: spec.nodeName\n        securityContext:\n          runAsUser: 0\n          privileged: false\n          capabilities:\n            add:\n              - SYS_ADMIN\n              - SYS_PTRACE\n              - NET_ADMIN\n              - SYSLOG\n              - SYS_RESOURCE\n              - IPC_LOCK\n              - NET_RAW\n          seLinuxOptions:\n            type: spc_t\n        volumeMounts:\n          \n          - mountPath: /host\n            name: host\n            readOnly: true\n          - mountPath: /var/lib/kubelet\n            name: kubeletdir\n          - mountPath: /run\n            name: run\n          - mountPath: /var\n            name: var\n            readOnly: true\n          - mountPath: /lib/modules\n            name: modules\n            readOnly: true\n          - mountPath: /sys/kernel/debug\n            name: debugfs\n          - mountPath: /sys/fs/cgroup\n            name: cgroup\n            readOnly: true\n          - mountPath: /sys/fs/bpf\n            name: bpffs\n          - mountPath: /data\n            name: data\n          - mountPath: /profiles\n            name: profiles\n          - mountPath: /boot\n            name: boot\n            readOnly: true\n          - mountPath: /clamav\n            name: clamrun\n          - name: sbom-comm\n            mountPath: /sbom-comm\n          - name: cloud-secret\n            mountPath: /etc/credentials\n            readOnly: true\n          - name: ks-cloud-config\n            mountPath: /etc/config/clusterData.json\n            readOnly: true\n            subPath: \"clusterData.json\"\n          - name: \"services\"\n            mountPath: /etc/config/services.json\n            readOnly: true\n            subPath: \"services.json\"\n          - name: config\n            mountPath: /etc/config/config.json\n            readOnly: true\n            subPath: \"config.json\"\n      nodeSelector:\n        kubernetes.io/os: linux\n        node.kubernetes.io/instance-type: \"{{ .NodeGroupLabel }}\"\n      affinity:\n      \n        nodeAffinity:\n          requiredDuringSchedulingIgnoredDuringExecution:\n            nodeSelectorTerms:\n            - matchExpressions:\n              - key: kubernetes.io/os\n                operator: In\n                values:\n                - linux\n      tolerations:\n"
+      daemonset-template.yaml: "apiVersion: apps/v1\nkind: DaemonSet\nmetadata:\n  name: \"{{ .Name }}\"\n  namespace: kubescape\n  annotations:\n    \n  labels:\n    helm.sh/chart: kubescape-operator-1.40.1\n    app.kubernetes.io/name: kubescape-operator\n    app.kubernetes.io/instance: RELEASE-NAME\n    app.kubernetes.io/component: node-agent\n    app.kubernetes.io/version: \"1.40.1\"\n    app.kubernetes.io/managed-by: Helm\n    app.kubernetes.io/part-of: kubescape\n    app: node-agent\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\n    kubescape.io/tier: \"core\"\n    kubescape.io/managed-by: operator-autoscaler\n    kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\nspec:\n  selector:\n    matchLabels:\n      app.kubernetes.io/name: kubescape-operator\n      app.kubernetes.io/instance: RELEASE-NAME\n      app.kubernetes.io/component: node-agent\n      kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\n  template:\n    metadata:\n      annotations:\n        \n        checksum/node-agent-config: 921a39bfca3fd64ae481a3b3b37e9c48df1332841321f999bd0cf0896ae88136\n        checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424\n        checksum/cloud-config: f7a445313c8a4c7668278b23c4aa82e5179084364812bb863962a5cc129e608b\n        container.apparmor.security.beta.kubernetes.io/node-agent: unconfined\n      labels:\n        helm.sh/chart: kubescape-operator-1.40.1\n        app.kubernetes.io/name: kubescape-operator\n        app.kubernetes.io/instance: RELEASE-NAME\n        app.kubernetes.io/component: node-agent\n        app.kubernetes.io/version: \"1.40.1\"\n        app.kubernetes.io/managed-by: Helm\n        app.kubernetes.io/part-of: kubescape\n        app: node-agent\n        tier: ks-control-plane\n        kubescape.io/ignore: \"true\"\n        kubescape.io/tier: \"core\"\n        kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\n    spec:\n      securityContext:\n      priorityClassName: kubescape-critical\n      serviceAccountName: node-agent\n      automountServiceAccountToken: true\n      hostPID: true\n      volumes:\n      \n      - hostPath:\n          path: /\n        name: host\n      - hostPath:\n          path: /var/lib/kubelet\n        name: kubeletdir\n      - hostPath:\n          path: /run\n        name: run\n      - hostPath:\n          path: /var\n        name: var\n      - hostPath:\n          path: /sys/fs/cgroup\n        name: cgroup\n      - hostPath:\n          path: /lib/modules\n        name: modules\n      - hostPath:\n          path: /sys/fs/bpf\n        name: bpffs\n      - hostPath:\n          path: /sys/kernel/debug\n        name: debugfs\n      - hostPath:\n          path: /boot\n        name: boot\n      - emptyDir: null\n        name: data\n      - emptyDir: null\n        name: profiles\n      - hostPath:\n          path: /\n          type: Directory\n        name: host-filesystem\n      - emptyDir: {}\n        name: clamdb\n      - emptyDir: {}\n        name: clamrun\n      - configMap:\n          items:\n          - key: clamd.conf\n            path: clamd.conf\n          - key: freshclam.conf\n            path: freshclam.conf\n          name: clamav\n        name: etc\n      - emptyDir:\n          medium: Memory\n          sizeLimit: 10Mi\n        name: sbom-comm\n      - emptyDir: {}\n        name: sbom-scanner-tmp\n      - name: cloud-secret\n        secret:\n          secretName: cloud-secret\n      - name: ks-cloud-config\n        configMap:\n          name: ks-cloud-config\n          items:\n            - key: \"clusterData\"\n              path: \"clusterData.json\"\n      - name: config\n        configMap:\n          name: node-agent\n          items:\n            - key: \"config.json\"\n              path: \"config.json\"\n      containers:\n      \n      - name: sbom-scanner\n        image: \"quay.io/kubescape/node-agent:v0.3.112\"\n        imagePullPolicy: IfNotPresent\n        command: \n          - /usr/bin/sbom-scanner\n        securityContext:\n          runAsUser: 0\n          readOnlyRootFilesystem: true\n          capabilities:\n            drop: [\"ALL\"]\n        resources:\n          limits:\n            cpu: 1000m\n            memory: 4Gi\n          requests:\n            cpu: 50m\n            memory: 256Mi\n        env:\n          - name: GOMEMLIMIT\n            value: \"3276MiB\"\n          - name: SOCKET_PATH\n            value: \"/sbom-comm/scanner.sock\"\n          - name: HOST_ROOT\n            value: \"/host\"\n        volumeMounts:\n          - mountPath: /sbom-comm\n            name: sbom-comm\n          - mountPath: /host\n            name: host\n            readOnly: true\n          - mountPath: /tmp\n            name: sbom-scanner-tmp\n      \n      - name: node-agent\n        image: \"quay.io/kubescape/node-agent:v0.3.112\"\n        imagePullPolicy: IfNotPresent\n        livenessProbe:\n          httpGet:\n            path: /livez\n            port: 7888\n          periodSeconds: 3\n        readinessProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          periodSeconds: 3\n        startupProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          periodSeconds: 10\n          failureThreshold: 30\n          timeoutSeconds: 1\n        resources:\n          \n          requests:\n            cpu: \"{{ .Resources.Requests.CPU }}\"\n            memory: \"{{ .Resources.Requests.Memory }}\"\n          limits:\n            cpu: \"{{ .Resources.Limits.CPU }}\"\n            memory: \"{{ .Resources.Limits.Memory }}\"\n        env:\n          \n          - name: GOMEMLIMIT\n            value: \"{{ .GoMemLimit }}\"\n          - name: HOST_ROOT\n            value: \"/host\"\n          - name: KS_LOGGER_LEVEL\n            value: \"info\"\n          - name: KS_LOGGER_NAME\n            value: \"zap\"\n          - name: SBOM_SCANNER_SOCKET\n            value: \"/sbom-comm/scanner.sock\"\n          - name: SCANNER_MEMORY_LIMIT\n            value: \"4Gi\"\n          - name: NODE_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: spec.nodeName\n          - name: POD_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: metadata.name\n          - name: NAMESPACE_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: metadata.namespace\n          - name: KUBELET_ROOT\n            value: \"/var/lib/kubelet\"\n          - name: AGENT_VERSION\n            value: \"v0.3.112\"\n          - name: API_URL\n            value: \"https://api.armosec.io\"\n          - name: NodeName\n            valueFrom:\n              fieldRef:\n                fieldPath: spec.nodeName\n        securityContext:\n          runAsUser: 0\n          privileged: false\n          capabilities:\n            add:\n              - SYS_ADMIN\n              - SYS_PTRACE\n              - NET_ADMIN\n              - SYSLOG\n              - SYS_RESOURCE\n              - IPC_LOCK\n              - NET_RAW\n          seLinuxOptions:\n            type: spc_t\n        volumeMounts:\n          \n          - mountPath: /host\n            name: host\n            readOnly: true\n          - mountPath: /var/lib/kubelet\n            name: kubeletdir\n          - mountPath: /run\n            name: run\n          - mountPath: /var\n            name: var\n            readOnly: true\n          - mountPath: /lib/modules\n            name: modules\n            readOnly: true\n          - mountPath: /sys/kernel/debug\n            name: debugfs\n          - mountPath: /sys/fs/cgroup\n            name: cgroup\n            readOnly: true\n          - mountPath: /sys/fs/bpf\n            name: bpffs\n          - mountPath: /data\n            name: data\n          - mountPath: /profiles\n            name: profiles\n          - mountPath: /boot\n            name: boot\n            readOnly: true\n          - mountPath: /clamav\n            name: clamrun\n          - name: sbom-comm\n            mountPath: /sbom-comm\n          - name: cloud-secret\n            mountPath: /etc/credentials\n            readOnly: true\n          - name: ks-cloud-config\n            mountPath: /etc/config/clusterData.json\n            readOnly: true\n            subPath: \"clusterData.json\"\n          - name: config\n            mountPath: /etc/config/config.json\n            readOnly: true\n            subPath: \"config.json\"\n      nodeSelector:\n        kubernetes.io/os: linux\n        node.kubernetes.io/instance-type: \"{{ .NodeGroupLabel }}\"\n      affinity:\n      \n        nodeAffinity:\n          requiredDuringSchedulingIgnoredDuringExecution:\n            nodeSelectorTerms:\n            - matchExpressions:\n              - key: kubernetes.io/os\n                operator: In\n                values:\n                - linux\n      tolerations:\n"
     kind: ConfigMap
     metadata:
       annotations: null
@@ -11385,7 +11182,9 @@ autoscaler mode with sbom sidecar:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/synchronizer:v0.0.141
+                - name: API_URL
+                  value: https://api.armosec.io
+              image: quay.io/kubescape/synchronizer:v0.0.144
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -11414,39 +11213,10 @@ autoscaler mode with sbom sidecar:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /etc/config/config.json
                   name: config
                   readOnly: true
                   subPath: config.json
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env: null
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-                runAsNonRoot: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -11466,8 +11236,6 @@ autoscaler mode with sbom sidecar:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-            - emptyDir: {}
-              name: services
             - configMap:
                 items:
                   - key: config.json
@@ -12236,9 +12004,11 @@ autoscaler mode without sbom sidecar:
                   value: /home/nonroot/.kubescape/host-scanner.yaml
                 - name: LARGE_CLUSTER_SIZE
                   value: "1500"
+                - name: API_URL
+                  value: https://api.armosec.io
                 - name: KS_EXCLUDE_NAMESPACES
                   value: kubescape,kube-system,kube-public,kube-node-lease,kubeconfig,gmp-system,gmp-public
-              image: quay.io/kubescape/kubescape:v4.0.6
+              image: quay.io/kubescape/kubescape:v4.0.7
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -12286,35 +12056,6 @@ autoscaler mode without sbom sidecar:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env: null
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-                runAsNonRoot: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -12334,8 +12075,6 @@ autoscaler mode without sbom sidecar:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-            - emptyDir: {}
-              name: services
             - configMap:
                 name: host-scanner-definition
               name: host-scanner-definition
@@ -12705,9 +12444,11 @@ autoscaler mode without sbom sidecar:
                   value: zap
                 - name: PRINT_POST_JSON
                   value: ""
+                - name: API_URL
+                  value: https://api.armosec.io
                 - name: CA_MAX_VULN_SCAN_ROUTINES
                   value: "1"
-              image: quay.io/kubescape/kubevuln:v0.3.137
+              image: quay.io/kubescape/kubevuln:v0.3.138
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -12748,37 +12489,8 @@ autoscaler mode without sbom sidecar:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /home/nonroot/.cache/grype
                   name: grype-db
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env: null
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-                runAsNonRoot: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -12802,8 +12514,6 @@ autoscaler mode without sbom sidecar:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-            - emptyDir: {}
-              name: services
             - emptyDir: {}
               name: grype-db
   22: |
@@ -13515,7 +13225,7 @@ autoscaler mode without sbom sidecar:
   39: |
     apiVersion: v1
     data:
-      daemonset-template.yaml: "apiVersion: apps/v1\nkind: DaemonSet\nmetadata:\n  name: \"{{ .Name }}\"\n  namespace: kubescape\n  annotations:\n    \n  labels:\n    helm.sh/chart: kubescape-operator-1.40.1\n    app.kubernetes.io/name: kubescape-operator\n    app.kubernetes.io/instance: RELEASE-NAME\n    app.kubernetes.io/component: node-agent\n    app.kubernetes.io/version: \"1.40.1\"\n    app.kubernetes.io/managed-by: Helm\n    app.kubernetes.io/part-of: kubescape\n    app: node-agent\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\n    kubescape.io/tier: \"core\"\n    kubescape.io/managed-by: operator-autoscaler\n    kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\nspec:\n  selector:\n    matchLabels:\n      app.kubernetes.io/name: kubescape-operator\n      app.kubernetes.io/instance: RELEASE-NAME\n      app.kubernetes.io/component: node-agent\n      kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\n  template:\n    metadata:\n      annotations:\n        \n        checksum/node-agent-config: 921a39bfca3fd64ae481a3b3b37e9c48df1332841321f999bd0cf0896ae88136\n        checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424\n        checksum/cloud-config: f7a445313c8a4c7668278b23c4aa82e5179084364812bb863962a5cc129e608b\n        container.apparmor.security.beta.kubernetes.io/node-agent: unconfined\n      labels:\n        helm.sh/chart: kubescape-operator-1.40.1\n        app.kubernetes.io/name: kubescape-operator\n        app.kubernetes.io/instance: RELEASE-NAME\n        app.kubernetes.io/component: node-agent\n        app.kubernetes.io/version: \"1.40.1\"\n        app.kubernetes.io/managed-by: Helm\n        app.kubernetes.io/part-of: kubescape\n        app: node-agent\n        tier: ks-control-plane\n        kubescape.io/ignore: \"true\"\n        kubescape.io/tier: \"core\"\n        kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\n    spec:\n      securityContext:\n      priorityClassName: kubescape-critical\n      serviceAccountName: node-agent\n      automountServiceAccountToken: true\n      hostPID: true\n      initContainers:\n      \n      - name: url-discovery\n        image: \"quay.io/kubescape/http-request:v0.2.19\"\n        imagePullPolicy: IfNotPresent\n        securityContext:\n          allowPrivilegeEscalation: false\n          readOnlyRootFilesystem: true\n        resources:\n          limits:\n            cpu: 100m\n            memory: 50Mi\n          requests:\n            cpu: 10m\n            memory: 10Mi\n        env:\n        args:\n          - -method=get\n          - -scheme=https\n          - -host=api.armosec.io\n          - -path=api/v3/servicediscovery\n          - -path-output=/data/services.json\n        volumeMounts:\n          - name: services\n            mountPath: /data\n      volumes:\n      \n      - hostPath:\n          path: /\n        name: host\n      - hostPath:\n          path: /var/lib/kubelet\n        name: kubeletdir\n      - hostPath:\n          path: /run\n        name: run\n      - hostPath:\n          path: /var\n        name: var\n      - hostPath:\n          path: /sys/fs/cgroup\n        name: cgroup\n      - hostPath:\n          path: /lib/modules\n        name: modules\n      - hostPath:\n          path: /sys/fs/bpf\n        name: bpffs\n      - hostPath:\n          path: /sys/kernel/debug\n        name: debugfs\n      - hostPath:\n          path: /boot\n        name: boot\n      - emptyDir: null\n        name: data\n      - emptyDir: null\n        name: profiles\n      - hostPath:\n          path: /\n          type: Directory\n        name: host-filesystem\n      - emptyDir: {}\n        name: clamdb\n      - emptyDir: {}\n        name: clamrun\n      - configMap:\n          items:\n          - key: clamd.conf\n            path: clamd.conf\n          - key: freshclam.conf\n            path: freshclam.conf\n          name: clamav\n        name: etc\n      - name: cloud-secret\n        secret:\n          secretName: cloud-secret\n      - name: ks-cloud-config\n        configMap:\n          name: ks-cloud-config\n          items:\n            - key: \"clusterData\"\n              path: \"clusterData.json\"\n      - name: config\n        configMap:\n          name: node-agent\n          items:\n            - key: \"config.json\"\n              path: \"config.json\"\n      - name: \"services\"\n        emptyDir: {}\n      containers:\n      \n      - name: node-agent\n        image: \"quay.io/kubescape/node-agent:v0.3.111\"\n        imagePullPolicy: IfNotPresent\n        livenessProbe:\n          httpGet:\n            path: /livez\n            port: 7888\n          periodSeconds: 3\n        readinessProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          periodSeconds: 3\n        startupProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          periodSeconds: 10\n          failureThreshold: 30\n          timeoutSeconds: 1\n        resources:\n          \n          requests:\n            cpu: \"{{ .Resources.Requests.CPU }}\"\n            memory: \"{{ .Resources.Requests.Memory }}\"\n          limits:\n            cpu: \"{{ .Resources.Limits.CPU }}\"\n            memory: \"{{ .Resources.Limits.Memory }}\"\n        env:\n          \n          - name: GOMEMLIMIT\n            value: \"{{ .GoMemLimit }}\"\n          - name: HOST_ROOT\n            value: \"/host\"\n          - name: KS_LOGGER_LEVEL\n            value: \"info\"\n          - name: KS_LOGGER_NAME\n            value: \"zap\"\n          - name: NODE_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: spec.nodeName\n          - name: POD_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: metadata.name\n          - name: NAMESPACE_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: metadata.namespace\n          - name: KUBELET_ROOT\n            value: \"/var/lib/kubelet\"\n          - name: AGENT_VERSION\n            value: \"v0.3.111\"\n          - name: NodeName\n            valueFrom:\n              fieldRef:\n                fieldPath: spec.nodeName\n        securityContext:\n          runAsUser: 0\n          privileged: false\n          capabilities:\n            add:\n              - SYS_ADMIN\n              - SYS_PTRACE\n              - NET_ADMIN\n              - SYSLOG\n              - SYS_RESOURCE\n              - IPC_LOCK\n              - NET_RAW\n          seLinuxOptions:\n            type: spc_t\n        volumeMounts:\n          \n          - mountPath: /host\n            name: host\n            readOnly: true\n          - mountPath: /var/lib/kubelet\n            name: kubeletdir\n          - mountPath: /run\n            name: run\n          - mountPath: /var\n            name: var\n            readOnly: true\n          - mountPath: /lib/modules\n            name: modules\n            readOnly: true\n          - mountPath: /sys/kernel/debug\n            name: debugfs\n          - mountPath: /sys/fs/cgroup\n            name: cgroup\n            readOnly: true\n          - mountPath: /sys/fs/bpf\n            name: bpffs\n          - mountPath: /data\n            name: data\n          - mountPath: /profiles\n            name: profiles\n          - mountPath: /boot\n            name: boot\n            readOnly: true\n          - mountPath: /clamav\n            name: clamrun\n          - name: cloud-secret\n            mountPath: /etc/credentials\n            readOnly: true\n          - name: ks-cloud-config\n            mountPath: /etc/config/clusterData.json\n            readOnly: true\n            subPath: \"clusterData.json\"\n          - name: \"services\"\n            mountPath: /etc/config/services.json\n            readOnly: true\n            subPath: \"services.json\"\n          - name: config\n            mountPath: /etc/config/config.json\n            readOnly: true\n            subPath: \"config.json\"\n      nodeSelector:\n        kubernetes.io/os: linux\n        node.kubernetes.io/instance-type: \"{{ .NodeGroupLabel }}\"\n      affinity:\n      \n        nodeAffinity:\n          requiredDuringSchedulingIgnoredDuringExecution:\n            nodeSelectorTerms:\n            - matchExpressions:\n              - key: kubernetes.io/os\n                operator: In\n                values:\n                - linux\n      tolerations:\n"
+      daemonset-template.yaml: "apiVersion: apps/v1\nkind: DaemonSet\nmetadata:\n  name: \"{{ .Name }}\"\n  namespace: kubescape\n  annotations:\n    \n  labels:\n    helm.sh/chart: kubescape-operator-1.40.1\n    app.kubernetes.io/name: kubescape-operator\n    app.kubernetes.io/instance: RELEASE-NAME\n    app.kubernetes.io/component: node-agent\n    app.kubernetes.io/version: \"1.40.1\"\n    app.kubernetes.io/managed-by: Helm\n    app.kubernetes.io/part-of: kubescape\n    app: node-agent\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\n    kubescape.io/tier: \"core\"\n    kubescape.io/managed-by: operator-autoscaler\n    kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\nspec:\n  selector:\n    matchLabels:\n      app.kubernetes.io/name: kubescape-operator\n      app.kubernetes.io/instance: RELEASE-NAME\n      app.kubernetes.io/component: node-agent\n      kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\n  template:\n    metadata:\n      annotations:\n        \n        checksum/node-agent-config: 921a39bfca3fd64ae481a3b3b37e9c48df1332841321f999bd0cf0896ae88136\n        checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424\n        checksum/cloud-config: f7a445313c8a4c7668278b23c4aa82e5179084364812bb863962a5cc129e608b\n        container.apparmor.security.beta.kubernetes.io/node-agent: unconfined\n      labels:\n        helm.sh/chart: kubescape-operator-1.40.1\n        app.kubernetes.io/name: kubescape-operator\n        app.kubernetes.io/instance: RELEASE-NAME\n        app.kubernetes.io/component: node-agent\n        app.kubernetes.io/version: \"1.40.1\"\n        app.kubernetes.io/managed-by: Helm\n        app.kubernetes.io/part-of: kubescape\n        app: node-agent\n        tier: ks-control-plane\n        kubescape.io/ignore: \"true\"\n        kubescape.io/tier: \"core\"\n        kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\n    spec:\n      securityContext:\n      priorityClassName: kubescape-critical\n      serviceAccountName: node-agent\n      automountServiceAccountToken: true\n      hostPID: true\n      volumes:\n      \n      - hostPath:\n          path: /\n        name: host\n      - hostPath:\n          path: /var/lib/kubelet\n        name: kubeletdir\n      - hostPath:\n          path: /run\n        name: run\n      - hostPath:\n          path: /var\n        name: var\n      - hostPath:\n          path: /sys/fs/cgroup\n        name: cgroup\n      - hostPath:\n          path: /lib/modules\n        name: modules\n      - hostPath:\n          path: /sys/fs/bpf\n        name: bpffs\n      - hostPath:\n          path: /sys/kernel/debug\n        name: debugfs\n      - hostPath:\n          path: /boot\n        name: boot\n      - emptyDir: null\n        name: data\n      - emptyDir: null\n        name: profiles\n      - hostPath:\n          path: /\n          type: Directory\n        name: host-filesystem\n      - emptyDir: {}\n        name: clamdb\n      - emptyDir: {}\n        name: clamrun\n      - configMap:\n          items:\n          - key: clamd.conf\n            path: clamd.conf\n          - key: freshclam.conf\n            path: freshclam.conf\n          name: clamav\n        name: etc\n      - name: cloud-secret\n        secret:\n          secretName: cloud-secret\n      - name: ks-cloud-config\n        configMap:\n          name: ks-cloud-config\n          items:\n            - key: \"clusterData\"\n              path: \"clusterData.json\"\n      - name: config\n        configMap:\n          name: node-agent\n          items:\n            - key: \"config.json\"\n              path: \"config.json\"\n      containers:\n      \n      - name: node-agent\n        image: \"quay.io/kubescape/node-agent:v0.3.112\"\n        imagePullPolicy: IfNotPresent\n        livenessProbe:\n          httpGet:\n            path: /livez\n            port: 7888\n          periodSeconds: 3\n        readinessProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          periodSeconds: 3\n        startupProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          periodSeconds: 10\n          failureThreshold: 30\n          timeoutSeconds: 1\n        resources:\n          \n          requests:\n            cpu: \"{{ .Resources.Requests.CPU }}\"\n            memory: \"{{ .Resources.Requests.Memory }}\"\n          limits:\n            cpu: \"{{ .Resources.Limits.CPU }}\"\n            memory: \"{{ .Resources.Limits.Memory }}\"\n        env:\n          \n          - name: GOMEMLIMIT\n            value: \"{{ .GoMemLimit }}\"\n          - name: HOST_ROOT\n            value: \"/host\"\n          - name: KS_LOGGER_LEVEL\n            value: \"info\"\n          - name: KS_LOGGER_NAME\n            value: \"zap\"\n          - name: NODE_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: spec.nodeName\n          - name: POD_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: metadata.name\n          - name: NAMESPACE_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: metadata.namespace\n          - name: KUBELET_ROOT\n            value: \"/var/lib/kubelet\"\n          - name: AGENT_VERSION\n            value: \"v0.3.112\"\n          - name: API_URL\n            value: \"https://api.armosec.io\"\n          - name: NodeName\n            valueFrom:\n              fieldRef:\n                fieldPath: spec.nodeName\n        securityContext:\n          runAsUser: 0\n          privileged: false\n          capabilities:\n            add:\n              - SYS_ADMIN\n              - SYS_PTRACE\n              - NET_ADMIN\n              - SYSLOG\n              - SYS_RESOURCE\n              - IPC_LOCK\n              - NET_RAW\n          seLinuxOptions:\n            type: spc_t\n        volumeMounts:\n          \n          - mountPath: /host\n            name: host\n            readOnly: true\n          - mountPath: /var/lib/kubelet\n            name: kubeletdir\n          - mountPath: /run\n            name: run\n          - mountPath: /var\n            name: var\n            readOnly: true\n          - mountPath: /lib/modules\n            name: modules\n            readOnly: true\n          - mountPath: /sys/kernel/debug\n            name: debugfs\n          - mountPath: /sys/fs/cgroup\n            name: cgroup\n            readOnly: true\n          - mountPath: /sys/fs/bpf\n            name: bpffs\n          - mountPath: /data\n            name: data\n          - mountPath: /profiles\n            name: profiles\n          - mountPath: /boot\n            name: boot\n            readOnly: true\n          - mountPath: /clamav\n            name: clamrun\n          - name: cloud-secret\n            mountPath: /etc/credentials\n            readOnly: true\n          - name: ks-cloud-config\n            mountPath: /etc/config/clusterData.json\n            readOnly: true\n            subPath: \"clusterData.json\"\n          - name: config\n            mountPath: /etc/config/config.json\n            readOnly: true\n            subPath: \"config.json\"\n      nodeSelector:\n        kubernetes.io/os: linux\n        node.kubernetes.io/instance-type: \"{{ .NodeGroupLabel }}\"\n      affinity:\n      \n        nodeAffinity:\n          requiredDuringSchedulingIgnoredDuringExecution:\n            nodeSelectorTerms:\n            - matchExpressions:\n              - key: kubernetes.io/os\n                operator: In\n                values:\n                - linux\n      tolerations:\n"
     kind: ConfigMap
     metadata:
       annotations: null
@@ -15722,7 +15432,9 @@ autoscaler mode without sbom sidecar:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/synchronizer:v0.0.141
+                - name: API_URL
+                  value: https://api.armosec.io
+              image: quay.io/kubescape/synchronizer:v0.0.144
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -15751,39 +15463,10 @@ autoscaler mode without sbom sidecar:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /etc/config/config.json
                   name: config
                   readOnly: true
                   subPath: config.json
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env: null
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-                runAsNonRoot: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -15803,8 +15486,6 @@ autoscaler mode without sbom sidecar:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-            - emptyDir: {}
-              name: services
             - configMap:
                 items:
                   - key: config.json
@@ -16772,12 +16453,14 @@ backend-storage enabled disables scanning capabilities:
                 - name: KUBELET_ROOT
                   value: /var/lib/kubelet
                 - name: AGENT_VERSION
-                  value: v0.3.111
+                  value: v0.3.112
+                - name: API_URL
+                  value: https://api.armosec.io
                 - name: NodeName
                   valueFrom:
                     fieldRef:
                       fieldPath: spec.nodeName
-              image: quay.io/kubescape/node-agent:v0.3.111
+              image: quay.io/kubescape/node-agent:v0.3.112
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -16855,39 +16538,11 @@ backend-storage enabled disables scanning capabilities:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /etc/config/config.json
                   name: config
                   readOnly: true
                   subPath: config.json
           hostPID: true
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v3/servicediscovery
-                - -path-output=/data/services.json
-              env: null
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
           nodeSelector:
             kubernetes.io/os: linux
           priorityClassName: kubescape-critical
@@ -16957,8 +16612,6 @@ backend-storage enabled disables scanning capabilities:
                     path: config.json
                 name: node-agent
               name: config
-            - emptyDir: {}
-              name: services
   21: |
     apiVersion: kubescape.io/v1
     kind: RuntimeRuleAlertBinding
@@ -19499,7 +19152,9 @@ backend-storage enabled disables scanning capabilities:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/synchronizer:v0.0.141
+                - name: API_URL
+                  value: https://api.armosec.io
+              image: quay.io/kubescape/synchronizer:v0.0.144
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -19528,39 +19183,10 @@ backend-storage enabled disables scanning capabilities:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /etc/config/config.json
                   name: config
                   readOnly: true
                   subPath: config.json
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env: null
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-                runAsNonRoot: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -19580,8 +19206,6 @@ backend-storage enabled disables scanning capabilities:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-            - emptyDir: {}
-              name: services
             - configMap:
                 items:
                   - key: config.json
@@ -24472,9 +24096,11 @@ default capabilities:
                   value: /home/nonroot/.kubescape/host-scanner.yaml
                 - name: LARGE_CLUSTER_SIZE
                   value: "1500"
+                - name: API_URL
+                  value: https://api.armosec.io
                 - name: KS_EXCLUDE_NAMESPACES
                   value: kubescape,kube-system,kube-public,kube-node-lease,kubeconfig,gmp-system,gmp-public
-              image: quay.io/kubescape/kubescape:v4.0.6
+              image: quay.io/kubescape/kubescape:v4.0.7
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -24522,10 +24148,6 @@ default capabilities:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /etc/ssl/certs/proxy.crt
                   name: proxy-secret
                   subPath: proxy.crt
@@ -24535,34 +24157,6 @@ default capabilities:
                 - mountPath: /etc/ssl/certs/cert2.pem
                   name: extra-ca-certificates
                   subPath: cert2.pem
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env: null
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-                runAsNonRoot: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
-                - mountPath: /etc/ssl/certs/proxy.crt
-                  name: proxy-secret
-                  subPath: proxy.crt
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -24588,8 +24182,6 @@ default capabilities:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-            - emptyDir: {}
-              name: services
             - configMap:
                 name: host-scanner-definition
               name: host-scanner-definition
@@ -25125,9 +24717,11 @@ default capabilities:
                   value: zap
                 - name: PRINT_POST_JSON
                   value: ""
+                - name: API_URL
+                  value: https://api.armosec.io
                 - name: CA_MAX_VULN_SCAN_ROUTINES
                   value: "1"
-              image: quay.io/kubescape/kubevuln:v0.3.137
+              image: quay.io/kubescape/kubevuln:v0.3.138
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -25168,10 +24762,6 @@ default capabilities:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /home/nonroot/.cache/grype
                   name: grype-db
                 - mountPath: /etc/ssl/certs/proxy.crt
@@ -25183,34 +24773,6 @@ default capabilities:
                 - mountPath: /etc/ssl/certs/cert2.pem
                   name: extra-ca-certificates
                   subPath: cert2.pem
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env: null
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-                runAsNonRoot: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
-                - mountPath: /etc/ssl/certs/proxy.crt
-                  name: proxy-secret
-                  subPath: proxy.crt
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -25240,8 +24802,6 @@ default capabilities:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-            - emptyDir: {}
-              name: services
             - emptyDir: {}
               name: grype-db
   29: |
@@ -26047,12 +25607,14 @@ default capabilities:
                 - name: KUBELET_ROOT
                   value: /var/lib/kubelet
                 - name: AGENT_VERSION
-                  value: v0.3.111
+                  value: v0.3.112
+                - name: API_URL
+                  value: https://api.armosec.io
                 - name: NodeName
                   valueFrom:
                     fieldRef:
                       fieldPath: spec.nodeName
-              image: quay.io/kubescape/node-agent:v0.3.111
+              image: quay.io/kubescape/node-agent:v0.3.112
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -26130,10 +25692,6 @@ default capabilities:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /etc/config/config.json
                   name: config
                   readOnly: true
@@ -26151,33 +25709,6 @@ default capabilities:
                   readOnly: true
                   subPath: cert2.pem
           hostPID: true
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v3/servicediscovery
-                - -path-output=/data/services.json
-              env: null
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
-                - mountPath: /etc/ssl/certs/proxy.crt
-                  name: proxy-secret
-                  subPath: proxy.crt
           nodeSelector:
             kubernetes.io/os: linux
           priorityClassName: kubescape-critical
@@ -26247,8 +25778,6 @@ default capabilities:
                     path: config.json
                 name: node-agent
               name: config
-            - emptyDir: {}
-              name: services
             - name: proxy-secret
               secret:
                 secretName: kubescape-proxy-certificate
@@ -29331,7 +28860,9 @@ default capabilities:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/synchronizer:v0.0.141
+                - name: API_URL
+                  value: https://api.armosec.io
+              image: quay.io/kubescape/synchronizer:v0.0.144
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -29360,10 +28891,6 @@ default capabilities:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /etc/ssl/certs/cert1.pem
                   name: extra-ca-certificates
                   subPath: cert1.pem
@@ -29374,34 +28901,6 @@ default capabilities:
                   name: config
                   readOnly: true
                   subPath: config.json
-                - mountPath: /etc/ssl/certs/proxy.crt
-                  name: proxy-secret
-                  subPath: proxy.crt
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env: null
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-                runAsNonRoot: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
                 - mountPath: /etc/ssl/certs/proxy.crt
                   name: proxy-secret
                   subPath: proxy.crt
@@ -29430,8 +28929,6 @@ default capabilities:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-            - emptyDir: {}
-              name: services
             - configMap:
                 items:
                   - key: config.json
@@ -30268,9 +29765,11 @@ disable otel:
                   value: /home/nonroot/.kubescape/host-scanner.yaml
                 - name: LARGE_CLUSTER_SIZE
                   value: "1500"
+                - name: API_URL
+                  value: https://api.armosec.io
                 - name: KS_EXCLUDE_NAMESPACES
                   value: kubescape,kube-system,kube-public,kube-node-lease,kubeconfig,gmp-system,gmp-public
-              image: quay.io/kubescape/kubescape:v4.0.6
+              image: quay.io/kubescape/kubescape:v4.0.7
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -30318,35 +29817,6 @@ disable otel:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env: null
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-                runAsNonRoot: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -30366,8 +29836,6 @@ disable otel:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-            - emptyDir: {}
-              name: services
             - configMap:
                 name: host-scanner-definition
               name: host-scanner-definition
@@ -30737,9 +30205,11 @@ disable otel:
                   value: zap
                 - name: PRINT_POST_JSON
                   value: ""
+                - name: API_URL
+                  value: https://api.armosec.io
                 - name: CA_MAX_VULN_SCAN_ROUTINES
                   value: "1"
-              image: quay.io/kubescape/kubevuln:v0.3.137
+              image: quay.io/kubescape/kubevuln:v0.3.138
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -30780,37 +30250,8 @@ disable otel:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /home/nonroot/.cache/grype
                   name: grype-db
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env: null
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-                runAsNonRoot: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -30834,8 +30275,6 @@ disable otel:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-            - emptyDir: {}
-              name: services
             - emptyDir: {}
               name: grype-db
   22: |
@@ -31578,12 +31017,14 @@ disable otel:
                 - name: KUBELET_ROOT
                   value: /var/lib/kubelet
                 - name: AGENT_VERSION
-                  value: v0.3.111
+                  value: v0.3.112
+                - name: API_URL
+                  value: https://api.armosec.io
                 - name: NodeName
                   valueFrom:
                     fieldRef:
                       fieldPath: spec.nodeName
-              image: quay.io/kubescape/node-agent:v0.3.111
+              image: quay.io/kubescape/node-agent:v0.3.112
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -31661,39 +31102,11 @@ disable otel:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /etc/config/config.json
                   name: config
                   readOnly: true
                   subPath: config.json
           hostPID: true
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v3/servicediscovery
-                - -path-output=/data/services.json
-              env: null
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
           nodeSelector:
             kubernetes.io/os: linux
           priorityClassName: kubescape-critical
@@ -31763,8 +31176,6 @@ disable otel:
                     path: config.json
                 name: node-agent
               name: config
-            - emptyDir: {}
-              name: services
   38: |
     apiVersion: v1
     kind: Service
@@ -33982,7 +33393,9 @@ disable otel:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/synchronizer:v0.0.141
+                - name: API_URL
+                  value: https://api.armosec.io
+              image: quay.io/kubescape/synchronizer:v0.0.144
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -34011,39 +33424,10 @@ disable otel:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /etc/config/config.json
                   name: config
                   readOnly: true
                   subPath: config.json
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env: null
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-                runAsNonRoot: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -34063,8 +33447,6 @@ disable otel:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-            - emptyDir: {}
-              name: services
             - configMap:
                 items:
                   - key: config.json
@@ -34835,7 +34217,7 @@ minimal capabilities:
                   value: "1500"
                 - name: OTEL_COLLECTOR_SVC
                   value: otelCollector.svc.monitoring:4317
-              image: quay.io/kubescape/kubescape:v4.0.6
+              image: quay.io/kubescape/kubescape:v4.0.7
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -35275,7 +34657,7 @@ minimal capabilities:
                   value: "1"
                 - name: OTEL_COLLECTOR_SVC
                   value: otelCollector.svc.monitoring:4317
-              image: quay.io/kubescape/kubevuln:v0.3.137
+              image: quay.io/kubescape/kubevuln:v0.3.138
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -36083,12 +35465,12 @@ minimal capabilities:
                 - name: KUBELET_ROOT
                   value: /var/lib/kubelet
                 - name: AGENT_VERSION
-                  value: v0.3.111
+                  value: v0.3.112
                 - name: NodeName
                   valueFrom:
                     fieldRef:
                       fieldPath: spec.nodeName
-              image: quay.io/kubescape/node-agent:v0.3.111
+              image: quay.io/kubescape/node-agent:v0.3.112
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -38336,8 +37718,7 @@ multiple node agents:
         spec:
           template:
             metadata:
-              annotations:
-                foo: bar
+              annotations: null
               labels:
                 app: grype-offline-db
                 app.kubernetes.io/component: grype-offline-db
@@ -38347,7 +37728,6 @@ multiple node agents:
                 app.kubernetes.io/part-of: kubescape
                 app.kubernetes.io/version: 1.40.1
                 armo.tier: vuln-scan
-                bar: baz
                 helm.sh/chart: kubescape-operator-1.40.1
                 kubescape.io/ignore: "true"
                 kubescape.io/tier: core
@@ -39149,6 +38529,8 @@ multiple node agents:
                   value: /home/nonroot/.kubescape/host-scanner.yaml
                 - name: LARGE_CLUSTER_SIZE
                   value: "1500"
+                - name: API_URL
+                  value: https://api.armosec.io
                 - name: AZURE_SUBSCRIPTION_ID
                   valueFrom:
                     secretKeyRef:
@@ -39182,7 +38564,7 @@ multiple node agents:
                   value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
                 - name: KS_INCLUDE_NAMESPACES
                   value: my-namespace
-              image: quay.io/kubescape/kubescape:v4.0.6
+              image: quay.io/kubescape/kubescape:v4.0.7
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -39230,10 +38612,6 @@ multiple node agents:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /etc/ssl/certs/proxy.crt
                   name: proxy-secret
                   subPath: proxy.crt
@@ -39243,38 +38621,6 @@ multiple node agents:
           imagePullSecrets:
             - name: foo
             - name: bar
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env:
-                - name: HTTPS_PROXY
-                  value: https://foo:bar@baz:1234
-                - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-                runAsNonRoot: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
-                - mountPath: /etc/ssl/certs/proxy.crt
-                  name: proxy-secret
-                  subPath: proxy.crt
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -39300,8 +38646,6 @@ multiple node agents:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-            - emptyDir: {}
-              name: services
             - configMap:
                 name: host-scanner-definition
               name: host-scanner-definition
@@ -39892,6 +39236,8 @@ multiple node agents:
                   value: zap
                 - name: PRINT_POST_JSON
                   value: ""
+                - name: API_URL
+                  value: https://api.armosec.io
                 - name: CA_MAX_VULN_SCAN_ROUTINES
                   value: "1"
                 - name: OTEL_COLLECTOR_SVC
@@ -39900,7 +39246,7 @@ multiple node agents:
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
                   value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/kubevuln:v0.3.137
+              image: quay.io/kubescape/kubevuln:v0.3.138
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -39941,10 +39287,6 @@ multiple node agents:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /home/nonroot/.cache/grype
                   name: grype-db
                 - mountPath: /etc/ssl/certs/proxy.crt
@@ -39956,38 +39298,6 @@ multiple node agents:
           imagePullSecrets:
             - name: foo
             - name: bar
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env:
-                - name: HTTPS_PROXY
-                  value: https://foo:bar@baz:1234
-                - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-                runAsNonRoot: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
-                - mountPath: /etc/ssl/certs/proxy.crt
-                  name: proxy-secret
-                  subPath: proxy.crt
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -40017,8 +39327,6 @@ multiple node agents:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-            - emptyDir: {}
-              name: services
             - name: grype-db
               persistentVolumeClaim:
                 claimName: kubescape-kubevuln
@@ -40952,12 +40260,14 @@ multiple node agents:
                 - name: KUBELET_ROOT
                   value: /var/lib/kubelet
                 - name: AGENT_VERSION
-                  value: v0.3.111
+                  value: v0.3.112
+                - name: API_URL
+                  value: https://api.armosec.io
                 - name: NodeName
                   valueFrom:
                     fieldRef:
                       fieldPath: spec.nodeName
-              image: quay.io/kubescape/node-agent:v0.3.111
+              image: quay.io/kubescape/node-agent:v0.3.112
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -41035,10 +40345,6 @@ multiple node agents:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /etc/config/config.json
                   name: config
                   readOnly: true
@@ -41055,37 +40361,6 @@ multiple node agents:
           imagePullSecrets:
             - name: foo
             - name: bar
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v3/servicediscovery
-                - -path-output=/data/services.json
-              env:
-                - name: HTTPS_PROXY
-                  value: https://foo:bar@baz:1234
-                - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
-                - mountPath: /etc/ssl/certs/proxy.crt
-                  name: proxy-secret
-                  subPath: proxy.crt
           nodeSelector:
             doks.digitalocean.com/node-pool: pool-1
             kubernetes.io/os: linux
@@ -41156,8 +40431,6 @@ multiple node agents:
                     path: config.json
                 name: node-agent
               name: config
-            - emptyDir: {}
-              name: services
             - name: proxy-secret
               secret:
                 secretName: kubescape-proxy-certificate
@@ -41279,12 +40552,14 @@ multiple node agents:
                 - name: KUBELET_ROOT
                   value: /var/lib/kubelet
                 - name: AGENT_VERSION
-                  value: v0.3.111
+                  value: v0.3.112
+                - name: API_URL
+                  value: https://api.armosec.io
                 - name: NodeName
                   valueFrom:
                     fieldRef:
                       fieldPath: spec.nodeName
-              image: quay.io/kubescape/node-agent:v0.3.111
+              image: quay.io/kubescape/node-agent:v0.3.112
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -41362,10 +40637,6 @@ multiple node agents:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /etc/config/config.json
                   name: config
                   readOnly: true
@@ -41382,37 +40653,6 @@ multiple node agents:
           imagePullSecrets:
             - name: foo
             - name: bar
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v3/servicediscovery
-                - -path-output=/data/services.json
-              env:
-                - name: HTTPS_PROXY
-                  value: https://foo:bar@baz:1234
-                - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
-                - mountPath: /etc/ssl/certs/proxy.crt
-                  name: proxy-secret
-                  subPath: proxy.crt
           nodeSelector:
             doks.digitalocean.com/node-pool: pool-2
             kubernetes.io/os: linux
@@ -41483,8 +40723,6 @@ multiple node agents:
                     path: config.json
                 name: node-agent
               name: config
-            - emptyDir: {}
-              name: services
             - name: proxy-secret
               secret:
                 secretName: kubescape-proxy-certificate
@@ -45168,13 +44406,15 @@ multiple node agents:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
+                - name: API_URL
+                  value: https://api.armosec.io
                 - name: OTEL_COLLECTOR_SVC
                   value: otelCollector.svc.monitoring:4317
                 - name: HTTPS_PROXY
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
                   value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/synchronizer:v0.0.141
+              image: quay.io/kubescape/synchronizer:v0.0.144
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -45203,10 +44443,6 @@ multiple node agents:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /etc/ssl/certs/ca-certificates.crt
                   name: custom-ca-certificates
                   subPath: ca-certificates.crt
@@ -45220,38 +44456,6 @@ multiple node agents:
           imagePullSecrets:
             - name: foo
             - name: bar
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env:
-                - name: HTTPS_PROXY
-                  value: https://foo:bar@baz:1234
-                - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-                runAsNonRoot: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
-                - mountPath: /etc/ssl/certs/proxy.crt
-                  name: proxy-secret
-                  subPath: proxy.crt
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -45277,8 +44481,6 @@ multiple node agents:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-            - emptyDir: {}
-              name: services
             - configMap:
                 items:
                   - key: config.json
@@ -46152,9 +45354,11 @@ priority class scheduling:
                   value: /home/nonroot/.kubescape/host-scanner.yaml
                 - name: LARGE_CLUSTER_SIZE
                   value: "1500"
+                - name: API_URL
+                  value: https://api.armosec.io
                 - name: KS_EXCLUDE_NAMESPACES
                   value: kubescape,kube-system,kube-public,kube-node-lease,kubeconfig,gmp-system,gmp-public
-              image: quay.io/kubescape/kubescape:v4.0.6
+              image: quay.io/kubescape/kubescape:v4.0.7
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -46202,35 +45406,6 @@ priority class scheduling:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env: null
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-                runAsNonRoot: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
           nodeSelector:
             kubernetes.io/os: linux
           priorityClassName: kubescape-priority
@@ -46251,8 +45426,6 @@ priority class scheduling:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-            - emptyDir: {}
-              name: services
             - configMap:
                 name: host-scanner-definition
               name: host-scanner-definition
@@ -46623,9 +45796,11 @@ priority class scheduling:
                   value: zap
                 - name: PRINT_POST_JSON
                   value: ""
+                - name: API_URL
+                  value: https://api.armosec.io
                 - name: CA_MAX_VULN_SCAN_ROUTINES
                   value: "1"
-              image: quay.io/kubescape/kubevuln:v0.3.137
+              image: quay.io/kubescape/kubevuln:v0.3.138
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -46666,37 +45841,8 @@ priority class scheduling:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /home/nonroot/.cache/grype
                   name: grype-db
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env: null
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-                runAsNonRoot: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
           nodeSelector:
             kubernetes.io/os: linux
           priorityClassName: global-priority
@@ -46721,8 +45867,6 @@ priority class scheduling:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-            - emptyDir: {}
-              name: services
             - emptyDir: {}
               name: grype-db
   22: |
@@ -47465,12 +46609,14 @@ priority class scheduling:
                 - name: KUBELET_ROOT
                   value: /var/lib/kubelet
                 - name: AGENT_VERSION
-                  value: v0.3.111
+                  value: v0.3.112
+                - name: API_URL
+                  value: https://api.armosec.io
                 - name: NodeName
                   valueFrom:
                     fieldRef:
                       fieldPath: spec.nodeName
-              image: quay.io/kubescape/node-agent:v0.3.111
+              image: quay.io/kubescape/node-agent:v0.3.112
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -47548,39 +46694,11 @@ priority class scheduling:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /etc/config/config.json
                   name: config
                   readOnly: true
                   subPath: config.json
           hostPID: true
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v3/servicediscovery
-                - -path-output=/data/services.json
-              env: null
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
           nodeSelector:
             kubernetes.io/os: linux
           priorityClassName: node-agent-priority
@@ -47650,8 +46768,6 @@ priority class scheduling:
                     path: config.json
                 name: node-agent
               name: config
-            - emptyDir: {}
-              name: services
   38: |
     apiVersion: v1
     kind: Service
@@ -49871,7 +48987,9 @@ priority class scheduling:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/synchronizer:v0.0.141
+                - name: API_URL
+                  value: https://api.armosec.io
+              image: quay.io/kubescape/synchronizer:v0.0.144
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -49900,39 +49018,10 @@ priority class scheduling:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /etc/config/config.json
                   name: config
                   readOnly: true
                   subPath: config.json
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env: null
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-                runAsNonRoot: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
           nodeSelector:
             kubernetes.io/os: linux
           priorityClassName: global-priority
@@ -49953,8 +49042,6 @@ priority class scheduling:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-            - emptyDir: {}
-              name: services
             - configMap:
                 items:
                   - key: config.json
@@ -50724,7 +49811,7 @@ relevancy only:
                   value: "1500"
                 - name: OTEL_COLLECTOR_SVC
                   value: otelCollector.svc.monitoring:4317
-              image: quay.io/kubescape/kubescape:v4.0.6
+              image: quay.io/kubescape/kubescape:v4.0.7
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -51164,7 +50251,7 @@ relevancy only:
                   value: "1"
                 - name: OTEL_COLLECTOR_SVC
                   value: otelCollector.svc.monitoring:4317
-              image: quay.io/kubescape/kubevuln:v0.3.137
+              image: quay.io/kubescape/kubevuln:v0.3.138
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -51972,12 +51059,12 @@ relevancy only:
                 - name: KUBELET_ROOT
                   value: /var/lib/kubelet
                 - name: AGENT_VERSION
-                  value: v0.3.111
+                  value: v0.3.112
                 - name: NodeName
                   valueFrom:
                     fieldRef:
                       fieldPath: spec.nodeName
-              image: quay.io/kubescape/node-agent:v0.3.111
+              image: quay.io/kubescape/node-agent:v0.3.112
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -54095,8 +53182,7 @@ skipPersistence enabled:
         spec:
           template:
             metadata:
-              annotations:
-                foo: bar
+              annotations: null
               labels:
                 app: grype-offline-db
                 app.kubernetes.io/component: grype-offline-db
@@ -54106,7 +53192,6 @@ skipPersistence enabled:
                 app.kubernetes.io/part-of: kubescape
                 app.kubernetes.io/version: 1.40.1
                 armo.tier: vuln-scan
-                bar: baz
                 helm.sh/chart: kubescape-operator-1.40.1
                 kubescape.io/ignore: "true"
                 kubescape.io/tier: core
@@ -54908,6 +53993,8 @@ skipPersistence enabled:
                   value: /home/nonroot/.kubescape/host-scanner.yaml
                 - name: LARGE_CLUSTER_SIZE
                   value: "1500"
+                - name: API_URL
+                  value: https://api.armosec.io
                 - name: AZURE_SUBSCRIPTION_ID
                   valueFrom:
                     secretKeyRef:
@@ -54941,7 +54028,7 @@ skipPersistence enabled:
                   value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
                 - name: KS_INCLUDE_NAMESPACES
                   value: my-namespace
-              image: quay.io/kubescape/kubescape:v4.0.6
+              image: quay.io/kubescape/kubescape:v4.0.7
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -54989,10 +54076,6 @@ skipPersistence enabled:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /etc/ssl/certs/proxy.crt
                   name: proxy-secret
                   subPath: proxy.crt
@@ -55002,38 +54085,6 @@ skipPersistence enabled:
           imagePullSecrets:
             - name: foo
             - name: bar
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env:
-                - name: HTTPS_PROXY
-                  value: https://foo:bar@baz:1234
-                - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-                runAsNonRoot: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
-                - mountPath: /etc/ssl/certs/proxy.crt
-                  name: proxy-secret
-                  subPath: proxy.crt
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -55059,8 +54110,6 @@ skipPersistence enabled:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-            - emptyDir: {}
-              name: services
             - configMap:
                 name: host-scanner-definition
               name: host-scanner-definition
@@ -55654,6 +54703,8 @@ skipPersistence enabled:
                   value: zap
                 - name: PRINT_POST_JSON
                   value: ""
+                - name: API_URL
+                  value: https://api.armosec.io
                 - name: CA_MAX_VULN_SCAN_ROUTINES
                   value: "1"
                 - name: OTEL_COLLECTOR_SVC
@@ -55662,7 +54713,7 @@ skipPersistence enabled:
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
                   value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/kubevuln:v0.3.137
+              image: quay.io/kubescape/kubevuln:v0.3.138
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -55703,10 +54754,6 @@ skipPersistence enabled:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /home/nonroot/.cache/grype
                   name: grype-db
                 - mountPath: /etc/ssl/certs/proxy.crt
@@ -55718,38 +54765,6 @@ skipPersistence enabled:
           imagePullSecrets:
             - name: foo
             - name: bar
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env:
-                - name: HTTPS_PROXY
-                  value: https://foo:bar@baz:1234
-                - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-                runAsNonRoot: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
-                - mountPath: /etc/ssl/certs/proxy.crt
-                  name: proxy-secret
-                  subPath: proxy.crt
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -55779,8 +54794,6 @@ skipPersistence enabled:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-            - emptyDir: {}
-              name: services
             - name: grype-db
               persistentVolumeClaim:
                 claimName: kubescape-kubevuln
@@ -56714,12 +55727,14 @@ skipPersistence enabled:
                 - name: KUBELET_ROOT
                   value: /var/lib/kubelet
                 - name: AGENT_VERSION
-                  value: v0.3.111
+                  value: v0.3.112
+                - name: API_URL
+                  value: https://api.armosec.io
                 - name: NodeName
                   valueFrom:
                     fieldRef:
                       fieldPath: spec.nodeName
-              image: quay.io/kubescape/node-agent:v0.3.111
+              image: quay.io/kubescape/node-agent:v0.3.112
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -56797,10 +55812,6 @@ skipPersistence enabled:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /etc/config/config.json
                   name: config
                   readOnly: true
@@ -56817,37 +55828,6 @@ skipPersistence enabled:
           imagePullSecrets:
             - name: foo
             - name: bar
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v3/servicediscovery
-                - -path-output=/data/services.json
-              env:
-                - name: HTTPS_PROXY
-                  value: https://foo:bar@baz:1234
-                - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
-                - mountPath: /etc/ssl/certs/proxy.crt
-                  name: proxy-secret
-                  subPath: proxy.crt
           nodeSelector:
             kubernetes.io/os: linux
           priorityClassName: kubescape-critical
@@ -56917,8 +55897,6 @@ skipPersistence enabled:
                     path: config.json
                 name: node-agent
               name: config
-            - emptyDir: {}
-              name: services
             - name: proxy-secret
               secret:
                 secretName: kubescape-proxy-certificate
@@ -60602,13 +59580,15 @@ skipPersistence enabled:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
+                - name: API_URL
+                  value: https://api.armosec.io
                 - name: OTEL_COLLECTOR_SVC
                   value: otelCollector.svc.monitoring:4317
                 - name: HTTPS_PROXY
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
                   value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/synchronizer:v0.0.141
+              image: quay.io/kubescape/synchronizer:v0.0.144
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -60637,10 +59617,6 @@ skipPersistence enabled:
                   name: ks-cloud-config
                   readOnly: true
                   subPath: clusterData.json
-                - mountPath: /etc/config/services.json
-                  name: services
-                  readOnly: true
-                  subPath: services.json
                 - mountPath: /etc/ssl/certs/ca-certificates.crt
                   name: custom-ca-certificates
                   subPath: ca-certificates.crt
@@ -60654,38 +59630,6 @@ skipPersistence enabled:
           imagePullSecrets:
             - name: foo
             - name: bar
-          initContainers:
-            - args:
-                - -method=get
-                - -scheme=https
-                - -host=api.armosec.io
-                - -path=api/v2/servicediscovery
-                - -path-output=/data/services.json
-              env:
-                - name: HTTPS_PROXY
-                  value: https://foo:bar@baz:1234
-                - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/http-request:v0.2.19
-              imagePullPolicy: IfNotPresent
-              name: url-discovery
-              resources:
-                limits:
-                  cpu: 100m
-                  memory: 50Mi
-                requests:
-                  cpu: 10m
-                  memory: 10Mi
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-                runAsNonRoot: true
-              volumeMounts:
-                - mountPath: /data
-                  name: services
-                - mountPath: /etc/ssl/certs/proxy.crt
-                  name: proxy-secret
-                  subPath: proxy.crt
           nodeSelector:
             kubernetes.io/os: linux
           securityContext:
@@ -60711,8 +59655,6 @@ skipPersistence enabled:
                     path: clusterData.json
                 name: ks-cloud-config
               name: ks-cloud-config
-            - emptyDir: {}
-              name: services
             - configMap:
                 items:
                   - key: config.json

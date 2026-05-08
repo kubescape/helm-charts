@@ -112,6 +112,10 @@ Parameters:
 {{- end }}
 - name: AGENT_VERSION
   value: "{{ .Values.nodeAgent.image.tag }}"
+{{- if .Values.server }}
+- name: API_URL
+  value: "https://{{ .Values.server }}"
+{{- end }}
 {{- range .Values.nodeAgent.env }}
 {{- if .autoscalerMode }}
 - {{ toYaml . | nindent 2 | trim }}
@@ -152,12 +156,6 @@ Parameters:
   mountPath: /etc/config/clusterData.json
   readOnly: true
   subPath: "clusterData.json"
-{{- if .components.serviceDiscovery.enabled }}
-- name: "services"
-  mountPath: /etc/config/services.json
-  readOnly: true
-  subPath: "services.json"
-{{- end }}
 - name: config
   mountPath: /etc/config/config.json
   readOnly: true
@@ -320,40 +318,6 @@ Parameters:
     sleep $SLEEP_TIME
     echo "Pod $(hostname) finished sleeping after $SLEEP_TIME seconds"
 {{- end }}
-{{- if .components.serviceDiscovery.enabled }}
-- name: {{ .Values.serviceDiscovery.urlDiscovery.name }}
-  image: "{{ .Values.serviceDiscovery.urlDiscovery.image.repository }}:{{ .Values.serviceDiscovery.urlDiscovery.image.tag }}"
-  imagePullPolicy: {{ .Values.serviceDiscovery.urlDiscovery.image.pullPolicy }}
-  securityContext:
-    allowPrivilegeEscalation: false
-    readOnlyRootFilesystem: true
-  resources:
-{{ toYaml .Values.serviceDiscovery.resources | indent 4 }}
-  env:
-{{- if ne .Values.global.httpsProxy "" }}
-    - name: HTTPS_PROXY
-      value: "{{ .Values.global.httpsProxy }}"
-    - name: no_proxy
-      value: "{{ .no_proxy_envar_list }}"
-{{- end }}
-  args:
-    - -method=get
-    - -scheme=https
-    - -host={{ .Values.server }}
-    - -path=api/v3/servicediscovery
-    - -path-output=/data/services.json
-{{- if .Values.serviceDiscovery.urlDiscovery.insecureSkipTLSVerify }}
-    - -skip-ssl-verify=true
-{{- end }}
-  volumeMounts:
-    - name: services
-      mountPath: /data
-{{- if ne .Values.global.proxySecretFile "" }}
-    - name: proxy-secret
-      mountPath: /etc/ssl/certs/proxy.crt
-      subPath: proxy.crt
-{{- end }}
-{{- end }}
 {{- end -}}
 
 {{/*
@@ -392,10 +356,6 @@ Parameters:
     items:
       - key: "config.json"
         path: "config.json"
-{{- if .components.serviceDiscovery.enabled }}
-- name: "services"
-  emptyDir: {}
-{{- end }}
 {{- if ne .Values.global.proxySecretFile "" }}
 - name: proxy-secret
   secret:
