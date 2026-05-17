@@ -51,6 +51,67 @@ spec:
           type: RuntimeDefault
         runAsUser: 65532
         fsGroup: 65532
+      {{- if and .Values.storage.mtls.enabled (eq (include "kubescape.certificates.strategy" .) "initContainer") }}
+      {{- $certgenImage := printf "%s/%s:%s" .Values.storage.mtls.certgen.image.registry .Values.storage.mtls.certgen.image.repository .Values.storage.mtls.certgen.image.tag }}
+      {{- $certgenSecret := include "storage.certgen.secretName" . }}
+      {{- $certgenHosts := printf "%s,%s" .Values.storage.name (include "storage.certgen.svcDomainName" .) }}
+      initContainers:
+        - name: certgen-create
+          image: {{ $certgenImage }}
+          imagePullPolicy: {{ .Values.storage.mtls.certgen.image.pullPolicy }}
+          securityContext:
+            runAsUser: 65532
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          command: ["./certgen-create.sh"]
+          args:
+            - --namespace
+            - {{ .Values.ksNamespace }}
+            - --secret-name
+            - {{ $certgenSecret }}
+            - --host
+            - {{ $certgenHosts }}
+            - --out-dir
+            - /etc/storage-ca-certificates
+            - --ca-name
+            - ca.crt
+            - --cert-name
+            - tls.crt
+            - --key-name
+            - tls.key
+          volumeMounts:
+            - name: ca-certificates
+              mountPath: /etc/storage-ca-certificates
+        - name: certgen-patch
+          image: {{ $certgenImage }}
+          imagePullPolicy: {{ .Values.storage.mtls.certgen.image.pullPolicy }}
+          securityContext:
+            runAsUser: 65532
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          command: ["./certgen-patch.sh"]
+          args:
+            - --namespace
+            - {{ .Values.ksNamespace }}
+            - --secret-name
+            - {{ $certgenSecret }}
+            - --ca-name
+            - ca.crt
+            - --resource-type
+            - apiservice
+            - --resource-name
+            - {{ include "storage.certgen.apiServiceName" . }}
+            - --retries
+            - {{ .Values.storage.mtls.certgen.retries | quote }}
+            - --retry-interval
+            - {{ .Values.storage.mtls.certgen.retryIntervalSeconds | quote }}
+      {{- end }}
       containers:
       - name: apiserver
         image: "{{ .Values.storage.image.repository }}:{{ .Values.storage.image.tag }}"
@@ -144,8 +205,13 @@ spec:
               - key: "config.json"
                 path: "config.json"
         {{- if .Values.storage.mtls.enabled }}
+        {{- if eq (include "kubescape.certificates.strategy" .) "initContainer" }}
+        - name: "ca-certificates"
+          emptyDir: {}
+        {{- else }}
         - name: "ca-certificates"
           secret:
             secretName: {{ include "storage.certgen.secretName" . }}
+        {{- end }}
         {{- end }}
 {{- end }}

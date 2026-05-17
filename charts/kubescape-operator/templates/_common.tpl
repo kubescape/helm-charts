@@ -94,8 +94,8 @@ autoUpdater:
 
 {{- define "kubescape.certificates.strategy" -}}
 {{- $strategy := default "template" .Values.certificates.strategy -}}
-{{- if not (has $strategy (list "template" "hook")) -}}
-{{- fail (printf "certificates.strategy must be one of [template, hook], got %q" $strategy) -}}
+{{- if not (has $strategy (list "template" "initContainer")) -}}
+{{- fail (printf "certificates.strategy must be one of [template, initContainer], got %q" $strategy) -}}
 {{- end -}}
 {{- $strategy -}}
 {{- end }}

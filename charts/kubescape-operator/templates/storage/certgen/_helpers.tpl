@@ -8,8 +8,8 @@
 
 {{- define "storage.certgen.secretName" -}}
 {{- $strategy := include "kubescape.certificates.strategy" . }}
-{{- if eq $strategy "hook" -}}
-{{- printf "%s-tls-hook" .Values.storage.name -}}
+{{- if eq $strategy "initContainer" -}}
+{{- printf "%s-tls-init" .Values.storage.name -}}
 {{- else -}}
 {{- printf "%s-tls" .Values.storage.name -}}
 {{- end -}}
