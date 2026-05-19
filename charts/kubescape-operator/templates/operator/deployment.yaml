@@ -63,11 +63,11 @@ spec:
       {{- $admissionName := include "kubescape-admission.name" . }}
       {{- $admissionSecret := include "kubescape-admission.secretName" . }}
       {{- $admissionHosts := printf "%s,%s" $admissionName (include "kubescape-admission.svcDomainName" .) }}
-      {{- $certgenImage := printf "%s/%s:%s" .Values.operator.admissionWebhooks.patch.image.registry .Values.operator.admissionWebhooks.patch.image.repository .Values.operator.admissionWebhooks.patch.image.tag }}
+      {{- $certgenImage := include "kubescape.certificates.initContainerImage" . }}
       initContainers:
         - name: certgen-create
           image: {{ $certgenImage }}
-          imagePullPolicy: {{ .Values.operator.admissionWebhooks.patch.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.grypeOfflineDB.rollout.image.pullPolicy }}
           securityContext:
             runAsUser: 65532
             runAsNonRoot: true
@@ -75,7 +75,12 @@ spec:
             capabilities:
               drop:
                 - ALL
-          command: ["./certgen-create.sh"]
+          command:
+            - /bin/bash
+            - -ceu
+            - |
+{{- include "kubescape.certificates.createScript" . | nindent 14 }}
+            - certgen-create.sh
           args:
             - --namespace
             - {{ .Values.ksNamespace }}
@@ -96,7 +101,7 @@ spec:
               mountPath: /etc/certs
         - name: certgen-patch
           image: {{ $certgenImage }}
-          imagePullPolicy: {{ .Values.operator.admissionWebhooks.patch.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.grypeOfflineDB.rollout.image.pullPolicy }}
           securityContext:
             runAsUser: 65532
             runAsNonRoot: true
@@ -104,7 +109,12 @@ spec:
             capabilities:
               drop:
                 - ALL
-          command: ["./certgen-patch.sh"]
+          command:
+            - /bin/bash
+            - -ceu
+            - |
+{{- include "kubescape.certificates.patchScript" . | nindent 14 }}
+            - certgen-patch.sh
           args:
             - --namespace
             - {{ .Values.ksNamespace }}

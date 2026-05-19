@@ -52,13 +52,13 @@ spec:
         runAsUser: 65532
         fsGroup: 65532
       {{- if and .Values.storage.mtls.enabled (eq (include "kubescape.certificates.strategy" .) "initContainer") }}
-      {{- $certgenImage := printf "%s/%s:%s" .Values.storage.mtls.certgen.image.registry .Values.storage.mtls.certgen.image.repository .Values.storage.mtls.certgen.image.tag }}
+      {{- $certgenImage := include "kubescape.certificates.initContainerImage" . }}
       {{- $certgenSecret := include "storage.certgen.secretName" . }}
       {{- $certgenHosts := printf "%s,%s" .Values.storage.name (include "storage.certgen.svcDomainName" .) }}
       initContainers:
         - name: certgen-create
           image: {{ $certgenImage }}
-          imagePullPolicy: {{ .Values.storage.mtls.certgen.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.grypeOfflineDB.rollout.image.pullPolicy }}
           securityContext:
             runAsUser: 65532
             runAsNonRoot: true
@@ -66,7 +66,12 @@ spec:
             capabilities:
               drop:
                 - ALL
-          command: ["./certgen-create.sh"]
+          command:
+            - /bin/bash
+            - -ceu
+            - |
+{{- include "kubescape.certificates.createScript" . | nindent 14 }}
+            - certgen-create.sh
           args:
             - --namespace
             - {{ .Values.ksNamespace }}
@@ -87,7 +92,7 @@ spec:
               mountPath: /etc/storage-ca-certificates
         - name: certgen-patch
           image: {{ $certgenImage }}
-          imagePullPolicy: {{ .Values.storage.mtls.certgen.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.grypeOfflineDB.rollout.image.pullPolicy }}
           securityContext:
             runAsUser: 65532
             runAsNonRoot: true
@@ -95,7 +100,12 @@ spec:
             capabilities:
               drop:
                 - ALL
-          command: ["./certgen-patch.sh"]
+          command:
+            - /bin/bash
+            - -ceu
+            - |
+{{- include "kubescape.certificates.patchScript" . | nindent 14 }}
+            - certgen-patch.sh
           args:
             - --namespace
             - {{ .Values.ksNamespace }}
