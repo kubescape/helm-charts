@@ -24,9 +24,14 @@ additionalLabels: {}
 
 # Certificate handling for the admission webhook and storage mTLS endpoints.
 # - `template`     : certs rendered at helm install/upgrade time via Sprig `genSignedCert`. Fastest install, but certs rotate on every `helm upgrade` unless the CA Secret is preserved.
-# - `initContainer`: certs generated at runtime by init containers on the consuming pod. GitOps/ArgoCD-safe (no Helm hooks), reuses `grypeOfflineDB.rollout.image`, and the CA is reused from a Secret once created.
+# - `initContainer`: certs generated at runtime by init containers on the consuming pod. GitOps/ArgoCD-safe (no Helm hooks), idempotent across pod restarts, and the CA is reused from a Secret once created.
 certificates:
   strategy: template
+  certgen:
+    image:
+      repository: quay.io/kubescape/kubectl
+      tag: "1.36.1"
+      pullPolicy: IfNotPresent
 
 # global logger name and level
 # the logger level and name are mapped to environment variables in each component
@@ -960,10 +965,9 @@ grypeOfflineDB:
       memory: 200Mi
 
   rollout:
-    # Also reused by certificates.strategy=initContainer certgen init containers.
     image:
       repository: quay.io/kubescape/kubectl
-      tag: 1.30.3
+      tag: 1.36.1
       pullPolicy: IfNotPresent
     nodeSelector:
       kubernetes.io/os: linux

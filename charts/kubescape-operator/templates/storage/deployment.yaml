@@ -52,13 +52,13 @@ spec:
         runAsUser: 65532
         fsGroup: 65532
       {{- if and .Values.storage.mtls.enabled (eq (include "kubescape.certificates.strategy" .) "initContainer") }}
-      {{- $certgenImage := include "kubescape.certificates.initContainerImage" . }}
+      {{- $certgenImage := printf "%s:%s" .Values.certificates.certgen.image.repository (.Values.certificates.certgen.image.tag | toString) }}
       {{- $certgenSecret := include "storage.certgen.secretName" . }}
       {{- $certgenHosts := printf "%s,%s" .Values.storage.name (include "storage.certgen.svcDomainName" .) }}
       initContainers:
         - name: certgen-create
           image: {{ $certgenImage }}
-          imagePullPolicy: {{ .Values.grypeOfflineDB.rollout.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.certificates.certgen.image.pullPolicy }}
           securityContext:
             runAsUser: 65532
             runAsNonRoot: true
@@ -66,12 +66,7 @@ spec:
             capabilities:
               drop:
                 - ALL
-          command:
-            - /bin/bash
-            - -ceu
-            - |
-{{- include "kubescape.certificates.createScript" . | nindent 14 }}
-            - certgen-create.sh
+          command: ["/scripts/certgen-create.sh"]
           args:
             - --namespace
             - {{ .Values.ksNamespace }}
@@ -88,11 +83,13 @@ spec:
             - --key-name
             - tls.key
           volumeMounts:
+            - name: storage-certgen-scripts
+              mountPath: /scripts
             - name: ca-certificates
               mountPath: /etc/storage-ca-certificates
         - name: certgen-patch
           image: {{ $certgenImage }}
-          imagePullPolicy: {{ .Values.grypeOfflineDB.rollout.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.certificates.certgen.image.pullPolicy }}
           securityContext:
             runAsUser: 65532
             runAsNonRoot: true
@@ -100,12 +97,7 @@ spec:
             capabilities:
               drop:
                 - ALL
-          command:
-            - /bin/bash
-            - -ceu
-            - |
-{{- include "kubescape.certificates.patchScript" . | nindent 14 }}
-            - certgen-patch.sh
+          command: ["/scripts/certgen-patch.sh"]
           args:
             - --namespace
             - {{ .Values.ksNamespace }}
@@ -121,6 +113,9 @@ spec:
             - {{ .Values.storage.mtls.certgen.retries | quote }}
             - --retry-interval
             - {{ .Values.storage.mtls.certgen.retryIntervalSeconds | quote }}
+          volumeMounts:
+            - name: storage-certgen-scripts
+              mountPath: /scripts
       {{- end }}
       containers:
       - name: apiserver
@@ -218,6 +213,10 @@ spec:
         {{- if eq (include "kubescape.certificates.strategy" .) "initContainer" }}
         - name: "ca-certificates"
           emptyDir: {}
+        - name: storage-certgen-scripts
+          configMap:
+            name: {{ .Values.storage.name }}-certgen-scripts
+            defaultMode: 0755
         {{- else }}
         - name: "ca-certificates"
           secret:

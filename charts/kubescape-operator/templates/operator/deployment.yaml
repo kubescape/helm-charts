@@ -63,11 +63,11 @@ spec:
       {{- $admissionName := include "kubescape-admission.name" . }}
       {{- $admissionSecret := include "kubescape-admission.secretName" . }}
       {{- $admissionHosts := printf "%s,%s" $admissionName (include "kubescape-admission.svcDomainName" .) }}
-      {{- $certgenImage := include "kubescape.certificates.initContainerImage" . }}
+      {{- $certgenImage := printf "%s:%s" .Values.certificates.certgen.image.repository (.Values.certificates.certgen.image.tag | toString) }}
       initContainers:
         - name: certgen-create
           image: {{ $certgenImage }}
-          imagePullPolicy: {{ .Values.grypeOfflineDB.rollout.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.certificates.certgen.image.pullPolicy }}
           securityContext:
             runAsUser: 65532
             runAsNonRoot: true
@@ -75,12 +75,7 @@ spec:
             capabilities:
               drop:
                 - ALL
-          command:
-            - /bin/bash
-            - -ceu
-            - |
-{{- include "kubescape.certificates.createScript" . | nindent 14 }}
-            - certgen-create.sh
+          command: ["/scripts/certgen-create.sh"]
           args:
             - --namespace
             - {{ .Values.ksNamespace }}
@@ -97,11 +92,13 @@ spec:
             - --key-name
             - tls.key
           volumeMounts:
+            - name: admission-certgen-scripts
+              mountPath: /scripts
             - name: tls-certs
               mountPath: /etc/certs
         - name: certgen-patch
           image: {{ $certgenImage }}
-          imagePullPolicy: {{ .Values.grypeOfflineDB.rollout.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.certificates.certgen.image.pullPolicy }}
           securityContext:
             runAsUser: 65532
             runAsNonRoot: true
@@ -109,12 +106,7 @@ spec:
             capabilities:
               drop:
                 - ALL
-          command:
-            - /bin/bash
-            - -ceu
-            - |
-{{- include "kubescape.certificates.patchScript" . | nindent 14 }}
-            - certgen-patch.sh
+          command: ["/scripts/certgen-patch.sh"]
           args:
             - --namespace
             - {{ .Values.ksNamespace }}
@@ -130,6 +122,9 @@ spec:
             - {{ .Values.operator.admissionWebhooks.patch.retries | quote }}
             - --retry-interval
             - {{ .Values.operator.admissionWebhooks.patch.retryIntervalSeconds | quote }}
+          volumeMounts:
+            - name: admission-certgen-scripts
+              mountPath: /scripts
       {{- end }}
       containers:
         - name: {{ .Values.operator.name }}
@@ -277,6 +272,10 @@ spec:
         {{- if eq (include "kubescape.certificates.strategy" .) "initContainer" }}
         - name: tls-certs
           emptyDir: {}
+        - name: admission-certgen-scripts
+          configMap:
+            name: {{ include "kubescape-admission.name" . }}-certgen-scripts
+            defaultMode: 0755
         {{- else }}
         - name: tls-certs
           secret:

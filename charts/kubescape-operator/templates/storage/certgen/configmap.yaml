@@ -1,0 +1,17 @@
+{{- $components := fromYaml (include "components" .) }}
+{{- if and $components.storage.enabled .Values.storage.mtls.enabled (eq (include "kubescape.certificates.strategy" .) "initContainer") }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.storage.name }}-certgen-scripts
+  namespace: {{ .Values.ksNamespace }}
+  annotations:
+    {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
+  labels:
+    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.storage.name "tier" .Values.global.namespaceTier) | nindent 4 }}
+data:
+  certgen-create.sh: |
+{{ .Files.Get "scripts/certgen-create.sh" | indent 4 }}
+  certgen-patch.sh: |
+{{ .Files.Get "scripts/certgen-patch.sh" | indent 4 }}
+{{- end }}
