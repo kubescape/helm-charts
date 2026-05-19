@@ -1,4 +1,4 @@
-{{- $kubectlImage := .Values.grypeOfflineDB.rollout.image }}
+{{- $kubectlImage := .Values.hostScannerCleanup.image }}
 {{- $cleanupName := printf "%s-host-scanner-cleanup" .Release.Name }}
 ---
 apiVersion: v1
@@ -90,6 +90,25 @@ spec:
       serviceAccountName: {{ $cleanupName }}
       automountServiceAccountToken: true
       restartPolicy: OnFailure
+      nodeSelector:
+      {{- if .Values.hostScannerCleanup.nodeSelector }}
+      {{- toYaml .Values.hostScannerCleanup.nodeSelector | nindent 8 }}
+      {{- else if .Values.customScheduling.nodeSelector }}
+      {{- toYaml .Values.customScheduling.nodeSelector | nindent 8 }}
+      {{- end }}
+      affinity:
+      {{- if .Values.hostScannerCleanup.affinity }}
+      {{- toYaml .Values.hostScannerCleanup.affinity | nindent 8 }}
+      {{- else if .Values.customScheduling.affinity }}
+      {{- toYaml .Values.customScheduling.affinity | nindent 8 }}
+      {{- end }}
+      tolerations:
+      {{- if .Values.hostScannerCleanup.tolerations }}
+      {{- toYaml .Values.hostScannerCleanup.tolerations | nindent 8 }}
+      {{- else if .Values.customScheduling.tolerations }}
+      {{- toYaml .Values.customScheduling.tolerations | nindent 8 }}
+      {{- end }}
+      {{- include "kubescape-operator.priorityClassName" (dict "component" .Values.hostScannerCleanup "global" .Values.customScheduling) | nindent 6 }}
       containers:
         - name: host-scanner-cleanup
           image: "{{ $kubectlImage.repository }}:{{ $kubectlImage.tag }}"
@@ -105,4 +124,9 @@ spec:
           args:
             - kubectl delete daemonset host-scanner -n {{ .Values.ksNamespace }} --ignore-not-found=true
           resources:
-{{ toYaml .Values.grypeOfflineDB.rollout.resources | indent 12 }}
+            requests:
+              cpu: 10m
+              memory: 10Mi
+            limits:
+              cpu: 100m
+              memory: 50Mi
