@@ -1,0 +1,108 @@
+{{- $kubectlImage := .Values.grypeOfflineDB.rollout.image }}
+{{- $cleanupName := printf "%s-host-scanner-cleanup" .Release.Name }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $cleanupName }}
+  namespace: {{ .Values.ksNamespace }}
+  annotations:
+    "helm.sh/hook": pre-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    "helm.sh/hook-weight": "-5"
+    {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
+  labels:
+    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" $cleanupName "tier" .Values.global.namespaceTier) | nindent 4 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $cleanupName }}
+  namespace: {{ .Values.ksNamespace }}
+  annotations:
+    "helm.sh/hook": pre-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    "helm.sh/hook-weight": "-5"
+    {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
+  labels:
+    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" $cleanupName "tier" .Values.global.namespaceTier) | nindent 4 }}
+rules:
+  - apiGroups: ["apps"]
+    resources: ["daemonsets"]
+    verbs: ["get", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $cleanupName }}
+  namespace: {{ .Values.ksNamespace }}
+  annotations:
+    "helm.sh/hook": pre-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    "helm.sh/hook-weight": "-5"
+    {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
+  labels:
+    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" $cleanupName "tier" .Values.global.namespaceTier) | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $cleanupName }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $cleanupName }}
+    namespace: {{ .Values.ksNamespace }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $cleanupName }}
+  namespace: {{ .Values.ksNamespace }}
+  annotations:
+    "helm.sh/hook": pre-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    "helm.sh/hook-weight": "0"
+    {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
+  labels:
+    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" $cleanupName "tier" .Values.global.namespaceTier) | nindent 4 }}
+spec:
+  ttlSecondsAfterFinished: 60
+  template:
+    metadata:
+      labels:
+        {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" $cleanupName "tier" .Values.global.namespaceTier) | nindent 8 }}
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+        runAsNonRoot: true
+        runAsUser: 65532
+        fsGroup: 65532
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+      {{- if kindIs "string" .Values.imagePullSecrets }}
+      - name: {{ .Values.imagePullSecrets }}
+      {{- else }}
+      {{- range .Values.imagePullSecrets }}
+      - name: {{ . }}
+      {{- end }}
+      {{- end }}
+      {{- end }}
+      serviceAccountName: {{ $cleanupName }}
+      automountServiceAccountToken: true
+      restartPolicy: OnFailure
+      containers:
+        - name: host-scanner-cleanup
+          image: "{{ $kubectlImage.repository }}:{{ $kubectlImage.tag }}"
+          imagePullPolicy: {{ $kubectlImage.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
+          command: ["/bin/sh", "-c"]
+          args:
+            - kubectl delete daemonset host-scanner -n {{ .Values.ksNamespace }} --ignore-not-found=true
+          resources:
+{{ toYaml .Values.grypeOfflineDB.rollout.resources | indent 12 }}
