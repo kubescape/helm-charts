@@ -94,6 +94,10 @@ autoUpdater:
   enabled: {{ eq .Values.capabilities.autoUpgrading "enable" }}
 {{- end -}}
 
+{{- define "kubescape.certgen.scriptsHash" -}}
+{{- printf "%s%s" (.Files.Get "scripts/certgen-create.sh") (.Files.Get "scripts/certgen-patch.sh") | sha256sum | trunc 8 -}}
+{{- end }}
+
 {{- define "kubescape.certificates.strategy" -}}
 {{- $strategy := default "template" .Values.certificates.strategy -}}
 {{- if not (has $strategy (list "template" "initContainer")) -}}
