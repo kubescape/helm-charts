@@ -23,9 +23,15 @@ additionalAnnotations: {}
 additionalLabels: {}
 
 # Certificate handling for the admission webhook and storage mTLS endpoints.
-# Use `template` for the fastest Helm installs, and `hook` for ArgoCD/GitOps-safe runtime cert generation.
+# - `template`     : certs rendered at helm install/upgrade time via Sprig `genSignedCert`. Fastest install, but certs rotate on every `helm upgrade` unless the CA Secret is preserved.
+# - `initContainer`: certs generated at runtime by init containers on the consuming pod. GitOps/ArgoCD-safe (no Helm hooks), idempotent across pod restarts, and the CA is reused from a Secret once created.
 certificates:
   strategy: template
+  certgen:
+    image:
+      repository: quay.io/kubescape/kubectl
+      tag: "1.36.1"
+      pullPolicy: IfNotPresent
 
 # global logger name and level
 # the logger level and name are mapped to environment variables in each component
@@ -368,22 +374,8 @@ operator:
       targetPort: 8443
       annotations: {}
     patch:
-      image:
-        registry: ghcr.io
-        repository: jkroepke/kube-webhook-certgen
-        tag: 1.8.1
-        sha: ""
-        pullPolicy: IfNotPresent
-      resources: {}
-      priorityClassName: ""
-      ttlSecondsAfterFinished: 60
-      annotations: {}
-      #   argocd.argoproj.io/hook: PreSync
-      #   argocd.argoproj.io/hook-delete-policy: HookSucceeded
-      podAnnotations: {}
-      nodeSelector: {}
-      affinity: {}
-      tolerations: []
+      retries: 60
+      retryIntervalSeconds: 5
 
   podAnnotations: {}
   podLabels: {}
@@ -506,20 +498,8 @@ storage:
     enabled: true
     certificateValidityInDays: 730 # NOTE: only in effect when certificates.strategy is "template"
     certgen:
-      image:
-        registry: ghcr.io
-        repository: jkroepke/kube-webhook-certgen
-        tag: 1.8.1
-        sha: ""
-        pullPolicy: IfNotPresent
-      resources: {}
-      priorityClassName: ""
-      ttlSecondsAfterFinished: 60
-      annotations: {}
-      podAnnotations: {}
-      nodeSelector: {}
-      affinity: {}
-      tolerations: []
+      retries: 60
+      retryIntervalSeconds: 5
   serverPort: 8443
   service:
     type: ClusterIP

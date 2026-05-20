@@ -1,19 +1,18 @@
 {{- $components := fromYaml (include "components" .) }}
 {{- if and $components.operator.enabled (eq .Values.capabilities.admissionController "enable") (eq (include "kubescape.certificates.strategy" .) "initContainer") }}
-kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
+apiVersion: v1
+kind: ConfigMap
 metadata:
-  name: {{ include "kubescape-admission.clusterScopedName" . }}
+  name: {{ include "kubescape-admission.name" . }}-certgen-scripts-{{ include "kubescape.certgen.scriptsHash" . }}
+  namespace: {{ .Values.ksNamespace }}
   annotations:
     {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
   labels:
     {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" (include "kubescape-admission.name" .) "tier" .Values.global.namespaceTier) | nindent 4 }}
-subjects:
-- kind: ServiceAccount
-  name: {{ .Values.operator.name }}
-  namespace: {{ .Values.ksNamespace }}
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: {{ include "kubescape-admission.clusterScopedName" . }}
+immutable: true
+data:
+  certgen-create.sh: |
+{{ .Files.Get "scripts/certgen-create.sh" | indent 4 }}
+  certgen-patch.sh: |
+{{ .Files.Get "scripts/certgen-patch.sh" | indent 4 }}
 {{- end }}

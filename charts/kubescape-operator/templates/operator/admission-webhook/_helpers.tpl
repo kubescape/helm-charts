@@ -8,8 +8,8 @@ kubescape-admission-webhook
 
 {{- define "kubescape-admission.secretName" -}}
 {{- $strategy := include "kubescape.certificates.strategy" . }}
-{{- if eq $strategy "hook" -}}
-{{- printf "%s-tls-hook" (include "kubescape-admission.name" .) -}}
+{{- if eq $strategy "initContainer" -}}
+{{- printf "%s-tls-init" (include "kubescape-admission.name" .) -}}
 {{- else -}}
 {{- printf "%s-tls" (include "kubescape-admission.name" .) -}}
 {{- end -}}

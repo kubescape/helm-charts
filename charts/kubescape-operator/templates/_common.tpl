@@ -13,6 +13,8 @@ operatorConfig: {{ include (printf "%s/operator/configmap.yaml" $.Template.BaseP
 otelConfig: {{ include (printf "%s/otel-collector/configmap.yaml" $.Template.BasePath) . | replace .Chart.AppVersion "" | sha256sum }}
 proxySecret: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.proxySecretDirectory "proxy-secret.yaml") . | replace .Chart.AppVersion "" | sha256sum }}
 synchronizerConfig: {{ include (printf "%s/synchronizer/configmap.yaml" $.Template.BasePath) . | replace .Chart.AppVersion "" | sha256sum }}
+admissionCertgenScripts: {{ include (printf "%s/operator/admission-webhook/configmap.yaml" $.Template.BasePath) . | replace .Chart.AppVersion "" | sha256sum }}
+storageCertgenScripts: {{ include (printf "%s/storage/certgen/configmap.yaml" $.Template.BasePath) . | replace .Chart.AppVersion "" | sha256sum }}
 {{- end -}}
 
 
@@ -92,10 +94,14 @@ autoUpdater:
   enabled: {{ eq .Values.capabilities.autoUpgrading "enable" }}
 {{- end -}}
 
+{{- define "kubescape.certgen.scriptsHash" -}}
+{{- printf "%s%s" (.Files.Get "scripts/certgen-create.sh") (.Files.Get "scripts/certgen-patch.sh") | sha256sum | trunc 8 -}}
+{{- end }}
+
 {{- define "kubescape.certificates.strategy" -}}
 {{- $strategy := default "template" .Values.certificates.strategy -}}
-{{- if not (has $strategy (list "template" "hook")) -}}
-{{- fail (printf "certificates.strategy must be one of [template, hook], got %q" $strategy) -}}
+{{- if not (has $strategy (list "template" "initContainer")) -}}
+{{- fail (printf "certificates.strategy must be one of [template, initContainer], got %q" $strategy) -}}
 {{- end -}}
 {{- $strategy -}}
 {{- end }}
