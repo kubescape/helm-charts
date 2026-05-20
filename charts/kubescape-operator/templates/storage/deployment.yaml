@@ -1,3 +1,4 @@
+{{- $checksums := fromYaml (include "checksums" .) }}
 {{- $components := fromYaml (include "components" .) }}
 {{- $configurations := fromYaml (include "configurations" .) }}
 {{- if $components.storage.enabled }}
@@ -22,10 +23,14 @@ spec:
   template:
     metadata:
       {{- $podAnnotations := include "kubescape-operator.annotations" (dict "Values" .Values) }}
-      {{- if or $podAnnotations .Values.storage.podAnnotations }}
+      {{- $hasCertgenChecksum := and .Values.storage.mtls.enabled (eq (include "kubescape.certificates.strategy" .) "initContainer") }}
+      {{- if or $podAnnotations .Values.storage.podAnnotations $hasCertgenChecksum }}
       annotations:
         {{- with $podAnnotations }}{{- . | nindent 8 }}{{- end }}
         {{- with .Values.storage.podAnnotations }}{{- toYaml . | nindent 8 }}{{- end }}
+        {{- if $hasCertgenChecksum }}
+        checksum/storage-certgen-scripts: {{ $checksums.storageCertgenScripts }}
+        {{- end }}
       {{- end }}
       labels:
         {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.storage.name "tier" .Values.global.namespaceTier) | nindent 8 }}
@@ -85,6 +90,7 @@ spec:
           volumeMounts:
             - name: storage-certgen-scripts
               mountPath: /scripts
+              readOnly: true
             - name: ca-certificates
               mountPath: /etc/storage-ca-certificates
         - name: certgen-patch
@@ -116,6 +122,7 @@ spec:
           volumeMounts:
             - name: storage-certgen-scripts
               mountPath: /scripts
+              readOnly: true
       {{- end }}
       containers:
       - name: apiserver

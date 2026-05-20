@@ -36,6 +36,9 @@ spec:
       {{- if ne .Values.global.proxySecretFile "" }}
         checksum/proxy-config: {{ $checksums.proxySecret }}
       {{- end }}
+      {{- if and (eq .Values.capabilities.admissionController "enable") (eq (include "kubescape.certificates.strategy" .) "initContainer") }}
+        checksum/admission-certgen-scripts: {{ $checksums.admissionCertgenScripts }}
+      {{- end }}
       labels:
         {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.operator.name "tier" .Values.global.namespaceTier) | nindent 8 }}
         {{- with .Values.operator.podLabels }}{{- toYaml . | nindent 8 }}{{- end }}
@@ -94,6 +97,7 @@ spec:
           volumeMounts:
             - name: admission-certgen-scripts
               mountPath: /scripts
+              readOnly: true
             - name: tls-certs
               mountPath: /etc/certs
         - name: certgen-patch
@@ -125,6 +129,7 @@ spec:
           volumeMounts:
             - name: admission-certgen-scripts
               mountPath: /scripts
+              readOnly: true
       {{- end }}
       containers:
         - name: {{ .Values.operator.name }}
