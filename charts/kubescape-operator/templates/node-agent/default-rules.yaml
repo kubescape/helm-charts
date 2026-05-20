@@ -690,4 +690,44 @@ spec:
           - "syscalls"
           - "io_uring"
           - "applicationprofile"
+      - name: "Exec to pod"
+        enabled: true
+        id: "R2000"
+        description: "Detects exec operations on pods via the Kubernetes admission webhook (PodExecOptions CONNECT)"
+        expressions:
+          message: "'Exec to pod: ' + event.Name + ' in namespace ' + event.Namespace + ' by ' + event.UserInfo.Username"
+          uniqueId: "event.Namespace + '/' + event.Name"
+          ruleExpression:
+            - eventType: "k8s-admission"
+              expression: 'event.Kind == "PodExecOptions"'
+        profileDependency: 2
+        severity: 8
+        supportPolicy: false
+        isTriggerAlert: true
+        mitreTactic: "TA0002"
+        mitreTechnique: "T1609"
+        tags:
+          - "context:kubernetes"
+          - "admission"
+          - "exec"
+      - name: "Port forward to pod"
+        enabled: true
+        id: "R2001"
+        description: "Detects port-forward operations on pods via the Kubernetes admission webhook (PodPortForwardOptions CONNECT)"
+        expressions:
+          message: "'Port forward to pod: ' + event.Name + ' in namespace ' + event.Namespace + ' by ' + event.UserInfo.Username"
+          uniqueId: "event.Namespace + '/' + event.Name"
+          ruleExpression:
+            - eventType: "k8s-admission"
+              expression: 'event.Kind == "PodPortForwardOptions"'
+        profileDependency: 2
+        severity: 5
+        supportPolicy: false
+        isTriggerAlert: true
+        mitreTactic: "TA0011"
+        mitreTechnique: "T1090"
+        tags:
+          - "context:kubernetes"
+          - "admission"
+          - "network"
 {{- end }}

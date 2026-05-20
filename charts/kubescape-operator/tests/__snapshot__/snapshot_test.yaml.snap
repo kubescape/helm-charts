@@ -3819,6 +3819,46 @@ all capabilities:
             - syscalls
             - io_uring
             - applicationprofile
+        - description: Detects exec operations on pods via the Kubernetes admission webhook (PodExecOptions CONNECT)
+          enabled: true
+          expressions:
+            message: '''Exec to pod: '' + event.Name + '' in namespace '' + event.Namespace + '' by '' + event.UserInfo.Username'
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: event.Kind == "PodExecOptions"
+            uniqueId: event.Namespace + '/' + event.Name
+          id: R2000
+          isTriggerAlert: true
+          mitreTactic: TA0002
+          mitreTechnique: T1609
+          name: Exec to pod
+          profileDependency: 2
+          severity: 8
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - exec
+        - description: Detects port-forward operations on pods via the Kubernetes admission webhook (PodPortForwardOptions CONNECT)
+          enabled: true
+          expressions:
+            message: '''Port forward to pod: '' + event.Name + '' in namespace '' + event.Namespace + '' by '' + event.UserInfo.Username'
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: event.Kind == "PodPortForwardOptions"
+            uniqueId: event.Namespace + '/' + event.Name
+          id: R2001
+          isTriggerAlert: true
+          mitreTactic: TA0011
+          mitreTechnique: T1090
+          name: Port forward to pod
+          profileDependency: 2
+          severity: 5
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - network
   62: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
@@ -4070,6 +4110,15 @@ all capabilities:
               - clusterrolebindings
               - rolebindings
             scope: '*'
+          - apiGroups:
+              - networking.k8s.io
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+            resources:
+              - networkpolicies
+            scope: '*'
         sideEffects: None
   70: |
     apiVersion: rbac.authorization.k8s.io/v1
@@ -4159,6 +4208,7 @@ all capabilities:
           - kubescape.io
         resources:
           - runtimerulealertbindings
+          - rules
         verbs:
           - list
           - watch
@@ -4358,7 +4408,7 @@ all capabilities:
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
                   value: kubescape,kubevuln,node-agent,operator,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/operator:v0.2.142
+              image: quay.io/kubescape/operator:v0.2.149
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -9014,6 +9064,15 @@ autoscaler mode with sbom sidecar:
               - clusterrolebindings
               - rolebindings
             scope: '*'
+          - apiGroups:
+              - networking.k8s.io
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+            resources:
+              - networkpolicies
+            scope: '*'
         sideEffects: None
   44: |
     apiVersion: rbac.authorization.k8s.io/v1
@@ -9103,6 +9162,7 @@ autoscaler mode with sbom sidecar:
           - kubescape.io
         resources:
           - runtimerulealertbindings
+          - rules
         verbs:
           - list
           - watch
@@ -9288,7 +9348,7 @@ autoscaler mode with sbom sidecar:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.142
+              image: quay.io/kubescape/operator:v0.2.149
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -13265,6 +13325,15 @@ autoscaler mode without sbom sidecar:
               - clusterrolebindings
               - rolebindings
             scope: '*'
+          - apiGroups:
+              - networking.k8s.io
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+            resources:
+              - networkpolicies
+            scope: '*'
         sideEffects: None
   44: |
     apiVersion: rbac.authorization.k8s.io/v1
@@ -13354,6 +13423,7 @@ autoscaler mode without sbom sidecar:
           - kubescape.io
         resources:
           - runtimerulealertbindings
+          - rules
         verbs:
           - list
           - watch
@@ -13539,7 +13609,7 @@ autoscaler mode without sbom sidecar:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.142
+              image: quay.io/kubescape/operator:v0.2.149
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -17253,6 +17323,46 @@ backend-storage enabled disables scanning capabilities:
             - syscalls
             - io_uring
             - applicationprofile
+        - description: Detects exec operations on pods via the Kubernetes admission webhook (PodExecOptions CONNECT)
+          enabled: true
+          expressions:
+            message: '''Exec to pod: '' + event.Name + '' in namespace '' + event.Namespace + '' by '' + event.UserInfo.Username'
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: event.Kind == "PodExecOptions"
+            uniqueId: event.Namespace + '/' + event.Name
+          id: R2000
+          isTriggerAlert: true
+          mitreTactic: TA0002
+          mitreTechnique: T1609
+          name: Exec to pod
+          profileDependency: 2
+          severity: 8
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - exec
+        - description: Detects port-forward operations on pods via the Kubernetes admission webhook (PodPortForwardOptions CONNECT)
+          enabled: true
+          expressions:
+            message: '''Port forward to pod: '' + event.Name + '' in namespace '' + event.Namespace + '' by '' + event.UserInfo.Username'
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: event.Kind == "PodPortForwardOptions"
+            uniqueId: event.Namespace + '/' + event.Name
+          id: R2001
+          isTriggerAlert: true
+          mitreTactic: TA0011
+          mitreTechnique: T1090
+          name: Port forward to pod
+          profileDependency: 2
+          severity: 5
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - network
   23: |
     apiVersion: v1
     kind: Service
@@ -17419,6 +17529,15 @@ backend-storage enabled disables scanning capabilities:
               - clusterrolebindings
               - rolebindings
             scope: '*'
+          - apiGroups:
+              - networking.k8s.io
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+            resources:
+              - networkpolicies
+            scope: '*'
         sideEffects: None
   29: |
     apiVersion: rbac.authorization.k8s.io/v1
@@ -17508,6 +17627,7 @@ backend-storage enabled disables scanning capabilities:
           - kubescape.io
         resources:
           - runtimerulealertbindings
+          - rules
         verbs:
           - list
           - watch
@@ -17693,7 +17813,7 @@ backend-storage enabled disables scanning capabilities:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.142
+              image: quay.io/kubescape/operator:v0.2.149
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -19303,7 +19423,7 @@ cert strategy initContainer, admission disabled, mtls disabled:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.142
+              image: quay.io/kubescape/operator:v0.2.149
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -19611,7 +19731,7 @@ cert strategy initContainer, admission disabled, mtls enabled:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.142
+              image: quay.io/kubescape/operator:v0.2.149
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -20199,6 +20319,15 @@ cert strategy initContainer, admission enabled, mtls disabled:
               - clusterrolebindings
               - rolebindings
             scope: '*'
+          - apiGroups:
+              - networking.k8s.io
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+            resources:
+              - networkpolicies
+            scope: '*'
         sideEffects: None
   7: |
     apiVersion: apps/v1
@@ -20273,7 +20402,7 @@ cert strategy initContainer, admission enabled, mtls disabled:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.142
+              image: quay.io/kubescape/operator:v0.2.149
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -20761,6 +20890,15 @@ cert strategy initContainer, admission enabled, mtls enabled:
               - clusterrolebindings
               - rolebindings
             scope: '*'
+          - apiGroups:
+              - networking.k8s.io
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+            resources:
+              - networkpolicies
+            scope: '*'
         sideEffects: None
   7: |
     apiVersion: apps/v1
@@ -20835,7 +20973,7 @@ cert strategy initContainer, admission enabled, mtls enabled:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.142
+              image: quay.io/kubescape/operator:v0.2.149
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -21397,7 +21535,7 @@ cert strategy template, admission disabled, mtls disabled:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.142
+              image: quay.io/kubescape/operator:v0.2.149
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -21705,7 +21843,7 @@ cert strategy template, admission disabled, mtls enabled:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.142
+              image: quay.io/kubescape/operator:v0.2.149
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -22113,6 +22251,15 @@ cert strategy template, admission enabled, mtls disabled:
               - clusterrolebindings
               - rolebindings
             scope: '*'
+          - apiGroups:
+              - networking.k8s.io
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+            resources:
+              - networkpolicies
+            scope: '*'
         sideEffects: None
   5: |
     apiVersion: apps/v1
@@ -22186,7 +22333,7 @@ cert strategy template, admission enabled, mtls disabled:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.142
+              image: quay.io/kubescape/operator:v0.2.149
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -22551,6 +22698,15 @@ cert strategy template, admission enabled, mtls enabled:
               - clusterrolebindings
               - rolebindings
             scope: '*'
+          - apiGroups:
+              - networking.k8s.io
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+            resources:
+              - networkpolicies
+            scope: '*'
         sideEffects: None
   5: |
     apiVersion: apps/v1
@@ -22624,7 +22780,7 @@ cert strategy template, admission enabled, mtls enabled:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.142
+              image: quay.io/kubescape/operator:v0.2.149
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -26176,6 +26332,46 @@ default capabilities:
             - syscalls
             - io_uring
             - applicationprofile
+        - description: Detects exec operations on pods via the Kubernetes admission webhook (PodExecOptions CONNECT)
+          enabled: true
+          expressions:
+            message: '''Exec to pod: '' + event.Name + '' in namespace '' + event.Namespace + '' by '' + event.UserInfo.Username'
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: event.Kind == "PodExecOptions"
+            uniqueId: event.Namespace + '/' + event.Name
+          id: R2000
+          isTriggerAlert: true
+          mitreTactic: TA0002
+          mitreTechnique: T1609
+          name: Exec to pod
+          profileDependency: 2
+          severity: 8
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - exec
+        - description: Detects port-forward operations on pods via the Kubernetes admission webhook (PodPortForwardOptions CONNECT)
+          enabled: true
+          expressions:
+            message: '''Port forward to pod: '' + event.Name + '' in namespace '' + event.Namespace + '' by '' + event.UserInfo.Username'
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: event.Kind == "PodPortForwardOptions"
+            uniqueId: event.Namespace + '/' + event.Name
+          id: R2001
+          isTriggerAlert: true
+          mitreTactic: TA0011
+          mitreTechnique: T1090
+          name: Port forward to pod
+          profileDependency: 2
+          severity: 5
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - network
   49: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
@@ -26353,6 +26549,7 @@ default capabilities:
           - kubescape.io
         resources:
           - runtimerulealertbindings
+          - rules
         verbs:
           - list
           - watch
@@ -26539,7 +26736,7 @@ default capabilities:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.142
+              image: quay.io/kubescape/operator:v0.2.149
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -30954,6 +31151,15 @@ disable otel:
               - clusterrolebindings
               - rolebindings
             scope: '*'
+          - apiGroups:
+              - networking.k8s.io
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+            resources:
+              - networkpolicies
+            scope: '*'
         sideEffects: None
   44: |
     apiVersion: rbac.authorization.k8s.io/v1
@@ -31043,6 +31249,7 @@ disable otel:
           - kubescape.io
         resources:
           - runtimerulealertbindings
+          - rules
         verbs:
           - list
           - watch
@@ -31228,7 +31435,7 @@ disable otel:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.142
+              image: quay.io/kubescape/operator:v0.2.149
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -35404,6 +35611,15 @@ minimal capabilities:
               - clusterrolebindings
               - rolebindings
             scope: '*'
+          - apiGroups:
+              - networking.k8s.io
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+            resources:
+              - networkpolicies
+            scope: '*'
         sideEffects: None
   44: |
     apiVersion: rbac.authorization.k8s.io/v1
@@ -35493,6 +35709,7 @@ minimal capabilities:
           - kubescape.io
         resources:
           - runtimerulealertbindings
+          - rules
         verbs:
           - list
           - watch
@@ -35676,7 +35893,7 @@ minimal capabilities:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.142
+              image: quay.io/kubescape/operator:v0.2.149
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -41031,6 +41248,46 @@ multiple node agents:
             - syscalls
             - io_uring
             - applicationprofile
+        - description: Detects exec operations on pods via the Kubernetes admission webhook (PodExecOptions CONNECT)
+          enabled: true
+          expressions:
+            message: '''Exec to pod: '' + event.Name + '' in namespace '' + event.Namespace + '' by '' + event.UserInfo.Username'
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: event.Kind == "PodExecOptions"
+            uniqueId: event.Namespace + '/' + event.Name
+          id: R2000
+          isTriggerAlert: true
+          mitreTactic: TA0002
+          mitreTechnique: T1609
+          name: Exec to pod
+          profileDependency: 2
+          severity: 8
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - exec
+        - description: Detects port-forward operations on pods via the Kubernetes admission webhook (PodPortForwardOptions CONNECT)
+          enabled: true
+          expressions:
+            message: '''Port forward to pod: '' + event.Name + '' in namespace '' + event.Namespace + '' by '' + event.UserInfo.Username'
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: event.Kind == "PodPortForwardOptions"
+            uniqueId: event.Namespace + '/' + event.Name
+          id: R2001
+          isTriggerAlert: true
+          mitreTactic: TA0011
+          mitreTechnique: T1090
+          name: Port forward to pod
+          profileDependency: 2
+          severity: 5
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - network
   63: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
@@ -41282,6 +41539,15 @@ multiple node agents:
               - clusterrolebindings
               - rolebindings
             scope: '*'
+          - apiGroups:
+              - networking.k8s.io
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+            resources:
+              - networkpolicies
+            scope: '*'
         sideEffects: None
   71: |
     apiVersion: rbac.authorization.k8s.io/v1
@@ -41371,6 +41637,7 @@ multiple node agents:
           - kubescape.io
         resources:
           - runtimerulealertbindings
+          - rules
         verbs:
           - list
           - watch
@@ -41570,7 +41837,7 @@ multiple node agents:
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
                   value: kubescape,kubevuln,node-agent,operator,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/operator:v0.2.142
+              image: quay.io/kubescape/operator:v0.2.149
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -46448,6 +46715,15 @@ priority class scheduling:
               - clusterrolebindings
               - rolebindings
             scope: '*'
+          - apiGroups:
+              - networking.k8s.io
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+            resources:
+              - networkpolicies
+            scope: '*'
         sideEffects: None
   44: |
     apiVersion: rbac.authorization.k8s.io/v1
@@ -46537,6 +46813,7 @@ priority class scheduling:
           - kubescape.io
         resources:
           - runtimerulealertbindings
+          - rules
         verbs:
           - list
           - watch
@@ -46722,7 +46999,7 @@ priority class scheduling:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.142
+              image: quay.io/kubescape/operator:v0.2.149
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -50862,6 +51139,7 @@ relevancy only:
           - kubescape.io
         resources:
           - runtimerulealertbindings
+          - rules
         verbs:
           - list
           - watch
@@ -51045,7 +51323,7 @@ relevancy only:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.142
+              image: quay.io/kubescape/operator:v0.2.149
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -56100,6 +56378,46 @@ skipPersistence enabled:
             - syscalls
             - io_uring
             - applicationprofile
+        - description: Detects exec operations on pods via the Kubernetes admission webhook (PodExecOptions CONNECT)
+          enabled: true
+          expressions:
+            message: '''Exec to pod: '' + event.Name + '' in namespace '' + event.Namespace + '' by '' + event.UserInfo.Username'
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: event.Kind == "PodExecOptions"
+            uniqueId: event.Namespace + '/' + event.Name
+          id: R2000
+          isTriggerAlert: true
+          mitreTactic: TA0002
+          mitreTechnique: T1609
+          name: Exec to pod
+          profileDependency: 2
+          severity: 8
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - exec
+        - description: Detects port-forward operations on pods via the Kubernetes admission webhook (PodPortForwardOptions CONNECT)
+          enabled: true
+          expressions:
+            message: '''Port forward to pod: '' + event.Name + '' in namespace '' + event.Namespace + '' by '' + event.UserInfo.Username'
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: event.Kind == "PodPortForwardOptions"
+            uniqueId: event.Namespace + '/' + event.Name
+          id: R2001
+          isTriggerAlert: true
+          mitreTactic: TA0011
+          mitreTechnique: T1090
+          name: Port forward to pod
+          profileDependency: 2
+          severity: 5
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - network
   62: |
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy
@@ -56351,6 +56669,15 @@ skipPersistence enabled:
               - clusterrolebindings
               - rolebindings
             scope: '*'
+          - apiGroups:
+              - networking.k8s.io
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+            resources:
+              - networkpolicies
+            scope: '*'
         sideEffects: None
   70: |
     apiVersion: rbac.authorization.k8s.io/v1
@@ -56440,6 +56767,7 @@ skipPersistence enabled:
           - kubescape.io
         resources:
           - runtimerulealertbindings
+          - rules
         verbs:
           - list
           - watch
@@ -56639,7 +56967,7 @@ skipPersistence enabled:
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
                   value: kubescape,kubevuln,node-agent,operator,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/operator:v0.2.142
+              image: quay.io/kubescape/operator:v0.2.149
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
