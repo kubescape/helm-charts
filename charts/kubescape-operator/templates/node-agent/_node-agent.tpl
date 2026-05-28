@@ -311,6 +311,16 @@ Parameters:
           fieldPath: metadata.namespace
     - name: CLUSTER_NAME
       value: "{{ .Values.clusterName }}"
+    {{- range .Values.nodeAgent.sbomScanner.env }}
+    - name: {{ .name }}
+    {{- if .value }}
+      value: "{{ .value }}"
+    {{- end }}
+    {{- if .valueFrom }}
+      valueFrom:
+{{ toYaml .valueFrom | indent 8 }}
+    {{- end }}
+    {{- end }}
   {{- if .Values.nodeAgent.sbomScanner.volumeMounts }}
   volumeMounts:
     {{- toYaml .Values.nodeAgent.sbomScanner.volumeMounts | nindent 4 }}

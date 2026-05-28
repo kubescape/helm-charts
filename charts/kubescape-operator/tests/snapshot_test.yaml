@@ -227,6 +227,11 @@ tests:
       nodeAgent.sbomScanner.enabled: true
       capabilities.nodeSbomGeneration: enable
       configurations.otelUrl: "otelCollector.svc.monitoring:4317"
+      nodeAgent:
+        sbomScanner:
+          env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "signoz-otel-collector.signoz.svc.cluster.local:4317"
     asserts:
       - contains:
           path: spec.template.spec.containers[0].env
@@ -259,6 +264,11 @@ tests:
           content:
             name: OTEL_COLLECTOR_SVC
             value: otelCollector.svc.monitoring:4317
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EXPORTER_OTLP_ENDPOINT
+            value: signoz-otel-collector.signoz.svc.cluster.local:4317
   - it: storage service configuration
     template: storage/service.yaml
     documentSelector:
