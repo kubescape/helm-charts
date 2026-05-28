@@ -312,13 +312,14 @@ Parameters:
     - name: CLUSTER_NAME
       value: "{{ .Values.clusterName }}"
     {{- range .Values.nodeAgent.sbomScanner.env }}
+    {{- if and .name (ne (empty .value) (empty .valueFrom)) }}
     - name: {{ .name }}
     {{- if .value }}
       value: "{{ .value }}"
-    {{- end }}
-    {{- if .valueFrom }}
+    {{- else if .valueFrom }}
       valueFrom:
-{{ toYaml .valueFrom | indent 8 }}
+        {{- toYaml .valueFrom | nindent 8 }}
+    {{- end }}
     {{- end }}
     {{- end }}
   {{- if .Values.nodeAgent.sbomScanner.volumeMounts }}
