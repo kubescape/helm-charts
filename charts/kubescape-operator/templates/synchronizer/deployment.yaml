@@ -35,9 +35,6 @@ spec:
         {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.synchronizer.name "tier" .Values.global.namespaceTier) | nindent 8 }}
         {{- with .Values.synchronizer.podLabels }}{{- toYaml . | nindent 8 }}{{- end }}
         kubescape.io/tier: "core"
-      {{- if $components.otelCollector.enabled }}
-        otel: enabled
-      {{- end }}
     spec:
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -90,19 +87,6 @@ spec:
             {{- range .Values.synchronizer.env }}
             - name: {{ .name }}
               value: "{{ .value }}"
-            {{- end }}
-            {{- if $components.otelCollector.enabled }}
-            - name: ACCOUNT_ID
-              valueFrom:
-                secretKeyRef:
-                  name: {{ $components.cloudSecret.name }}
-                  key: account
-            - name: OTEL_COLLECTOR_SVC
-              value: "otel-collector:4318"
-            {{- end }}
-            {{- if .Values.configurations.otelUrl }}
-            - name: OTEL_COLLECTOR_SVC
-              value: {{ .Values.configurations.otelUrl }}
             {{- end }}
             {{- if ne .Values.global.httpsProxy "" }}
             - name: HTTPS_PROXY

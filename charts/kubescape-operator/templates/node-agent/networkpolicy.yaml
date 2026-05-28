@@ -18,4 +18,16 @@ spec:
   egress:
 {{ tpl (.Files.Get "assets/api-server-egress-rules.yaml") . | indent 4 }}
 {{ tpl (.Files.Get "assets/common-egress-rules.yaml") . | indent 4 }}
+    {{- if .Values.configurations.otelUrl }}
+    # OTLP export to configurations.otelUrl (gRPC 4317 / HTTP 4318). Ports-only
+    # because otelUrl is an arbitrary host (often cross-namespace or external),
+    # which a pod/namespace selector cannot express. node-agent is the only
+    # workload exporting telemetry, and the sbom-scanner sidecar shares this
+    # pod's network namespace, so one rule covers both containers.
+    - ports:
+        - port: 4317
+          protocol: TCP
+        - port: 4318
+          protocol: TCP
+    {{- end }}
 {{- end }}

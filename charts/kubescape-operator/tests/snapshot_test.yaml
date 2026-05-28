@@ -233,6 +233,95 @@ tests:
       - equal:
           path: metadata.annotations["io.cilium/lb-ipam-ips"]
           value: 10.103.145.148
+  - it: sbom scanner gets otel endpoint and downward-API telemetry env
+    template: node-agent/daemonset.yaml
+    documentSelector:
+      path: metadata.name
+      value: node-agent
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      configurations.otelUrl: "signoz-otel-collector.signoz.svc.cluster.local:4317"
+      capabilities.runtimeObservability: enable
+      nodeAgent.sbomScanner.enabled: true
+      capabilities.nodeSbomGeneration: enable
+    asserts:
+      # containers[0] is the sbom-scanner sidecar
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_COLLECTOR_SVC
+            value: signoz-otel-collector.signoz.svc.cluster.local:4317
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CLUSTER_NAME
+            value: kind-kind
+  - it: node-agent egress allows OTLP ports when otelUrl is set
+    template: node-agent/networkpolicy.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.runtimeObservability: enable
+      configurations.otelUrl: "signoz-otel-collector.signoz.svc.cluster.local:4317"
+      global.networkPolicy.enabled: true
+      global.networkPolicy.createEgressRules: true
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            ports:
+              - port: 4317
+                protocol: TCP
+              - port: 4318
+                protocol: TCP
+  - it: node-agent egress omits OTLP ports when otelUrl is unset
+    template: node-agent/networkpolicy.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.runtimeObservability: enable
+      global.networkPolicy.enabled: true
+      global.networkPolicy.createEgressRules: true
+    asserts:
+      - notContains:
+          path: spec.egress
+          content:
+            ports:
+              - port: 4317
+                protocol: TCP
+              - port: 4318
+                protocol: TCP
   - it: with single private registry credentials
     template: configs/private-registries-creds-secret.yaml
     documentSelector:
