@@ -56,10 +56,6 @@ Parameters:
   value: "{{ .Values.logger.level }}"
 - name: KS_LOGGER_NAME
   value: "{{ .Values.logger.name }}"
-{{- if .components.otelCollector.enabled }}
-- name: OTEL_COLLECTOR_SVC
-  value: "otel-collector:4318"
-{{- end }}
 {{- if .Values.configurations.otelUrl }}
 - name: OTEL_COLLECTOR_SVC
   value: {{ .Values.configurations.otelUrl }}
@@ -291,6 +287,24 @@ Parameters:
       value: "/sbom-comm/scanner.sock"
     - name: HOST_ROOT
       value: "/host"
+    {{- if .Values.configurations.otelUrl }}
+    - name: OTEL_COLLECTOR_SVC
+      value: {{ .Values.configurations.otelUrl }}
+    {{- end }}
+    - name: NODE_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: spec.nodeName
+    - name: POD_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.name
+    - name: NAMESPACE
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.namespace
+    - name: CLUSTER_NAME
+      value: "{{ .Values.clusterName }}"
   {{- if .Values.nodeAgent.sbomScanner.volumeMounts }}
   volumeMounts:
     {{- toYaml .Values.nodeAgent.sbomScanner.volumeMounts | nindent 4 }}
@@ -425,7 +439,7 @@ kubescape.io/tier: "core"
 {{- if .autoscalerMode }}
 kubescape.io/node-group: "{{`{{ .NodeGroupLabel }}`}}"
 {{- end }}
-{{- if .components.otelCollector.enabled }}
+{{- if .Values.configurations.otelUrl }}
 otel: enabled
 {{- end }}
 {{- end -}}

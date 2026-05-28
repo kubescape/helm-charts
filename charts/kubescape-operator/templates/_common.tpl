@@ -10,7 +10,6 @@ cloudSecret: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.c
 matchingRulesConfig: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.configMapsDirectory "matchingRules-configmap.yaml") . | replace .Chart.AppVersion "" | sha256sum }}
 nodeAgentConfig: {{ include (printf "%s/node-agent/configmap.yaml" $.Template.BasePath) . | replace .Chart.AppVersion "" | sha256sum }}
 operatorConfig: {{ include (printf "%s/operator/configmap.yaml" $.Template.BasePath) . | replace .Chart.AppVersion "" | sha256sum }}
-otelConfig: {{ include (printf "%s/otel-collector/configmap.yaml" $.Template.BasePath) . | replace .Chart.AppVersion "" | sha256sum }}
 proxySecret: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.proxySecretDirectory "proxy-secret.yaml") . | replace .Chart.AppVersion "" | sha256sum }}
 synchronizerConfig: {{ include (printf "%s/synchronizer/configmap.yaml" $.Template.BasePath) . | replace .Chart.AppVersion "" | sha256sum }}
 admissionCertgenScripts: {{ include (printf "%s/operator/admission-webhook/configmap.yaml" $.Template.BasePath) . | replace .Chart.AppVersion "" | sha256sum }}
@@ -20,15 +19,10 @@ storageCertgenScripts: {{ include (printf "%s/storage/certgen/configmap.yaml" $.
 
 {{- define "configurations" -}}
 {{- $createCloudSecret := (empty .Values.credentials.cloudSecret) -}}
-{{- $ksOtel := empty .Values.otelCollector.disable -}}
-{{- $otel := not (empty .Values.configurations.otelUrl) -}}
 {{- $submit := not (empty .Values.server) -}}
 {{- $virtualCrds := not (empty .Values.storage.forceVirtualCrds) -}}
 continuousScan: {{ and (eq .Values.capabilities.continuousScan "enable") (not $submit) }}
 createCloudSecret: {{ $createCloudSecret }}
-ksOtel: {{ and $ksOtel $submit }}
-otel: {{ $otel }}
-otelPort : {{ if $otel }}{{ splitList ":" .Values.configurations.otelUrl | last }}{{ else }}""{{ end }}
 runtimeObservability: {{ eq .Values.capabilities.runtimeObservability "enable" }}
 backendStorageEnabled: {{ eq (index .Values.capabilities "backend-storage" | default "") "enable" }}
 virtualCrds: {{ or $virtualCrds (not $submit) }}
@@ -71,8 +65,6 @@ nodeAgent:
   }}
 operator:
   enabled: {{ eq .Values.capabilities.operator "enable" }}
-otelCollector:
-  enabled: {{ and (empty .Values.otelCollector.disable) (or $configurations.ksOtel $configurations.otel) }}
 serviceDiscovery:
   enabled: {{ $configurations.submit }}
 storage:

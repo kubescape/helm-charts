@@ -131,17 +131,6 @@ all capabilities:
                 matchLabels:
                   k8s-app: kube-dns
         - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
-        - ports:
             - port: 1234
               protocol: TCP
           to:
@@ -262,7 +251,6 @@ all capabilities:
           "namespace": "kubescape",
           "imageVulnerabilitiesScanningEnabled": true,
           "postureScanEnabled": true,
-          "otelCollector": false,
           "nodeAgent": "true",
           "maxImageSize": 5.36870912e+09,
           "maxSBOMSize": 2.097152e+07,
@@ -301,7 +289,7 @@ all capabilities:
       capabilities: |
         {
           "capabilities":{"admissionController":"enable","autoUpgrading":"enable","configurationScan":"enable","continuousScan":"enable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"enable","manageWorkloads":"enable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"enable","relevancy":"enable","riskAcceptance":"enable","runtimeDetection":"enable","runtimeObservability":"enable","scanEmbeddedSBOMs":"enable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"enable","vulnerabilityScan":"enable"},
-          "components":{"autoUpdater":{"enabled":true},"clamAV":{"enabled":true},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":true},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
+          "components":{"autoUpdater":{"enabled":true},"clamAV":{"enabled":true},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":true},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"excludeJsonPaths":[".containers[*].env[?(@.name==\"KUBECONFIG\")]"],"otelUrl":"otelCollector.svc.monitoring:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
         }
@@ -823,17 +811,6 @@ all capabilities:
                 matchLabels:
                   k8s-app: kube-dns
         - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
-        - ports:
             - port: 1234
               protocol: TCP
           to:
@@ -1185,7 +1162,7 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 9e75d712db135f9b4878c0b9557c27328d0f52ecc7473b75c747832f90297b18
+            checksum/cloud-config: 50b2792a8d079d4384072c3b40787ff160fe85abe97736e2be4ac2a6bc56cd9e
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
           labels:
@@ -1263,12 +1240,10 @@ all capabilities:
                     secretKeyRef:
                       key: aksResourceGroup
                       name: kubescape-secret
-                - name: OTEL_COLLECTOR_SVC
-                  value: otelCollector.svc.monitoring:4317
                 - name: HTTPS_PROXY
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
+                  value: kubescape,kubevuln,node-agent,operator,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
                 - name: KS_INCLUDE_NAMESPACES
                   value: my-namespace
               image: quay.io/kubescape/kubescape:v4.0.8
@@ -1433,17 +1408,6 @@ all capabilities:
               podSelector:
                 matchLabels:
                   k8s-app: kube-dns
-        - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
         - ports:
             - port: 1234
               protocol: TCP
@@ -1772,17 +1736,6 @@ all capabilities:
                 matchLabels:
                   k8s-app: kube-dns
         - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
-        - ports:
             - port: 1234
               protocol: TCP
           to:
@@ -1911,7 +1864,7 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 9e75d712db135f9b4878c0b9557c27328d0f52ecc7473b75c747832f90297b18
+            checksum/cloud-config: 50b2792a8d079d4384072c3b40787ff160fe85abe97736e2be4ac2a6bc56cd9e
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
           labels:
@@ -1947,12 +1900,10 @@ all capabilities:
                   value: https://api.armosec.io
                 - name: CA_MAX_VULN_SCAN_ROUTINES
                   value: "1"
-                - name: OTEL_COLLECTOR_SVC
-                  value: otelCollector.svc.monitoring:4317
                 - name: HTTPS_PROXY
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
+                  value: kubescape,kubevuln,node-agent,operator,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
               image: quay.io/kubescape/kubevuln:v0.3.142
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -2070,17 +2021,6 @@ all capabilities:
               podSelector:
                 matchLabels:
                   k8s-app: kube-dns
-        - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
         - ports:
             - port: 1234
               protocol: TCP
@@ -2880,7 +2820,7 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 9e75d712db135f9b4878c0b9557c27328d0f52ecc7473b75c747832f90297b18
+            checksum/cloud-config: 50b2792a8d079d4384072c3b40787ff160fe85abe97736e2be4ac2a6bc56cd9e
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/node-agent-config: 9f743d9aac5148b4e8f7ae0369f163d738b845e84581d2b06b06d02a6c6e6043
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
@@ -2897,6 +2837,7 @@ all capabilities:
             helm.sh/chart: kubescape-operator-1.40.2
             kubescape.io/ignore: "true"
             kubescape.io/tier: core
+            otel: enabled
             tier: ks-control-plane
         spec:
           affinity:
@@ -2949,7 +2890,7 @@ all capabilities:
                 - name: HTTPS_PROXY
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
+                  value: kubescape,kubevuln,node-agent,operator,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
                 - name: SKIP_KERNEL_VERSION_CHECK
                   value: "true"
                 - name: NODE_NAME
@@ -3918,17 +3859,6 @@ all capabilities:
                 matchLabels:
                   k8s-app: kube-dns
         - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
-        - ports:
             - port: 1234
               protocol: TCP
           to:
@@ -4379,8 +4309,8 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 59a962f6d5626eef232330ebf8392ff351e1cc9edbd0858281a08a2997d805a1
-            checksum/cloud-config: 9e75d712db135f9b4878c0b9557c27328d0f52ecc7473b75c747832f90297b18
+            checksum/capabilities-config: 491560de20053c77c48895fd008a225d6b490903da22b870e60d799f66f5f13e
+            checksum/cloud-config: 50b2792a8d079d4384072c3b40787ff160fe85abe97736e2be4ac2a6bc56cd9e
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
             checksum/operator-config: fe2488bc71adf7e0a5c922014a0d936ec867810643b5d17e5d46eee6111cef75
@@ -4417,12 +4347,10 @@ all capabilities:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-                - name: OTEL_COLLECTOR_SVC
-                  value: otelCollector.svc.monitoring:4317
                 - name: HTTPS_PROXY
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
+                  value: kubescape,kubevuln,node-agent,operator,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
               image: quay.io/kubescape/operator:v0.2.142
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -4785,17 +4713,6 @@ all capabilities:
               podSelector:
                 matchLabels:
                   k8s-app: kube-dns
-        - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
         - ports:
             - port: 1234
               protocol: TCP
@@ -5256,17 +5173,6 @@ all capabilities:
                 matchLabels:
                   k8s-app: kube-dns
         - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
-        - ports:
             - port: 1234
               protocol: TCP
           to:
@@ -5614,8 +5520,6 @@ all capabilities:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-                - name: OTEL_COLLECTOR_SVC
-                  value: otelCollector.svc.monitoring:4317
               image: quay.io/kubescape/storage:v0.0.274
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -5719,17 +5623,6 @@ all capabilities:
               podSelector:
                 matchLabels:
                   k8s-app: kube-dns
-        - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
         - ports:
             - port: 1234
               protocol: TCP
@@ -6786,7 +6679,7 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 9e75d712db135f9b4878c0b9557c27328d0f52ecc7473b75c747832f90297b18
+            checksum/cloud-config: 50b2792a8d079d4384072c3b40787ff160fe85abe97736e2be4ac2a6bc56cd9e
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
             checksum/synchronizer-configmap: 3174c8dfc918592ea301676ce0b289ff6d19145e7a60f8515d96d064158ba48b
@@ -6822,12 +6715,10 @@ all capabilities:
                   value: zap
                 - name: API_URL
                   value: https://api.armosec.io
-                - name: OTEL_COLLECTOR_SVC
-                  value: otelCollector.svc.monitoring:4317
                 - name: HTTPS_PROXY
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
+                  value: kubescape,kubevuln,node-agent,operator,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
               image: quay.io/kubescape/synchronizer:v0.0.147
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -6945,17 +6836,6 @@ all capabilities:
               podSelector:
                 matchLabels:
                   k8s-app: kube-dns
-        - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
         - ports:
             - port: 1234
               protocol: TCP
@@ -7180,7 +7060,6 @@ autoscaler mode with sbom sidecar:
           "namespace": "kubescape",
           "imageVulnerabilitiesScanningEnabled": true,
           "postureScanEnabled": true,
-          "otelCollector": false,
           "nodeAgent": "true",
           "maxImageSize": 5.36870912e+09,
           "maxSBOMSize": 2.097152e+07,
@@ -7218,7 +7097,7 @@ autoscaler mode with sbom sidecar:
       capabilities: |
         {
           "capabilities":{"admissionController":"enable","autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","riskAcceptance":"disable","runtimeDetection":"enable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
-          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":true},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
+          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":true},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"excludeJsonPaths":null,"otelUrl":null,"persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
         }
@@ -7717,7 +7596,7 @@ autoscaler mode with sbom sidecar:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: f7a445313c8a4c7668278b23c4aa82e5179084364812bb863962a5cc129e608b
+            checksum/cloud-config: aeb74e26eeb9309009b4e1507a4291de5e062bdd0f68d08a68250ea200f32fa0
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
           labels:
             app: kubescape
@@ -8176,7 +8055,7 @@ autoscaler mode with sbom sidecar:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: f7a445313c8a4c7668278b23c4aa82e5179084364812bb863962a5cc129e608b
+            checksum/cloud-config: aeb74e26eeb9309009b4e1507a4291de5e062bdd0f68d08a68250ea200f32fa0
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
           labels:
             app: kubevuln
@@ -8988,7 +8867,7 @@ autoscaler mode with sbom sidecar:
   39: |
     apiVersion: v1
     data:
-      daemonset-template.yaml: "apiVersion: apps/v1\nkind: DaemonSet\nmetadata:\n  name: \"{{ .Name }}\"\n  namespace: kubescape\n  annotations:\n    \n  labels:\n    helm.sh/chart: kubescape-operator-1.40.2\n    app.kubernetes.io/name: kubescape-operator\n    app.kubernetes.io/instance: RELEASE-NAME\n    app.kubernetes.io/component: node-agent\n    app.kubernetes.io/version: \"1.40.2\"\n    app.kubernetes.io/managed-by: Helm\n    app.kubernetes.io/part-of: kubescape\n    app: node-agent\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\n    kubescape.io/tier: \"core\"\n    kubescape.io/managed-by: operator-autoscaler\n    kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\nspec:\n  selector:\n    matchLabels:\n      app.kubernetes.io/name: kubescape-operator\n      app.kubernetes.io/instance: RELEASE-NAME\n      app.kubernetes.io/component: node-agent\n      kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\n  template:\n    metadata:\n      annotations:\n        \n        checksum/node-agent-config: 921a39bfca3fd64ae481a3b3b37e9c48df1332841321f999bd0cf0896ae88136\n        checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424\n        checksum/cloud-config: f7a445313c8a4c7668278b23c4aa82e5179084364812bb863962a5cc129e608b\n        container.apparmor.security.beta.kubernetes.io/node-agent: unconfined\n      labels:\n        helm.sh/chart: kubescape-operator-1.40.2\n        app.kubernetes.io/name: kubescape-operator\n        app.kubernetes.io/instance: RELEASE-NAME\n        app.kubernetes.io/component: node-agent\n        app.kubernetes.io/version: \"1.40.2\"\n        app.kubernetes.io/managed-by: Helm\n        app.kubernetes.io/part-of: kubescape\n        app: node-agent\n        tier: ks-control-plane\n        kubescape.io/ignore: \"true\"\n        kubescape.io/tier: \"core\"\n        kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\n    spec:\n      securityContext:\n      priorityClassName: kubescape-critical\n      serviceAccountName: node-agent\n      automountServiceAccountToken: true\n      hostPID: true\n      volumes:\n      \n      - hostPath:\n          path: /\n        name: host\n      - hostPath:\n          path: /var/lib/kubelet\n        name: kubeletdir\n      - hostPath:\n          path: /run\n        name: run\n      - hostPath:\n          path: /var\n        name: var\n      - hostPath:\n          path: /sys/fs/cgroup\n        name: cgroup\n      - hostPath:\n          path: /lib/modules\n        name: modules\n      - hostPath:\n          path: /sys/fs/bpf\n        name: bpffs\n      - hostPath:\n          path: /sys/kernel/debug\n        name: debugfs\n      - hostPath:\n          path: /boot\n        name: boot\n      - emptyDir: null\n        name: data\n      - emptyDir: null\n        name: profiles\n      - hostPath:\n          path: /\n          type: Directory\n        name: host-filesystem\n      - emptyDir: {}\n        name: clamdb\n      - emptyDir: {}\n        name: clamrun\n      - configMap:\n          items:\n          - key: clamd.conf\n            path: clamd.conf\n          - key: freshclam.conf\n            path: freshclam.conf\n          name: clamav\n        name: etc\n      - emptyDir:\n          medium: Memory\n          sizeLimit: 10Mi\n        name: sbom-comm\n      - emptyDir: {}\n        name: sbom-scanner-tmp\n      - name: cloud-secret\n        secret:\n          secretName: cloud-secret\n      - name: ks-cloud-config\n        configMap:\n          name: ks-cloud-config\n          items:\n            - key: \"clusterData\"\n              path: \"clusterData.json\"\n      - name: config\n        configMap:\n          name: node-agent\n          items:\n            - key: \"config.json\"\n              path: \"config.json\"\n      containers:\n      \n      - name: sbom-scanner\n        image: \"quay.io/kubescape/node-agent:v0.3.119\"\n        imagePullPolicy: IfNotPresent\n        command: \n          - /usr/bin/sbom-scanner\n        securityContext:\n          runAsUser: 0\n          readOnlyRootFilesystem: true\n          capabilities:\n            drop: [\"ALL\"]\n        resources:\n          limits:\n            cpu: 1000m\n            memory: 4Gi\n          requests:\n            cpu: 50m\n            memory: 256Mi\n        env:\n          - name: GOMEMLIMIT\n            value: \"3276MiB\"\n          - name: SOCKET_PATH\n            value: \"/sbom-comm/scanner.sock\"\n          - name: HOST_ROOT\n            value: \"/host\"\n        volumeMounts:\n          - mountPath: /sbom-comm\n            name: sbom-comm\n          - mountPath: /host\n            name: host\n            readOnly: true\n          - mountPath: /tmp\n            name: sbom-scanner-tmp\n      \n      - name: node-agent\n        image: \"quay.io/kubescape/node-agent:v0.3.119\"\n        imagePullPolicy: IfNotPresent\n        livenessProbe:\n          httpGet:\n            path: /livez\n            port: 7888\n          periodSeconds: 3\n        readinessProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          periodSeconds: 3\n        startupProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          periodSeconds: 10\n          failureThreshold: 30\n          timeoutSeconds: 1\n        resources:\n          \n          requests:\n            cpu: \"{{ .Resources.Requests.CPU }}\"\n            memory: \"{{ .Resources.Requests.Memory }}\"\n          limits:\n            cpu: \"{{ .Resources.Limits.CPU }}\"\n            memory: \"{{ .Resources.Limits.Memory }}\"\n        env:\n          \n          - name: GOMEMLIMIT\n            value: \"{{ .GoMemLimit }}\"\n          - name: HOST_ROOT\n            value: \"/host\"\n          - name: KS_LOGGER_LEVEL\n            value: \"info\"\n          - name: KS_LOGGER_NAME\n            value: \"zap\"\n          - name: SBOM_SCANNER_SOCKET\n            value: \"/sbom-comm/scanner.sock\"\n          - name: SCANNER_MEMORY_LIMIT\n            value: \"4Gi\"\n          - name: NODE_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: spec.nodeName\n          - name: POD_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: metadata.name\n          - name: NAMESPACE_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: metadata.namespace\n          - name: KUBELET_ROOT\n            value: \"/var/lib/kubelet\"\n          - name: AGENT_VERSION\n            value: \"v0.3.119\"\n          - name: API_URL\n            value: \"https://api.armosec.io\"\n          - name: NodeName\n            valueFrom:\n              fieldRef:\n                fieldPath: spec.nodeName\n        securityContext:\n          runAsUser: 0\n          privileged: false\n          capabilities:\n            add:\n              - SYS_ADMIN\n              - SYS_PTRACE\n              - NET_ADMIN\n              - SYSLOG\n              - SYS_RESOURCE\n              - IPC_LOCK\n              - NET_RAW\n          seLinuxOptions:\n            type: spc_t\n        volumeMounts:\n          \n          - mountPath: /host\n            name: host\n            readOnly: true\n          - mountPath: /var/lib/kubelet\n            name: kubeletdir\n          - mountPath: /run\n            name: run\n          - mountPath: /var\n            name: var\n            readOnly: true\n          - mountPath: /lib/modules\n            name: modules\n            readOnly: true\n          - mountPath: /sys/kernel/debug\n            name: debugfs\n          - mountPath: /sys/fs/cgroup\n            name: cgroup\n            readOnly: true\n          - mountPath: /sys/fs/bpf\n            name: bpffs\n          - mountPath: /data\n            name: data\n          - mountPath: /profiles\n            name: profiles\n          - mountPath: /boot\n            name: boot\n            readOnly: true\n          - mountPath: /clamav\n            name: clamrun\n          - name: sbom-comm\n            mountPath: /sbom-comm\n          - name: cloud-secret\n            mountPath: /etc/credentials\n            readOnly: true\n          - name: ks-cloud-config\n            mountPath: /etc/config/clusterData.json\n            readOnly: true\n            subPath: \"clusterData.json\"\n          - name: config\n            mountPath: /etc/config/config.json\n            readOnly: true\n            subPath: \"config.json\"\n      nodeSelector:\n        kubernetes.io/os: linux\n        node.kubernetes.io/instance-type: \"{{ .NodeGroupLabel }}\"\n      affinity:\n      \n        nodeAffinity:\n          requiredDuringSchedulingIgnoredDuringExecution:\n            nodeSelectorTerms:\n            - matchExpressions:\n              - key: kubernetes.io/os\n                operator: In\n                values:\n                - linux\n      tolerations:\n"
+      daemonset-template.yaml: "apiVersion: apps/v1\nkind: DaemonSet\nmetadata:\n  name: \"{{ .Name }}\"\n  namespace: kubescape\n  annotations:\n    \n  labels:\n    helm.sh/chart: kubescape-operator-1.40.2\n    app.kubernetes.io/name: kubescape-operator\n    app.kubernetes.io/instance: RELEASE-NAME\n    app.kubernetes.io/component: node-agent\n    app.kubernetes.io/version: \"1.40.2\"\n    app.kubernetes.io/managed-by: Helm\n    app.kubernetes.io/part-of: kubescape\n    app: node-agent\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\n    kubescape.io/tier: \"core\"\n    kubescape.io/managed-by: operator-autoscaler\n    kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\nspec:\n  selector:\n    matchLabels:\n      app.kubernetes.io/name: kubescape-operator\n      app.kubernetes.io/instance: RELEASE-NAME\n      app.kubernetes.io/component: node-agent\n      kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\n  template:\n    metadata:\n      annotations:\n        \n        checksum/node-agent-config: 921a39bfca3fd64ae481a3b3b37e9c48df1332841321f999bd0cf0896ae88136\n        checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424\n        checksum/cloud-config: aeb74e26eeb9309009b4e1507a4291de5e062bdd0f68d08a68250ea200f32fa0\n        container.apparmor.security.beta.kubernetes.io/node-agent: unconfined\n      labels:\n        helm.sh/chart: kubescape-operator-1.40.2\n        app.kubernetes.io/name: kubescape-operator\n        app.kubernetes.io/instance: RELEASE-NAME\n        app.kubernetes.io/component: node-agent\n        app.kubernetes.io/version: \"1.40.2\"\n        app.kubernetes.io/managed-by: Helm\n        app.kubernetes.io/part-of: kubescape\n        app: node-agent\n        tier: ks-control-plane\n        kubescape.io/ignore: \"true\"\n        kubescape.io/tier: \"core\"\n        kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\n    spec:\n      securityContext:\n      priorityClassName: kubescape-critical\n      serviceAccountName: node-agent\n      automountServiceAccountToken: true\n      hostPID: true\n      volumes:\n      \n      - hostPath:\n          path: /\n        name: host\n      - hostPath:\n          path: /var/lib/kubelet\n        name: kubeletdir\n      - hostPath:\n          path: /run\n        name: run\n      - hostPath:\n          path: /var\n        name: var\n      - hostPath:\n          path: /sys/fs/cgroup\n        name: cgroup\n      - hostPath:\n          path: /lib/modules\n        name: modules\n      - hostPath:\n          path: /sys/fs/bpf\n        name: bpffs\n      - hostPath:\n          path: /sys/kernel/debug\n        name: debugfs\n      - hostPath:\n          path: /boot\n        name: boot\n      - emptyDir: null\n        name: data\n      - emptyDir: null\n        name: profiles\n      - hostPath:\n          path: /\n          type: Directory\n        name: host-filesystem\n      - emptyDir: {}\n        name: clamdb\n      - emptyDir: {}\n        name: clamrun\n      - configMap:\n          items:\n          - key: clamd.conf\n            path: clamd.conf\n          - key: freshclam.conf\n            path: freshclam.conf\n          name: clamav\n        name: etc\n      - emptyDir:\n          medium: Memory\n          sizeLimit: 10Mi\n        name: sbom-comm\n      - emptyDir: {}\n        name: sbom-scanner-tmp\n      - name: cloud-secret\n        secret:\n          secretName: cloud-secret\n      - name: ks-cloud-config\n        configMap:\n          name: ks-cloud-config\n          items:\n            - key: \"clusterData\"\n              path: \"clusterData.json\"\n      - name: config\n        configMap:\n          name: node-agent\n          items:\n            - key: \"config.json\"\n              path: \"config.json\"\n      containers:\n      \n      - name: sbom-scanner\n        image: \"quay.io/kubescape/node-agent:v0.3.119\"\n        imagePullPolicy: IfNotPresent\n        command: \n          - /usr/bin/sbom-scanner\n        securityContext:\n          runAsUser: 0\n          readOnlyRootFilesystem: true\n          capabilities:\n            drop: [\"ALL\"]\n        resources:\n          limits:\n            cpu: 1000m\n            memory: 4Gi\n          requests:\n            cpu: 50m\n            memory: 256Mi\n        env:\n          - name: GOMEMLIMIT\n            value: \"3276MiB\"\n          - name: SOCKET_PATH\n            value: \"/sbom-comm/scanner.sock\"\n          - name: HOST_ROOT\n            value: \"/host\"\n          - name: NODE_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: spec.nodeName\n          - name: POD_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: metadata.name\n          - name: NAMESPACE\n            valueFrom:\n              fieldRef:\n                fieldPath: metadata.namespace\n          - name: CLUSTER_NAME\n            value: \"kind-kind\"\n        volumeMounts:\n          - mountPath: /sbom-comm\n            name: sbom-comm\n          - mountPath: /host\n            name: host\n            readOnly: true\n          - mountPath: /tmp\n            name: sbom-scanner-tmp\n      \n      - name: node-agent\n        image: \"quay.io/kubescape/node-agent:v0.3.119\"\n        imagePullPolicy: IfNotPresent\n        livenessProbe:\n          httpGet:\n            path: /livez\n            port: 7888\n          periodSeconds: 3\n        readinessProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          periodSeconds: 3\n        startupProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          periodSeconds: 10\n          failureThreshold: 30\n          timeoutSeconds: 1\n        resources:\n          \n          requests:\n            cpu: \"{{ .Resources.Requests.CPU }}\"\n            memory: \"{{ .Resources.Requests.Memory }}\"\n          limits:\n            cpu: \"{{ .Resources.Limits.CPU }}\"\n            memory: \"{{ .Resources.Limits.Memory }}\"\n        env:\n          \n          - name: GOMEMLIMIT\n            value: \"{{ .GoMemLimit }}\"\n          - name: HOST_ROOT\n            value: \"/host\"\n          - name: KS_LOGGER_LEVEL\n            value: \"info\"\n          - name: KS_LOGGER_NAME\n            value: \"zap\"\n          - name: SBOM_SCANNER_SOCKET\n            value: \"/sbom-comm/scanner.sock\"\n          - name: SCANNER_MEMORY_LIMIT\n            value: \"4Gi\"\n          - name: NODE_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: spec.nodeName\n          - name: POD_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: metadata.name\n          - name: NAMESPACE_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: metadata.namespace\n          - name: KUBELET_ROOT\n            value: \"/var/lib/kubelet\"\n          - name: AGENT_VERSION\n            value: \"v0.3.119\"\n          - name: API_URL\n            value: \"https://api.armosec.io\"\n          - name: NodeName\n            valueFrom:\n              fieldRef:\n                fieldPath: spec.nodeName\n        securityContext:\n          runAsUser: 0\n          privileged: false\n          capabilities:\n            add:\n              - SYS_ADMIN\n              - SYS_PTRACE\n              - NET_ADMIN\n              - SYSLOG\n              - SYS_RESOURCE\n              - IPC_LOCK\n              - NET_RAW\n          seLinuxOptions:\n            type: spc_t\n        volumeMounts:\n          \n          - mountPath: /host\n            name: host\n            readOnly: true\n          - mountPath: /var/lib/kubelet\n            name: kubeletdir\n          - mountPath: /run\n            name: run\n          - mountPath: /var\n            name: var\n            readOnly: true\n          - mountPath: /lib/modules\n            name: modules\n            readOnly: true\n          - mountPath: /sys/kernel/debug\n            name: debugfs\n          - mountPath: /sys/fs/cgroup\n            name: cgroup\n            readOnly: true\n          - mountPath: /sys/fs/bpf\n            name: bpffs\n          - mountPath: /data\n            name: data\n          - mountPath: /profiles\n            name: profiles\n          - mountPath: /boot\n            name: boot\n            readOnly: true\n          - mountPath: /clamav\n            name: clamrun\n          - name: sbom-comm\n            mountPath: /sbom-comm\n          - name: cloud-secret\n            mountPath: /etc/credentials\n            readOnly: true\n          - name: ks-cloud-config\n            mountPath: /etc/config/clusterData.json\n            readOnly: true\n            subPath: \"clusterData.json\"\n          - name: config\n            mountPath: /etc/config/config.json\n            readOnly: true\n            subPath: \"config.json\"\n      nodeSelector:\n        kubernetes.io/os: linux\n        node.kubernetes.io/instance-type: \"{{ .NodeGroupLabel }}\"\n      affinity:\n      \n        nodeAffinity:\n          requiredDuringSchedulingIgnoredDuringExecution:\n            nodeSelectorTerms:\n            - matchExpressions:\n              - key: kubernetes.io/os\n                operator: In\n                values:\n                - linux\n      tolerations:\n"
     kind: ConfigMap
     metadata:
       annotations: null
@@ -9363,8 +9242,8 @@ autoscaler mode with sbom sidecar:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 90f38255212fe42544b844cc7bc6e351fc77df1e970ee36e5350aa357a2e00c7
-            checksum/cloud-config: f7a445313c8a4c7668278b23c4aa82e5179084364812bb863962a5cc129e608b
+            checksum/capabilities-config: 2f1715cfc98ba5cb40c37d1ebbb6614c2d8a9505e64be34d6ff6f3af19ca636d
+            checksum/cloud-config: aeb74e26eeb9309009b4e1507a4291de5e062bdd0f68d08a68250ea200f32fa0
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
             checksum/operator-config: eb8c2ba68d0a90d394a14eef4e3e3373e843277e76dde04f32aa1105b412b534
@@ -11162,7 +11041,7 @@ autoscaler mode with sbom sidecar:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: f7a445313c8a4c7668278b23c4aa82e5179084364812bb863962a5cc129e608b
+            checksum/cloud-config: aeb74e26eeb9309009b4e1507a4291de5e062bdd0f68d08a68250ea200f32fa0
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/synchronizer-configmap: fa25e5549001f4047cef967a744b959af552b30520407609f91764887e7aea4c
           labels:
@@ -11430,7 +11309,6 @@ autoscaler mode without sbom sidecar:
           "namespace": "kubescape",
           "imageVulnerabilitiesScanningEnabled": true,
           "postureScanEnabled": true,
-          "otelCollector": false,
           "nodeAgent": "true",
           "maxImageSize": 5.36870912e+09,
           "maxSBOMSize": 2.097152e+07,
@@ -11468,7 +11346,7 @@ autoscaler mode without sbom sidecar:
       capabilities: |
         {
           "capabilities":{"admissionController":"enable","autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","riskAcceptance":"disable","runtimeDetection":"enable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
-          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
+          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"excludeJsonPaths":null,"otelUrl":null,"persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
         }
@@ -11967,7 +11845,7 @@ autoscaler mode without sbom sidecar:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: f7a445313c8a4c7668278b23c4aa82e5179084364812bb863962a5cc129e608b
+            checksum/cloud-config: aeb74e26eeb9309009b4e1507a4291de5e062bdd0f68d08a68250ea200f32fa0
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
           labels:
             app: kubescape
@@ -12426,7 +12304,7 @@ autoscaler mode without sbom sidecar:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: f7a445313c8a4c7668278b23c4aa82e5179084364812bb863962a5cc129e608b
+            checksum/cloud-config: aeb74e26eeb9309009b4e1507a4291de5e062bdd0f68d08a68250ea200f32fa0
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
           labels:
             app: kubevuln
@@ -13238,7 +13116,7 @@ autoscaler mode without sbom sidecar:
   39: |
     apiVersion: v1
     data:
-      daemonset-template.yaml: "apiVersion: apps/v1\nkind: DaemonSet\nmetadata:\n  name: \"{{ .Name }}\"\n  namespace: kubescape\n  annotations:\n    \n  labels:\n    helm.sh/chart: kubescape-operator-1.40.2\n    app.kubernetes.io/name: kubescape-operator\n    app.kubernetes.io/instance: RELEASE-NAME\n    app.kubernetes.io/component: node-agent\n    app.kubernetes.io/version: \"1.40.2\"\n    app.kubernetes.io/managed-by: Helm\n    app.kubernetes.io/part-of: kubescape\n    app: node-agent\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\n    kubescape.io/tier: \"core\"\n    kubescape.io/managed-by: operator-autoscaler\n    kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\nspec:\n  selector:\n    matchLabels:\n      app.kubernetes.io/name: kubescape-operator\n      app.kubernetes.io/instance: RELEASE-NAME\n      app.kubernetes.io/component: node-agent\n      kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\n  template:\n    metadata:\n      annotations:\n        \n        checksum/node-agent-config: 921a39bfca3fd64ae481a3b3b37e9c48df1332841321f999bd0cf0896ae88136\n        checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424\n        checksum/cloud-config: f7a445313c8a4c7668278b23c4aa82e5179084364812bb863962a5cc129e608b\n        container.apparmor.security.beta.kubernetes.io/node-agent: unconfined\n      labels:\n        helm.sh/chart: kubescape-operator-1.40.2\n        app.kubernetes.io/name: kubescape-operator\n        app.kubernetes.io/instance: RELEASE-NAME\n        app.kubernetes.io/component: node-agent\n        app.kubernetes.io/version: \"1.40.2\"\n        app.kubernetes.io/managed-by: Helm\n        app.kubernetes.io/part-of: kubescape\n        app: node-agent\n        tier: ks-control-plane\n        kubescape.io/ignore: \"true\"\n        kubescape.io/tier: \"core\"\n        kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\n    spec:\n      securityContext:\n      priorityClassName: kubescape-critical\n      serviceAccountName: node-agent\n      automountServiceAccountToken: true\n      hostPID: true\n      volumes:\n      \n      - hostPath:\n          path: /\n        name: host\n      - hostPath:\n          path: /var/lib/kubelet\n        name: kubeletdir\n      - hostPath:\n          path: /run\n        name: run\n      - hostPath:\n          path: /var\n        name: var\n      - hostPath:\n          path: /sys/fs/cgroup\n        name: cgroup\n      - hostPath:\n          path: /lib/modules\n        name: modules\n      - hostPath:\n          path: /sys/fs/bpf\n        name: bpffs\n      - hostPath:\n          path: /sys/kernel/debug\n        name: debugfs\n      - hostPath:\n          path: /boot\n        name: boot\n      - emptyDir: null\n        name: data\n      - emptyDir: null\n        name: profiles\n      - hostPath:\n          path: /\n          type: Directory\n        name: host-filesystem\n      - emptyDir: {}\n        name: clamdb\n      - emptyDir: {}\n        name: clamrun\n      - configMap:\n          items:\n          - key: clamd.conf\n            path: clamd.conf\n          - key: freshclam.conf\n            path: freshclam.conf\n          name: clamav\n        name: etc\n      - name: cloud-secret\n        secret:\n          secretName: cloud-secret\n      - name: ks-cloud-config\n        configMap:\n          name: ks-cloud-config\n          items:\n            - key: \"clusterData\"\n              path: \"clusterData.json\"\n      - name: config\n        configMap:\n          name: node-agent\n          items:\n            - key: \"config.json\"\n              path: \"config.json\"\n      containers:\n      \n      - name: node-agent\n        image: \"quay.io/kubescape/node-agent:v0.3.119\"\n        imagePullPolicy: IfNotPresent\n        livenessProbe:\n          httpGet:\n            path: /livez\n            port: 7888\n          periodSeconds: 3\n        readinessProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          periodSeconds: 3\n        startupProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          periodSeconds: 10\n          failureThreshold: 30\n          timeoutSeconds: 1\n        resources:\n          \n          requests:\n            cpu: \"{{ .Resources.Requests.CPU }}\"\n            memory: \"{{ .Resources.Requests.Memory }}\"\n          limits:\n            cpu: \"{{ .Resources.Limits.CPU }}\"\n            memory: \"{{ .Resources.Limits.Memory }}\"\n        env:\n          \n          - name: GOMEMLIMIT\n            value: \"{{ .GoMemLimit }}\"\n          - name: HOST_ROOT\n            value: \"/host\"\n          - name: KS_LOGGER_LEVEL\n            value: \"info\"\n          - name: KS_LOGGER_NAME\n            value: \"zap\"\n          - name: NODE_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: spec.nodeName\n          - name: POD_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: metadata.name\n          - name: NAMESPACE_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: metadata.namespace\n          - name: KUBELET_ROOT\n            value: \"/var/lib/kubelet\"\n          - name: AGENT_VERSION\n            value: \"v0.3.119\"\n          - name: API_URL\n            value: \"https://api.armosec.io\"\n          - name: NodeName\n            valueFrom:\n              fieldRef:\n                fieldPath: spec.nodeName\n        securityContext:\n          runAsUser: 0\n          privileged: false\n          capabilities:\n            add:\n              - SYS_ADMIN\n              - SYS_PTRACE\n              - NET_ADMIN\n              - SYSLOG\n              - SYS_RESOURCE\n              - IPC_LOCK\n              - NET_RAW\n          seLinuxOptions:\n            type: spc_t\n        volumeMounts:\n          \n          - mountPath: /host\n            name: host\n            readOnly: true\n          - mountPath: /var/lib/kubelet\n            name: kubeletdir\n          - mountPath: /run\n            name: run\n          - mountPath: /var\n            name: var\n            readOnly: true\n          - mountPath: /lib/modules\n            name: modules\n            readOnly: true\n          - mountPath: /sys/kernel/debug\n            name: debugfs\n          - mountPath: /sys/fs/cgroup\n            name: cgroup\n            readOnly: true\n          - mountPath: /sys/fs/bpf\n            name: bpffs\n          - mountPath: /data\n            name: data\n          - mountPath: /profiles\n            name: profiles\n          - mountPath: /boot\n            name: boot\n            readOnly: true\n          - mountPath: /clamav\n            name: clamrun\n          - name: cloud-secret\n            mountPath: /etc/credentials\n            readOnly: true\n          - name: ks-cloud-config\n            mountPath: /etc/config/clusterData.json\n            readOnly: true\n            subPath: \"clusterData.json\"\n          - name: config\n            mountPath: /etc/config/config.json\n            readOnly: true\n            subPath: \"config.json\"\n      nodeSelector:\n        kubernetes.io/os: linux\n        node.kubernetes.io/instance-type: \"{{ .NodeGroupLabel }}\"\n      affinity:\n      \n        nodeAffinity:\n          requiredDuringSchedulingIgnoredDuringExecution:\n            nodeSelectorTerms:\n            - matchExpressions:\n              - key: kubernetes.io/os\n                operator: In\n                values:\n                - linux\n      tolerations:\n"
+      daemonset-template.yaml: "apiVersion: apps/v1\nkind: DaemonSet\nmetadata:\n  name: \"{{ .Name }}\"\n  namespace: kubescape\n  annotations:\n    \n  labels:\n    helm.sh/chart: kubescape-operator-1.40.2\n    app.kubernetes.io/name: kubescape-operator\n    app.kubernetes.io/instance: RELEASE-NAME\n    app.kubernetes.io/component: node-agent\n    app.kubernetes.io/version: \"1.40.2\"\n    app.kubernetes.io/managed-by: Helm\n    app.kubernetes.io/part-of: kubescape\n    app: node-agent\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\n    kubescape.io/tier: \"core\"\n    kubescape.io/managed-by: operator-autoscaler\n    kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\nspec:\n  selector:\n    matchLabels:\n      app.kubernetes.io/name: kubescape-operator\n      app.kubernetes.io/instance: RELEASE-NAME\n      app.kubernetes.io/component: node-agent\n      kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\n  template:\n    metadata:\n      annotations:\n        \n        checksum/node-agent-config: 921a39bfca3fd64ae481a3b3b37e9c48df1332841321f999bd0cf0896ae88136\n        checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424\n        checksum/cloud-config: aeb74e26eeb9309009b4e1507a4291de5e062bdd0f68d08a68250ea200f32fa0\n        container.apparmor.security.beta.kubernetes.io/node-agent: unconfined\n      labels:\n        helm.sh/chart: kubescape-operator-1.40.2\n        app.kubernetes.io/name: kubescape-operator\n        app.kubernetes.io/instance: RELEASE-NAME\n        app.kubernetes.io/component: node-agent\n        app.kubernetes.io/version: \"1.40.2\"\n        app.kubernetes.io/managed-by: Helm\n        app.kubernetes.io/part-of: kubescape\n        app: node-agent\n        tier: ks-control-plane\n        kubescape.io/ignore: \"true\"\n        kubescape.io/tier: \"core\"\n        kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\n    spec:\n      securityContext:\n      priorityClassName: kubescape-critical\n      serviceAccountName: node-agent\n      automountServiceAccountToken: true\n      hostPID: true\n      volumes:\n      \n      - hostPath:\n          path: /\n        name: host\n      - hostPath:\n          path: /var/lib/kubelet\n        name: kubeletdir\n      - hostPath:\n          path: /run\n        name: run\n      - hostPath:\n          path: /var\n        name: var\n      - hostPath:\n          path: /sys/fs/cgroup\n        name: cgroup\n      - hostPath:\n          path: /lib/modules\n        name: modules\n      - hostPath:\n          path: /sys/fs/bpf\n        name: bpffs\n      - hostPath:\n          path: /sys/kernel/debug\n        name: debugfs\n      - hostPath:\n          path: /boot\n        name: boot\n      - emptyDir: null\n        name: data\n      - emptyDir: null\n        name: profiles\n      - hostPath:\n          path: /\n          type: Directory\n        name: host-filesystem\n      - emptyDir: {}\n        name: clamdb\n      - emptyDir: {}\n        name: clamrun\n      - configMap:\n          items:\n          - key: clamd.conf\n            path: clamd.conf\n          - key: freshclam.conf\n            path: freshclam.conf\n          name: clamav\n        name: etc\n      - name: cloud-secret\n        secret:\n          secretName: cloud-secret\n      - name: ks-cloud-config\n        configMap:\n          name: ks-cloud-config\n          items:\n            - key: \"clusterData\"\n              path: \"clusterData.json\"\n      - name: config\n        configMap:\n          name: node-agent\n          items:\n            - key: \"config.json\"\n              path: \"config.json\"\n      containers:\n      \n      - name: node-agent\n        image: \"quay.io/kubescape/node-agent:v0.3.119\"\n        imagePullPolicy: IfNotPresent\n        livenessProbe:\n          httpGet:\n            path: /livez\n            port: 7888\n          periodSeconds: 3\n        readinessProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          periodSeconds: 3\n        startupProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          periodSeconds: 10\n          failureThreshold: 30\n          timeoutSeconds: 1\n        resources:\n          \n          requests:\n            cpu: \"{{ .Resources.Requests.CPU }}\"\n            memory: \"{{ .Resources.Requests.Memory }}\"\n          limits:\n            cpu: \"{{ .Resources.Limits.CPU }}\"\n            memory: \"{{ .Resources.Limits.Memory }}\"\n        env:\n          \n          - name: GOMEMLIMIT\n            value: \"{{ .GoMemLimit }}\"\n          - name: HOST_ROOT\n            value: \"/host\"\n          - name: KS_LOGGER_LEVEL\n            value: \"info\"\n          - name: KS_LOGGER_NAME\n            value: \"zap\"\n          - name: NODE_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: spec.nodeName\n          - name: POD_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: metadata.name\n          - name: NAMESPACE_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: metadata.namespace\n          - name: KUBELET_ROOT\n            value: \"/var/lib/kubelet\"\n          - name: AGENT_VERSION\n            value: \"v0.3.119\"\n          - name: API_URL\n            value: \"https://api.armosec.io\"\n          - name: NodeName\n            valueFrom:\n              fieldRef:\n                fieldPath: spec.nodeName\n        securityContext:\n          runAsUser: 0\n          privileged: false\n          capabilities:\n            add:\n              - SYS_ADMIN\n              - SYS_PTRACE\n              - NET_ADMIN\n              - SYSLOG\n              - SYS_RESOURCE\n              - IPC_LOCK\n              - NET_RAW\n          seLinuxOptions:\n            type: spc_t\n        volumeMounts:\n          \n          - mountPath: /host\n            name: host\n            readOnly: true\n          - mountPath: /var/lib/kubelet\n            name: kubeletdir\n          - mountPath: /run\n            name: run\n          - mountPath: /var\n            name: var\n            readOnly: true\n          - mountPath: /lib/modules\n            name: modules\n            readOnly: true\n          - mountPath: /sys/kernel/debug\n            name: debugfs\n          - mountPath: /sys/fs/cgroup\n            name: cgroup\n            readOnly: true\n          - mountPath: /sys/fs/bpf\n            name: bpffs\n          - mountPath: /data\n            name: data\n          - mountPath: /profiles\n            name: profiles\n          - mountPath: /boot\n            name: boot\n            readOnly: true\n          - mountPath: /clamav\n            name: clamrun\n          - name: cloud-secret\n            mountPath: /etc/credentials\n            readOnly: true\n          - name: ks-cloud-config\n            mountPath: /etc/config/clusterData.json\n            readOnly: true\n            subPath: \"clusterData.json\"\n          - name: config\n            mountPath: /etc/config/config.json\n            readOnly: true\n            subPath: \"config.json\"\n      nodeSelector:\n        kubernetes.io/os: linux\n        node.kubernetes.io/instance-type: \"{{ .NodeGroupLabel }}\"\n      affinity:\n      \n        nodeAffinity:\n          requiredDuringSchedulingIgnoredDuringExecution:\n            nodeSelectorTerms:\n            - matchExpressions:\n              - key: kubernetes.io/os\n                operator: In\n                values:\n                - linux\n      tolerations:\n"
     kind: ConfigMap
     metadata:
       annotations: null
@@ -13613,8 +13491,8 @@ autoscaler mode without sbom sidecar:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 4d135943a61a1c434a5c5d83fcb7f634490965fe346dc0336c5c8f5afd8345d3
-            checksum/cloud-config: f7a445313c8a4c7668278b23c4aa82e5179084364812bb863962a5cc129e608b
+            checksum/capabilities-config: 70c98f97910c4b60af503ea887a5fc28b92c78729521f4bfd93aa01f578093a3
+            checksum/cloud-config: aeb74e26eeb9309009b4e1507a4291de5e062bdd0f68d08a68250ea200f32fa0
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
             checksum/operator-config: f25200b37249b83d95e85baa2d9177bec9fd9617e3d050e8189257fe2e6c9208
@@ -15412,7 +15290,7 @@ autoscaler mode without sbom sidecar:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: f7a445313c8a4c7668278b23c4aa82e5179084364812bb863962a5cc129e608b
+            checksum/cloud-config: aeb74e26eeb9309009b4e1507a4291de5e062bdd0f68d08a68250ea200f32fa0
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/synchronizer-configmap: fa25e5549001f4047cef967a744b959af552b30520407609f91764887e7aea4c
           labels:
@@ -15672,7 +15550,6 @@ backend-storage enabled disables scanning capabilities:
           "namespace": "kubescape",
           "imageVulnerabilitiesScanningEnabled": false,
           "postureScanEnabled": false,
-          "otelCollector": false,
           "nodeAgent": "true",
           "maxImageSize": 5.36870912e+09,
           "maxSBOMSize": 2.097152e+07,
@@ -15710,7 +15587,7 @@ backend-storage enabled disables scanning capabilities:
       capabilities: |
         {
           "capabilities":{"admissionController":"enable","autoUpgrading":"disable","backend-storage":"enable","configurationScan":"enable","continuousScan":"disable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","riskAcceptance":"disable","runtimeDetection":"disable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
-          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":false},"kubescapeScheduler":{"enabled":false},"kubevuln":{"enabled":false},"kubevulnScheduler":{"enabled":false},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":false},"synchronizer":{"enabled":true}},
+          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":false},"kubescapeScheduler":{"enabled":false},"kubevuln":{"enabled":false},"kubevulnScheduler":{"enabled":false},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":false},"synchronizer":{"enabled":true}},
           "configurations":{"excludeJsonPaths":null,"otelUrl":null,"persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
         }
@@ -16414,7 +16291,7 @@ backend-storage enabled disables scanning capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: e945e10fba65a1da98299f6e2341659393595c1ff2537df24df10a50d8649425
+            checksum/cloud-config: 7d174f3b693f89a0ffc0607ad503f5304bcedc76202415139fc75e07e1622610
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/node-agent-config: 5b096b629100ed01a91caa6427465d14f7d22879e70eb05d643ddfb608dcef74
             container.apparmor.security.beta.kubernetes.io/node-agent: unconfined
@@ -17764,8 +17641,8 @@ backend-storage enabled disables scanning capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 47983baad55de40bf510f8a28c7b4d26e353a04625a68e557e76864aa7464287
-            checksum/cloud-config: e945e10fba65a1da98299f6e2341659393595c1ff2537df24df10a50d8649425
+            checksum/capabilities-config: c51d7a072ddc1b393f191e0feec20fbcd8c64fa52690dd8135077c1b11fa342a
+            checksum/cloud-config: 7d174f3b693f89a0ffc0607ad503f5304bcedc76202415139fc75e07e1622610
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
             checksum/operator-config: f52c7c610627e0f7441d7e1fec39106e63ed9c2a7aa1f57e0323fef7d786cf2f
@@ -19132,7 +19009,7 @@ backend-storage enabled disables scanning capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: e945e10fba65a1da98299f6e2341659393595c1ff2537df24df10a50d8649425
+            checksum/cloud-config: 7d174f3b693f89a0ffc0607ad503f5304bcedc76202415139fc75e07e1622610
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/synchronizer-configmap: 03e2983b6344d0360b442232570bfc4c1f2640db5b9ae6f46939eeca1675a249
           labels:
@@ -19374,8 +19251,8 @@ cert strategy initContainer, admission disabled, mtls disabled:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 1fbd1b1814d6546acd0c0c507fd34e9038765f55bfd98f2357a8f48dcd7a47d2
-            checksum/cloud-config: 3d0ace7126ad39f2038a78de11fb554a194e470b58c5ad93640c22ac96aa3c63
+            checksum/capabilities-config: 81860cc202844cab834e68e2bbf2658fafe85cd5f223553d696f3d9a9e967340
+            checksum/cloud-config: ec0a95cbe42fc974f50c86dd953a6b21e1e47d80fa8aa723c6d2042fa99bb2fe
             checksum/cloud-secret: 3248919273cee6d6f750f97ea378fc79fff1f03b131f21d584a00258bf475a80
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
             checksum/operator-config: 0665196b0516908c723a461215096233418d974ba9b5e42322bb614b57a71bd6
@@ -19682,8 +19559,8 @@ cert strategy initContainer, admission disabled, mtls enabled:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 1fbd1b1814d6546acd0c0c507fd34e9038765f55bfd98f2357a8f48dcd7a47d2
-            checksum/cloud-config: 3d0ace7126ad39f2038a78de11fb554a194e470b58c5ad93640c22ac96aa3c63
+            checksum/capabilities-config: 81860cc202844cab834e68e2bbf2658fafe85cd5f223553d696f3d9a9e967340
+            checksum/cloud-config: ec0a95cbe42fc974f50c86dd953a6b21e1e47d80fa8aa723c6d2042fa99bb2fe
             checksum/cloud-secret: 3248919273cee6d6f750f97ea378fc79fff1f03b131f21d584a00258bf475a80
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
             checksum/operator-config: 0665196b0516908c723a461215096233418d974ba9b5e42322bb614b57a71bd6
@@ -20344,8 +20221,8 @@ cert strategy initContainer, admission enabled, mtls disabled:
         metadata:
           annotations:
             checksum/admission-certgen-scripts: 68045c1d7a9c76b19d12ac26a2d1634bfc5f4707f2e153ffd535add8e4fb9d24
-            checksum/capabilities-config: 2527ca06cbf9e89c06d229969c0c5bdd60d88f6e17dc4389cfc7cf59fecc2d91
-            checksum/cloud-config: 3d0ace7126ad39f2038a78de11fb554a194e470b58c5ad93640c22ac96aa3c63
+            checksum/capabilities-config: e8fbf30b99bdb3136115a8a1d59c5fa89cdcf15141b55afc49fe1fad67faed7b
+            checksum/cloud-config: ec0a95cbe42fc974f50c86dd953a6b21e1e47d80fa8aa723c6d2042fa99bb2fe
             checksum/cloud-secret: 3248919273cee6d6f750f97ea378fc79fff1f03b131f21d584a00258bf475a80
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
             checksum/operator-config: 0665196b0516908c723a461215096233418d974ba9b5e42322bb614b57a71bd6
@@ -20906,8 +20783,8 @@ cert strategy initContainer, admission enabled, mtls enabled:
         metadata:
           annotations:
             checksum/admission-certgen-scripts: 68045c1d7a9c76b19d12ac26a2d1634bfc5f4707f2e153ffd535add8e4fb9d24
-            checksum/capabilities-config: 2527ca06cbf9e89c06d229969c0c5bdd60d88f6e17dc4389cfc7cf59fecc2d91
-            checksum/cloud-config: 3d0ace7126ad39f2038a78de11fb554a194e470b58c5ad93640c22ac96aa3c63
+            checksum/capabilities-config: e8fbf30b99bdb3136115a8a1d59c5fa89cdcf15141b55afc49fe1fad67faed7b
+            checksum/cloud-config: ec0a95cbe42fc974f50c86dd953a6b21e1e47d80fa8aa723c6d2042fa99bb2fe
             checksum/cloud-secret: 3248919273cee6d6f750f97ea378fc79fff1f03b131f21d584a00258bf475a80
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
             checksum/operator-config: 0665196b0516908c723a461215096233418d974ba9b5e42322bb614b57a71bd6
@@ -21468,8 +21345,8 @@ cert strategy template, admission disabled, mtls disabled:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 1fbd1b1814d6546acd0c0c507fd34e9038765f55bfd98f2357a8f48dcd7a47d2
-            checksum/cloud-config: 3d0ace7126ad39f2038a78de11fb554a194e470b58c5ad93640c22ac96aa3c63
+            checksum/capabilities-config: 81860cc202844cab834e68e2bbf2658fafe85cd5f223553d696f3d9a9e967340
+            checksum/cloud-config: ec0a95cbe42fc974f50c86dd953a6b21e1e47d80fa8aa723c6d2042fa99bb2fe
             checksum/cloud-secret: 3248919273cee6d6f750f97ea378fc79fff1f03b131f21d584a00258bf475a80
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
             checksum/operator-config: 0665196b0516908c723a461215096233418d974ba9b5e42322bb614b57a71bd6
@@ -21776,8 +21653,8 @@ cert strategy template, admission disabled, mtls enabled:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 1fbd1b1814d6546acd0c0c507fd34e9038765f55bfd98f2357a8f48dcd7a47d2
-            checksum/cloud-config: 3d0ace7126ad39f2038a78de11fb554a194e470b58c5ad93640c22ac96aa3c63
+            checksum/capabilities-config: 81860cc202844cab834e68e2bbf2658fafe85cd5f223553d696f3d9a9e967340
+            checksum/cloud-config: ec0a95cbe42fc974f50c86dd953a6b21e1e47d80fa8aa723c6d2042fa99bb2fe
             checksum/cloud-secret: 3248919273cee6d6f750f97ea378fc79fff1f03b131f21d584a00258bf475a80
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
             checksum/operator-config: 0665196b0516908c723a461215096233418d974ba9b5e42322bb614b57a71bd6
@@ -22257,8 +22134,8 @@ cert strategy template, admission enabled, mtls disabled:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 2527ca06cbf9e89c06d229969c0c5bdd60d88f6e17dc4389cfc7cf59fecc2d91
-            checksum/cloud-config: 3d0ace7126ad39f2038a78de11fb554a194e470b58c5ad93640c22ac96aa3c63
+            checksum/capabilities-config: e8fbf30b99bdb3136115a8a1d59c5fa89cdcf15141b55afc49fe1fad67faed7b
+            checksum/cloud-config: ec0a95cbe42fc974f50c86dd953a6b21e1e47d80fa8aa723c6d2042fa99bb2fe
             checksum/cloud-secret: 3248919273cee6d6f750f97ea378fc79fff1f03b131f21d584a00258bf475a80
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
             checksum/operator-config: 0665196b0516908c723a461215096233418d974ba9b5e42322bb614b57a71bd6
@@ -22695,8 +22572,8 @@ cert strategy template, admission enabled, mtls enabled:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 2527ca06cbf9e89c06d229969c0c5bdd60d88f6e17dc4389cfc7cf59fecc2d91
-            checksum/cloud-config: 3d0ace7126ad39f2038a78de11fb554a194e470b58c5ad93640c22ac96aa3c63
+            checksum/capabilities-config: e8fbf30b99bdb3136115a8a1d59c5fa89cdcf15141b55afc49fe1fad67faed7b
+            checksum/cloud-config: ec0a95cbe42fc974f50c86dd953a6b21e1e47d80fa8aa723c6d2042fa99bb2fe
             checksum/cloud-secret: 3248919273cee6d6f750f97ea378fc79fff1f03b131f21d584a00258bf475a80
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
             checksum/operator-config: 0665196b0516908c723a461215096233418d974ba9b5e42322bb614b57a71bd6
@@ -23090,7 +22967,6 @@ default capabilities:
           "namespace": "kubescape",
           "imageVulnerabilitiesScanningEnabled": true,
           "postureScanEnabled": true,
-          "otelCollector": false,
           "nodeAgent": "true",
           "maxImageSize": 5.36870912e+09,
           "maxSBOMSize": 2.097152e+07,
@@ -23129,7 +23005,7 @@ default capabilities:
       capabilities: |
         {
           "capabilities":{"admissionController":"disable","autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","httpDetection":"disable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"disable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","riskAcceptance":"disable","runtimeDetection":"disable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
-          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
+          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"excludeJsonPaths":null,"otelUrl":null,"persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
         }
@@ -23493,17 +23369,6 @@ default capabilities:
                 matchLabels:
                   k8s-app: kube-dns
         - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
-        - ports:
             - port: 4002
               protocol: TCP
           to:
@@ -23849,7 +23714,7 @@ default capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 01c084f9f55f7a44ba692e661b929d42e70cd8487ec1b97d3d37c33c4a5ace30
+            checksum/cloud-config: 3b417c79d450e1ee66af001647fdd151dd56c6892d6a369a2ee09fbf4528b763
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
           labels:
@@ -24061,17 +23926,6 @@ default capabilities:
               podSelector:
                 matchLabels:
                   k8s-app: kube-dns
-        - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
       ingress:
         - from:
             - podSelector:
@@ -24365,17 +24219,6 @@ default capabilities:
                 matchLabels:
                   k8s-app: kube-dns
         - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
-        - ports:
             - port: 4002
               protocol: TCP
           to:
@@ -24489,7 +24332,7 @@ default capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 01c084f9f55f7a44ba692e661b929d42e70cd8487ec1b97d3d37c33c4a5ace30
+            checksum/cloud-config: 3b417c79d450e1ee66af001647fdd151dd56c6892d6a369a2ee09fbf4528b763
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
           labels:
@@ -24641,17 +24484,6 @@ default capabilities:
               podSelector:
                 matchLabels:
                   k8s-app: kube-dns
-        - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
       ingress:
         - from:
             - podSelector:
@@ -25358,7 +25190,7 @@ default capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 01c084f9f55f7a44ba692e661b929d42e70cd8487ec1b97d3d37c33c4a5ace30
+            checksum/cloud-config: 3b417c79d450e1ee66af001647fdd151dd56c6892d6a369a2ee09fbf4528b763
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/node-agent-config: 41f6b1ea1a381f48674d910146caccf2061a27d75507c5aa4597892061d791ab
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
@@ -26363,17 +26195,6 @@ default capabilities:
               podSelector:
                 matchLabels:
                   k8s-app: kube-dns
-        - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
       podSelector:
         matchLabels:
           app.kubernetes.io/component: node-agent
@@ -26663,8 +26484,8 @@ default capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: c5584872a72c3f078f3587eb9f2b298a53e224d4933a5fdc5312e2f90351960f
-            checksum/cloud-config: 01c084f9f55f7a44ba692e661b929d42e70cd8487ec1b97d3d37c33c4a5ace30
+            checksum/capabilities-config: f51e51aff58cb03c4bab63af5433bc01626f2876ee7f460c0027d16978ffff71
+            checksum/cloud-config: 3b417c79d450e1ee66af001647fdd151dd56c6892d6a369a2ee09fbf4528b763
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
             checksum/operator-config: 61ece26a62adc90490818f6bc0361a170b699228db38d5f3099286b59faa0304
@@ -27043,17 +26864,6 @@ default capabilities:
               podSelector:
                 matchLabels:
                   k8s-app: kube-dns
-        - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
       ingress:
         - from:
             - podSelector:
@@ -27679,17 +27489,6 @@ default capabilities:
               podSelector:
                 matchLabels:
                   k8s-app: kube-dns
-        - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
       ingress:
         - from:
             - ipBlock:
@@ -28630,7 +28429,7 @@ default capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 01c084f9f55f7a44ba692e661b929d42e70cd8487ec1b97d3d37c33c4a5ace30
+            checksum/cloud-config: 3b417c79d450e1ee66af001647fdd151dd56c6892d6a369a2ee09fbf4528b763
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
             checksum/synchronizer-configmap: fa25e5549001f4047cef967a744b959af552b30520407609f91764887e7aea4c
@@ -28778,17 +28577,6 @@ default capabilities:
               podSelector:
                 matchLabels:
                   k8s-app: kube-dns
-        - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
       ingress:
         - from:
             - podSelector:
@@ -28982,7 +28770,6 @@ disable otel:
           "namespace": "kubescape",
           "imageVulnerabilitiesScanningEnabled": true,
           "postureScanEnabled": true,
-          "otelCollector": false,
           "nodeAgent": "true",
           "maxImageSize": 5.36870912e+09,
           "maxSBOMSize": 2.097152e+07,
@@ -29020,7 +28807,7 @@ disable otel:
       capabilities: |
         {
           "capabilities":{"admissionController":"enable","autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","riskAcceptance":"disable","runtimeDetection":"disable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
-          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
+          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"excludeJsonPaths":null,"otelUrl":null,"persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
         }
@@ -29519,7 +29306,7 @@ disable otel:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: f7a445313c8a4c7668278b23c4aa82e5179084364812bb863962a5cc129e608b
+            checksum/cloud-config: aeb74e26eeb9309009b4e1507a4291de5e062bdd0f68d08a68250ea200f32fa0
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
           labels:
             app: kubescape
@@ -29978,7 +29765,7 @@ disable otel:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: f7a445313c8a4c7668278b23c4aa82e5179084364812bb863962a5cc129e608b
+            checksum/cloud-config: aeb74e26eeb9309009b4e1507a4291de5e062bdd0f68d08a68250ea200f32fa0
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
           labels:
             app: kubevuln
@@ -30769,7 +30556,7 @@ disable otel:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: f7a445313c8a4c7668278b23c4aa82e5179084364812bb863962a5cc129e608b
+            checksum/cloud-config: aeb74e26eeb9309009b4e1507a4291de5e062bdd0f68d08a68250ea200f32fa0
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/node-agent-config: de39e483c7670abf6a50b51d07213c35f9cc80c06fa7ff204269dfd51de16794
             container.apparmor.security.beta.kubernetes.io/node-agent: unconfined
@@ -31383,8 +31170,8 @@ disable otel:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: efacfd9f9350e7c5cb7ab703d87fa37b1e44f8caaacc28fa9b34f9b15c75e51a
-            checksum/cloud-config: f7a445313c8a4c7668278b23c4aa82e5179084364812bb863962a5cc129e608b
+            checksum/capabilities-config: d35263c6bb28aa1576c0848d93e8415be6ac8757e363f240df6e7af76d74b1a9
+            checksum/cloud-config: aeb74e26eeb9309009b4e1507a4291de5e062bdd0f68d08a68250ea200f32fa0
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
             checksum/operator-config: 61ece26a62adc90490818f6bc0361a170b699228db38d5f3099286b59faa0304
@@ -33164,7 +32951,7 @@ disable otel:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: f7a445313c8a4c7668278b23c4aa82e5179084364812bb863962a5cc129e608b
+            checksum/cloud-config: aeb74e26eeb9309009b4e1507a4291de5e062bdd0f68d08a68250ea200f32fa0
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/synchronizer-configmap: fa25e5549001f4047cef967a744b959af552b30520407609f91764887e7aea4c
           labels:
@@ -33432,7 +33219,6 @@ minimal capabilities:
           "namespace": "kubescape",
           "imageVulnerabilitiesScanningEnabled": true,
           "postureScanEnabled": true,
-          "otelCollector": false,
           "nodeAgent": "true",
           "maxImageSize": 5.36870912e+09,
           "maxSBOMSize": 2.097152e+07,
@@ -33470,7 +33256,7 @@ minimal capabilities:
       capabilities: |
         {
           "capabilities":{"admissionController":"enable","autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","riskAcceptance":"disable","runtimeDetection":"disable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
-          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":false},"storage":{"enabled":true},"synchronizer":{"enabled":false}},
+          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":false},"storage":{"enabled":true},"synchronizer":{"enabled":false}},
           "configurations":{"excludeJsonPaths":null,"otelUrl":"otelCollector.svc.monitoring:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
         }
@@ -33969,7 +33755,7 @@ minimal capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 9e73128486147557ac429152a572f5a7d3a34906835991129709219495e05b1a
+            checksum/cloud-config: c2750cf0ee8a5883c746e9f14d6648b13e48c1ed8ce4f23683d97b03d2baa066
             checksum/cloud-secret: 3248919273cee6d6f750f97ea378fc79fff1f03b131f21d584a00258bf475a80
           labels:
             app: kubescape
@@ -34019,8 +33805,6 @@ minimal capabilities:
                   value: /home/nonroot/.kubescape/host-scanner.yaml
                 - name: LARGE_CLUSTER_SIZE
                   value: "1500"
-                - name: OTEL_COLLECTOR_SVC
-                  value: otelCollector.svc.monitoring:4317
               image: quay.io/kubescape/kubescape:v4.0.8
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -34426,7 +34210,7 @@ minimal capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 9e73128486147557ac429152a572f5a7d3a34906835991129709219495e05b1a
+            checksum/cloud-config: c2750cf0ee8a5883c746e9f14d6648b13e48c1ed8ce4f23683d97b03d2baa066
             checksum/cloud-secret: 3248919273cee6d6f750f97ea378fc79fff1f03b131f21d584a00258bf475a80
           labels:
             app: kubevuln
@@ -34459,8 +34243,6 @@ minimal capabilities:
                   value: ""
                 - name: CA_MAX_VULN_SCAN_ROUTINES
                   value: "1"
-                - name: OTEL_COLLECTOR_SVC
-                  value: otelCollector.svc.monitoring:4317
               image: quay.io/kubescape/kubevuln:v0.3.142
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -35215,7 +34997,7 @@ minimal capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 9e73128486147557ac429152a572f5a7d3a34906835991129709219495e05b1a
+            checksum/cloud-config: c2750cf0ee8a5883c746e9f14d6648b13e48c1ed8ce4f23683d97b03d2baa066
             checksum/cloud-secret: 3248919273cee6d6f750f97ea378fc79fff1f03b131f21d584a00258bf475a80
             checksum/node-agent-config: 5a3f0a030b37748c121f49ffb2536eb1a2a9c7a4d3e26173883e4bd2f7691b32
             container.apparmor.security.beta.kubernetes.io/node-agent: unconfined
@@ -35230,6 +35012,7 @@ minimal capabilities:
             helm.sh/chart: kubescape-operator-1.40.2
             kubescape.io/ignore: "true"
             kubescape.io/tier: core
+            otel: enabled
             tier: ks-control-plane
         spec:
           affinity:
@@ -35827,8 +35610,8 @@ minimal capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 05153fd2adbb5dfd8ef4b7e316175a2ea2dda40dde83856cfc432670804ae761
-            checksum/cloud-config: 9e73128486147557ac429152a572f5a7d3a34906835991129709219495e05b1a
+            checksum/capabilities-config: fa3baf663baa550c8e4f29c6119e6fe503cbfb9fd0dafb8503acec598c5d8402
+            checksum/cloud-config: c2750cf0ee8a5883c746e9f14d6648b13e48c1ed8ce4f23683d97b03d2baa066
             checksum/cloud-secret: 3248919273cee6d6f750f97ea378fc79fff1f03b131f21d584a00258bf475a80
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
             checksum/operator-config: 983fcf2e8de4e0e62b27ee03dc84ed2f56918469b6adec435f450608fdfe645e
@@ -35864,8 +35647,6 @@ minimal capabilities:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-                - name: OTEL_COLLECTOR_SVC
-                  value: otelCollector.svc.monitoring:4317
               image: quay.io/kubescape/operator:v0.2.142
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -36620,8 +36401,6 @@ minimal capabilities:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-                - name: OTEL_COLLECTOR_SVC
-                  value: otelCollector.svc.monitoring:4317
               image: quay.io/kubescape/storage:v0.0.274
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -37241,17 +37020,6 @@ multiple node agents:
                 matchLabels:
                   k8s-app: kube-dns
         - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
-        - ports:
             - port: 1234
               protocol: TCP
           to:
@@ -37372,7 +37140,6 @@ multiple node agents:
           "namespace": "kubescape",
           "imageVulnerabilitiesScanningEnabled": true,
           "postureScanEnabled": true,
-          "otelCollector": false,
           "nodeAgent": "true",
           "maxImageSize": 5.36870912e+09,
           "maxSBOMSize": 2.097152e+07,
@@ -37411,7 +37178,7 @@ multiple node agents:
       capabilities: |
         {
           "capabilities":{"admissionController":"enable","autoUpgrading":"enable","configurationScan":"enable","continuousScan":"enable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"enable","manageWorkloads":"enable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"enable","relevancy":"enable","riskAcceptance":"enable","runtimeDetection":"enable","runtimeObservability":"enable","scanEmbeddedSBOMs":"enable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"enable","vulnerabilityScan":"enable"},
-          "components":{"autoUpdater":{"enabled":true},"clamAV":{"enabled":true},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":true},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
+          "components":{"autoUpdater":{"enabled":true},"clamAV":{"enabled":true},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":true},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"excludeJsonPaths":[".containers[*].env[?(@.name==\"KUBECONFIG\")]"],"otelUrl":"otelCollector.svc.monitoring:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
         }
@@ -37933,17 +37700,6 @@ multiple node agents:
                 matchLabels:
                   k8s-app: kube-dns
         - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
-        - ports:
             - port: 1234
               protocol: TCP
           to:
@@ -38295,7 +38051,7 @@ multiple node agents:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 9e75d712db135f9b4878c0b9557c27328d0f52ecc7473b75c747832f90297b18
+            checksum/cloud-config: 50b2792a8d079d4384072c3b40787ff160fe85abe97736e2be4ac2a6bc56cd9e
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
           labels:
@@ -38373,12 +38129,10 @@ multiple node agents:
                     secretKeyRef:
                       key: aksResourceGroup
                       name: kubescape-secret
-                - name: OTEL_COLLECTOR_SVC
-                  value: otelCollector.svc.monitoring:4317
                 - name: HTTPS_PROXY
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
+                  value: kubescape,kubevuln,node-agent,operator,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
                 - name: KS_INCLUDE_NAMESPACES
                   value: my-namespace
               image: quay.io/kubescape/kubescape:v4.0.8
@@ -38543,17 +38297,6 @@ multiple node agents:
               podSelector:
                 matchLabels:
                   k8s-app: kube-dns
-        - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
         - ports:
             - port: 1234
               protocol: TCP
@@ -38882,17 +38625,6 @@ multiple node agents:
                 matchLabels:
                   k8s-app: kube-dns
         - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
-        - ports:
             - port: 1234
               protocol: TCP
           to:
@@ -39021,7 +38753,7 @@ multiple node agents:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 9e75d712db135f9b4878c0b9557c27328d0f52ecc7473b75c747832f90297b18
+            checksum/cloud-config: 50b2792a8d079d4384072c3b40787ff160fe85abe97736e2be4ac2a6bc56cd9e
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
           labels:
@@ -39057,12 +38789,10 @@ multiple node agents:
                   value: https://api.armosec.io
                 - name: CA_MAX_VULN_SCAN_ROUTINES
                   value: "1"
-                - name: OTEL_COLLECTOR_SVC
-                  value: otelCollector.svc.monitoring:4317
                 - name: HTTPS_PROXY
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
+                  value: kubescape,kubevuln,node-agent,operator,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
               image: quay.io/kubescape/kubevuln:v0.3.142
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -39180,17 +38910,6 @@ multiple node agents:
               podSelector:
                 matchLabels:
                   k8s-app: kube-dns
-        - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
         - ports:
             - port: 1234
               protocol: TCP
@@ -39990,7 +39709,7 @@ multiple node agents:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 9e75d712db135f9b4878c0b9557c27328d0f52ecc7473b75c747832f90297b18
+            checksum/cloud-config: 50b2792a8d079d4384072c3b40787ff160fe85abe97736e2be4ac2a6bc56cd9e
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/node-agent-config: 9f743d9aac5148b4e8f7ae0369f163d738b845e84581d2b06b06d02a6c6e6043
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
@@ -40007,6 +39726,7 @@ multiple node agents:
             helm.sh/chart: kubescape-operator-1.40.2
             kubescape.io/ignore: "true"
             kubescape.io/tier: core
+            otel: enabled
             tier: ks-control-plane
         spec:
           affinity:
@@ -40059,7 +39779,7 @@ multiple node agents:
                 - name: HTTPS_PROXY
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
+                  value: kubescape,kubevuln,node-agent,operator,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
                 - name: SKIP_KERNEL_VERSION_CHECK
                   value: "true"
                 - name: NODE_NAME
@@ -40282,7 +40002,7 @@ multiple node agents:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 9e75d712db135f9b4878c0b9557c27328d0f52ecc7473b75c747832f90297b18
+            checksum/cloud-config: 50b2792a8d079d4384072c3b40787ff160fe85abe97736e2be4ac2a6bc56cd9e
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/node-agent-config: 9f743d9aac5148b4e8f7ae0369f163d738b845e84581d2b06b06d02a6c6e6043
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
@@ -40299,6 +40019,7 @@ multiple node agents:
             helm.sh/chart: kubescape-operator-1.40.2
             kubescape.io/ignore: "true"
             kubescape.io/tier: core
+            otel: enabled
             tier: ks-control-plane
         spec:
           affinity:
@@ -40351,7 +40072,7 @@ multiple node agents:
                 - name: HTTPS_PROXY
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
+                  value: kubescape,kubevuln,node-agent,operator,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
                 - name: SKIP_KERNEL_VERSION_CHECK
                   value: "true"
                 - name: NODE_NAME
@@ -41321,17 +41042,6 @@ multiple node agents:
                 matchLabels:
                   k8s-app: kube-dns
         - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
-        - ports:
             - port: 1234
               protocol: TCP
           to:
@@ -41782,8 +41492,8 @@ multiple node agents:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 59a962f6d5626eef232330ebf8392ff351e1cc9edbd0858281a08a2997d805a1
-            checksum/cloud-config: 9e75d712db135f9b4878c0b9557c27328d0f52ecc7473b75c747832f90297b18
+            checksum/capabilities-config: 491560de20053c77c48895fd008a225d6b490903da22b870e60d799f66f5f13e
+            checksum/cloud-config: 50b2792a8d079d4384072c3b40787ff160fe85abe97736e2be4ac2a6bc56cd9e
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
             checksum/operator-config: fe2488bc71adf7e0a5c922014a0d936ec867810643b5d17e5d46eee6111cef75
@@ -41820,12 +41530,10 @@ multiple node agents:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-                - name: OTEL_COLLECTOR_SVC
-                  value: otelCollector.svc.monitoring:4317
                 - name: HTTPS_PROXY
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
+                  value: kubescape,kubevuln,node-agent,operator,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
               image: quay.io/kubescape/operator:v0.2.142
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -42188,17 +41896,6 @@ multiple node agents:
               podSelector:
                 matchLabels:
                   k8s-app: kube-dns
-        - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
         - ports:
             - port: 1234
               protocol: TCP
@@ -42659,17 +42356,6 @@ multiple node agents:
                 matchLabels:
                   k8s-app: kube-dns
         - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
-        - ports:
             - port: 1234
               protocol: TCP
           to:
@@ -43017,8 +42703,6 @@ multiple node agents:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-                - name: OTEL_COLLECTOR_SVC
-                  value: otelCollector.svc.monitoring:4317
               image: quay.io/kubescape/storage:v0.0.274
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -43122,17 +42806,6 @@ multiple node agents:
               podSelector:
                 matchLabels:
                   k8s-app: kube-dns
-        - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
         - ports:
             - port: 1234
               protocol: TCP
@@ -44189,7 +43862,7 @@ multiple node agents:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 9e75d712db135f9b4878c0b9557c27328d0f52ecc7473b75c747832f90297b18
+            checksum/cloud-config: 50b2792a8d079d4384072c3b40787ff160fe85abe97736e2be4ac2a6bc56cd9e
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
             checksum/synchronizer-configmap: 3174c8dfc918592ea301676ce0b289ff6d19145e7a60f8515d96d064158ba48b
@@ -44225,12 +43898,10 @@ multiple node agents:
                   value: zap
                 - name: API_URL
                   value: https://api.armosec.io
-                - name: OTEL_COLLECTOR_SVC
-                  value: otelCollector.svc.monitoring:4317
                 - name: HTTPS_PROXY
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
+                  value: kubescape,kubevuln,node-agent,operator,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
               image: quay.io/kubescape/synchronizer:v0.0.147
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -44348,17 +44019,6 @@ multiple node agents:
               podSelector:
                 matchLabels:
                   k8s-app: kube-dns
-        - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
         - ports:
             - port: 1234
               protocol: TCP
@@ -44583,7 +44243,6 @@ priority class scheduling:
           "namespace": "kubescape",
           "imageVulnerabilitiesScanningEnabled": true,
           "postureScanEnabled": true,
-          "otelCollector": false,
           "nodeAgent": "true",
           "maxImageSize": 5.36870912e+09,
           "maxSBOMSize": 2.097152e+07,
@@ -44621,7 +44280,7 @@ priority class scheduling:
       capabilities: |
         {
           "capabilities":{"admissionController":"enable","autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","riskAcceptance":"disable","runtimeDetection":"enable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
-          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
+          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"excludeJsonPaths":null,"otelUrl":null,"persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
         }
@@ -45121,7 +44780,7 @@ priority class scheduling:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: f7a445313c8a4c7668278b23c4aa82e5179084364812bb863962a5cc129e608b
+            checksum/cloud-config: aeb74e26eeb9309009b4e1507a4291de5e062bdd0f68d08a68250ea200f32fa0
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
           labels:
             app: kubescape
@@ -45582,7 +45241,7 @@ priority class scheduling:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: f7a445313c8a4c7668278b23c4aa82e5179084364812bb863962a5cc129e608b
+            checksum/cloud-config: aeb74e26eeb9309009b4e1507a4291de5e062bdd0f68d08a68250ea200f32fa0
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
           labels:
             app: kubevuln
@@ -46374,7 +46033,7 @@ priority class scheduling:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: f7a445313c8a4c7668278b23c4aa82e5179084364812bb863962a5cc129e608b
+            checksum/cloud-config: aeb74e26eeb9309009b4e1507a4291de5e062bdd0f68d08a68250ea200f32fa0
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/node-agent-config: 921a39bfca3fd64ae481a3b3b37e9c48df1332841321f999bd0cf0896ae88136
             container.apparmor.security.beta.kubernetes.io/node-agent: unconfined
@@ -46988,8 +46647,8 @@ priority class scheduling:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 4d135943a61a1c434a5c5d83fcb7f634490965fe346dc0336c5c8f5afd8345d3
-            checksum/cloud-config: f7a445313c8a4c7668278b23c4aa82e5179084364812bb863962a5cc129e608b
+            checksum/capabilities-config: 70c98f97910c4b60af503ea887a5fc28b92c78729521f4bfd93aa01f578093a3
+            checksum/cloud-config: aeb74e26eeb9309009b4e1507a4291de5e062bdd0f68d08a68250ea200f32fa0
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
             checksum/operator-config: 61ece26a62adc90490818f6bc0361a170b699228db38d5f3099286b59faa0304
@@ -48771,7 +48430,7 @@ priority class scheduling:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: f7a445313c8a4c7668278b23c4aa82e5179084364812bb863962a5cc129e608b
+            checksum/cloud-config: aeb74e26eeb9309009b4e1507a4291de5e062bdd0f68d08a68250ea200f32fa0
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/synchronizer-configmap: fa25e5549001f4047cef967a744b959af552b30520407609f91764887e7aea4c
           labels:
@@ -49039,7 +48698,6 @@ relevancy only:
           "namespace": "kubescape",
           "imageVulnerabilitiesScanningEnabled": true,
           "postureScanEnabled": true,
-          "otelCollector": false,
           "nodeAgent": "true",
           "maxImageSize": 5.36870912e+09,
           "maxSBOMSize": 2.097152e+07,
@@ -49077,7 +48735,7 @@ relevancy only:
       capabilities: |
         {
           "capabilities":{"admissionController":"disable","autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","httpDetection":"disable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"disable","networkPolicyService":"disable","nodeProfileService":"disable","nodeSbomGeneration":"disable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","riskAcceptance":"disable","runtimeDetection":"disable","runtimeObservability":"disable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"disable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
-          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":false},"storage":{"enabled":true},"synchronizer":{"enabled":false}},
+          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":false},"storage":{"enabled":true},"synchronizer":{"enabled":false}},
           "configurations":{"excludeJsonPaths":null,"otelUrl":"otelCollector.svc.monitoring:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
         }
@@ -49576,7 +49234,7 @@ relevancy only:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 9e73128486147557ac429152a572f5a7d3a34906835991129709219495e05b1a
+            checksum/cloud-config: c2750cf0ee8a5883c746e9f14d6648b13e48c1ed8ce4f23683d97b03d2baa066
             checksum/cloud-secret: 3248919273cee6d6f750f97ea378fc79fff1f03b131f21d584a00258bf475a80
           labels:
             app: kubescape
@@ -49626,8 +49284,6 @@ relevancy only:
                   value: /home/nonroot/.kubescape/host-scanner.yaml
                 - name: LARGE_CLUSTER_SIZE
                   value: "1500"
-                - name: OTEL_COLLECTOR_SVC
-                  value: otelCollector.svc.monitoring:4317
               image: quay.io/kubescape/kubescape:v4.0.8
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -50033,7 +49689,7 @@ relevancy only:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 9e73128486147557ac429152a572f5a7d3a34906835991129709219495e05b1a
+            checksum/cloud-config: c2750cf0ee8a5883c746e9f14d6648b13e48c1ed8ce4f23683d97b03d2baa066
             checksum/cloud-secret: 3248919273cee6d6f750f97ea378fc79fff1f03b131f21d584a00258bf475a80
           labels:
             app: kubevuln
@@ -50066,8 +49722,6 @@ relevancy only:
                   value: ""
                 - name: CA_MAX_VULN_SCAN_ROUTINES
                   value: "1"
-                - name: OTEL_COLLECTOR_SVC
-                  value: otelCollector.svc.monitoring:4317
               image: quay.io/kubescape/kubevuln:v0.3.142
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -50822,7 +50476,7 @@ relevancy only:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 9e73128486147557ac429152a572f5a7d3a34906835991129709219495e05b1a
+            checksum/cloud-config: c2750cf0ee8a5883c746e9f14d6648b13e48c1ed8ce4f23683d97b03d2baa066
             checksum/cloud-secret: 3248919273cee6d6f750f97ea378fc79fff1f03b131f21d584a00258bf475a80
             checksum/node-agent-config: 99f1f6115838344bd0d9a74c2c478e2f21e4379683317052a77e85e6f12f20f9
             container.apparmor.security.beta.kubernetes.io/node-agent: unconfined
@@ -50837,6 +50491,7 @@ relevancy only:
             helm.sh/chart: kubescape-operator-1.40.2
             kubescape.io/ignore: "true"
             kubescape.io/tier: core
+            otel: enabled
             tier: ks-control-plane
         spec:
           affinity:
@@ -51313,8 +50968,8 @@ relevancy only:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 083334cc4f1124cc9d12328762a48bbc3c6aad8a8f1d96eeca79e93f12fd300e
-            checksum/cloud-config: 9e73128486147557ac429152a572f5a7d3a34906835991129709219495e05b1a
+            checksum/capabilities-config: 03f5b988ee8bf4aecb8c72ce3730330b4c160ece0633b95dcaea2501ddba988b
+            checksum/cloud-config: c2750cf0ee8a5883c746e9f14d6648b13e48c1ed8ce4f23683d97b03d2baa066
             checksum/cloud-secret: 3248919273cee6d6f750f97ea378fc79fff1f03b131f21d584a00258bf475a80
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
             checksum/operator-config: c8658f560be318b3d044901e321845815d54adeef14fa8ec74bb6c98c45e45b6
@@ -51350,8 +51005,6 @@ relevancy only:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-                - name: OTEL_COLLECTOR_SVC
-                  value: otelCollector.svc.monitoring:4317
               image: quay.io/kubescape/operator:v0.2.142
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -52097,8 +51750,6 @@ relevancy only:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-                - name: OTEL_COLLECTOR_SVC
-                  value: otelCollector.svc.monitoring:4317
               image: quay.io/kubescape/storage:v0.0.274
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -52718,17 +52369,6 @@ skipPersistence enabled:
                 matchLabels:
                   k8s-app: kube-dns
         - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
-        - ports:
             - port: 1234
               protocol: TCP
           to:
@@ -52849,7 +52489,6 @@ skipPersistence enabled:
           "namespace": "kubescape",
           "imageVulnerabilitiesScanningEnabled": true,
           "postureScanEnabled": true,
-          "otelCollector": false,
           "nodeAgent": "true",
           "maxImageSize": 5.36870912e+09,
           "maxSBOMSize": 2.097152e+07,
@@ -52888,7 +52527,7 @@ skipPersistence enabled:
       capabilities: |
         {
           "capabilities":{"admissionController":"enable","autoUpgrading":"enable","configurationScan":"enable","continuousScan":"enable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"enable","manageWorkloads":"enable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"enable","relevancy":"enable","riskAcceptance":"enable","runtimeDetection":"enable","runtimeObservability":"enable","scanEmbeddedSBOMs":"enable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"enable","vulnerabilityScan":"enable"},
-          "components":{"autoUpdater":{"enabled":true},"clamAV":{"enabled":true},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"otelCollector":{"enabled":false},"prometheusExporter":{"enabled":true},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
+          "components":{"autoUpdater":{"enabled":true},"clamAV":{"enabled":true},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":true},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"excludeJsonPaths":[".containers[*].env[?(@.name==\"KUBECONFIG\")]"],"otelUrl":"otelCollector.svc.monitoring:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
         }
@@ -53410,17 +53049,6 @@ skipPersistence enabled:
                 matchLabels:
                   k8s-app: kube-dns
         - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
-        - ports:
             - port: 1234
               protocol: TCP
           to:
@@ -53772,7 +53400,7 @@ skipPersistence enabled:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 9e75d712db135f9b4878c0b9557c27328d0f52ecc7473b75c747832f90297b18
+            checksum/cloud-config: 50b2792a8d079d4384072c3b40787ff160fe85abe97736e2be4ac2a6bc56cd9e
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
           labels:
@@ -53850,12 +53478,10 @@ skipPersistence enabled:
                     secretKeyRef:
                       key: aksResourceGroup
                       name: kubescape-secret
-                - name: OTEL_COLLECTOR_SVC
-                  value: otelCollector.svc.monitoring:4317
                 - name: HTTPS_PROXY
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
+                  value: kubescape,kubevuln,node-agent,operator,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
                 - name: KS_INCLUDE_NAMESPACES
                   value: my-namespace
               image: quay.io/kubescape/kubescape:v4.0.8
@@ -54020,17 +53646,6 @@ skipPersistence enabled:
               podSelector:
                 matchLabels:
                   k8s-app: kube-dns
-        - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
         - ports:
             - port: 1234
               protocol: TCP
@@ -54362,17 +53977,6 @@ skipPersistence enabled:
                 matchLabels:
                   k8s-app: kube-dns
         - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
-        - ports:
             - port: 1234
               protocol: TCP
           to:
@@ -54501,7 +54105,7 @@ skipPersistence enabled:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 9e75d712db135f9b4878c0b9557c27328d0f52ecc7473b75c747832f90297b18
+            checksum/cloud-config: 50b2792a8d079d4384072c3b40787ff160fe85abe97736e2be4ac2a6bc56cd9e
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
           labels:
@@ -54537,12 +54141,10 @@ skipPersistence enabled:
                   value: https://api.armosec.io
                 - name: CA_MAX_VULN_SCAN_ROUTINES
                   value: "1"
-                - name: OTEL_COLLECTOR_SVC
-                  value: otelCollector.svc.monitoring:4317
                 - name: HTTPS_PROXY
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
+                  value: kubescape,kubevuln,node-agent,operator,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
               image: quay.io/kubescape/kubevuln:v0.3.142
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -54660,17 +54262,6 @@ skipPersistence enabled:
               podSelector:
                 matchLabels:
                   k8s-app: kube-dns
-        - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
         - ports:
             - port: 1234
               protocol: TCP
@@ -55470,7 +55061,7 @@ skipPersistence enabled:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 9e75d712db135f9b4878c0b9557c27328d0f52ecc7473b75c747832f90297b18
+            checksum/cloud-config: 50b2792a8d079d4384072c3b40787ff160fe85abe97736e2be4ac2a6bc56cd9e
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/node-agent-config: 9f743d9aac5148b4e8f7ae0369f163d738b845e84581d2b06b06d02a6c6e6043
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
@@ -55487,6 +55078,7 @@ skipPersistence enabled:
             helm.sh/chart: kubescape-operator-1.40.2
             kubescape.io/ignore: "true"
             kubescape.io/tier: core
+            otel: enabled
             tier: ks-control-plane
         spec:
           affinity:
@@ -55539,7 +55131,7 @@ skipPersistence enabled:
                 - name: HTTPS_PROXY
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
+                  value: kubescape,kubevuln,node-agent,operator,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
                 - name: SKIP_KERNEL_VERSION_CHECK
                   value: "true"
                 - name: NODE_NAME
@@ -56508,17 +56100,6 @@ skipPersistence enabled:
                 matchLabels:
                   k8s-app: kube-dns
         - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
-        - ports:
             - port: 1234
               protocol: TCP
           to:
@@ -56969,8 +56550,8 @@ skipPersistence enabled:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 59a962f6d5626eef232330ebf8392ff351e1cc9edbd0858281a08a2997d805a1
-            checksum/cloud-config: 9e75d712db135f9b4878c0b9557c27328d0f52ecc7473b75c747832f90297b18
+            checksum/capabilities-config: 491560de20053c77c48895fd008a225d6b490903da22b870e60d799f66f5f13e
+            checksum/cloud-config: 50b2792a8d079d4384072c3b40787ff160fe85abe97736e2be4ac2a6bc56cd9e
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
             checksum/operator-config: fe2488bc71adf7e0a5c922014a0d936ec867810643b5d17e5d46eee6111cef75
@@ -57007,12 +56588,10 @@ skipPersistence enabled:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-                - name: OTEL_COLLECTOR_SVC
-                  value: otelCollector.svc.monitoring:4317
                 - name: HTTPS_PROXY
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
+                  value: kubescape,kubevuln,node-agent,operator,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
               image: quay.io/kubescape/operator:v0.2.142
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -57375,17 +56954,6 @@ skipPersistence enabled:
               podSelector:
                 matchLabels:
                   k8s-app: kube-dns
-        - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
         - ports:
             - port: 1234
               protocol: TCP
@@ -57846,17 +57414,6 @@ skipPersistence enabled:
                 matchLabels:
                   k8s-app: kube-dns
         - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
-        - ports:
             - port: 1234
               protocol: TCP
           to:
@@ -58204,8 +57761,6 @@ skipPersistence enabled:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-                - name: OTEL_COLLECTOR_SVC
-                  value: otelCollector.svc.monitoring:4317
               image: quay.io/kubescape/storage:v0.0.274
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -58309,17 +57864,6 @@ skipPersistence enabled:
               podSelector:
                 matchLabels:
                   k8s-app: kube-dns
-        - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
         - ports:
             - port: 1234
               protocol: TCP
@@ -59376,7 +58920,7 @@ skipPersistence enabled:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: 9e75d712db135f9b4878c0b9557c27328d0f52ecc7473b75c747832f90297b18
+            checksum/cloud-config: 50b2792a8d079d4384072c3b40787ff160fe85abe97736e2be4ac2a6bc56cd9e
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/proxy-config: c03b6781aa61faaacfa84a96809236591dde0cbd43a204e05d5ba3044bb9d5d8
             checksum/synchronizer-configmap: 3174c8dfc918592ea301676ce0b289ff6d19145e7a60f8515d96d064158ba48b
@@ -59412,12 +58956,10 @@ skipPersistence enabled:
                   value: zap
                 - name: API_URL
                   value: https://api.armosec.io
-                - name: OTEL_COLLECTOR_SVC
-                  value: otelCollector.svc.monitoring:4317
                 - name: HTTPS_PROXY
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
-                  value: kubescape,kubevuln,node-agent,operator,otel-collector,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
+                  value: kubescape,kubevuln,node-agent,operator,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
               image: quay.io/kubescape/synchronizer:v0.0.147
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -59535,17 +59077,6 @@ skipPersistence enabled:
               podSelector:
                 matchLabels:
                   k8s-app: kube-dns
-        - ports:
-            - port: 4317
-              protocol: TCP
-            - port: 4318
-              protocol: TCP
-          to:
-            - podSelector:
-                matchLabels:
-                  app.kubernetes.io/component: otel-collector
-                  app.kubernetes.io/instance: RELEASE-NAME
-                  app.kubernetes.io/name: kubescape-operator
         - ports:
             - port: 1234
               protocol: TCP
