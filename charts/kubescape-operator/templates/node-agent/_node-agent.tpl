@@ -56,13 +56,12 @@ Parameters:
   value: "{{ .Values.logger.level }}"
 - name: KS_LOGGER_NAME
   value: "{{ .Values.logger.name }}"
-{{- if .components.otelCollector.enabled }}
-- name: OTEL_COLLECTOR_SVC
-  value: "otel-collector:4318"
-{{- end }}
 {{- if .Values.configurations.otelUrl }}
 - name: OTEL_COLLECTOR_SVC
   value: {{ .Values.configurations.otelUrl }}
+{{- else if .components.otelCollector.enabled }}
+- name: OTEL_COLLECTOR_SVC
+  value: "otel-collector:4318"
 {{- end }}
 {{- if and .components.clamAV.enabled (not .autoscalerMode) }}
 - name: CLAMAV_SOCKET
