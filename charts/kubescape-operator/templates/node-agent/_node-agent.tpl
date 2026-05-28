@@ -286,13 +286,12 @@ Parameters:
     - name: GOMEMLIMIT
       value: {{ include "kubescape-operator.gomemlimit" (dict "memory" .Values.nodeAgent.sbomScanner.resources.limits.memory "percentage" .Values.nodeAgent.gomemlimitPercentage) | quote }}
     {{- end }}
-    {{- if .components.otelCollector.enabled }}
-    - name: OTEL_COLLECTOR_SVC
-      value: "otel-collector:4318"
-    {{- end }}
     {{- if .Values.configurations.otelUrl }}
     - name: OTEL_COLLECTOR_SVC
       value: {{ .Values.configurations.otelUrl }}
+    {{- else if .components.otelCollector.enabled }}
+    - name: OTEL_COLLECTOR_SVC
+      value: "otel-collector:4318"
     {{- end }}
     - name: SOCKET_PATH
       value: "/sbom-comm/scanner.sock"
