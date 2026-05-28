@@ -281,6 +281,47 @@ tests:
           content:
             name: CLUSTER_NAME
             value: kind-kind
+  - it: node-agent egress allows OTLP ports when otelUrl is set
+    template: node-agent/networkpolicy.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.runtimeObservability: enable
+      configurations.otelUrl: "signoz-otel-collector.signoz.svc.cluster.local:4317"
+      global.networkPolicy.enabled: true
+      global.networkPolicy.createEgressRules: true
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            ports:
+              - port: 4317
+                protocol: TCP
+              - port: 4318
+                protocol: TCP
+  - it: node-agent egress omits OTLP ports when otelUrl is unset
+    template: node-agent/networkpolicy.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.runtimeObservability: enable
+      global.networkPolicy.enabled: true
+      global.networkPolicy.createEgressRules: true
+    asserts:
+      - notContains:
+          path: spec.egress
+          content:
+            ports:
+              - port: 4317
+                protocol: TCP
+              - port: 4318
+                protocol: TCP
   - it: with single private registry credentials
     template: configs/private-registries-creds-secret.yaml
     documentSelector:
