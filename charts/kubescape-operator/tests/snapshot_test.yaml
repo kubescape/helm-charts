@@ -213,6 +213,46 @@ tests:
       kubescape.serviceMonitor.enabled: true
       kubescapeScheduler.scanSchedule: "1 2 3 4 5"
       kubevulnScheduler.scanSchedule: "1 2 3 4 5"
+  - it: sbom scanner includes downward API telemetry env vars
+    template: node-agent/daemonset.yaml
+    documentSelector:
+      path: metadata.name
+      value: node-agent
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.sbomScanner.enabled: true
+      capabilities.nodeSbomGeneration: enable
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CLUSTER_NAME
+            value: kind-kind
   - it: storage service configuration
     template: storage/service.yaml
     documentSelector:

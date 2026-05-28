@@ -291,6 +291,20 @@ Parameters:
       value: "/sbom-comm/scanner.sock"
     - name: HOST_ROOT
       value: "/host"
+    - name: NODE_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: spec.nodeName
+    - name: POD_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.name
+    - name: NAMESPACE
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.namespace
+    - name: CLUSTER_NAME
+      value: "{{ .Values.clusterName }}"
   {{- if .Values.nodeAgent.sbomScanner.volumeMounts }}
   volumeMounts:
     {{- toYaml .Values.nodeAgent.sbomScanner.volumeMounts | nindent 4 }}
@@ -535,4 +549,3 @@ template:
   spec:
     {{- include "node-agent.podSpec" (dict "Values" .Values "Chart" .Chart "Release" .Release "Capabilities" .Capabilities "components" .components "checksums" .checksums "no_proxy_envar_list" .no_proxy_envar_list "autoscalerMode" .autoscalerMode "testingMode" .testingMode "resources" .resources "nodeSelector" .nodeSelector "includeClamAV" .includeClamAV "includeSbomScanner" .includeSbomScanner) | nindent 4 }}
 {{- end -}}
-
