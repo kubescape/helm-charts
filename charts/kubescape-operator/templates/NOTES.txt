@@ -1,5 +1,6 @@
 Thank you for installing {{ .Chart.Name }} version {{ .Chart.Version }}.
 {{ $components := fromYaml (include "components" .) -}}
+{{ $configurations := fromYaml (include "configurations" .) -}}
 {{ if $components.kubescapeScheduler.enabled -}}
 
 View your cluster's configuration scanning schedule:
@@ -41,6 +42,22 @@ This means vulnerability scanning will be limited to images from public reposito
 To enable scanning of private images, either:
 - Enable nodeSbomGeneration (recommended): Set capabilities.nodeSbomGeneration: "enable"
 - Enable cluster-wide secret access: Set global.enableClusterWideSecretAccess: true
+{{- end }}
+
+{{- if and (eq .Values.capabilities.nodeProfileService "enable") (not $configurations.submit) }}
+
+WARNING: capabilities.nodeProfileService is set to "enable", but the backend is not configured (.Values.server is empty / submit is disabled).
+This capability requires the synchronizer, which is only enabled when connected to a backend.
+As a result, nodeProfileServiceEnabled will render as FALSE in the node-agent configmap and node profiles will NOT be generated.
+To use this capability, connect to a backend by setting `.Values.server` (and `account` / `accessKey`).
+{{- end }}
+
+{{- if and (eq .Values.capabilities.networkEventsStreaming "enable") (not $configurations.submit) }}
+
+WARNING: capabilities.networkEventsStreaming is set to "enable", but the backend is not configured (.Values.server is empty / submit is disabled).
+This capability requires submitting data to a backend.
+As a result, networkStreamingEnabled will render as FALSE in the node-agent configmap and network events will NOT be streamed.
+To use this capability, connect to a backend by setting `.Values.server` (and `account` / `accessKey`).
 {{- end }}
 
 {{- $legacyAdmissionSvc := .Values.operator.admissionService | default dict }}
