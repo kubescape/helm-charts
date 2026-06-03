@@ -57,7 +57,7 @@ Parameters:
 - name: KS_LOGGER_NAME
   value: "{{ .Values.logger.name }}"
 {{- if .Values.configurations.otelUrl }}
-- name: OTEL_COLLECTOR_SVC
+- name: OTEL_EXPORTER_OTLP_ENDPOINT
   value: {{ .Values.configurations.otelUrl }}
 {{- end }}
 {{- if and .components.clamAV.enabled (not .autoscalerMode) }}
@@ -288,7 +288,7 @@ Parameters:
     - name: HOST_ROOT
       value: "/host"
     {{- if .Values.configurations.otelUrl }}
-    - name: OTEL_COLLECTOR_SVC
+    - name: OTEL_EXPORTER_OTLP_ENDPOINT
       value: {{ .Values.configurations.otelUrl }}
     {{- end }}
     - name: NODE_NAME
