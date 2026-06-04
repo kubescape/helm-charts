@@ -42,9 +42,9 @@ submit: {{ $submit }}
 
 {{- define "components" -}}
 {{- $configurations := fromYaml (include "configurations" .) }}
-{{- $nodeScanEnabled := and (eq .Values.capabilities.nodeScan "enable") (not $configurations.backendStorageEnabled) }}
-{{- $configurationScanEnabled := and (eq .Values.capabilities.configurationScan "enable") (not $configurations.backendStorageEnabled) }}
-{{- $vulnerabilityScanEnabled := and (eq .Values.capabilities.vulnerabilityScan "enable") (not $configurations.backendStorageEnabled) }}
+{{- $nodeScanEnabled := eq .Values.capabilities.nodeScan "enable" }}
+{{- $configurationScanEnabled := eq .Values.capabilities.configurationScan "enable" }}
+{{- $vulnerabilityScanEnabled := eq .Values.capabilities.vulnerabilityScan "enable" }}
 kubescape:
   enabled: {{ $configurationScanEnabled }}
 kubescapeScheduler:
@@ -68,7 +68,7 @@ operator:
 serviceDiscovery:
   enabled: {{ $configurations.submit }}
 storage:
-  enabled: {{ not $configurations.backendStorageEnabled }}
+  enabled: {{ .Values.storage.enabled }}
 prometheusExporter:
   enabled: {{ eq .Values.capabilities.prometheusExporter "enable" }}
 cloudSecret:
