@@ -15718,12 +15718,20 @@ autoscaler mode without sbom sidecar:
         tier: ks-control-plane
       name: synchronizer
       namespace: kubescape
-backend-storage enabled disables scanning capabilities:
+backend-storage enabled allows scanning capabilities:
   1: |+
     raw: |+
       Thank you for installing kubescape-operator version 1.40.3.
+      View your cluster's configuration scanning schedule:
+      > kubectl -n kubescape get cj kubescape-scheduler -o=jsonpath='{.metadata.name}{"\t"}{.spec.schedule}{"\n"}'
 
+      To change the schedule, set `.spec.schedule`:
+      > kubectl -n kubescape edit cj kubescape-scheduler
+      View your cluster's image scanning schedule:
+      > kubectl -n kubescape get cj kubevuln-scheduler -o=jsonpath='{.metadata.name}{"\t"}{.spec.schedule}{"\n"}'
 
+      To change the schedule, edit `.spec.schedule`:
+      > kubectl -n kubescape edit cj kubevuln-scheduler
 
       View your image vulnerabilities scan summaries:
       > kubectl get vulnerabilitymanifestsummaries -A
@@ -15769,11 +15777,11 @@ backend-storage enabled disables scanning capabilities:
           "kubevulnURL": "kubevuln:8080",
           "kubescapeURL": "kubescape:8080",
           "clusterName": "kind-kind",
-          "storage": false,
+          "storage": true,
           "relevantImageVulnerabilitiesEnabled": true,
           "namespace": "kubescape",
-          "imageVulnerabilitiesScanningEnabled": false,
-          "postureScanEnabled": false,
+          "imageVulnerabilitiesScanningEnabled": true,
+          "postureScanEnabled": true,
           "nodeAgent": "true",
           "maxImageSize": 5.36870912e+09,
           "maxSBOMSize": 2.097152e+07,
@@ -15814,7 +15822,7 @@ backend-storage enabled disables scanning capabilities:
           "capabilities":{"admissionController":"enable","autoUpgrading":"disable","backend-storage":"enable","configurationScan":"enable","continuousScan":"disable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","remediation":"disable","riskAcceptance":"disable","runtimeDetection":"disable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
           "effectiveCapabilities":{"configurationScan":"backend","httpDetection":"disable","networkEventsStreaming":"enable","nodeProfileService":"enable","nodeScan":"backend","vulnerabilityScan":"backend"},
           "capabilityWarnings":["capabilities.httpDetection=enable but capabilities.runtimeDetection is not enabled. HTTP detection runs on top of runtime detection, so httpDetectionEnabled renders as FALSE in the node-agent configmap. To use it, set capabilities.runtimeDetection=enable."],
-          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":false},"kubescapeScheduler":{"enabled":false},"kubevuln":{"enabled":false},"kubevulnScheduler":{"enabled":false},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":false},"synchronizer":{"enabled":true}},
+          "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"excludeJsonPaths":null,"otelUrl":null,"persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
         }
@@ -15878,6 +15886,1051 @@ backend-storage enabled disables scanning capabilities:
       name: kubescape-critical
     value: 1.000001e+08
   7: |
+    apiVersion: v1
+    data:
+      request-body.json: '{"commands":[{"CommandName":"kubescapeScan","args":{"scanV1":{}}}]}'
+    kind: ConfigMap
+    metadata:
+      annotations: null
+      labels:
+        app: kubescape-scheduler
+        app.kubernetes.io/component: kubescape-scheduler
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.40.3
+        helm.sh/chart: kubescape-operator-1.40.3
+        kubescape.io/ignore: "true"
+        kubescape.io/tier: core
+        tier: ks-control-plane
+      name: kubescape-scheduler
+      namespace: kubescape
+  8: |
+    apiVersion: batch/v1
+    kind: CronJob
+    metadata:
+      annotations: null
+      labels:
+        app: kubescape-scheduler
+        app.kubernetes.io/component: kubescape-scheduler
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.40.3
+        armo.tier: kubescape-scan
+        helm.sh/chart: kubescape-operator-1.40.3
+        kubescape.io/ignore: "true"
+        kubescape.io/tier: core
+        tier: ks-control-plane
+      name: kubescape-scheduler
+      namespace: kubescape
+    spec:
+      failedJobsHistoryLimit: 1
+      jobTemplate:
+        spec:
+          template:
+            metadata:
+              annotations: null
+              labels:
+                app: kubescape-scheduler
+                app.kubernetes.io/component: kubescape-scheduler
+                app.kubernetes.io/instance: RELEASE-NAME
+                app.kubernetes.io/managed-by: Helm
+                app.kubernetes.io/name: kubescape-operator
+                app.kubernetes.io/part-of: kubescape
+                app.kubernetes.io/version: 1.40.3
+                armo.tier: kubescape-scan
+                helm.sh/chart: kubescape-operator-1.40.3
+                kubescape.io/ignore: "true"
+                kubescape.io/tier: core
+                tier: ks-control-plane
+            spec:
+              affinity: null
+              automountServiceAccountToken: false
+              containers:
+                - args:
+                    - -method=post
+                    - -scheme=http
+                    - -host=operator:4002
+                    - -path=v1/triggerAction
+                    - -headers=Content-Type:application/json
+                    - -path-body=/home/ks/request-body.json
+                  image: quay.io/kubescape/http-request:v0.2.20
+                  imagePullPolicy: IfNotPresent
+                  name: kubescape-scheduler
+                  resources:
+                    limits:
+                      cpu: 10m
+                      memory: 20Mi
+                    requests:
+                      cpu: 1m
+                      memory: 10Mi
+                  securityContext:
+                    allowPrivilegeEscalation: false
+                    readOnlyRootFilesystem: true
+                    runAsNonRoot: true
+                    runAsUser: 100
+                  volumeMounts:
+                    - mountPath: /home/ks/request-body.json
+                      name: kubescape-scheduler
+                      readOnly: true
+                      subPath: request-body.json
+              nodeSelector:
+                kubernetes.io/os: linux
+              restartPolicy: Never
+              securityContext:
+                seccompProfile:
+                  type: RuntimeDefault
+              serviceAccountName: kubescape
+              tolerations: null
+              volumes:
+                - configMap:
+                    name: kubescape-scheduler
+                  name: kubescape-scheduler
+      schedule: 0 4 * * *
+      successfulJobsHistoryLimit: 3
+  9: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      annotations: null
+      labels:
+        app: kubescape
+        app.kubernetes.io/component: kubescape
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.40.3
+        helm.sh/chart: kubescape-operator-1.40.3
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: kubescape
+    rules:
+      - apiGroups:
+          - ""
+        resources:
+          - pods
+          - pods/proxy
+          - namespaces
+          - nodes
+          - configmaps
+          - services
+          - serviceaccounts
+          - endpoints
+          - persistentvolumeclaims
+          - persistentvolumes
+          - limitranges
+          - replicationcontrollers
+          - podtemplates
+          - resourcequotas
+          - events
+        verbs:
+          - get
+          - watch
+          - list
+      - apiGroups:
+          - ""
+        resources:
+          - secrets
+        verbs:
+          - get
+          - watch
+          - list
+      - apiGroups:
+          - admissionregistration.k8s.io
+        resources:
+          - mutatingwebhookconfigurations
+          - validatingwebhookconfigurations
+        verbs:
+          - get
+          - watch
+          - list
+      - apiGroups:
+          - apiregistration.k8s.io
+        resources:
+          - apiservices
+        verbs:
+          - get
+          - watch
+          - list
+      - apiGroups:
+          - apps
+        resources:
+          - deployments
+          - statefulsets
+          - daemonsets
+          - replicasets
+          - controllerrevisions
+        verbs:
+          - get
+          - watch
+          - list
+      - apiGroups:
+          - autoscaling
+        resources:
+          - horizontalpodautoscalers
+        verbs:
+          - get
+          - watch
+          - list
+      - apiGroups:
+          - batch
+        resources:
+          - jobs
+          - cronjobs
+        verbs:
+          - get
+          - watch
+          - list
+      - apiGroups:
+          - coordination.k8s.io
+        resources:
+          - leases
+        verbs:
+          - get
+          - watch
+          - list
+      - apiGroups:
+          - discovery.k8s.io
+        resources:
+          - endpointslices
+        verbs:
+          - get
+          - watch
+          - list
+      - apiGroups:
+          - events.k8s.io
+        resources:
+          - events
+        verbs:
+          - get
+          - watch
+          - list
+      - apiGroups:
+          - hostdata.kubescape.cloud
+        resources:
+          - APIServerInfo
+          - ControlPlaneInfo
+        verbs:
+          - get
+          - watch
+          - list
+      - apiGroups:
+          - networking.k8s.io
+        resources:
+          - networkpolicies
+          - Ingress
+        verbs:
+          - get
+          - watch
+          - list
+      - apiGroups:
+          - cilium.io
+        resources:
+          - ciliumnetworkpolicies
+          - ciliumclusterwidenetworkpolicies
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - projectcalico.org
+        resources:
+          - networkpolicies
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - networking.istio.io
+        resources:
+          - gateways
+          - virtualservices
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - security.istio.io
+        resources:
+          - authorizationpolicies
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - policy
+        resources:
+          - poddisruptionbudgets
+          - podsecuritypolicies
+          - PodSecurityPolicy
+        verbs:
+          - get
+          - watch
+          - list
+      - apiGroups:
+          - rbac.authorization.k8s.io
+        resources:
+          - clusterroles
+          - clusterrolebindings
+          - roles
+          - rolebindings
+        verbs:
+          - get
+          - watch
+          - list
+      - apiGroups:
+          - storage.k8s.io
+        resources:
+          - csistoragecapacities
+          - storageclasses
+        verbs:
+          - get
+          - watch
+          - list
+      - apiGroups:
+          - networking.k8s.io
+        resources:
+          - ingresses
+        verbs:
+          - get
+          - watch
+          - list
+      - apiGroups:
+          - extensions
+        resources:
+          - Ingress
+        verbs:
+          - get
+          - watch
+          - list
+      - apiGroups:
+          - gateway.networking.k8s.io
+        resources:
+          - httproutes
+          - gateways
+          - gatewayclasses
+          - tcproutes
+          - tlsroutes
+          - udproutes
+        verbs:
+          - get
+          - watch
+          - list
+      - apiGroups:
+          - ""
+        resources:
+          - namespaces
+        verbs:
+          - update
+      - apiGroups:
+          - spdx.softwarecomposition.kubescape.io
+        resources:
+          - workloadconfigurationscans
+          - workloadconfigurationscansummaries
+        verbs:
+          - create
+          - get
+          - update
+          - patch
+      - apiGroups:
+          - kubescape.io
+        resources:
+          - servicesscanresults
+        verbs:
+          - get
+          - watch
+          - list
+      - apiGroups:
+          - hostdata.kubescape.cloud
+        resources:
+          - osreleasefiles
+          - kernelversions
+          - linuxsecurityhardeningstatuses
+          - openportslists
+          - linuxkernelvariables
+          - kubeletinfos
+          - kubeproxyinfos
+          - controlplaneinfos
+          - cloudproviderinfos
+          - cniinfos
+        verbs:
+          - get
+          - list
+          - watch
+  10: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      annotations: null
+      labels:
+        app: kubescape
+        app.kubernetes.io/component: kubescape
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.40.3
+        helm.sh/chart: kubescape-operator-1.40.3
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: kubescape
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: kubescape
+    subjects:
+      - kind: ServiceAccount
+        name: kubescape
+        namespace: kubescape
+  11: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      annotations: null
+      labels:
+        app: kubescape
+        app.kubernetes.io/component: kubescape
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.40.3
+        helm.sh/chart: kubescape-operator-1.40.3
+        kubescape.io/ignore: "true"
+        kubescape.io/tier: core
+        tier: ks-control-plane
+      name: kubescape
+      namespace: kubescape
+    spec:
+      replicas: 1
+      revisionHistoryLimit: 2
+      selector:
+        matchLabels:
+          app.kubernetes.io/component: kubescape
+          app.kubernetes.io/instance: RELEASE-NAME
+          app.kubernetes.io/name: kubescape-operator
+      strategy:
+        rollingUpdate:
+          maxSurge: 0%
+          maxUnavailable: 100%
+        type: RollingUpdate
+      template:
+        metadata:
+          annotations:
+            checksum/cloud-config: 36cdbef2f6574028638c1fd9ce116f3aa533d846bd9af394c84fce27c04e1b0a
+            checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
+          labels:
+            app: kubescape
+            app.kubernetes.io/component: kubescape
+            app.kubernetes.io/instance: RELEASE-NAME
+            app.kubernetes.io/managed-by: Helm
+            app.kubernetes.io/name: kubescape-operator
+            app.kubernetes.io/part-of: kubescape
+            app.kubernetes.io/version: 1.40.3
+            helm.sh/chart: kubescape-operator-1.40.3
+            kubescape.io/ignore: "true"
+            kubescape.io/tier: core
+            tier: ks-control-plane
+        spec:
+          affinity: null
+          automountServiceAccountToken: true
+          containers:
+            - command:
+                - ksserver
+              env:
+                - name: GOMEMLIMIT
+                  valueFrom:
+                    resourceFieldRef:
+                      divisor: "1"
+                      resource: limits.memory
+                - name: KS_LOGGER_LEVEL
+                  value: info
+                - name: KS_LOGGER_NAME
+                  value: zap
+                - name: KS_DOWNLOAD_ARTIFACTS
+                  value: "true"
+                - name: KS_DEFAULT_CONFIGMAP_NAME
+                  value: kubescape-config
+                - name: KS_DEFAULT_CONFIGMAP_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                - name: KS_CONTEXT
+                  value: kind-kind
+                - name: KS_DEFAULT_CLOUD_CONFIGMAP_NAME
+                  value: ks-cloud-config
+                - name: KS_ENABLE_HOST_SCANNER
+                  value: "true"
+                - name: KS_SKIP_UPDATE_CHECK
+                  value: "false"
+                - name: KS_HOST_SCAN_YAML
+                  value: /home/nonroot/.kubescape/host-scanner.yaml
+                - name: LARGE_CLUSTER_SIZE
+                  value: "1500"
+                - name: API_URL
+                  value: https://api.armosec.io
+                - name: KS_EXCLUDE_NAMESPACES
+                  value: kubescape,kube-system,kube-public,kube-node-lease
+              image: quay.io/kubescape/kubescape:v4.0.9
+              imagePullPolicy: IfNotPresent
+              livenessProbe:
+                httpGet:
+                  path: /livez
+                  port: 8080
+                initialDelaySeconds: 3
+                periodSeconds: 3
+              name: kubescape
+              ports:
+                - containerPort: 8080
+                  name: http
+                  protocol: TCP
+              readinessProbe:
+                httpGet:
+                  path: /readyz
+                  port: 8080
+                initialDelaySeconds: 3
+                periodSeconds: 3
+              resources:
+                limits:
+                  cpu: 600m
+                  memory: 1Gi
+                requests:
+                  cpu: 250m
+                  memory: 400Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+              volumeMounts:
+                - mountPath: /etc/credentials
+                  name: cloud-secret
+                  readOnly: true
+                - mountPath: /home/nonroot/.kubescape
+                  name: kubescape-volume
+                  subPath: config.json
+                - mountPath: /home/nonroot/.kubescape/host-scanner.yaml
+                  name: host-scanner-definition
+                  subPath: host-scanner-yaml
+                - mountPath: /home/nonroot/results
+                  name: results
+                - mountPath: /home/nonroot/failed
+                  name: failed
+                - mountPath: /etc/config/clusterData.json
+                  name: ks-cloud-config
+                  readOnly: true
+                  subPath: clusterData.json
+          nodeSelector:
+            kubernetes.io/os: linux
+          securityContext:
+            fsGroup: 65532
+            runAsUser: 65532
+            seccompProfile:
+              type: RuntimeDefault
+          serviceAccountName: kubescape
+          tolerations: null
+          volumes:
+            - name: cloud-secret
+              secret:
+                secretName: cloud-secret
+            - configMap:
+                items:
+                  - key: clusterData
+                    path: clusterData.json
+                name: ks-cloud-config
+              name: ks-cloud-config
+            - configMap:
+                name: host-scanner-definition
+              name: host-scanner-definition
+            - emptyDir: {}
+              name: kubescape-volume
+            - emptyDir: {}
+              name: results
+            - emptyDir: {}
+              name: failed
+  12: |
+    apiVersion: v1
+    data:
+      host-scanner-yaml: ""
+    kind: ConfigMap
+    metadata:
+      annotations: null
+      labels:
+        app: ks-cloud-config
+        app.kubernetes.io/component: ks-cloud-config
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.40.3
+        helm.sh/chart: kubescape-operator-1.40.3
+        kubescape.io/ignore: "true"
+        kubescape.io/tier: core
+        tier: ks-control-plane
+      name: host-scanner-definition
+      namespace: kubescape
+  13: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      annotations: null
+      labels:
+        app: kubescape
+        app.kubernetes.io/component: kubescape
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.40.3
+        helm.sh/chart: kubescape-operator-1.40.3
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: kubescape
+      namespace: kubescape
+    rules:
+      - apiGroups:
+          - apps
+        resources:
+          - daemonsets
+        verbs:
+          - create
+          - get
+          - update
+          - watch
+          - list
+          - patch
+          - delete
+  14: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      annotations: null
+      labels:
+        app: kubescape
+        app.kubernetes.io/component: kubescape
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.40.3
+        helm.sh/chart: kubescape-operator-1.40.3
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: kubescape
+      namespace: kubescape
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: kubescape
+    subjects:
+      - kind: ServiceAccount
+        name: kubescape
+        namespace: kubescape
+  15: |
+    apiVersion: v1
+    kind: Service
+    metadata:
+      annotations: null
+      labels:
+        app: kubescape
+        app.kubernetes.io/component: kubescape
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.40.3
+        helm.sh/chart: kubescape-operator-1.40.3
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: kubescape
+      namespace: kubescape
+    spec:
+      ports:
+        - name: http
+          port: 8080
+          protocol: TCP
+          targetPort: 8080
+      selector:
+        app.kubernetes.io/component: kubescape
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/name: kubescape-operator
+      type: ClusterIP
+  16: |
+    apiVersion: v1
+    automountServiceAccountToken: false
+    kind: ServiceAccount
+    metadata:
+      annotations: null
+      labels:
+        app: kubescape
+        app.kubernetes.io/component: kubescape
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.40.3
+        helm.sh/chart: kubescape-operator-1.40.3
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: kubescape
+      namespace: kubescape
+  17: |
+    apiVersion: v1
+    data:
+      request-body.json: '{"commands":[{"commandName":"scan","designators":[{"designatorType":"Attributes","attributes":{}}]}]}'
+    kind: ConfigMap
+    metadata:
+      labels:
+        app: kubevuln-scheduler
+        app.kubernetes.io/component: kubevuln-scheduler
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.40.3
+        helm.sh/chart: kubescape-operator-1.40.3
+        kubescape.io/ignore: "true"
+        kubescape.io/tier: core
+        tier: ks-control-plane
+      name: kubevuln-scheduler
+      namespace: kubescape
+  18: |
+    apiVersion: batch/v1
+    kind: CronJob
+    metadata:
+      annotations: null
+      labels:
+        app: kubevuln-scheduler
+        app.kubernetes.io/component: kubevuln-scheduler
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.40.3
+        armo.tier: vuln-scan
+        helm.sh/chart: kubescape-operator-1.40.3
+        kubescape.io/ignore: "true"
+        kubescape.io/tier: core
+        tier: ks-control-plane
+      name: kubevuln-scheduler
+      namespace: kubescape
+    spec:
+      failedJobsHistoryLimit: 1
+      jobTemplate:
+        spec:
+          template:
+            metadata:
+              annotations: null
+              labels:
+                app: kubevuln-scheduler
+                app.kubernetes.io/component: kubevuln-scheduler
+                app.kubernetes.io/instance: RELEASE-NAME
+                app.kubernetes.io/managed-by: Helm
+                app.kubernetes.io/name: kubescape-operator
+                app.kubernetes.io/part-of: kubescape
+                app.kubernetes.io/version: 1.40.3
+                armo.tier: vuln-scan
+                helm.sh/chart: kubescape-operator-1.40.3
+                kubescape.io/ignore: "true"
+                kubescape.io/tier: core
+                tier: ks-control-plane
+            spec:
+              affinity: null
+              automountServiceAccountToken: false
+              containers:
+                - args:
+                    - -method=post
+                    - -scheme=http
+                    - -host=operator:4002
+                    - -path=v1/triggerAction
+                    - -headers=Content-Type:application/json
+                    - -path-body=/home/ks/request-body.json
+                  image: quay.io/kubescape/http-request:v0.2.20
+                  imagePullPolicy: IfNotPresent
+                  name: kubevuln-scheduler
+                  resources:
+                    limits:
+                      cpu: 10m
+                      memory: 20Mi
+                    requests:
+                      cpu: 1m
+                      memory: 10Mi
+                  securityContext:
+                    allowPrivilegeEscalation: false
+                    readOnlyRootFilesystem: true
+                    runAsNonRoot: true
+                    runAsUser: 100
+                  volumeMounts:
+                    - mountPath: /home/ks/request-body.json
+                      name: kubevuln-scheduler
+                      readOnly: true
+                      subPath: request-body.json
+              nodeSelector:
+                kubernetes.io/os: linux
+              restartPolicy: Never
+              securityContext:
+                seccompProfile:
+                  type: RuntimeDefault
+              serviceAccountName: kubevuln
+              tolerations: null
+              volumes:
+                - configMap:
+                    name: kubevuln-scheduler
+                  name: kubevuln-scheduler
+      schedule: 0 4 * * *
+      successfulJobsHistoryLimit: 3
+  19: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      annotations: null
+      labels:
+        app: kubevuln
+        app.kubernetes.io/component: kubevuln
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.40.3
+        helm.sh/chart: kubescape-operator-1.40.3
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: kubevuln
+    rules:
+      - apiGroups:
+          - spdx.softwarecomposition.kubescape.io
+        resources:
+          - vulnerabilitymanifests
+          - vulnerabilitymanifestsummaries
+          - openvulnerabilityexchangecontainers
+          - sbomsyfts
+          - sbomsyftfiltereds
+        verbs:
+          - create
+          - get
+          - update
+          - watch
+          - list
+          - patch
+      - apiGroups:
+          - spdx.softwarecomposition.kubescape.io
+        resources:
+          - containerprofiles
+        verbs:
+          - get
+          - watch
+          - list
+  20: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      annotations: null
+      labels:
+        app: kubevuln
+        app.kubernetes.io/component: kubevuln
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.40.3
+        helm.sh/chart: kubescape-operator-1.40.3
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: kubevuln
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: kubevuln
+    subjects:
+      - kind: ServiceAccount
+        name: kubevuln
+        namespace: kubescape
+  21: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      annotations: null
+      labels:
+        app: kubevuln
+        app.kubernetes.io/component: kubevuln
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.40.3
+        helm.sh/chart: kubescape-operator-1.40.3
+        kubescape.io/ignore: "true"
+        kubescape.io/tier: core
+        tier: ks-control-plane
+      name: kubevuln
+      namespace: kubescape
+    spec:
+      replicas: 1
+      revisionHistoryLimit: 2
+      selector:
+        matchLabels:
+          app.kubernetes.io/component: kubevuln
+          app.kubernetes.io/instance: RELEASE-NAME
+          app.kubernetes.io/name: kubescape-operator
+      strategy:
+        type: Recreate
+      template:
+        metadata:
+          annotations:
+            checksum/cloud-config: 36cdbef2f6574028638c1fd9ce116f3aa533d846bd9af394c84fce27c04e1b0a
+            checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
+          labels:
+            app: kubevuln
+            app.kubernetes.io/component: kubevuln
+            app.kubernetes.io/instance: RELEASE-NAME
+            app.kubernetes.io/managed-by: Helm
+            app.kubernetes.io/name: kubescape-operator
+            app.kubernetes.io/part-of: kubescape
+            app.kubernetes.io/version: 1.40.3
+            helm.sh/chart: kubescape-operator-1.40.3
+            kubescape.io/ignore: "true"
+            kubescape.io/tier: core
+            tier: ks-control-plane
+        spec:
+          affinity: null
+          automountServiceAccountToken: true
+          containers:
+            - args:
+                - -alsologtostderr
+                - -v=4
+                - 2>&1
+              env:
+                - name: GOMEMLIMIT
+                  value: 4000MiB
+                - name: KS_LOGGER_LEVEL
+                  value: info
+                - name: KS_LOGGER_NAME
+                  value: zap
+                - name: PRINT_POST_JSON
+                  value: ""
+                - name: API_URL
+                  value: https://api.armosec.io
+                - name: CA_MAX_VULN_SCAN_ROUTINES
+                  value: "1"
+              image: quay.io/kubescape/kubevuln:v0.3.146
+              imagePullPolicy: IfNotPresent
+              livenessProbe:
+                httpGet:
+                  path: /v1/liveness
+                  port: 8080
+                initialDelaySeconds: 3
+                periodSeconds: 3
+              name: kubevuln
+              ports:
+                - containerPort: 8080
+                  protocol: TCP
+              readinessProbe:
+                httpGet:
+                  path: /v1/readiness
+                  port: 8080
+              resources:
+                limits:
+                  cpu: 1500m
+                  ephemeral-storage: 10Gi
+                  memory: 5000Mi
+                requests:
+                  cpu: 300m
+                  ephemeral-storage: 5Gi
+                  memory: 1000Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+              volumeMounts:
+                - mountPath: /etc/credentials
+                  name: cloud-secret
+                  readOnly: true
+                - mountPath: /tmp
+                  name: tmp-dir
+                - mountPath: /home/nonroot/anchore-resources/db
+                  name: grype-db-cache
+                - mountPath: /etc/config/clusterData.json
+                  name: ks-cloud-config
+                  readOnly: true
+                  subPath: clusterData.json
+                - mountPath: /home/nonroot/.cache/grype
+                  name: grype-db
+          nodeSelector:
+            kubernetes.io/os: linux
+          securityContext:
+            fsGroup: 65532
+            runAsUser: 65532
+            seccompProfile:
+              type: RuntimeDefault
+          serviceAccountName: kubevuln
+          tolerations: null
+          volumes:
+            - name: cloud-secret
+              secret:
+                secretName: cloud-secret
+            - emptyDir: {}
+              name: tmp-dir
+            - emptyDir: {}
+              name: grype-db-cache
+            - configMap:
+                items:
+                  - key: clusterData
+                    path: clusterData.json
+                name: ks-cloud-config
+              name: ks-cloud-config
+            - emptyDir: {}
+              name: grype-db
+  22: |
+    apiVersion: v1
+    kind: Service
+    metadata:
+      annotations: null
+      labels:
+        app: kubevuln
+        app.kubernetes.io/component: kubevuln
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.40.3
+        helm.sh/chart: kubescape-operator-1.40.3
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: kubevuln
+      namespace: kubescape
+    spec:
+      ports:
+        - port: 8080
+          protocol: TCP
+          targetPort: 8080
+      selector:
+        app.kubernetes.io/component: kubevuln
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/name: kubescape-operator
+      type: ClusterIP
+  23: |
+    apiVersion: v1
+    automountServiceAccountToken: false
+    kind: ServiceAccount
+    metadata:
+      annotations: null
+      labels:
+        app: kubevuln
+        app.kubernetes.io/component: kubevuln
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.40.3
+        helm.sh/chart: kubescape-operator-1.40.3
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: kubevuln
+      namespace: kubescape
+  24: |
     apiVersion: apiextensions.k8s.io/v1
     kind: CustomResourceDefinition
     metadata:
@@ -15911,7 +16964,7 @@ backend-storage enabled disables scanning capabilities:
               type: object
           served: true
           storage: true
-  8: |
+  25: |
     apiVersion: apiextensions.k8s.io/v1
     kind: CustomResourceDefinition
     metadata:
@@ -15945,7 +16998,7 @@ backend-storage enabled disables scanning capabilities:
               type: object
           served: true
           storage: true
-  9: |
+  26: |
     apiVersion: apiextensions.k8s.io/v1
     kind: CustomResourceDefinition
     metadata:
@@ -15979,7 +17032,7 @@ backend-storage enabled disables scanning capabilities:
               type: object
           served: true
           storage: true
-  10: |
+  27: |
     apiVersion: apiextensions.k8s.io/v1
     kind: CustomResourceDefinition
     metadata:
@@ -16013,7 +17066,7 @@ backend-storage enabled disables scanning capabilities:
               type: object
           served: true
           storage: true
-  11: |
+  28: |
     apiVersion: apiextensions.k8s.io/v1
     kind: CustomResourceDefinition
     metadata:
@@ -16047,7 +17100,7 @@ backend-storage enabled disables scanning capabilities:
               type: object
           served: true
           storage: true
-  12: |
+  29: |
     apiVersion: apiextensions.k8s.io/v1
     kind: CustomResourceDefinition
     metadata:
@@ -16081,7 +17134,7 @@ backend-storage enabled disables scanning capabilities:
               type: object
           served: true
           storage: true
-  13: |
+  30: |
     apiVersion: apiextensions.k8s.io/v1
     kind: CustomResourceDefinition
     metadata:
@@ -16115,7 +17168,7 @@ backend-storage enabled disables scanning capabilities:
               type: object
           served: true
           storage: true
-  14: |
+  31: |
     apiVersion: apiextensions.k8s.io/v1
     kind: CustomResourceDefinition
     metadata:
@@ -16149,7 +17202,7 @@ backend-storage enabled disables scanning capabilities:
               type: object
           served: true
           storage: true
-  15: |
+  32: |
     apiVersion: apiextensions.k8s.io/v1
     kind: CustomResourceDefinition
     metadata:
@@ -16183,7 +17236,7 @@ backend-storage enabled disables scanning capabilities:
               type: object
           served: true
           storage: true
-  16: |
+  33: |
     apiVersion: apiextensions.k8s.io/v1
     kind: CustomResourceDefinition
     metadata:
@@ -16246,7 +17299,7 @@ backend-storage enabled disables scanning capabilities:
               type: object
           served: true
           storage: true
-  17: |
+  34: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -16403,7 +17456,7 @@ backend-storage enabled disables scanning capabilities:
           - patch
           - list
           - watch
-  18: |
+  35: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -16428,7 +17481,7 @@ backend-storage enabled disables scanning capabilities:
       - kind: ServiceAccount
         name: node-agent
         namespace: kubescape
-  19: |
+  36: |
     apiVersion: v1
     data:
       config.json: |
@@ -16493,7 +17546,7 @@ backend-storage enabled disables scanning capabilities:
         tier: ks-control-plane
       name: node-agent
       namespace: kubescape
-  20: |
+  37: |
     apiVersion: apps/v1
     kind: DaemonSet
     metadata:
@@ -16521,7 +17574,7 @@ backend-storage enabled disables scanning capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: d0e00780bee5d2b3a068ad95ac2665cea1cb3b89c3aae81a1fe7659701877dda
+            checksum/cloud-config: 36cdbef2f6574028638c1fd9ce116f3aa533d846bd9af394c84fce27c04e1b0a
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/node-agent-config: eb96c3c46f1b0866faae15793e5b3f9d521ee6d48ac042d8fdc9bef3347b0868
             container.apparmor.security.beta.kubernetes.io/node-agent: unconfined
@@ -16732,7 +17785,7 @@ backend-storage enabled disables scanning capabilities:
                     path: config.json
                 name: node-agent
               name: config
-  21: |
+  38: |
     apiVersion: kubescape.io/v1
     kind: RuntimeRuleAlertBinding
     metadata:
@@ -16786,7 +17839,7 @@ backend-storage enabled disables scanning capabilities:
         - ruleName: Unexpected Egress Network Traffic
         - ruleName: Malicious Ptrace Usage
         - ruleName: Unexpected io_uring Operation Detected
-  22: |
+  39: |
     apiVersion: kubescape.io/v1
     kind: Rules
     metadata:
@@ -17508,7 +18561,7 @@ backend-storage enabled disables scanning capabilities:
             - context:kubernetes
             - admission
             - network
-  23: |
+  40: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -17536,7 +18589,7 @@ backend-storage enabled disables scanning capabilities:
         app.kubernetes.io/component: node-agent
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
-  24: |
+  41: |
     apiVersion: v1
     kind: ServiceAccount
     metadata:
@@ -17554,7 +18607,7 @@ backend-storage enabled disables scanning capabilities:
         tier: ks-control-plane
       name: node-agent
       namespace: kubescape
-  25: |
+  42: |
     apiVersion: v1
     data:
       tls.crt: bW9jay1jYS1jZXJ0
@@ -17577,7 +18630,7 @@ backend-storage enabled disables scanning capabilities:
       name: kubescape-admission-webhook-ca
       namespace: kubescape
     type: kubernetes.io/tls
-  26: |
+  43: |
     apiVersion: v1
     data:
       ca.crt: bW9jay1jYS1jZXJ0
@@ -17600,7 +18653,7 @@ backend-storage enabled disables scanning capabilities:
       name: kubescape-admission-webhook-tls
       namespace: kubescape
     type: kubernetes.io/tls
-  27: |
+  44: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -17627,7 +18680,7 @@ backend-storage enabled disables scanning capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  28: |
+  45: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingWebhookConfiguration
     metadata:
@@ -17684,7 +18737,7 @@ backend-storage enabled disables scanning capabilities:
               - networkpolicies
             scope: '*'
         sideEffects: None
-  29: |
+  46: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -17810,7 +18863,7 @@ backend-storage enabled disables scanning capabilities:
           - list
           - update
           - patch
-  30: |
+  47: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -17835,7 +18888,7 @@ backend-storage enabled disables scanning capabilities:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  31: |
+  48: |
     apiVersion: v1
     data:
       config.json: |
@@ -17886,7 +18939,7 @@ backend-storage enabled disables scanning capabilities:
         tier: ks-control-plane
       name: operator
       namespace: kubescape
-  32: |
+  49: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -17921,8 +18974,8 @@ backend-storage enabled disables scanning capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 558d7399a4715d3ac4656f83a36fb5b81b48b49b09fa16cdcd23cecf0f01dc57
-            checksum/cloud-config: d0e00780bee5d2b3a068ad95ac2665cea1cb3b89c3aae81a1fe7659701877dda
+            checksum/capabilities-config: b58e056d8a41039566abe42d17ae06cf4fbfb303f71414da9d948dbbba34e4a2
+            checksum/cloud-config: 36cdbef2f6574028638c1fd9ce116f3aa533d846bd9af394c84fce27c04e1b0a
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
             checksum/operator-config: f52c7c610627e0f7441d7e1fec39106e63ed9c2a7aa1f57e0323fef7d786cf2f
@@ -18061,7 +19114,7 @@ backend-storage enabled disables scanning capabilities:
                     path: matchingRules.json
                 name: cs-matching-rules
               name: cs-matching-rules
-  33: |
+  50: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -18146,7 +19199,7 @@ backend-storage enabled disables scanning capabilities:
         tier: ks-control-plane
       name: kubescape-cronjob-template
       namespace: kubescape
-  34: |
+  51: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -18231,7 +19284,7 @@ backend-storage enabled disables scanning capabilities:
         tier: ks-control-plane
       name: kubevuln-cronjob-template
       namespace: kubescape
-  35: |
+  52: |
     apiVersion: v1
     data:
       cronjobTemplate: |-
@@ -18316,7 +19369,7 @@ backend-storage enabled disables scanning capabilities:
         tier: ks-control-plane
       name: registry-scan-cronjob-template
       namespace: kubescape
-  36: |
+  53: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -18360,7 +19413,7 @@ backend-storage enabled disables scanning capabilities:
           - list
           - patch
           - delete
-  37: |
+  54: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -18386,7 +19439,7 @@ backend-storage enabled disables scanning capabilities:
       - kind: ServiceAccount
         name: operator
         namespace: kubescape
-  38: |
+  55: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -18414,7 +19467,7 @@ backend-storage enabled disables scanning capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  39: |
+  56: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
@@ -18433,7 +19486,33 @@ backend-storage enabled disables scanning capabilities:
         tier: ks-control-plane
       name: operator
       namespace: kubescape
-  40: |
+  57: |
+    apiVersion: apiregistration.k8s.io/v1
+    kind: APIService
+    metadata:
+      annotations: null
+      labels:
+        app: storage
+        app.kubernetes.io/component: storage
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.40.3
+        helm.sh/chart: kubescape-operator-1.40.3
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: v1beta1.spdx.softwarecomposition.kubescape.io
+    spec:
+      caBundle: bW9jay1jYS1jZXJ0
+      group: spdx.softwarecomposition.kubescape.io
+      groupPriorityMinimum: 1000
+      service:
+        name: storage
+        namespace: kubescape
+      version: v1beta1
+      versionPriority: 15
+  58: |
     apiVersion: v1
     data:
       tls.crt: bW9jay1jYS1jZXJ0
@@ -18456,7 +19535,7 @@ backend-storage enabled disables scanning capabilities:
       name: storage-tls-ca
       namespace: kubescape
     type: kubernetes.io/tls
-  41: |
+  59: |
     apiVersion: v1
     data:
       ca.crt: bW9jay1jYS1jZXJ0
@@ -18479,7 +19558,332 @@ backend-storage enabled disables scanning capabilities:
       name: storage-tls
       namespace: kubescape
     type: kubernetes.io/tls
-  42: |
+  60: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      annotations: null
+      labels:
+        app: storage
+        app.kubernetes.io/component: storage
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.40.3
+        helm.sh/chart: kubescape-operator-1.40.3
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: storage
+    rules:
+      - apiGroups:
+          - ""
+        resources:
+          - namespaces
+          - pods
+          - services
+        verbs:
+          - get
+          - watch
+          - list
+      - apiGroups:
+          - admissionregistration.k8s.io
+        resources:
+          - mutatingwebhookconfigurations
+          - validatingwebhookconfigurations
+        verbs:
+          - get
+          - watch
+          - list
+      - apiGroups:
+          - apps
+        resources:
+          - daemonsets
+          - deployments
+          - replicasets
+          - statefulsets
+        verbs:
+          - get
+          - watch
+          - list
+      - apiGroups:
+          - batch
+        resources:
+          - cronjobs
+          - jobs
+        verbs:
+          - get
+          - watch
+          - list
+      - apiGroups:
+          - flowcontrol.apiserver.k8s.io
+        resources:
+          - prioritylevelconfigurations
+          - flowschemas
+        verbs:
+          - get
+          - watch
+          - list
+  61: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      annotations: null
+      labels:
+        app: storage
+        app.kubernetes.io/component: storage
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.40.3
+        helm.sh/chart: kubescape-operator-1.40.3
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: storage:system:auth-delegator
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: system:auth-delegator
+    subjects:
+      - kind: ServiceAccount
+        name: storage
+        namespace: kubescape
+  62: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      annotations: null
+      labels:
+        app: storage
+        app.kubernetes.io/component: storage
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.40.3
+        helm.sh/chart: kubescape-operator-1.40.3
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: storage
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: storage
+    subjects:
+      - kind: ServiceAccount
+        name: storage
+        namespace: kubescape
+  63: |
+    apiVersion: v1
+    data:
+      config.json: |
+        {
+          "cleanupInterval": "6h",
+          "disableVirtualCRDs": true,
+          "disableSeccompProfileEndpoint": true,
+          "excludeJsonPaths": null,
+          "defaultQueueLength": 100,
+          "defaultWorkerCount": 2,
+          "defaultMaxObjectSize": 400000,
+          "queueManagerEnabled": true,
+          "kindQueues": {"applicationprofiles":{"maxObjectSize":20000000,"queueLength":50,"workerCount":2},"containerprofiles":{"maxObjectSize":2500000,"queueLength":50,"workerCount":2},"networkneighborhoods":{"maxObjectSize":10000000,"queueLength":50,"workerCount":2},"openvulnerabilityexchangecontainers":{"maxObjectSize":500000,"queueLength":50,"workerCount":1},"sbomsyftfiltereds":{"maxObjectSize":50000000,"queueLength":50,"workerCount":1},"sbomsyfts":{"maxObjectSize":100000000,"queueLength":50,"workerCount":1},"vulnerabilitymanifests":{"maxObjectSize":50000000,"queueLength":50,"workerCount":1}},
+          "tlsClientCaFile": "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
+          "tlsServerCertFile": "/etc/storage-ca-certificates/tls.crt",
+          "tlsServerKeyFile": "/etc/storage-ca-certificates/tls.key",
+          "serverBindPort": "8443"
+        }
+    kind: ConfigMap
+    metadata:
+      labels:
+        app: storage
+        app.kubernetes.io/component: storage
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.40.3
+        helm.sh/chart: kubescape-operator-1.40.3
+        kubescape.io/ignore: "true"
+        kubescape.io/tier: core
+        tier: ks-control-plane
+      name: storage
+      namespace: kubescape
+  64: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      annotations: null
+      labels:
+        app: storage
+        app.kubernetes.io/component: storage
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.40.3
+        helm.sh/chart: kubescape-operator-1.40.3
+        kubescape.io/ignore: "true"
+        kubescape.io/tier: core
+        tier: ks-control-plane
+      name: storage
+      namespace: kubescape
+    spec:
+      replicas: 1
+      revisionHistoryLimit: 2
+      selector:
+        matchLabels:
+          app.kubernetes.io/component: storage
+          app.kubernetes.io/instance: RELEASE-NAME
+          app.kubernetes.io/name: kubescape-operator
+      strategy:
+        type: Recreate
+      template:
+        metadata:
+          annotations:
+            checksum/cloud-config: 36cdbef2f6574028638c1fd9ce116f3aa533d846bd9af394c84fce27c04e1b0a
+            checksum/storage-config: 93d3421370840ceb49f54b45948bc46db534250f88be6ef6df7d4b10b9d09228
+          labels:
+            app: storage
+            app.kubernetes.io/component: storage
+            app.kubernetes.io/instance: RELEASE-NAME
+            app.kubernetes.io/managed-by: Helm
+            app.kubernetes.io/name: kubescape-operator
+            app.kubernetes.io/part-of: kubescape
+            app.kubernetes.io/version: 1.40.3
+            helm.sh/chart: kubescape-operator-1.40.3
+            kubescape.io/ignore: "true"
+            kubescape.io/tier: core
+            tier: ks-control-plane
+        spec:
+          affinity: null
+          containers:
+            - env:
+                - name: GOMEMLIMIT
+                  valueFrom:
+                    resourceFieldRef:
+                      divisor: "1"
+                      resource: limits.memory
+                - name: KS_LOGGER_LEVEL
+                  value: info
+                - name: KS_LOGGER_NAME
+                  value: zap
+              image: quay.io/kubescape/storage:v0.0.278
+              imagePullPolicy: IfNotPresent
+              livenessProbe:
+                httpGet:
+                  path: /livez
+                  port: 8443
+                  scheme: HTTPS
+              name: apiserver
+              readinessProbe:
+                httpGet:
+                  path: /readyz
+                  port: 8443
+                  scheme: HTTPS
+              resources:
+                limits:
+                  cpu: 1500m
+                  memory: 1500Mi
+                requests:
+                  cpu: 100m
+                  memory: 400Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                runAsNonRoot: true
+              volumeMounts:
+                - mountPath: /data
+                  name: data
+                - mountPath: /etc/config/clusterData.json
+                  name: ks-cloud-config
+                  readOnly: true
+                  subPath: clusterData.json
+                - mountPath: /etc/config/config.json
+                  name: config
+                  readOnly: true
+                  subPath: config.json
+                - mountPath: /etc/storage-ca-certificates
+                  name: ca-certificates
+                  readOnly: true
+          nodeSelector:
+            kubernetes.io/os: linux
+          securityContext:
+            fsGroup: 65532
+            runAsUser: 65532
+            seccompProfile:
+              type: RuntimeDefault
+          serviceAccountName: storage
+          tolerations: null
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: kubescape-storage
+            - configMap:
+                items:
+                  - key: clusterData
+                    path: clusterData.json
+                name: ks-cloud-config
+              name: ks-cloud-config
+            - configMap:
+                items:
+                  - key: config.json
+                    path: config.json
+                name: storage
+              name: config
+            - name: ca-certificates
+              secret:
+                secretName: storage-tls
+  65: |
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      annotations: null
+      labels:
+        app: storage
+        app.kubernetes.io/component: storage
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.40.3
+        helm.sh/chart: kubescape-operator-1.40.3
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: kubescape-storage
+      namespace: kubescape
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 5Gi
+  66: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      annotations: null
+      labels:
+        app: storage
+        app.kubernetes.io/component: storage
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.40.3
+        helm.sh/chart: kubescape-operator-1.40.3
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: storage-auth-reader
+      namespace: kube-system
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: extension-apiserver-authentication-reader
+    subjects:
+      - kind: ServiceAccount
+        name: storage
+        namespace: kubescape
+  67: |
     apiVersion: apiextensions.k8s.io/v1
     kind: CustomResourceDefinition
     metadata:
@@ -18803,7 +20207,54 @@ backend-storage enabled disables scanning capabilities:
           storage: true
           subresources:
             status: {}
-  43: |
+  68: |
+    apiVersion: v1
+    kind: Service
+    metadata:
+      annotations: null
+      labels:
+        app: storage
+        app.kubernetes.io/component: storage
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.40.3
+        helm.sh/chart: kubescape-operator-1.40.3
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: storage
+      namespace: kubescape
+    spec:
+      ports:
+        - name: https
+          port: 443
+          protocol: TCP
+          targetPort: 8443
+      selector:
+        app.kubernetes.io/component: storage
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/name: kubescape-operator
+      type: ClusterIP
+  69: |
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      annotations: null
+      labels:
+        app: storage
+        app.kubernetes.io/component: storage
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: kubescape-operator
+        app.kubernetes.io/part-of: kubescape
+        app.kubernetes.io/version: 1.40.3
+        helm.sh/chart: kubescape-operator-1.40.3
+        kubescape.io/ignore: "true"
+        tier: ks-control-plane
+      name: storage
+      namespace: kubescape
+  70: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -18974,7 +20425,7 @@ backend-storage enabled disables scanning capabilities:
           - update
           - patch
           - delete
-  44: |
+  71: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
@@ -18998,7 +20449,7 @@ backend-storage enabled disables scanning capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  45: |
+  72: |
     apiVersion: v1
     data:
       config.json: |
@@ -19145,6 +20596,30 @@ backend-storage enabled disables scanning capabilities:
                 "strategy": "patch"
               },
               {
+                "group": "spdx.softwarecomposition.kubescape.io",
+                "version": "v1beta1",
+                "resource": "applicationprofiles",
+                "strategy": "copy"
+              },
+              {
+                "group": "spdx.softwarecomposition.kubescape.io",
+                "version": "v1beta1",
+                "resource": "containerprofiles",
+                "strategy": "copy"
+              },
+              {
+                "group": "spdx.softwarecomposition.kubescape.io",
+                "version": "v1beta1",
+                "resource": "knownservers",
+                "strategy": "copy"
+              },
+              {
+                "group": "spdx.softwarecomposition.kubescape.io",
+                "version": "v1beta1",
+                "resource": "networkneighborhoods",
+                "strategy": "copy"
+              },
+              {
                 "group": "cilium.io",
                 "version": "v2",
                 "resource": "ciliumnetworkpolicies",
@@ -19271,7 +20746,7 @@ backend-storage enabled disables scanning capabilities:
         tier: ks-control-plane
       name: synchronizer
       namespace: kubescape
-  46: |
+  73: |
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -19303,9 +20778,9 @@ backend-storage enabled disables scanning capabilities:
       template:
         metadata:
           annotations:
-            checksum/cloud-config: d0e00780bee5d2b3a068ad95ac2665cea1cb3b89c3aae81a1fe7659701877dda
+            checksum/cloud-config: 36cdbef2f6574028638c1fd9ce116f3aa533d846bd9af394c84fce27c04e1b0a
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
-            checksum/synchronizer-configmap: 5b74632f016d9c39500eebe8e60adaa9f8543666d1517cd2dfb68f0a695ba41a
+            checksum/synchronizer-configmap: 89c4293fcd32cc7a3ee95ac49975a088c1eee7af72a1712948fa24960c0dcd6a
           labels:
             app: synchronizer
             app.kubernetes.io/component: synchronizer
@@ -19396,7 +20871,7 @@ backend-storage enabled disables scanning capabilities:
                     path: config.json
                 name: synchronizer
               name: config
-  47: |
+  74: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
     metadata:
@@ -19439,7 +20914,7 @@ backend-storage enabled disables scanning capabilities:
           - list
           - patch
           - delete
-  48: |
+  75: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: RoleBinding
     metadata:
@@ -19464,7 +20939,7 @@ backend-storage enabled disables scanning capabilities:
       - kind: ServiceAccount
         name: synchronizer
         namespace: kubescape
-  49: |
+  76: |
     apiVersion: v1
     kind: Service
     metadata:
@@ -19491,7 +20966,7 @@ backend-storage enabled disables scanning capabilities:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/name: kubescape-operator
       type: ClusterIP
-  50: |
+  77: |
     apiVersion: v1
     automountServiceAccountToken: false
     kind: ServiceAccount
