@@ -1,5 +1,6 @@
 {{- $components := fromYaml (include "components" .) }}
 {{- $configurations := fromYaml (include "configurations" .) }}
+{{- $gates := (fromYaml (include "capabilities.gates" .)).effective }}
 {{- if $components.nodeAgent.enabled }}
 {{/* validate that either alertCRD.scopeClustered or alertCRD.scopeNamespaced defined when the capability enabled */}}
 {{- if eq .Values.capabilities.runtimeDetection "enable" }}
@@ -24,15 +25,15 @@ data:
         "backendStorageEnabled": {{ $configurations.backendStorageEnabled }},
         "prometheusExporterEnabled": {{ eq .Values.nodeAgent.config.prometheusExporter "enable" }},
         "runtimeDetectionEnabled": {{ eq .Values.capabilities.runtimeDetection "enable" }},
-        "httpDetectionEnabled": {{ and (eq .Values.capabilities.httpDetection "enable") (eq .Values.capabilities.runtimeDetection "enable") }},
+        "httpDetectionEnabled": {{ $gates.httpDetectionEnabled }},
         "networkServiceEnabled": {{ eq .Values.capabilities.networkPolicyService "enable" }},
         "malwareDetectionEnabled": {{ eq .Values.capabilities.malwareDetection "enable" }},
         "hostMalwareSensorEnabled": {{ eq .Values.nodeAgent.config.hostMalwareSensor "enable" }},
         "hostNetworkSensorEnabled": {{ eq .Values.nodeAgent.config.hostNetworkSensor "enable" }},
         "hostSensorEnabled": {{ .Values.nodeAgent.config.hostSensor.enabled }},
         "hostSensorInterval": "{{ .Values.nodeAgent.config.hostSensor.interval }}",
-        "nodeProfileServiceEnabled": {{ and $components.synchronizer.enabled (eq .Values.capabilities.nodeProfileService "enable") }},
-        "networkStreamingEnabled": {{ and $configurations.submit (eq .Values.capabilities.networkEventsStreaming "enable") }},
+        "nodeProfileServiceEnabled": {{ $gates.nodeProfileServiceEnabled }},
+        "networkStreamingEnabled": {{ $gates.networkStreamingEnabled }},
         "maxImageSize": {{ .Values.kubevuln.config.maxImageSize }},
         "maxSBOMSize": {{ .Values.kubevuln.config.maxSBOMSize }},
         "sbomGenerationEnabled": {{ eq .Values.capabilities.nodeSbomGeneration "enable" }},

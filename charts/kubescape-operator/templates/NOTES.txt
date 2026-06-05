@@ -1,5 +1,7 @@
 Thank you for installing {{ .Chart.Name }} version {{ .Chart.Version }}.
 {{ $components := fromYaml (include "components" .) -}}
+{{ $configurations := fromYaml (include "configurations" .) -}}
+{{ $gates := fromYaml (include "capabilities.gates" .) -}}
 {{ if $components.kubescapeScheduler.enabled -}}
 
 View your cluster's configuration scanning schedule:
@@ -41,6 +43,11 @@ This means vulnerability scanning will be limited to images from public reposito
 To enable scanning of private images, either:
 - Enable nodeSbomGeneration (recommended): Set capabilities.nodeSbomGeneration: "enable"
 - Enable cluster-wide secret access: Set global.enableClusterWideSecretAccess: true
+{{- end }}
+
+{{- range $gates.warnings }}
+
+WARNING: {{ . }}
 {{- end }}
 
 {{- $legacyAdmissionSvc := .Values.operator.admissionService | default dict }}

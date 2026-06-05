@@ -8,10 +8,13 @@ metadata:
   labels:
     {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" "ks-capabilities" "tier" .Values.global.namespaceTier) | nindent 4 }}
     kubescape.io/tier: "core"
+{{- $gates := fromYaml (include "capabilities.gates" .) }}
 data:
   capabilities: |
     {
       "capabilities": {{- .Values.capabilities | toJson }},
+      "effectiveCapabilities": {{- $gates.effectiveCapabilities | toJson }},
+      "capabilityWarnings": {{- $gates.warnings | default list | toJson }},
       "components": {{- include "components" . | fromYaml | toJson }},
       "configurations": {{- .Values.configurations | toJson }} ,
       "serviceScanConfig" : {{- .Values.serviceScanConfig | toJson }}
