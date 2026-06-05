@@ -98,9 +98,10 @@ that value can never drift apart. See issue #851.
 {{- $c := .Values.capabilities -}}
 {{- $configurations := fromYaml (include "configurations" .) -}}
 {{- $submit := $configurations.submit -}}
+{{- $synchronizerEnabled := (fromYaml (include "components" .)).synchronizer.enabled -}}
 {{- $backendStorage := $configurations.backendStorageEnabled -}}
 {{- $runtimeDetection := eq $c.runtimeDetection "enable" -}}
-{{- $nodeProfileService := and $submit (eq $c.nodeProfileService "enable") -}}
+{{- $nodeProfileService := and $synchronizerEnabled (eq $c.nodeProfileService "enable") -}}
 {{- $networkStreaming := and $submit (eq $c.networkEventsStreaming "enable") -}}
 {{- $httpDetection := and (eq $c.httpDetection "enable") $runtimeDetection -}}
 # effective.* are the node-agent config.json flags, consumed by node-agent/configmap.yaml
