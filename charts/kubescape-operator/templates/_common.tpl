@@ -86,6 +86,48 @@ autoUpdater:
   enabled: {{ eq .Values.capabilities.autoUpgrading "enable" }}
 {{- end -}}
 
+{{/*
+"capabilities.gates" is the single source of truth for capability flags that are
+silently ANDed with an internal precondition before they reach a rendered
+manifest. The node-agent configmap consumes the effective.* values, while the
+ks-capabilities configmap and NOTES.txt consume effectiveCapabilities/warnings.
+Because the gate logic lives here only, the rendered value and the warning about
+that value can never drift apart. See issue #851.
+*/}}
+{{- define "capabilities.gates" -}}
+{{- $c := .Values.capabilities -}}
+{{- $configurations := fromYaml (include "configurations" .) -}}
+{{- $submit := $configurations.submit -}}
+{{- $backendStorage := $configurations.backendStorageEnabled -}}
+{{- $runtimeDetection := eq $c.runtimeDetection "enable" -}}
+{{- $nodeProfileService := and $submit (eq $c.nodeProfileService "enable") -}}
+{{- $networkStreaming := and $submit (eq $c.networkEventsStreaming "enable") -}}
+{{- $httpDetection := and (eq $c.httpDetection "enable") $runtimeDetection -}}
+# effective.* are the node-agent config.json flags, consumed by node-agent/configmap.yaml
+effective:
+  nodeProfileServiceEnabled: {{ $nodeProfileService }}
+  networkStreamingEnabled: {{ $networkStreaming }}
+  httpDetectionEnabled: {{ $httpDetection }}
+# effectiveCapabilities is requested-vs-effective per gated capability, consumed by ks-capabilities
+effectiveCapabilities:
+  nodeProfileService: {{ if $nodeProfileService }}enable{{ else }}disable{{ end }}
+  networkEventsStreaming: {{ if $networkStreaming }}enable{{ else }}disable{{ end }}
+  httpDetection: {{ if $httpDetection }}enable{{ else }}disable{{ end }}
+  nodeScan: {{ if and (eq $c.nodeScan "enable") $backendStorage }}backend{{ else }}{{ $c.nodeScan }}{{ end }}
+  configurationScan: {{ if and (eq $c.configurationScan "enable") $backendStorage }}backend{{ else }}{{ $c.configurationScan }}{{ end }}
+  vulnerabilityScan: {{ if and (eq $c.vulnerabilityScan "enable") $backendStorage }}backend{{ else }}{{ $c.vulnerabilityScan }}{{ end }}
+warnings:
+{{- if and (eq $c.nodeProfileService "enable") (not $nodeProfileService) }}
+- "capabilities.nodeProfileService=enable but the backend is not configured (.Values.server is empty / submit is disabled). This capability requires the synchronizer, which is only enabled when connected to a backend, so nodeProfileServiceEnabled renders as FALSE in the node-agent configmap and node profiles will NOT be generated. To use it, set .Values.server (requires account and accessKey, or an existing credentials.cloudSecret)."
+{{- end }}
+{{- if and (eq $c.networkEventsStreaming "enable") (not $networkStreaming) }}
+- "capabilities.networkEventsStreaming=enable but the backend is not configured (.Values.server is empty / submit is disabled). This capability requires submitting data to a backend, so networkStreamingEnabled renders as FALSE in the node-agent configmap and network events will NOT be streamed. To use it, set .Values.server (requires account and accessKey, or an existing credentials.cloudSecret)."
+{{- end }}
+{{- if and (eq $c.httpDetection "enable") (not $httpDetection) }}
+- "capabilities.httpDetection=enable but capabilities.runtimeDetection is not enabled. HTTP detection runs on top of runtime detection, so httpDetectionEnabled renders as FALSE in the node-agent configmap. To use it, set capabilities.runtimeDetection=enable."
+{{- end }}
+{{- end -}}
+
 {{- define "kubescape.certgen.scriptsHash" -}}
 {{- printf "%s%s" (.Files.Get "scripts/certgen-create.sh") (.Files.Get "scripts/certgen-patch.sh") | sha256sum | trunc 8 -}}
 {{- end }}
