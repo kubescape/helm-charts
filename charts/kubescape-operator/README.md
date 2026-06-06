@@ -145,6 +145,7 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | kubevuln.volumes | object | `[]` | Additional volumes for the image vulnerability scanning |
 | kubevuln.volumeMounts | object | `[]` | Additional volumeMounts for the image vulnerability scanning |
 | kubevuln.config.grypeDbListingURL | string | `""` | Parameter to override the default Grype vulnerability database URL (listings.json format) |
+| kubevuln.config.proxyRegistryMap | object | `{}` | Map of source registry address to mirror registry address. When set, kubevuln rewrites image pull references accordingly (useful for air-gapped or offline registry mirrors) |
 | kubevulnScheduler.enabled | bool | `true` | enable/disable an image vulnerability scheduled scan using a CronJob |
 | kubevulnScheduler.podLabels| object | `{}` | Optional labels to add to the pods |
 | kubevulnScheduler.podAnnotations| object | `{}` | optional map of annotations to be applied to the Pods |
