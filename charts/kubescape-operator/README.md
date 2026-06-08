@@ -146,6 +146,8 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | kubevuln.volumeMounts | object | `[]` | Additional volumeMounts for the image vulnerability scanning |
 | kubevuln.config.grypeDbListingURL | string | `""` | Parameter to override the default Grype vulnerability database URL (listings.json format) |
 | kubevuln.config.proxyRegistryMap | object | `{}` | Map of source registry address to mirror registry address. When set, kubevuln rewrites image pull references accordingly (useful for air-gapped or offline registry mirrors) |
+| kubevuln.config.cveMatchingMode | string | `""` | CVE matching mode: "off" (Grype defaults), "on" (CPE matching everywhere), or "adaptive" (CPE matching everywhere except trusted-vendor images, which rely on the vendor's authoritative feed). Empty derives the mode from useDefaultMatchers for backward compatibility (true -> "off", false -> "adaptive"). |
+| kubevuln.config.trustedVendors | list | `[]` | Distro identifiers treated as trusted vendors in adaptive mode. Empty uses kubevuln's built-in default set (echo, chainguard, wolfi, minimos). |
 | kubevulnScheduler.enabled | bool | `true` | enable/disable an image vulnerability scheduled scan using a CronJob |
 | kubevulnScheduler.podLabels| object | `{}` | Optional labels to add to the pods |
 | kubevulnScheduler.podAnnotations| object | `{}` | optional map of annotations to be applied to the Pods |

@@ -1,5 +1,15 @@
 {{- $components := fromYaml (include "components" .)  }}
 {{- $configurations := fromYaml (include "configurations" .)  }}
+{{- $cveMatchingModeRaw := .Values.kubevuln.config.cveMatchingMode }}
+{{- $cveMatchingMode := "" }}
+{{- if kindIs "bool" $cveMatchingModeRaw }}
+  {{- /* Unquoted off/on/yes/no/true/false in YAML are parsed as booleans (the "Norway problem"); normalize back to the intended mode instead of silently misreading it. */}}
+  {{- $cveMatchingMode = ternary "on" "off" $cveMatchingModeRaw }}
+{{- else if $cveMatchingModeRaw }}
+  {{- $cveMatchingMode = $cveMatchingModeRaw }}
+{{- end }}
+{{- if not $cveMatchingMode }}{{- $cveMatchingMode = ternary "off" "adaptive" .Values.kubevuln.config.useDefaultMatchers }}{{- end }}
+{{- if not (has $cveMatchingMode (list "off" "on" "adaptive")) }}{{- fail (printf "kubevuln.config.cveMatchingMode must be one of off|on|adaptive, got %q" $cveMatchingMode) }}{{- end }}
 kind: ConfigMap
 apiVersion: v1
 metadata:
@@ -31,7 +41,11 @@ data:
       "scanTimeout": "{{ .Values.kubevuln.config.scanTimeout }}",
       "scanEmbeddedSBOMs": {{ eq .Values.capabilities.scanEmbeddedSBOMs "enable" }},
       "vexGeneration": {{ eq .Values.capabilities.vexGeneration "enable" }},
-      "useDefaultMatchers": {{ .Values.kubevuln.config.useDefaultMatchers }},
+      "cveMatchingMode": "{{ $cveMatchingMode }}",
+      "useDefaultMatchers": {{ eq $cveMatchingMode "off" }},
+{{- if .Values.kubevuln.config.trustedVendors }}
+      "trustedVendors": {{ .Values.kubevuln.config.trustedVendors | toJson }},
+{{- end }}
       "storeFilteredSbom": {{ or .Values.kubevuln.config.storeFilteredSboms (eq .Values.capabilities.syncSBOM "enable") }},
       "continuousPostureScan": {{ $configurations.continuousScan }},
 {{- if not (empty .Values.kubevuln.config.grypeDbListingURL) }}
