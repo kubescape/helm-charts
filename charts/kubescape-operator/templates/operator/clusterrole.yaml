@@ -46,4 +46,19 @@ rules:
     resources: ["securityexceptions", "clustersecurityexceptions"]
     verbs: ["get", "list", "watch"]
   {{- end }}
+  {{- if eq .Values.capabilities.remediation "enable" }}
+  # Post-scan remediation (opt-in). These mutating verbs are granted only when
+  # capabilities.remediation is enabled; the default install stays read-only.
+  # patch on workloads/pods backs the annotate action; patch on nodes backs the
+  # cordon action; networkpolicies back the quarantine action.
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets"]
+    verbs: ["patch"]
+  - apiGroups: [""]
+    resources: ["pods", "nodes"]
+    verbs: ["patch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["networkpolicies"]
+    verbs: ["create", "delete", "get", "list"]
+  {{- end }}
 {{- end }}
