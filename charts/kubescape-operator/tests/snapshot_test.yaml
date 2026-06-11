@@ -59,6 +59,7 @@ tests:
         networkEventsStreaming: enable
         syncSBOM: enable
         riskAcceptance: enable
+        remediation: enable
       excludeLabels:
         foo: [bar, baz]
         baz: [qux]
@@ -438,6 +439,7 @@ tests:
         networkEventsStreaming: enable
         syncSBOM: enable
         riskAcceptance: enable
+        remediation: enable
       excludeLabels:
         foo: [bar, baz]
         baz: [qux]
@@ -576,6 +578,7 @@ tests:
         networkEventsStreaming: enable
         syncSBOM: enable
         riskAcceptance: enable
+        remediation: enable
       excludeLabels:
         foo: [bar, baz]
         baz: [qux]
@@ -914,3 +917,51 @@ tests:
           nodeGroupLabel: "node.kubernetes.io/instance-type"
         sbomScanner:
           enabled: true
+  - it: operator remediation RBAC is granted when capabilities.remediation is enabled
+    template: templates/operator/clusterrole.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      capabilities:
+        remediation: enable
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["apps"]
+            resources: ["deployments", "statefulsets", "daemonsets"]
+            verbs: ["patch"]
+      - contains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources: ["pods", "nodes"]
+            verbs: ["patch"]
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["networking.k8s.io"]
+            resources: ["networkpolicies"]
+            verbs: ["create", "delete", "get", "list"]
+  - it: operator remediation RBAC is absent in the default (read-only) install
+    template: templates/operator/clusterrole.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+    asserts:
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["apps"]
+            resources: ["deployments", "statefulsets", "daemonsets"]
+            verbs: ["patch"]
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["networking.k8s.io"]
+            resources: ["networkpolicies"]
+            verbs: ["create", "delete", "get", "list"]
