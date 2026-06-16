@@ -22,6 +22,10 @@ spec:
           properties:
             spec:
               type: object
+              x-kubernetes-validations:
+                # expiresAt is not validated as future-dated: CRD CEL has no now(); expiry is enforced at scan time.
+                - rule: "(has(self.vulnerabilities) && size(self.vulnerabilities) > 0) || (has(self.posture) && size(self.posture) > 0)"
+                  message: "at least one of spec.vulnerabilities or spec.posture must be set"
               properties:
                 author:
                   type: string
@@ -60,6 +64,9 @@ spec:
                   type: array
                   items:
                     type: object
+                    x-kubernetes-validations:
+                      - rule: "self.status != 'not_affected' || has(self.justification)"
+                        message: "justification is required when status is not_affected"
                     required:
                       - vulnerability
                       - status
