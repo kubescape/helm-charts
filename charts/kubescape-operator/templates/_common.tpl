@@ -41,11 +41,11 @@ submit: {{ $submit }}
 {{- end -}}
 
 {{- define "kubescape.schedulerRequestBody" -}}
-{{- $requestBody := fromYaml (toYaml .Values.kubescapeScheduler.requestBody) | default (dict) -}}
+{{- $requestBody := deepCopy (.Values.kubescapeScheduler.requestBody | default (dict)) -}}
 {{- if eq .Values.capabilities.kubescapeOffline "enable" -}}
   {{- $commands := list -}}
   {{- range $command := ($requestBody.commands | default (list)) -}}
-    {{- $renderedCommand := fromYaml (toYaml $command) | default (dict) -}}
+    {{- $renderedCommand := deepCopy $command -}}
     {{- $args := $renderedCommand.args | default (dict) -}}
     {{- if hasKey $args "scanV1" -}}
       {{- $scanV1 := $args.scanV1 | default (dict) -}}
