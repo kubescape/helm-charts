@@ -1,0 +1,25 @@
+suite: Prometheus exporter ServiceMonitor tests
+templates:
+  - prometheus-exporter/servicemonitor.yaml
+tests:
+  - it: renders prometheus-exporter ServiceMonitor when enabled and kubescape ServiceMonitor is disabled
+    set:
+      unittest: true
+      capabilities.prometheusExporter: enable
+      capabilities.continuousScan: disable
+      kubescape.serviceMonitor.enabled: false
+      prometheusExporter.serviceMonitor.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.name
+          value: prometheus-exporter
+  - it: does not render prometheus-exporter ServiceMonitor when disabled
+    set:
+      unittest: true
+      capabilities.prometheusExporter: enable
+      prometheusExporter.serviceMonitor.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
