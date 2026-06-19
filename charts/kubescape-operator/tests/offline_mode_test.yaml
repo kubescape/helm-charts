@@ -1,0 +1,105 @@
+suite: Offline mode tests
+tests:
+  - it: mounts kubescape config via the kubescape directory in offline mode
+    template: kubescape/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      server: api.armosec.io
+      account: acc
+      accessKey: key
+      capabilities.kubescapeOffline: enable
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: kubescape-volume
+            mountPath: /home/nonroot/.kubescape
+            subPath: config.json
+
+  - it: forces scheduler scans to keep results local in offline mode
+    template: kubescape-scheduler/configmap.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      server: api.armosec.io
+      account: acc
+      accessKey: key
+      capabilities.kubescapeOffline: enable
+    asserts:
+      - equal:
+          path: data["request-body.json"]
+          value: '{"commands":[{"CommandName":"kubescapeScan","args":{"scanV1":{"keepLocal":true}}}]}'
+
+  - it: preserves scheduler scan arguments while forcing keepLocal in offline mode
+    template: kubescape-scheduler/configmap.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      server: api.armosec.io
+      account: acc
+      accessKey: key
+      capabilities.kubescapeOffline: enable
+      kubescapeScheduler:
+        requestBody:
+          commands:
+            - CommandName: kubescapeScan
+              args:
+                scanV1:
+                  targetType: framework
+                  targetNames:
+                    - nsa
+    asserts:
+      - equal:
+          path: data["request-body.json"]
+          value: '{"commands":[{"CommandName":"kubescapeScan","args":{"scanV1":{"keepLocal":true,"targetNames":["nsa"],"targetType":"framework"}}}]}'
+
+  - it: marks cloud config scans keepLocal in offline mode even when a server is configured
+    template: configs/cloudapi-configmap.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      server: api.armosec.io
+      account: acc
+      accessKey: key
+      capabilities.kubescapeOffline: enable
+    asserts:
+      - equal:
+          path: data.clusterData
+          value: |
+            {
+              "serviceDiscovery": true,
+              "vulnScanURL": "kubevuln:8080",
+              "kubevulnURL": "kubevuln:8080",
+              "kubescapeURL": "kubescape:8080",
+              "clusterName": "kind-kind",
+              "storage": true,
+              "relevantImageVulnerabilitiesEnabled": true,
+              "namespace": "kubescape",
+              "imageVulnerabilitiesScanningEnabled": true,
+              "postureScanEnabled": true,
+              "nodeAgent": "true",
+              "maxImageSize": 5.36870912e+09,
+              "maxSBOMSize": 2.097152e+07,
+              "keepLocal": true,
+              "scanTimeout": "5m",
+              "scanEmbeddedSBOMs": false,
+              "vexGeneration": false,
+              "useDefaultMatchers": false,
+              "storeFilteredSbom": false,
+              "continuousPostureScan": false,
+              "relevantImageVulnerabilitiesConfiguration": "enable",
+              "riskAcceptance": false
+            }

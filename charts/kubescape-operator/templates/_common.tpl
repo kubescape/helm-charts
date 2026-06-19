@@ -40,6 +40,26 @@ submit: {{ $submit }}
   {{- end -}}
 {{- end -}}
 
+{{- define "kubescape.schedulerRequestBody" -}}
+{{- $requestBody := fromYaml (toYaml .Values.kubescapeScheduler.requestBody) | default (dict) -}}
+{{- if eq .Values.capabilities.kubescapeOffline "enable" -}}
+  {{- $commands := list -}}
+  {{- range $command := ($requestBody.commands | default (list)) -}}
+    {{- $renderedCommand := fromYaml (toYaml $command) | default (dict) -}}
+    {{- $args := $renderedCommand.args | default (dict) -}}
+    {{- if hasKey $args "scanV1" -}}
+      {{- $scanV1 := $args.scanV1 | default (dict) -}}
+      {{- $_ := set $scanV1 "keepLocal" true -}}
+      {{- $_ := set $args "scanV1" $scanV1 -}}
+      {{- $_ := set $renderedCommand "args" $args -}}
+    {{- end -}}
+    {{- $commands = append $commands $renderedCommand -}}
+  {{- end -}}
+  {{- $_ := set $requestBody "commands" $commands -}}
+{{- end -}}
+{{- $requestBody | toJson -}}
+{{- end -}}
+
 {{- define "components" -}}
 {{- $configurations := fromYaml (include "configurations" .) }}
 {{- $nodeScanEnabled := and (eq .Values.capabilities.nodeScan "enable") (not $configurations.backendStorageEnabled) }}
