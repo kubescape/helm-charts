@@ -49,8 +49,12 @@ rules:
   {{- if eq .Values.capabilities.remediation "enable" }}
   # Post-scan remediation (opt-in). These mutating verbs are granted only when
   # capabilities.remediation is enabled; the default install stays read-only.
-  # patch on workloads/pods backs the annotate action; patch on nodes backs the
-  # cordon action; networkpolicies back the quarantine action.
+  # Provisioned once for the whole action set so later phases need not reopen
+  # this ClusterRole:
+  #   - patch on apps workloads + pods backs annotate (active now);
+  #   - patch on nodes backs cordon (later phase) -- cluster-wide, as Kubernetes
+  #     has no field-level RBAC for spec.unschedulable;
+  #   - networkpolicies backs quarantine (later phase).
   - apiGroups: ["apps"]
     resources: ["deployments", "statefulsets", "daemonsets"]
     verbs: ["patch"]

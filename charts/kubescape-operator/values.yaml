@@ -141,9 +141,20 @@ capabilities:
   # Lets the operator perform reactive cluster operations on scan findings
   # (annotate, and in later phases quarantine/cordon) when triggered via the
   # Kubescape CLI or an OperatorCommand. This is an opt-in capability with an
-  # elevated security risk: enabling it grants the operator mutating RBAC
-  # (patch on workloads/pods/nodes, manage NetworkPolicies). The default install
-  # keeps the operator read-only. Read the design before enabling:
+  # elevated security risk: enabling it grants the operator mutating RBAC. The
+  # default install keeps the operator read-only.
+  #
+  # Enabling provisions mutating RBAC for the whole remediation action set in one
+  # place -- annotate (active now) plus quarantine/cordon (later phases) --
+  # granted once so later releases need no ClusterRole change. Concretely it grants:
+  #   - patch on apps workloads (deployments/statefulsets/daemonsets) and pods
+  #     -- backs annotate;
+  #   - patch on nodes -- backs cordon; note this is cluster-wide (Kubernetes has
+  #     no field-level RBAC for spec.unschedulable), so it also permits mutating
+  #     node labels/taints/spec;
+  #   - create/delete/get/list on networkpolicies -- backs quarantine.
+  #
+  # Read the design before enabling:
   # https://github.com/kubescape/designs-and-proposals/blob/main/proposals/cli-cluster-operations.md
   remediation: disable
 
