@@ -46,7 +46,7 @@ Common labels
 helm.sh/chart: {{ include "kubescape-operator.chart" . }}
 {{ include "kubescape-operator.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
-app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | replace "+" "_" | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 app.kubernetes.io/part-of: kubescape
