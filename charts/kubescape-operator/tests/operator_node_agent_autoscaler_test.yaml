@@ -1,0 +1,61 @@
+suite: Operator node-agent autoscaler mount tests
+templates:
+  - configs/components-configmap.yaml
+  - configs/cloudapi-configmap.yaml
+  - configs/cloud-secret.yaml
+  - configs/matchingRules-configmap.yaml
+  - node-agent/configmap.yaml
+  - operator/deployment.yaml
+  - operator/admission-webhook/configmap.yaml
+  - operator/configmap.yaml
+  - proxy-support/proxy-secret.yaml
+  - storage/certgen/configmap.yaml
+  - synchronizer/configmap.yaml
+tests:
+  - it: does not mount the node-agent template when autoscaler is enabled but node-agent is disabled
+    template: operator/deployment.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.autoscaler.enabled: true
+      capabilities.relevancy: disable
+      capabilities.runtimeObservability: disable
+      capabilities.networkPolicyService: disable
+      capabilities.runtimeDetection: disable
+      capabilities.malwareDetection: disable
+      capabilities.nodeProfileService: disable
+      capabilities.seccompProfileService: disable
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: node-agent-template
+            mountPath: /etc/templates
+            readOnly: true
+      - notContains:
+          path: spec.template.spec.volumes
+          content:
+            name: node-agent-template
+            configMap:
+              name: node-agent-daemonset-template
+
+  - it: mounts the node-agent template when autoscaler and node-agent are both enabled
+    template: operator/deployment.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.autoscaler.enabled: true
+      capabilities.runtimeObservability: enable
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: node-agent-template
+            mountPath: /etc/templates
+            readOnly: true
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: node-agent-template
+            configMap:
+              name: node-agent-daemonset-template
