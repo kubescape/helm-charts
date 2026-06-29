@@ -506,7 +506,7 @@ nodeSelector:
 {{- if .autoscalerMode }}
   kubernetes.io/os: linux
 {{`{{- if not .IsDefaultGroup }}`}}
-  {{ .Values.nodeAgent.autoscaler.nodeGroupLabel }}: "{{`{{ .NodeGroupLabel }}`}}"
+  {{`{{ .NodeGroupLabelKey }}`}}: "{{`{{ .NodeGroupLabel }}`}}"
 {{`{{- end }}`}}
 {{- else if .nodeSelector }}
 {{ toYaml .nodeSelector | nindent 2 }}
@@ -530,7 +530,7 @@ affinity:
           values:
           - linux
 {{`{{- if .IsDefaultGroup }}`}}
-        - key: {{ .Values.nodeAgent.autoscaler.nodeGroupLabel }}
+        - key: {{`{{ .NodeGroupLabelKey }}`}}
           operator: DoesNotExist
 {{`{{- end }}`}}
 {{- else if .Values.nodeAgent.affinity }}
