@@ -505,7 +505,9 @@ containers:
 nodeSelector:
 {{- if .autoscalerMode }}
   kubernetes.io/os: linux
+{{`{{- if not .IsDefaultGroup }}`}}
   {{ .Values.nodeAgent.autoscaler.nodeGroupLabel }}: "{{`{{ .NodeGroupLabel }}`}}"
+{{`{{- end }}`}}
 {{- else if .nodeSelector }}
 {{ toYaml .nodeSelector | nindent 2 }}
 {{- else if .Values.nodeAgent.nodeSelector }}
@@ -514,9 +516,26 @@ nodeSelector:
 {{ toYaml .Values.customScheduling.nodeSelector | nindent 2 }}
 {{- end }}
 affinity:
-{{- if .Values.nodeAgent.affinity }}
+{{- if .autoscalerMode }}
+{{- /* Operator-managed DaemonSets target Linux nodes. For the default group (nodes
+       missing the grouping label) the same matchExpressions term also requires that
+       the label does NOT exist, since a nodeSelector cannot match an absent label.
+       Both expressions live in one term so they are AND-ed together. */}}
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/os
+          operator: In
+          values:
+          - linux
+{{`{{- if .IsDefaultGroup }}`}}
+        - key: {{ .Values.nodeAgent.autoscaler.nodeGroupLabel }}
+          operator: DoesNotExist
+{{`{{- end }}`}}
+{{- else if .Values.nodeAgent.affinity }}
 {{ toYaml .Values.nodeAgent.affinity | nindent 2 }}
-{{- else if and (not .autoscalerMode) .Values.customScheduling.affinity }}
+{{- else if .Values.customScheduling.affinity }}
 {{ toYaml .Values.customScheduling.affinity | nindent 2 }}
 {{- end }}
 tolerations:
