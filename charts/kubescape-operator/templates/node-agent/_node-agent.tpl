@@ -517,21 +517,24 @@ nodeSelector:
 {{- end }}
 affinity:
 {{- if .autoscalerMode }}
-{{- /* Operator-managed DaemonSets target Linux nodes. For the default group (nodes
-       missing the grouping label) the same matchExpressions term also requires that
-       the label does NOT exist, since a nodeSelector cannot match an absent label.
-       Both expressions live in one term so they are AND-ed together. */}}
+{{- /* In autoscaler mode the default group (nodes missing the grouping label) must
+       be targeted with a "DoesNotExist" node affinity, since a nodeSelector cannot
+       match an absent label. Every other group's OS requirement is already enforced
+       by the nodeSelector, so non-default groups keep honouring any user-provided
+       affinity instead of being overridden. */}}
+{{`{{- if .IsDefaultGroup }}`}}
   nodeAffinity:
     requiredDuringSchedulingIgnoredDuringExecution:
       nodeSelectorTerms:
       - matchExpressions:
-        - key: kubernetes.io/os
-          operator: In
-          values:
-          - linux
-{{`{{- if .IsDefaultGroup }}`}}
         - key: {{`{{ .NodeGroupLabelKey }}`}}
           operator: DoesNotExist
+{{`{{- else }}`}}
+{{- if .Values.nodeAgent.affinity }}
+{{ toYaml .Values.nodeAgent.affinity | nindent 2 }}
+{{- else if .Values.customScheduling.affinity }}
+{{ toYaml .Values.customScheduling.affinity | nindent 2 }}
+{{- end }}
 {{`{{- end }}`}}
 {{- else if .Values.nodeAgent.affinity }}
 {{ toYaml .Values.nodeAgent.affinity | nindent 2 }}
