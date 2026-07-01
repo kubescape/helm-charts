@@ -505,7 +505,9 @@ containers:
 nodeSelector:
 {{- if .autoscalerMode }}
   kubernetes.io/os: linux
-  {{ .Values.nodeAgent.autoscaler.nodeGroupLabel }}: "{{`{{ .NodeGroupLabel }}`}}"
+{{`{{- if not .IsDefaultGroup }}`}}
+  {{`{{ .NodeGroupLabelKey }}`}}: "{{`{{ .NodeGroupLabel }}`}}"
+{{`{{- end }}`}}
 {{- else if .nodeSelector }}
 {{ toYaml .nodeSelector | nindent 2 }}
 {{- else if .Values.nodeAgent.nodeSelector }}
@@ -514,9 +516,29 @@ nodeSelector:
 {{ toYaml .Values.customScheduling.nodeSelector | nindent 2 }}
 {{- end }}
 affinity:
+{{- if .autoscalerMode }}
+{{- /* In autoscaler mode the default group (nodes missing the grouping label) must
+       be targeted with a "DoesNotExist" node affinity, since a nodeSelector cannot
+       match an absent label. Every other group's OS requirement is already enforced
+       by the nodeSelector, so non-default groups keep honouring any user-provided
+       affinity instead of being overridden. */}}
+{{`{{- if .IsDefaultGroup }}`}}
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: {{`{{ .NodeGroupLabelKey }}`}}
+          operator: DoesNotExist
+{{`{{- else }}`}}
 {{- if .Values.nodeAgent.affinity }}
 {{ toYaml .Values.nodeAgent.affinity | nindent 2 }}
-{{- else if and (not .autoscalerMode) .Values.customScheduling.affinity }}
+{{- else if .Values.customScheduling.affinity }}
+{{ toYaml .Values.customScheduling.affinity | nindent 2 }}
+{{- end }}
+{{`{{- end }}`}}
+{{- else if .Values.nodeAgent.affinity }}
+{{ toYaml .Values.nodeAgent.affinity | nindent 2 }}
+{{- else if .Values.customScheduling.affinity }}
 {{ toYaml .Values.customScheduling.affinity | nindent 2 }}
 {{- end }}
 tolerations:
