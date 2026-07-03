@@ -11,6 +11,7 @@ matchingRulesConfig: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.
 nodeAgentConfig: {{ include (printf "%s/node-agent/configmap.yaml" $.Template.BasePath) . | replace .Chart.AppVersion "" | sha256sum }}
 operatorConfig: {{ include (printf "%s/operator/configmap.yaml" $.Template.BasePath) . | replace .Chart.AppVersion "" | sha256sum }}
 proxySecret: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.proxySecretDirectory "proxy-secret.yaml") . | replace .Chart.AppVersion "" | sha256sum }}
+storageConfig: {{ include (printf "%s/storage/configmap.yaml" $.Template.BasePath) . | replace .Chart.AppVersion "" | sha256sum }}
 synchronizerConfig: {{ include (printf "%s/synchronizer/configmap.yaml" $.Template.BasePath) . | replace .Chart.AppVersion "" | sha256sum }}
 admissionCertgenScripts: {{ include (printf "%s/operator/admission-webhook/configmap.yaml" $.Template.BasePath) . | replace .Chart.AppVersion "" | sha256sum }}
 storageCertgenScripts: {{ include (printf "%s/storage/certgen/configmap.yaml" $.Template.BasePath) . | replace .Chart.AppVersion "" | sha256sum }}
