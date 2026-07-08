@@ -86,6 +86,18 @@ rules:
 - apiGroups: ["kubescape.io"]
   resources: ["servicesscanresults"]
   verbs: ["get", "watch", "list"]
+{{- if eq .Values.capabilities.riskAcceptance "enable" }}
+# SecurityException CRDs (opt-in via capabilities.riskAcceptance). The in-cluster
+# posture scanner reads these to suppress matching findings, and emits Events on the
+# matched SecurityException/ClusterSecurityException resource; both are only needed
+# when risk acceptance is enabled.
+- apiGroups: ["kubescape.io"]
+  resources: ["securityexceptions", "clustersecurityexceptions"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+{{- end }}
 {{- if .Values.nodeAgent.config.hostSensor.enabled }}
 - apiGroups: ["hostdata.kubescape.cloud"]
   resources:
