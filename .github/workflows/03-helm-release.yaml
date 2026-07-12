@@ -22,12 +22,21 @@ on:
         required: false
         default: "main"
         type: string
+      BYPASS_ALLOWLIST_DRIFT:
+        description: "Set true to pass the GKE Autopilot allowlist drift gate after you have opened a Gerrit allowlist update"
+        required: false
+        default: false
+        type: boolean
 
   workflow_call:
     inputs:
       COMMIT_REF:
         required: true
         type: string
+      BYPASS_ALLOWLIST_DRIFT:
+        required: false
+        default: false
+        type: boolean
       CHARTS_NAME:
         required: true
         type: string
@@ -51,9 +60,43 @@ jobs:
     uses: ./.github/workflows/02-e2e-test.yaml
     secrets: inherit
 
+  allowlist-drift-check:
+    # Fails the release if the node-agent render drifts from the approved GKE Autopilot
+    # allowlist (vendored under gke-allowlist/). Bypass with BYPASS_ALLOWLIST_DRIFT=true
+    # after opening a Gerrit allowlist update. See scripts/gke-allowlist/README.md.
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.RELEASE_BRANCH || inputs.COMMIT_REF }}
+      - name: Install Helm
+        uses: azure/setup-helm@v3.5
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - run: pip install pyyaml
+      - name: Check node-agent vs approved allowlist
+        run: |
+          set +e
+          scripts/gke-allowlist/check-drift.sh \
+            charts/kubescape-operator \
+            gke-allowlist/armo-kubescape-node-agent-1.40-v2.yaml
+          rc=$?
+          set -e
+          if [ "$rc" -ne 0 ]; then
+            if [ "${{ inputs.BYPASS_ALLOWLIST_DRIFT }}" = "true" ]; then
+              echo "::warning::node-agent drifts from the approved allowlist, but BYPASS_ALLOWLIST_DRIFT=true — ensure a Gerrit allowlist update is open."
+            else
+              echo "::error::node-agent drifts from the approved GKE Autopilot allowlist. Open a Gerrit allowlist update, then re-run the release with BYPASS_ALLOWLIST_DRIFT=true."
+              exit 1
+            fi
+          fi
+
   helm-chart-release:
-    needs: e2e-test
-    if: ${{ !cancelled() && (needs.e2e-test.result == 'success' || needs.e2e-test.result == 'skipped') }}
+    needs: [e2e-test, allowlist-drift-check]
+    if: ${{ !cancelled() && (needs.e2e-test.result == 'success' || needs.e2e-test.result == 'skipped') && needs.allowlist-drift-check.result == 'success' }}
     permissions:
       id-token: write      # Required: OIDC token for keyless attestation signing
       contents: write      # Required: chart-releaser creates GitHub Releases and pushes gh-pages index
