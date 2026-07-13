@@ -65,11 +65,14 @@ jobs:
     # allowlist (vendored under gke-allowlist/). Bypass with BYPASS_ALLOWLIST_DRIFT=true
     # after opening a Gerrit allowlist update. See scripts/gke-allowlist/README.md.
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ inputs.RELEASE_BRANCH || inputs.COMMIT_REF }}
+          persist-credentials: false
       - name: Install Helm
         uses: azure/setup-helm@v3.5
       - name: Install Python
@@ -85,13 +88,19 @@ jobs:
             gke-allowlist/armo-kubescape-node-agent-1.40-v2.yaml
           rc=$?
           set -e
-          if [ "$rc" -ne 0 ]; then
+          # exit 2 = spec-drift (bypassable); 0 = OK; anything else = the check crashed and must not be bypassed.
+          if [ "$rc" -eq 0 ]; then
+            exit 0
+          elif [ "$rc" -eq 2 ]; then
             if [ "${{ inputs.BYPASS_ALLOWLIST_DRIFT }}" = "true" ]; then
               echo "::warning::node-agent drifts from the approved allowlist, but BYPASS_ALLOWLIST_DRIFT=true — ensure a Gerrit allowlist update is open."
-            else
-              echo "::error::node-agent drifts from the approved GKE Autopilot allowlist. Open a Gerrit allowlist update, then re-run the release with BYPASS_ALLOWLIST_DRIFT=true."
-              exit 1
+              exit 0
             fi
+            echo "::error::node-agent drifts from the approved GKE Autopilot allowlist. Open a Gerrit allowlist update, then re-run the release with BYPASS_ALLOWLIST_DRIFT=true."
+            exit 1
+          else
+            echo "::error::allowlist drift check failed to run (exit $rc) — not a drift result, so BYPASS_ALLOWLIST_DRIFT does not apply. Fix the check."
+            exit 1
           fi
 
   helm-chart-release:

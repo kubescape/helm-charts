@@ -10,8 +10,16 @@ this script normalizes them into the final, submittable form:
 """
 import os
 
-REPO = os.path.expanduser("~/projects/workspace-gke-autopilot-approval/gke-allow-list/ARMO")
-GEN = os.path.expanduser("~/projects/workspace-gke-autopilot-approval/gen")
+# Output repo (ARMO allowlist checkout) and the dir holding the digest files, both overridable via
+# env vars so the generator is not tied to one contributor's home directory.
+REPO = os.environ.get(
+    "GKE_ALLOWLIST_REPO",
+    os.path.expanduser("~/projects/workspace-gke-autopilot-approval/gke-allow-list/ARMO"),
+)
+GEN = os.environ.get(
+    "GKE_ALLOWLIST_GEN",
+    os.path.expanduser("~/projects/workspace-gke-autopilot-approval/gen"),
+)
 
 # --- digest blocks (read from the skopeo output, re-indented under imageDigests) ---
 def load_digests(path):
@@ -29,11 +37,14 @@ KS_DIGESTS = load_digests(f"{GEN}/digests-kubescape-node-agent.txt")
 ARMO_DIGESTS = load_digests(f"{GEN}/digests-armosec-node-agent.txt")
 
 # --- canonical body (everything except metadata.name, the image regexes, digests) ---
+# Full union of chart-conditional node-agent env names (subset matching => an uncovered env
+# rejects the workload). Kept in sync with the vendored gke-allowlist/*-1.40-v2.yaml files.
 NODE_AGENT_ENV = [
     "GOMEMLIMIT", "HOST_ROOT", "KS_LOGGER_LEVEL", "KS_LOGGER_NAME",
     "OTEL_COLLECTOR_SVC", "CLAMAV_SOCKET", "SBOM_SCANNER_SOCKET", "SCANNER_MEMORY_LIMIT",
     "NODE_NAME", "POD_NAME", "NAMESPACE_NAME", "KUBELET_ROOT", "AGENT_VERSION",
-    "NodeName", "IGNORERULEBINDINGS",
+    "NodeName", "IGNORERULEBINDINGS", "API_URL",
+    "HTTPS_PROXY", "no_proxy", "RUNTIME_PATH", "SKIP_KERNEL_VERSION_CHECK", "MALWARE_SCAN_ALL_FILES",
 ]
 SBOM_ENV = ["GOMEMLIMIT", "SOCKET_PATH", "HOST_ROOT", "OTEL_COLLECTOR_SVC",
             "NODE_NAME", "POD_NAME", "NAMESPACE", "CLUSTER_NAME"]
@@ -59,6 +70,9 @@ exemptions:
   - autogke-no-write-mode-hostpath
   # Node Agent needs SYS_ADMIN/SYS_PTRACE/NET_ADMIN/SYSLOG/SYS_RESOURCE/IPC_LOCK/NET_RAW for eBPF.
   - autogke-default-linux-capabilities
+  # Autoscaler mode adds a node.kubernetes.io/instance-type nodeSelector per node group, which
+  # Autopilot disallows without this exemption.
+  - autogke-node-affinity-selector-limitation
 matchingCriteria:
   hostPID: true
   containers:

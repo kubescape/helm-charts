@@ -127,8 +127,10 @@ def main():
             drift.append(f"container '{name}': privileged required but allowlist has privileged:false")
 
     for name, path in wl["hostpaths"].items():
-        if al["hostpaths"].get(name) not in (path, None):
-            drift.append(f"hostPath '{name}': workload {path} != allowlist {al['hostpaths'].get(name)}")
+        if name not in al["hostpaths"]:
+            drift.append(f"hostPath volume '{name}' ({path}) not in allowlist")
+        elif al["hostpaths"][name] != path:
+            drift.append(f"hostPath '{name}': workload path {path} != allowlist {al['hostpaths'][name]}")
 
     if args.check_digests:
         for name, wc in wl["containers"].items():

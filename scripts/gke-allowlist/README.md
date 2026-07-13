@@ -20,7 +20,7 @@ gradual rollout). The release drift gate (below) catches that before release.
 | Script | Purpose |
 |--------|---------|
 | `allowlist-drift.py` | Classify a chart render vs an allowlist as `no-op` / `digest-only` / `spec-drift`. Exit 2 on spec-drift (CI-gate friendly). |
-| `check-drift.sh` | Wrapper the release CI calls: renders the node-agent with all optional features on and runs `allowlist-drift.py`. |
+| `check-drift.sh` | Wrapper script the release CI calls: renders the node-agent with all optional features on and runs `allowlist-drift.py`. |
 | `build-allowlists.py` | (allowlist-repo side) Assemble final WorkloadAllowlist files from GKE-generated baselines + value overlays + image digests. |
 | `refresh-digests.py` | (allowlist-repo side) Append newly-released node-agent image SHA-256 digests to an approved allowlist's mutable `containerImageDigests` field. |
 
