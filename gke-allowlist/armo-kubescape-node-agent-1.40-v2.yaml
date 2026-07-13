@@ -1,0 +1,298 @@
+apiVersion: auto.gke.io/v1
+kind: WorkloadAllowlist
+minGKEVersion: 1.32.0-gke.1000000
+metadata:
+  name: armo-kubescape-node-agent-1.40-v2
+  annotations:
+    autopilot.gke.io/no-connect: "true"
+exemptions:
+  # Node Agent monitors all processes/containers on the node, so it needs the host PID namespace.
+  - autogke-disallow-hostnamespaces
+  # Node Agent needs write access to parts of the host (container runtime socket, eBPF fs) for eBPF.
+  - autogke-no-write-mode-hostpath
+  # Node Agent needs SYS_ADMIN/SYS_PTRACE/NET_ADMIN/SYSLOG/SYS_RESOURCE/IPC_LOCK/NET_RAW for eBPF.
+  - autogke-default-linux-capabilities
+  # Autoscaler mode adds a node.kubernetes.io/instance-type nodeSelector per node group;
+  # Autopilot disallows that selector key without this exemption.
+  - autogke-node-affinity-selector-limitation
+matchingCriteria:
+  hostPID: true
+  containers:
+    - name: clamav
+      image: ^quay\.io/kubescape/klamav$
+      securityContext:
+        capabilities:
+          add:
+            - SYS_PTRACE
+      volumeMounts:
+        - mountPath: /var/lib/clamav-tmp
+          name: clamdb
+        - mountPath: /run/clamav
+          name: clamrun
+        - mountPath: /etc/clamav
+          name: etc
+          readOnly: true
+    - name: sbom-scanner
+      image: ^quay\.io/kubescape/node-agent$
+      command:
+        - /usr/bin/sbom-scanner
+      env:
+        - name: GOMEMLIMIT
+        - name: SOCKET_PATH
+        - name: HOST_ROOT
+        - name: OTEL_COLLECTOR_SVC
+        - name: NODE_NAME
+        - name: POD_NAME
+        - name: NAMESPACE
+        - name: CLUSTER_NAME
+      securityContext:
+        capabilities:
+          drop:
+            - ALL
+      volumeMounts:
+        - mountPath: /sbom-comm
+          name: sbom-comm
+        - mountPath: /host
+          name: host
+          readOnly: true
+        - mountPath: /tmp
+          name: sbom-scanner-tmp
+    - name: node-agent
+      image: ^quay\.io/kubescape/node-agent$
+      env:
+        - name: GOMEMLIMIT
+        - name: HOST_ROOT
+        - name: KS_LOGGER_LEVEL
+        - name: KS_LOGGER_NAME
+        - name: OTEL_COLLECTOR_SVC
+        - name: CLAMAV_SOCKET
+        - name: SBOM_SCANNER_SOCKET
+        - name: SCANNER_MEMORY_LIMIT
+        - name: NODE_NAME
+        - name: POD_NAME
+        - name: NAMESPACE_NAME
+        - name: KUBELET_ROOT
+        - name: AGENT_VERSION
+        - name: NodeName
+        - name: IGNORERULEBINDINGS
+        # API_URL is set whenever .Values.server is configured (every backend-connected install).
+        - name: API_URL
+        # Conditional env from optional node-agent features (egress proxy / custom container
+        # runtime path / kernel-version-check skip / full-filesystem malware scan).
+        - name: HTTPS_PROXY
+        - name: no_proxy
+        - name: RUNTIME_PATH
+        - name: SKIP_KERNEL_VERSION_CHECK
+        - name: MALWARE_SCAN_ALL_FILES
+      securityContext:
+        capabilities:
+          add:
+            - SYS_ADMIN
+            - SYS_PTRACE
+            - NET_ADMIN
+            - SYSLOG
+            - SYS_RESOURCE
+            - IPC_LOCK
+            - NET_RAW
+        privileged: false
+      volumeMounts:
+        - mountPath: /host
+          name: host
+          readOnly: true
+        - mountPath: /var/lib/kubelet
+          name: kubeletdir
+        - mountPath: /run
+          name: run
+        - mountPath: /var
+          name: var
+          readOnly: true
+        - mountPath: /lib/modules
+          name: modules
+          readOnly: true
+        - mountPath: /sys/kernel/debug
+          name: debugfs
+        - mountPath: /sys/fs/cgroup
+          name: cgroup
+          readOnly: true
+        - mountPath: /sys/fs/bpf
+          name: bpffs
+        - mountPath: /data
+          name: data
+        - mountPath: /profiles
+          name: profiles
+        - mountPath: /boot
+          name: boot
+          readOnly: true
+        - mountPath: /clamav
+          name: clamrun
+        - mountPath: /sbom-comm
+          name: sbom-comm
+        - mountPath: /etc/credentials
+          name: cloud-secret
+          readOnly: true
+        - mountPath: /etc/config/clusterData.json
+          name: ks-cloud-config
+          readOnly: true
+          subPath: clusterData.json
+        - mountPath: /etc/config/config.json
+          name: config
+          readOnly: true
+          subPath: config.json
+  securityContext:
+    appArmorProfile:
+      type: Unconfined
+  volumes:
+    - hostPath:
+        path: /
+      name: host
+    - hostPath:
+        path: /var/lib/kubelet
+      name: kubeletdir
+    - hostPath:
+        path: /run
+      name: run
+    - hostPath:
+        path: /var
+      name: var
+    - hostPath:
+        path: /sys/fs/cgroup
+      name: cgroup
+    - hostPath:
+        path: /lib/modules
+      name: modules
+    - hostPath:
+        path: /sys/fs/bpf
+      name: bpffs
+    - hostPath:
+        path: /sys/kernel/debug
+      name: debugfs
+    - hostPath:
+        path: /boot
+      name: boot
+    - name: data
+    - name: profiles
+    - hostPath:
+        path: /
+      name: host-filesystem
+    - name: clamdb
+    - name: clamrun
+    - configMap:
+        defaultMode: 420
+        name: clamav
+      name: etc
+    - name: sbom-comm
+    - name: sbom-scanner-tmp
+    - name: cloud-secret
+    - configMap:
+        defaultMode: 420
+        name: ks-cloud-config
+      name: ks-cloud-config
+    - configMap:
+        defaultMode: 420
+        name: node-agent
+      name: config
+containerImageDigests:
+  - containerName: node-agent
+    imageDigests:
+      # quay.io/kubescape/node-agent:v0.3.147
+      - a457e95a15d7031ca2cb496a8e5f55a586b5c89cbfa53a3f104dde07b22ec72d
+      # quay.io/kubescape/node-agent:v0.3.146
+      - c6bd0c08c77733a563533c80e23e9e32274619e0d86950b0da6341acc0cc8be8
+      # quay.io/kubescape/node-agent:v0.3.142
+      - 62d9409e776b031c06a243691517c6931974689ae0a224b4512a646569fd8096
+      # quay.io/kubescape/node-agent:v0.3.137
+      - 8a17ce5c46a1c1a91c5b9bf04b39f3c8f7aaf3876653610a56cc24b4c3c7ee58
+      # quay.io/kubescape/node-agent:v0.3.136
+      - 6c93d5a1cec99fd6bf12822a61eba28a44c096f734114dc051dcadad28abb268
+      # quay.io/kubescape/node-agent:v0.3.132
+      - 8ee74b7c2dd3bac652da66d250c6a413144b9470cee7f3cabc586cdd17344b2d
+      # quay.io/kubescape/node-agent:v0.3.129
+      - 88e30e5f81416be8bb53dfef0ff8acf2524e08c674b86706df8018687732dcff
+      # quay.io/kubescape/node-agent:v0.3.128
+      - 2e50795a3caf6037d4e68f93a243538b63a548384141e8363f1f5d4f0d6fd659
+      # quay.io/kubescape/node-agent:v0.3.127
+      - 8f601109d3e601f69ba3e53526738bafc86bde560b24f7e964b16e739adbc86f
+      # quay.io/kubescape/node-agent:v0.3.124
+      - 5fb4e257a0b073ba477bda3355fa3084303d1b296a471b16141439cfee0c188e
+      # quay.io/kubescape/node-agent:v0.3.122
+      - e5fbf7640ecdd55f08a548f6bf4d74ca08b7d0e61f42cdb2a0bda3e68f15191b
+      # quay.io/kubescape/node-agent:v0.3.119
+      - 49312282fb3ff219d5b3951e576238dec3c6aec3601dafc51e773925ef17ae23
+      # quay.io/kubescape/node-agent:v0.3.115
+      - 30d66204d7b96f9b14a66c374c473325b9887053e327f51e3dda5983a9d0d83b
+      # quay.io/kubescape/node-agent:v0.3.113
+      - a2eaf36df1e1ed1fe792e2630b4b6376141d3a092971498cce04e03a045eb319
+      # quay.io/kubescape/node-agent:v0.3.112
+      - 262e5410b840f4b3e5a4181a3f0bffdf243401d257b23d244aab46f48b30bd21
+      # quay.io/kubescape/node-agent:v0.3.111
+      - 0affd7279bb0be7fee4172a93ac7f321aeee13a5334dd75c4768e898f7d61213
+      # quay.io/kubescape/node-agent:v0.3.108
+      - 227ace3d845e8b879c4d52dbd488aa3898476c7c979bb26542725b5021841e47
+      # quay.io/kubescape/node-agent:v0.3.97
+      - 2650bf5f6372b623571bbf8a5b3cb6c1f9dbe3af9cb14ee47d2aecfc2d19de19
+      # quay.io/kubescape/node-agent:v0.3.94
+      - d1383f7554a880df1aee9c2b5de0bc601f5c8f55fdb864a961501c8b81da6000
+      # quay.io/kubescape/node-agent:v0.3.91
+      - 3f785d2f7e6ba9673d7d2984bba32fb9691ed4af2bbd6092628f45c653021a07
+      # quay.io/kubescape/node-agent:v0.3.79
+      - 79d0437e502e9185bc621ea1efcfcc9cecf9ae924e31ee81de0f0d9b0e2e5d14
+      # quay.io/kubescape/node-agent:v0.3.75
+      - be6d1c6a83b93a56284a41116d77572d6067fc48aee23e2af9a74901d5e347e8
+      # quay.io/kubescape/node-agent:v0.3.71
+      - 2321ac886b557bd1eabd685c0397d79e5163dec70852a3542cfe6818cd7161c9
+      # quay.io/kubescape/node-agent:v0.3.69
+      - 6ca437d13a07193c7efd84f4f616024d40c7a83412767b2388cd138b3b4cfad3
+      # quay.io/kubescape/node-agent:v0.3.63
+      - 6731c347fea645da1c543dec0fc720a073bb4a5e5792f5374fe5f210dc6407b3
+  - containerName: sbom-scanner
+    imageDigests:
+      # quay.io/kubescape/node-agent:v0.3.147
+      - a457e95a15d7031ca2cb496a8e5f55a586b5c89cbfa53a3f104dde07b22ec72d
+      # quay.io/kubescape/node-agent:v0.3.146
+      - c6bd0c08c77733a563533c80e23e9e32274619e0d86950b0da6341acc0cc8be8
+      # quay.io/kubescape/node-agent:v0.3.142
+      - 62d9409e776b031c06a243691517c6931974689ae0a224b4512a646569fd8096
+      # quay.io/kubescape/node-agent:v0.3.137
+      - 8a17ce5c46a1c1a91c5b9bf04b39f3c8f7aaf3876653610a56cc24b4c3c7ee58
+      # quay.io/kubescape/node-agent:v0.3.136
+      - 6c93d5a1cec99fd6bf12822a61eba28a44c096f734114dc051dcadad28abb268
+      # quay.io/kubescape/node-agent:v0.3.132
+      - 8ee74b7c2dd3bac652da66d250c6a413144b9470cee7f3cabc586cdd17344b2d
+      # quay.io/kubescape/node-agent:v0.3.129
+      - 88e30e5f81416be8bb53dfef0ff8acf2524e08c674b86706df8018687732dcff
+      # quay.io/kubescape/node-agent:v0.3.128
+      - 2e50795a3caf6037d4e68f93a243538b63a548384141e8363f1f5d4f0d6fd659
+      # quay.io/kubescape/node-agent:v0.3.127
+      - 8f601109d3e601f69ba3e53526738bafc86bde560b24f7e964b16e739adbc86f
+      # quay.io/kubescape/node-agent:v0.3.124
+      - 5fb4e257a0b073ba477bda3355fa3084303d1b296a471b16141439cfee0c188e
+      # quay.io/kubescape/node-agent:v0.3.122
+      - e5fbf7640ecdd55f08a548f6bf4d74ca08b7d0e61f42cdb2a0bda3e68f15191b
+      # quay.io/kubescape/node-agent:v0.3.119
+      - 49312282fb3ff219d5b3951e576238dec3c6aec3601dafc51e773925ef17ae23
+      # quay.io/kubescape/node-agent:v0.3.115
+      - 30d66204d7b96f9b14a66c374c473325b9887053e327f51e3dda5983a9d0d83b
+      # quay.io/kubescape/node-agent:v0.3.113
+      - a2eaf36df1e1ed1fe792e2630b4b6376141d3a092971498cce04e03a045eb319
+      # quay.io/kubescape/node-agent:v0.3.112
+      - 262e5410b840f4b3e5a4181a3f0bffdf243401d257b23d244aab46f48b30bd21
+      # quay.io/kubescape/node-agent:v0.3.111
+      - 0affd7279bb0be7fee4172a93ac7f321aeee13a5334dd75c4768e898f7d61213
+      # quay.io/kubescape/node-agent:v0.3.108
+      - 227ace3d845e8b879c4d52dbd488aa3898476c7c979bb26542725b5021841e47
+      # quay.io/kubescape/node-agent:v0.3.97
+      - 2650bf5f6372b623571bbf8a5b3cb6c1f9dbe3af9cb14ee47d2aecfc2d19de19
+      # quay.io/kubescape/node-agent:v0.3.94
+      - d1383f7554a880df1aee9c2b5de0bc601f5c8f55fdb864a961501c8b81da6000
+      # quay.io/kubescape/node-agent:v0.3.91
+      - 3f785d2f7e6ba9673d7d2984bba32fb9691ed4af2bbd6092628f45c653021a07
+      # quay.io/kubescape/node-agent:v0.3.79
+      - 79d0437e502e9185bc621ea1efcfcc9cecf9ae924e31ee81de0f0d9b0e2e5d14
+      # quay.io/kubescape/node-agent:v0.3.75
+      - be6d1c6a83b93a56284a41116d77572d6067fc48aee23e2af9a74901d5e347e8
+      # quay.io/kubescape/node-agent:v0.3.71
+      - 2321ac886b557bd1eabd685c0397d79e5163dec70852a3542cfe6818cd7161c9
+      # quay.io/kubescape/node-agent:v0.3.69
+      - 6ca437d13a07193c7efd84f4f616024d40c7a83412767b2388cd138b3b4cfad3
+      # quay.io/kubescape/node-agent:v0.3.63
+      - 6731c347fea645da1c543dec0fc720a073bb4a5e5792f5374fe5f210dc6407b3
