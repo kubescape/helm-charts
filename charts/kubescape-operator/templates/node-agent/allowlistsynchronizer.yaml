@@ -1,0 +1,30 @@
+{{- if .Values.nodeAgent.gke.allowlist.enabled }}
+{{- /*
+  Installs the GKE Autopilot AllowlistSynchronizer that pulls the node-agent's approved
+  WorkloadAllowlist from Google's managed repo into the cluster. Rendered only when the allowlist
+  feature is enabled. The path is derived from the allowlist name (ARMO/<name-without-version-suffix>/*)
+  unless nodeAgent.gke.allowlist.path is set explicitly.
+
+  The synchronizer is a cluster-scoped resource with a release-scoped name, so it does not collide
+  with an AllowlistSynchronizer a user may have created manually. If the target WorkloadAllowlist is
+  already installed in the cluster, the controller reconciles it asynchronously — it does not block
+  `helm install`.
+*/}}
+{{- $name := .Values.nodeAgent.gke.allowlist.name }}
+{{- $path := .Values.nodeAgent.gke.allowlist.path }}
+{{- if not $path }}
+{{- $dir := regexReplaceAll "-[0-9]+\\.[0-9]+(-v[0-9]+)?$" $name "" }}
+{{- $path = printf "ARMO/%s/*" $dir }}
+{{- end }}
+apiVersion: auto.gke.io/v1
+kind: AllowlistSynchronizer
+metadata:
+  name: {{ include "kubescape-operator.fullname" . }}-gke-allowlist
+  annotations:
+    {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
+  labels:
+    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.nodeAgent.name "tier" .Values.global.namespaceTier) | nindent 4 }}
+spec:
+  allowlistPaths:
+  - {{ $path }}
+{{- end }}
