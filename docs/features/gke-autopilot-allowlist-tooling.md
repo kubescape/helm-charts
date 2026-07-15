@@ -61,10 +61,15 @@ not only at release. A PR is automated (no manual `BYPASS_ALLOWLIST_DRIFT` input
 - **Check crashed** (any non-`0`/`2` exit) → hard failure; the `allowlist-drift-ack` label does **not**
   bypass a crash, so a broken check can't be silently acknowledged.
 
-Make the check a required status in branch protection to block merge on un-acknowledged drift; otherwise
-it stays a loud-but-non-blocking signal. For PRs from forks (which get a read-only token), the sticky
-comment cannot be posted directly — move the comment step to a `workflow_run`-triggered companion if the
-repo accepts fork PRs.
+The check is **advisory** — a loud, self-clearing notification, not a required status. It is scoped with a
+`paths:` filter (node-agent render / vendored allowlist / drift tooling), so it does not run on unrelated
+PRs. Do **not** mark it a required status in branch protection while that filter is in place: GitHub skips
+a path-filtered workflow on non-matching PRs, and a required check that never runs would block those PRs
+forever on "Expected — waiting for status". To turn it into a hard gate, first drop the `paths:` filter and
+no-op early inside the job, then require it.
+
+For PRs from forks (which get a read-only token), the sticky comment cannot be posted directly — move the
+comment step to a `workflow_run`-triggered companion if the repo accepts fork PRs.
 
 ## Run locally
 

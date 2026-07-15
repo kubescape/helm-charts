@@ -4,6 +4,12 @@ name: pr-allowlist-drift
 # BYPASS_ALLOWLIST_DRIFT input), a PR is automated — so on drift this notifies the PR author
 # with a sticky comment and fails the check until a maintainer adds the `allowlist-drift-ack`
 # label (the PR-flow equivalent of "set as pass after you opened Gerrit to allowlist").
+#
+# This check is advisory (a notification), not a required status. Do NOT mark it required in
+# branch protection while the `paths:` filter below is in place: GitHub skips a path-filtered
+# workflow on PRs that don't match, and a required check that never runs blocks the PR forever
+# on "Expected — waiting for status". To make it a hard gate, drop the paths filter and no-op
+# early inside the job instead.
 on:
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review, labeled, unlabeled]
@@ -22,6 +28,9 @@ permissions:
 
 jobs:
   allowlist-drift:
+    # Only the `allowlist-drift-ack` label affects this check, so skip label events for any
+    # other label instead of re-running the whole checkout + helm + drift check needlessly.
+    if: ${{ !((github.event.action == 'labeled' || github.event.action == 'unlabeled') && github.event.label.name != 'allowlist-drift-ack') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -50,18 +59,16 @@ jobs:
           set -e
           echo "$OUT"
           # rc: 0 = OK, 2 = spec-drift (ack-able), anything else = the check crashed.
+          # Pass the report through base64 so an arbitrary multiline blob can't break the
+          # step output (no heredoc delimiter to collide with / inject through).
           echo "rc=$rc" >> "$GITHUB_OUTPUT"
-          {
-            echo "report<<DRIFT_EOF"
-            echo "$OUT"
-            echo "DRIFT_EOF"
-          } >> "$GITHUB_OUTPUT"
+          echo "report_b64=$(printf '%s' "$OUT" | base64 -w0)" >> "$GITHUB_OUTPUT"
 
       - name: Notify author & conclude
         uses: actions/github-script@v7
         env:
           RC: ${{ steps.drift.outputs.rc }}
-          REPORT: ${{ steps.drift.outputs.report }}
+          REPORT_B64: ${{ steps.drift.outputs.report_b64 }}
           ACK_LABEL: allowlist-drift-ack
           ALLOWLIST: armo-kubescape-node-agent-1.40-v2
         with:
@@ -70,6 +77,7 @@ jobs:
             const rc = process.env.RC;
             const ackLabel = process.env.ACK_LABEL;
             const allowlist = process.env.ALLOWLIST;
+            const report = Buffer.from(process.env.REPORT_B64 || '', 'base64').toString('utf8').trim();
             const { owner, repo } = context.repo;
             const pr = context.payload.pull_request;
             const issue_number = pr.number;
@@ -105,8 +113,14 @@ jobs:
             }
 
             // rc === '2' : spec drift
-            const detail = '<details><summary>Drift detail</summary>\n\n```\n'
-              + (process.env.REPORT || '').trim() + '\n```\n</details>';
+            if (acked) {
+              await upsert('✅ **GKE Autopilot allowlist drift acknowledged** via the `' + ackLabel + '` label — '
+                + 'the node-agent drifts from `' + allowlist + '`, but a maintainer has confirmed a Gerrit allowlist update is open. This check passes.');
+              core.notice('Drift acknowledged via the `' + ackLabel + '` label — check passes.');
+              return;
+            }
+
+            const detail = '<details><summary>Drift detail</summary>\n\n```\n' + report + '\n```\n</details>';
             const body = [
               '⚠️ **@' + author + '** — this PR\'s node-agent render **drifts from the approved GKE Autopilot allowlist** (`' + allowlist + '`).',
               '',
@@ -119,9 +133,4 @@ jobs:
               detail,
             ].join('\n');
             await upsert(body);
-
-            if (acked) {
-              core.notice('Drift acknowledged via the `' + ackLabel + '` label — check passes.');
-            } else {
-              core.setFailed('node-agent drifts from the approved allowlist `' + allowlist + '`. Open a Gerrit update, then add the `' + ackLabel + '` label.');
-            }
+            core.setFailed('node-agent drifts from the approved allowlist `' + allowlist + '`. Open a Gerrit update, then add the `' + ackLabel + '` label.');
