@@ -1,0 +1,136 @@
+name: pr-allowlist-drift
+# Runs the GKE Autopilot allowlist drift check on every PR that touches the node-agent
+# render, the vendored allowlist, or the drift tooling. Unlike the release gate (a manual
+# BYPASS_ALLOWLIST_DRIFT input), a PR is automated — so on drift this notifies the PR author
+# with a sticky comment and fails the check until a maintainer adds the `allowlist-drift-ack`
+# label (the PR-flow equivalent of "set as pass after you opened Gerrit to allowlist").
+#
+# This check is advisory (a notification), not a required status. Do NOT mark it required in
+# branch protection while the `paths:` filter below is in place: GitHub skips a path-filtered
+# workflow on PRs that don't match, and a required check that never runs blocks the PR forever
+# on "Expected — waiting for status". To make it a hard gate, drop the paths filter and no-op
+# early inside the job instead.
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review, labeled, unlabeled]
+    paths:
+      - 'charts/kubescape-operator/**'
+      - 'gke-allowlist/**'
+      - 'scripts/gke-allowlist/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write   # post/update the sticky drift comment
+
+jobs:
+  allowlist-drift:
+    # Only the `allowlist-drift-ack` label affects this check, so skip label events for any
+    # other label instead of re-running the whole checkout + helm + drift check needlessly.
+    if: ${{ !((github.event.action == 'labeled' || github.event.action == 'unlabeled') && github.event.label.name != 'allowlist-drift-ack') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3.5
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - run: pip install pyyaml
+
+      - name: Check node-agent vs approved allowlist
+        id: drift
+        run: |
+          set +e
+          OUT=$(scripts/gke-allowlist/check-drift.sh \
+            charts/kubescape-operator \
+            gke-allowlist/armo-kubescape-node-agent-1.40-v2.yaml 2>&1)
+          rc=$?
+          set -e
+          echo "$OUT"
+          # rc: 0 = OK, 2 = spec-drift (ack-able), anything else = the check crashed.
+          # Pass the report through base64 so an arbitrary multiline blob can't break the
+          # step output (no heredoc delimiter to collide with / inject through).
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          echo "report_b64=$(printf '%s' "$OUT" | base64 -w0)" >> "$GITHUB_OUTPUT"
+
+      - name: Notify author & conclude
+        uses: actions/github-script@v7
+        env:
+          RC: ${{ steps.drift.outputs.rc }}
+          REPORT_B64: ${{ steps.drift.outputs.report_b64 }}
+          ACK_LABEL: allowlist-drift-ack
+          ALLOWLIST: armo-kubescape-node-agent-1.40-v2
+        with:
+          script: |
+            const marker = '<!-- allowlist-drift -->';
+            const rc = process.env.RC;
+            const ackLabel = process.env.ACK_LABEL;
+            const allowlist = process.env.ALLOWLIST;
+            const report = Buffer.from(process.env.REPORT_B64 || '', 'base64').toString('utf8').trim();
+            const { owner, repo } = context.repo;
+            const pr = context.payload.pull_request;
+            const issue_number = pr.number;
+            const author = pr.user.login;
+            const acked = (pr.labels || []).map(l => l.name).includes(ackLabel);
+
+            async function findSticky() {
+              const cs = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number });
+              return cs.find(c => c.body && c.body.includes(marker));
+            }
+            async function upsert(body) {
+              body = marker + '\n' + body;
+              const existing = await findSticky();
+              if (existing) await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+              else await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
+            async function clear() {
+              const existing = await findSticky();
+              if (existing) await github.rest.issues.deleteComment({ owner, repo, comment_id: existing.id });
+            }
+
+            if (rc === '0') {
+              await clear();
+              core.info('node-agent matches the approved allowlist — no drift.');
+              return;
+            }
+
+            if (rc !== '2') {
+              await upsert('🛑 The GKE Autopilot allowlist drift check **failed to run** (exit `' + rc + '`). '
+                + 'This is not a drift result, so the `' + ackLabel + '` label does **not** bypass it — please fix the check.');
+              core.setFailed('allowlist drift check crashed (exit ' + rc + ')');
+              return;
+            }
+
+            // rc === '2' : spec drift
+            if (acked) {
+              await upsert('✅ **GKE Autopilot allowlist drift acknowledged** via the `' + ackLabel + '` label — '
+                + 'the node-agent drifts from `' + allowlist + '`, but a maintainer has confirmed a Gerrit allowlist update is open. This check passes.');
+              core.notice('Drift acknowledged via the `' + ackLabel + '` label — check passes.');
+              return;
+            }
+
+            const detail = '<details><summary>Drift detail</summary>\n\n```\n' + report + '\n```\n</details>';
+            const body = [
+              '⚠️ **@' + author + '** — this PR\'s node-agent render **drifts from the approved GKE Autopilot allowlist** (`' + allowlist + '`).',
+              '',
+              'On GKE Autopilot the node-agent would be rejected by GKE Warden until Google approves a matching allowlist, so customers could not install this chart version.',
+              '',
+              '**To unblock this PR:**',
+              '1. Open a Gerrit allowlist update at `gke-ap-allowlist.googlesource.com/ARMO` (see `scripts/gke-allowlist/README.md`), then update the vendored `gke-allowlist/` copy once approved.',
+              '2. A maintainer adds the **`' + ackLabel + '`** label to this PR to acknowledge the drift and pass the check.',
+              '',
+              detail,
+            ].join('\n');
+            await upsert(body);
+            core.setFailed('node-agent drifts from the approved allowlist `' + allowlist + '`. Open a Gerrit update, then add the `' + ackLabel + '` label.');
