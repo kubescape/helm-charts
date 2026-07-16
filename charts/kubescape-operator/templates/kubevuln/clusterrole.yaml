@@ -19,5 +19,17 @@ rules:
   - apiGroups: ["kubescape.io"]
     resources: ["securityexceptions", "clustersecurityexceptions"]
     verbs: ["get", "list", "watch"]
+  # Evaluating a SecurityException's match.objectSelector / match.namespaceSelector
+  # requires reading the labels of the scanned workload and its namespace. Without
+  # these, such exceptions fail closed and silently never apply.
+  - apiGroups: [""]
+    resources: ["namespaces", "pods", "replicationcontrollers"]
+    verbs: ["get"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
+    verbs: ["get"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get"]
 {{- end }}
 {{- end }}
