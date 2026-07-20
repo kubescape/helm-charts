@@ -227,7 +227,11 @@ Parameters:
         - IPC_LOCK
         - NET_RAW
     seLinuxOptions:
+      {{- if .autoscalerMode }}
+      type: "{{`{{ .SELinuxType }}`}}"
+      {{- else }}
       type: {{ .Values.nodeAgent.seLinuxType }}
+      {{- end }}
   volumeMounts:
     {{- include "node-agent.volumeMounts" (dict "Values" .Values "components" .components) | nindent 4 }}
 {{- end -}}
