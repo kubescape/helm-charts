@@ -24,7 +24,8 @@ concurrency:
 
 permissions:
   contents: read
-  pull-requests: write   # post/update the sticky drift comment
+  issues: write          # post/update/delete sticky issue comments on PRs
+  pull-requests: read    # read PR metadata and labels
 
 jobs:
   allowlist-drift:
@@ -72,6 +73,7 @@ jobs:
           ACK_LABEL: allowlist-drift-ack
           ALLOWLIST: armo-kubescape-node-agent-1.40-v2
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const marker = '<!-- allowlist-drift -->';
             const rc = process.env.RC;
@@ -85,18 +87,31 @@ jobs:
             const acked = (pr.labels || []).map(l => l.name).includes(ackLabel);
 
             async function findSticky() {
-              const cs = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number });
-              return cs.find(c => c.body && c.body.includes(marker));
+              try {
+                const cs = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number });
+                return cs.find(c => c.body && c.body.includes(marker));
+              } catch (err) {
+                core.warning('Could not list PR comments: ' + err.message);
+                return null;
+              }
             }
             async function upsert(body) {
-              body = marker + '\n' + body;
-              const existing = await findSticky();
-              if (existing) await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
-              else await github.rest.issues.createComment({ owner, repo, issue_number, body });
+              try {
+                body = marker + '\n' + body;
+                const existing = await findSticky();
+                if (existing) await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+                else await github.rest.issues.createComment({ owner, repo, issue_number, body });
+              } catch (err) {
+                core.warning('Could not post/update PR comment: ' + err.message);
+              }
             }
             async function clear() {
-              const existing = await findSticky();
-              if (existing) await github.rest.issues.deleteComment({ owner, repo, comment_id: existing.id });
+              try {
+                const existing = await findSticky();
+                if (existing) await github.rest.issues.deleteComment({ owner, repo, comment_id: existing.id });
+              } catch (err) {
+                core.warning('Could not delete PR comment: ' + err.message);
+              }
             }
 
             if (rc === '0') {

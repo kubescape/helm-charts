@@ -44,6 +44,7 @@ def render_node_agent(chart, values, sets, wrapper):
 def project_container(c):
     sc = c.get("securityContext", {}) or {}
     caps = sc.get("capabilities", {}) or {}
+    selinux = sc.get("seLinuxOptions", {}) or {}
     return {
         "image": c.get("image", ""),
         "add": set(caps.get("add", []) or []),
@@ -51,6 +52,7 @@ def project_container(c):
         "env": {e["name"] for e in (c.get("env", []) or [])},
         "mounts": {m["mountPath"] for m in (c.get("volumeMounts", []) or [])},
         "privileged": bool(sc.get("privileged", False)),
+        "seLinuxType": selinux.get("type", "") if isinstance(selinux, dict) else "",
     }
 
 
@@ -125,6 +127,8 @@ def main():
             drift.append(f"container '{name}': mountPath {mp} not in allowlist")
         if wc["privileged"] and not ac["privileged"]:
             drift.append(f"container '{name}': privileged required but allowlist has privileged:false")
+        if wc["seLinuxType"] and wc["seLinuxType"] != ac["seLinuxType"]:
+            drift.append(f"container '{name}': seLinuxType '{wc['seLinuxType']}' not in allowlist (allowlist has '{ac['seLinuxType']}')")
 
     for name, path in wl["hostpaths"].items():
         if name not in al["hostpaths"]:
