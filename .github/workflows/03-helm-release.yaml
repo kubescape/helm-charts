@@ -75,6 +75,11 @@ jobs:
           persist-credentials: false
       - name: Install Helm
         uses: azure/setup-helm@v3.5
+        with:
+          # Keep in sync with pr-allowlist-drift.yaml — the release gate and the PR check
+          # must render with the same Helm or they can disagree. See that workflow for why
+          # the default `version: latest` silently installs v3.9.0.
+          version: v3.19.0
       - name: Install Python
         uses: actions/setup-python@v5
         with:
@@ -128,8 +133,10 @@ jobs:
 
       - name: Install Helm
         uses: azure/setup-helm@v3.5
-        # with:
-        #   version: v3.4.0
+        with:
+          # Pinned: this Helm packages the released chart, so it must not drift silently.
+          # The default `version: latest` needs a token to resolve and falls back to v3.9.0.
+          version: v3.19.0
 
       - name: Install chart-releaser CLI
         env:

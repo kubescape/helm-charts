@@ -24,7 +24,10 @@ concurrency:
 
 permissions:
   contents: read
-  pull-requests: write   # post/update the sticky drift comment
+  pull-requests: write   # post/update/delete the sticky drift comment (PR comments are
+                         # scoped to `pull-requests`, not `issues`, even though they go
+                         # through the issues API). A PR from a fork gets a read-only
+                         # token regardless, so the comment calls below tolerate a 403.
 
 jobs:
   allowlist-drift:
@@ -40,6 +43,13 @@ jobs:
 
       - name: Install Helm
         uses: azure/setup-helm@v3.5
+        with:
+          # Pin. With the default `latest`, setup-helm needs a token to resolve the newest
+          # release and silently falls back to Helm v3.9.0 (Go 1.17) when it can't — and
+          # Go only made text/template `and`/`or` short-circuit in 1.18, so any
+          # `and X (len X)` guard in the chart blows up with "len of nil pointer" there.
+          # A drift check that renders on a 2022 Helm isn't checking what users deploy.
+          version: v3.19.0
 
       - name: Install Python
         uses: actions/setup-python@v5
@@ -84,19 +94,34 @@ jobs:
             const author = pr.user.login;
             const acked = (pr.labels || []).map(l => l.name).includes(ackLabel);
 
+            // Deliberately NOT wrapped in try/catch: if listing fails we must not fall
+            // through to createComment and leave a second sticky comment behind.
             async function findSticky() {
               const cs = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number });
               return cs.find(c => c.body && c.body.includes(marker));
             }
+            // Commenting is best-effort — on a fork PR the token is read-only and every
+            // call below 403s. Never let that mask the drift verdict itself, but never
+            // swallow the report either: mirror it into the job summary so the author
+            // still has something to read.
             async function upsert(body) {
-              body = marker + '\n' + body;
-              const existing = await findSticky();
-              if (existing) await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
-              else await github.rest.issues.createComment({ owner, repo, issue_number, body });
+              try {
+                const existing = await findSticky();
+                const withMarker = marker + '\n' + body;
+                if (existing) await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body: withMarker });
+                else await github.rest.issues.createComment({ owner, repo, issue_number, body: withMarker });
+              } catch (err) {
+                core.warning('Could not post/update the sticky PR comment: ' + err.message);
+              }
+              await core.summary.addRaw(body).write();
             }
             async function clear() {
-              const existing = await findSticky();
-              if (existing) await github.rest.issues.deleteComment({ owner, repo, comment_id: existing.id });
+              try {
+                const existing = await findSticky();
+                if (existing) await github.rest.issues.deleteComment({ owner, repo, comment_id: existing.id });
+              } catch (err) {
+                core.warning('Could not delete the sticky PR comment: ' + err.message);
+              }
             }
 
             if (rc === '0') {

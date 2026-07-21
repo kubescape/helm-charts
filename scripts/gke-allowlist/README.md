@@ -34,6 +34,14 @@ scripts/gke-allowlist/check-drift.sh charts/kubescape-operator \
 Exit 0 = covered; exit 2 = drift (the render needs something the allowlist lacks — the output names
 each missing env/mount/container).
 
+Use a **Helm ≥ 3.18** matching the pinned `version:` in `.github/workflows/pr-allowlist-drift.yaml`.
+The check is only meaningful if it renders the chart the way users' Helm does, and old Helm can
+differ enough to break the render outright: Helm ≤ 3.10 is built with Go < 1.18, where template
+`and`/`or` evaluate every argument instead of short-circuiting, so a guard like
+`and .X (gt (len .X) 0)` fails with `len of nil pointer`. Don't leave the workflow's `setup-helm`
+on the default `version: latest` — without a token it can't resolve "latest" and silently installs
+v3.9.0.
+
 ## When the drift gate fails on a release
 
 1. The node-agent's privileged surface changed and needs a **new allowlist version**.
