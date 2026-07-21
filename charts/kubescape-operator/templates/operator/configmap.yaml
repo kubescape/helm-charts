@@ -54,8 +54,9 @@ data:
         "operatorDeploymentName": "{{ .Values.operator.name }}",
         "goMemLimitPercentage": {{ .Values.nodeAgent.gomemlimitPercentage }}
       }
-        {{- if and .Values.imageScanning.privateRegistries.credentials (gt (len .Values.imageScanning.privateRegistries.credentials) 0) }}
-        {{- $cred := index .Values.imageScanning.privateRegistries.credentials 0 }}
+        {{- $creds := ((.Values.imageScanning).privateRegistries).credentials }}
+        {{- if $creds }}
+        {{- $cred := index $creds 0 }}
         {{- if $cred.skipTlsVerify }},
       "registryScanningSkipTlsVerify": {{ $cred.skipTlsVerify }}
         {{- end }}
