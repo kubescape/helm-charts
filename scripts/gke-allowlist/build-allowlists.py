@@ -123,6 +123,8 @@ matchingCriteria:
             - IPC_LOCK
             - NET_RAW
         privileged: false
+        seLinuxOptions:
+          type: spc_t
       volumeMounts:
         - mountPath: /host
           name: host

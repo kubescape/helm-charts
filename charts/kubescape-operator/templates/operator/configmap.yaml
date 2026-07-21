@@ -52,15 +52,19 @@ data:
         "reconcileInterval": "{{ .Values.nodeAgent.autoscaler.reconcileInterval }}",
         "templatePath": "/etc/templates/daemonset-template.yaml",
         "operatorDeploymentName": "{{ .Values.operator.name }}",
-        "goMemLimitPercentage": {{ .Values.nodeAgent.gomemlimitPercentage }}
+        "goMemLimitPercentage": {{ .Values.nodeAgent.gomemlimitPercentage }},
+        "seLinuxType": {{ .Values.nodeAgent.seLinuxType | default "spc_t" | quote }},
+        "bottlerocketAutoDetect": {{ .Values.nodeAgent.autoscaler.bottlerocketAutoDetect }}
       }
-        {{- if and .Values.imageScanning.privateRegistries.credentials (gt (len .Values.imageScanning.privateRegistries.credentials) 0) }}
+        {{- if .Values.imageScanning.privateRegistries.credentials }}
+        {{- if gt (len .Values.imageScanning.privateRegistries.credentials) 0 }}
         {{- $cred := index .Values.imageScanning.privateRegistries.credentials 0 }}
         {{- if $cred.skipTlsVerify }},
       "registryScanningSkipTlsVerify": {{ $cred.skipTlsVerify }}
         {{- end }}
         {{- if $cred.insecure }},
       "registryScanningInsecure": {{ $cred.insecure }}
+        {{- end }}
         {{- end }}
         {{- end }}
     }
