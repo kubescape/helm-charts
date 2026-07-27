@@ -127,7 +127,6 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | kubescape.serviceMonitor.enabled | bool | `false` | enable/disable service monitor for prometheus (operator) integration |
 | kubescape.skipUpdateCheck | bool | `false` | skip check for a newer version |
 | kubescape.labels | `[]` | adds labels to the kubescape microservice |
-| kubescape.submit | bool | `true` | submit results to Kubescape SaaS: <https://cloud.armosec.io/> |
 | kubescape.volumes | object | `[]` | Additional volumes for Kubescape |
 | kubescape.volumeMounts | object | `[]` | Additional volumeMounts for Kubescape |
 | kubescapeScheduler.enabled | bool | `true` | enable/disable a kubescape scheduled scan using a CronJob |
