@@ -21,6 +21,11 @@ metadata:
 data:
   config.json: |
     {
+        {{- range $k, $v := .Values.nodeAgent.config.extra }}
+        {{- if ne $k "backendStorageEnabled" }}
+        "{{ $k }}": {{ $v | toJson }},
+        {{- end }}
+        {{- end }}
         "applicationProfileServiceEnabled": {{ or $configurations.runtimeObservability (eq .Values.capabilities.relevancy "enable") }},
         "backendStorageEnabled": {{ $configurations.backendStorageEnabled }},
         "prometheusExporterEnabled": {{ eq .Values.nodeAgent.config.prometheusExporter "enable" }},
