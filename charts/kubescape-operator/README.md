@@ -457,8 +457,7 @@ class ksCm,recurringScanCm,operator,er,store,masterSync,recurringScanCj,recurrin
 * **Responsibility:** This component has multiple purposes all bound to information available on Kubernetes nodes:
   * Produces SBOMs from the images avialable on the node (used by *KubeVuln*)
   * Produces information from the configurations of the Linux host of the Kubernetes node (used by *Kubescape*)
-  * Creates *ApplicationProfile* using [Inspektor Gadget](https://inspektor-gadget.io) and eBPF. These profiles log the behavior of each container on the node (file access, processes launched, capabilities used, system calls done) into *ApplicationProfile* objects stored in the *Storage* component via the Kubernetes API and optionally sent to external API endpoints.
-  * Creates *NetworkNeighborhood* objects using [Inspektor Gadget](https://inspektor-gadget.io) and eBPF. These profiles log the network activity of each container and they stored as objects in the *Storage* component via the Kubernetes API and optionally sent to external API endpoints.
+  * Creates *ContainerProfile* objects using [Inspektor Gadget](https://inspektor-gadget.io) and eBPF. These profiles log the behavior of each container on the node (file access, processes launched, capabilities used, system calls done) together with its network activity, stored in the *Storage* component via the Kubernetes API and optionally sent to external API endpoints.
   * Monitors container activity via eBPF and evaluates them using its own rule engine that combines static detection rules and anomaly detection to produce alerts that can be exported to AlertManager, Syslog, HTTP endpoints, STDOUT stream and other.
 
 ```mermaid
