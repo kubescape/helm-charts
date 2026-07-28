@@ -25,7 +25,7 @@ storageCertgenScripts: {{ include (printf "%s/storage/certgen/configmap.yaml" $.
 continuousScan: {{ and (eq .Values.capabilities.continuousScan "enable") (not $submit) }}
 createCloudSecret: {{ $createCloudSecret }}
 runtimeObservability: {{ eq .Values.capabilities.runtimeObservability "enable" }}
-backendStorageEnabled: {{ eq (index .Values.capabilities "backend-storage" | default "") "enable" }}
+backendStorageEnabled: {{ .Values.nodeAgent.config.extra.backendStorageEnabled | default false }}
 virtualCrds: {{ or $virtualCrds (not $submit) }}
 submit: {{ $submit }}
   {{- if $submit -}}
