@@ -1,0 +1,33 @@
+suite: defaultFrameworks in clusterData
+templates:
+  - configs/cloudapi-configmap.yaml
+tests:
+  - it: should render default frameworks into clusterData
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - matchRegex:
+          path: data.clusterData
+          pattern: '"defaultFrameworks":\s*\["allcontrols","nsa","mitre"\]'
+
+  - it: should allow overriding default frameworks
+    set:
+      unittest: true
+      clusterName: kind-kind
+      defaultFrameworks:
+        - cis-aks-t1.2.0
+    asserts:
+      - matchRegex:
+          path: data.clusterData
+          pattern: '"defaultFrameworks":\s*\["cis-aks-t1.2.0"\]'
+
+  - it: should omit defaultFrameworks when empty
+    set:
+      unittest: true
+      clusterName: kind-kind
+      defaultFrameworks: []
+    asserts:
+      - notMatchRegex:
+          path: data.clusterData
+          pattern: '"defaultFrameworks"'

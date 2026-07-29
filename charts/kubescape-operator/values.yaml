@@ -13,6 +13,16 @@ fullnameOverride: "kubescape"
 # --set clusterName=`kubectl config current-context`
 clusterName: "cluster"
 
+# Default posture frameworks used when a scan does not specify frameworks
+# (startup scan, empty scheduler scanV1, exception-triggered rescan).
+# Explicit API / scanV1 targetNames override this list.
+# Example (AKS): --set defaultFrameworks={cis-aks-t1.2.0}
+# Example (GKE): --set 'defaultFrameworks={allcontrols,cis-v1.23-t1.0.1}'
+defaultFrameworks:
+  - allcontrols
+  - nsa
+  - mitre
+
 # The namespace for running the chart
 # If you wish to run the chart in a different namespace, make sure to update this value
 ksNamespace: kubescape
@@ -1076,13 +1086,14 @@ helmReleaseUpgrader:
 kubescapeScheduler:
   # scan scheduler container name
   name: kubescape-scheduler
-  # Detemines what to scan. By default it will scan all resources in the cluster for all frameworks.
-  # Further details can be found here: https://github.com/kubescape/operator?tab=readme-ov-file#trigger-kubescape-scanning
+  # Determines what to scan. With an empty scanV1, the operator uses defaultFrameworks
+  # from clusterData. Set scanV1.targetNames to override those install-time defaults.
+  # Further details: https://github.com/kubescape/operator?tab=readme-ov-file#trigger-kubescape-scanning
   requestBody:
     commands:
       - CommandName: "kubescapeScan"
         args:
-          # To scan only specific frameworks, provide the list of frameworks to scan:
+          # Override defaultFrameworks for this CronJob only:
           # scanV1: {"targetType": "framework", "targetNames": [ "nsa" ] }
           scanV1: {}
 
