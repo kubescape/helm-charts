@@ -56,9 +56,20 @@ data:
 {{- end }}
       "relevantImageVulnerabilitiesConfiguration": "{{ .Values.capabilities.relevancy }}",
       "riskAcceptance": {{ eq .Values.capabilities.riskAcceptance "enable" }}
-      {{- if .Values.defaultFrameworks }},
-      "defaultFrameworks": {{ .Values.defaultFrameworks | toJson }}
-      {{- end }}
+{{- if .Values.defaultFrameworks }}
+{{- if not (kindIs "slice" .Values.defaultFrameworks) }}
+{{- fail (printf "defaultFrameworks must be a list of framework names, got %s (use --set 'defaultFrameworks={nsa,mitre}')" (kindOf .Values.defaultFrameworks)) }}
+{{- end }}
+{{- $frameworks := list }}
+{{- range .Values.defaultFrameworks }}
+{{- if and . (ne (trim . | toString) "") }}
+{{- $frameworks = append $frameworks . }}
+{{- end }}
+{{- end }}
+{{- if $frameworks }},
+      "defaultFrameworks": {{ $frameworks | toJson }}
+{{- end }}
+{{- end }}
       {{- if .Values.kubevuln.config.proxyRegistryMap }},
       "proxyRegistryMap": {{ toJson .Values.kubevuln.config.proxyRegistryMap }}
       {{- end }}

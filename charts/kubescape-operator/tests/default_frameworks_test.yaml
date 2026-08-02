@@ -2,14 +2,14 @@ suite: defaultFrameworks in clusterData
 templates:
   - configs/cloudapi-configmap.yaml
 tests:
-  - it: should render default frameworks into clusterData
+  - it: should omit defaultFrameworks when empty (chart default)
     set:
       unittest: true
       clusterName: kind-kind
     asserts:
-      - matchRegex:
+      - notMatchRegex:
           path: data.clusterData
-          pattern: '"defaultFrameworks":\s*\["allcontrols","nsa","mitre"\]'
+          pattern: '"defaultFrameworks"'
 
   - it: should allow overriding default frameworks
     set:
@@ -20,9 +20,9 @@ tests:
     asserts:
       - matchRegex:
           path: data.clusterData
-          pattern: '"defaultFrameworks":\s*\["cis-aks-t1.2.0"\]'
+          pattern: '"defaultFrameworks":\s*\["cis-aks-t1\.2\.0"\]'
 
-  - it: should omit defaultFrameworks when empty
+  - it: should omit defaultFrameworks when explicitly empty
     set:
       unittest: true
       clusterName: kind-kind
@@ -31,3 +31,24 @@ tests:
       - notMatchRegex:
           path: data.clusterData
           pattern: '"defaultFrameworks"'
+
+  - it: should omit blank-only entries
+    set:
+      unittest: true
+      clusterName: kind-kind
+      defaultFrameworks:
+        - ""
+        - "  "
+    asserts:
+      - notMatchRegex:
+          path: data.clusterData
+          pattern: '"defaultFrameworks"'
+
+  - it: should fail when defaultFrameworks is not a list
+    set:
+      unittest: true
+      clusterName: kind-kind
+      defaultFrameworks: nsa
+    asserts:
+      - failedTemplate:
+          errorMessage: "defaultFrameworks must be a list of framework names, got string (use --set 'defaultFrameworks={nsa,mitre}')"
