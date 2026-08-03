@@ -1,0 +1,51 @@
+suite: Storage hostNetwork tests
+tests:
+  - it: keeps the storage APIServer off the host network by default
+    template: storage/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - notExists:
+          path: spec.template.spec.hostNetwork
+      - notExists:
+          path: spec.template.spec.dnsPolicy
+
+  - it: runs the storage APIServer on the host network when enabled
+    template: storage/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      storage.hostNetwork: true
+    asserts:
+      - equal:
+          path: spec.template.spec.hostNetwork
+          value: true
+      # without this the pod inherits the node's resolv.conf and cannot resolve in-cluster Services
+      - equal:
+          path: spec.template.spec.dnsPolicy
+          value: ClusterFirstWithHostNet
+
+  - it: keeps the served port under storage.serverPort when on the host network
+    template: storage/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      storage.hostNetwork: true
+      storage.serverPort: 8444
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.port
+          value: 8444
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.port
+          value: 8444
