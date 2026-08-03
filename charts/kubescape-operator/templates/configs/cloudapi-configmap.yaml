@@ -56,14 +56,18 @@ data:
 {{- end }}
       "relevantImageVulnerabilitiesConfiguration": "{{ .Values.capabilities.relevancy }}",
       "riskAcceptance": {{ eq .Values.capabilities.riskAcceptance "enable" }}
-{{- if .Values.defaultFrameworks }}
+{{- if not (kindIs "invalid" .Values.defaultFrameworks) }}
 {{- if not (kindIs "slice" .Values.defaultFrameworks) }}
 {{- fail (printf "defaultFrameworks must be a list of framework names, got %s (use --set 'defaultFrameworks={nsa,mitre}')" (kindOf .Values.defaultFrameworks)) }}
 {{- end }}
 {{- $frameworks := list }}
 {{- range .Values.defaultFrameworks }}
-{{- if and . (ne (trim . | toString) "") }}
-{{- $frameworks = append $frameworks . }}
+{{- if not (kindIs "string" .) }}
+{{- fail (printf "defaultFrameworks entries must be strings, got %s" (kindOf .)) }}
+{{- end }}
+{{- $name := trim . }}
+{{- if ne $name "" }}
+{{- $frameworks = append $frameworks $name }}
 {{- end }}
 {{- end }}
 {{- if $frameworks }},

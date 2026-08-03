@@ -52,3 +52,34 @@ tests:
     asserts:
       - failedTemplate:
           errorMessage: "defaultFrameworks must be a list of framework names, got string (use --set 'defaultFrameworks={nsa,mitre}')"
+
+  - it: should fail when defaultFrameworks is a falsy non-list
+    set:
+      unittest: true
+      clusterName: kind-kind
+      defaultFrameworks: false
+    asserts:
+      - failedTemplate:
+          errorMessage: "defaultFrameworks must be a list of framework names, got bool (use --set 'defaultFrameworks={nsa,mitre}')"
+
+  - it: should fail when an entry is not a string
+    set:
+      unittest: true
+      clusterName: kind-kind
+      defaultFrameworks:
+        - 1
+    asserts:
+      - failedTemplate:
+          errorMessage: "defaultFrameworks entries must be strings, got float64"
+
+  - it: should trim framework names
+    set:
+      unittest: true
+      clusterName: kind-kind
+      defaultFrameworks:
+        - "  nsa  "
+        - mitre
+    asserts:
+      - matchRegex:
+          path: data.clusterData
+          pattern: '"defaultFrameworks":\s*\["nsa","mitre"\]'
