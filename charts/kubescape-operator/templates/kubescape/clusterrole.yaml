@@ -86,6 +86,19 @@ rules:
 - apiGroups: ["kubescape.io"]
   resources: ["servicesscanresults"]
   verbs: ["get", "watch", "list"]
+{{- if eq .Values.capabilities.agentRuntimePosture "enable" }}
+# Agent Sandbox and Agent Substrate resources are scanned for posture controls.
+# Keep these permissions opt-in until the agent runtime posture framework ships.
+- apiGroups: ["agents.x-k8s.io"]
+  resources: ["sandboxes"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["extensions.agents.x-k8s.io"]
+  resources: ["sandboxtemplates"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["ate.dev"]
+  resources: ["actortemplates", "workerpools"]
+  verbs: ["get", "list", "watch"]
+{{- end }}
 {{- if eq .Values.capabilities.riskAcceptance "enable" }}
 # SecurityException CRDs (opt-in via capabilities.riskAcceptance). The in-cluster
 # posture scanner reads these to suppress matching findings, and emits Events on the
