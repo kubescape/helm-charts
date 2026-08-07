@@ -163,6 +163,7 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | operator.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | operator.volumes | object | `[]` | Additional volumes for the web socket |
 | operator.volumeMounts | object | `[]` | Additional volumeMounts for the web socket |
+| storage.hostNetwork | bool | `false` | Bind the storage APIServer to the host network. Required when using a custom CNI where the control plane cannot reach pod IPs |
 | nodeAgent.autoscaler.bottlerocketAutoDetect | bool | `true` | When the autoscaler is enabled, auto-detect AWS Bottlerocket nodes and set `seLinuxType: super_t` on the node-agent DaemonSet rendered for that node group, so you don't need to `--set nodeAgent.seLinuxType=super_t` manually |
 | prometheusExporter.serviceMonitor.enabled | bool | `false` | enable/disable service monitor for prometheus-exporter integration |
 | awsIamRoleArn | string | `nil` | AWS IAM arn role |
