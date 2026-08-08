@@ -122,7 +122,7 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | kubescape.affinity | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the deployment |
 | kubescape.podLabels| object | `{}` | Optional labels to add to the pods |
 | kubescape.podAnnotations| object | `{}` | optional map of annotations to be applied to the Pods |
-| kubescape.downloadArtifacts | bool | `true` | download policies every scan, we recommend it should remain true, you should change to 'false' when running in an air-gapped environment or when scanning with high frequency (when running with Prometheus) |
+| kubescape.downloadArtifacts | bool | `true` | download policies every scan, we recommend it should remain true, you should change to 'false' when running in an air-gapped environment or when scanning with high frequency (when running with Prometheus). When 'false', the policy library baked into the image is used, so the controls are those of the image tag and do not change until the image does |
 | kubescape.enableHostScan | bool | `true` | enable [host scanner feature](https://kubescape.io/docs/components/host-sensor/) |
 | kubescape.image.repository | string | `"quay.io/kubescape/kubescape"` | [source code](https://github.com/kubescape/kubescape/tree/master/httphandler) (public repo) |
 | kubescape.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
