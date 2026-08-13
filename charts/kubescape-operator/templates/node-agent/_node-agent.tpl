@@ -266,6 +266,7 @@ SBOM Scanner Sidecar Container (optional)
 Parameters:
   - Values: .Values
   - components: $components
+  - no_proxy_envar_list: the no_proxy list
 */}}
 {{- define "node-agent.sbomScannerContainer" -}}
 {{- if .components.sbomScanner.enabled }}
@@ -309,6 +310,12 @@ Parameters:
           fieldPath: metadata.namespace
     - name: CLUSTER_NAME
       value: "{{ .Values.clusterName }}"
+    {{- if ne .Values.global.httpsProxy "" }}
+    - name: HTTPS_PROXY
+      value: "{{ .Values.global.httpsProxy }}"
+    - name: no_proxy
+      value: "{{ .no_proxy_envar_list }}"
+    {{- end }}
   volumeMounts:
   {{- if .Values.nodeAgent.sbomScanner.volumeMounts }}
     {{- toYaml .Values.nodeAgent.sbomScanner.volumeMounts | nindent 4 }}
@@ -523,7 +530,7 @@ containers:
 {{ include "node-agent.clamavContainer" (dict "Values" .Values "components" .components) | trim | nindent 0 }}
 {{- end }}
 {{- if .includeSbomScanner }}
-{{ include "node-agent.sbomScannerContainer" (dict "Values" .Values "components" .components) | trim | nindent 0 }}
+{{ include "node-agent.sbomScannerContainer" (dict "Values" .Values "components" .components "no_proxy_envar_list" .no_proxy_envar_list) | trim | nindent 0 }}
 {{- end }}
 {{ include "node-agent.container" (dict "Values" .Values "components" .components "no_proxy_envar_list" .no_proxy_envar_list "autoscalerMode" .autoscalerMode "testingMode" .testingMode "resources" .resources) | trim | nindent 0 }}
 nodeSelector:
