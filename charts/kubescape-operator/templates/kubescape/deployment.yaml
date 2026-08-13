@@ -67,6 +67,9 @@ spec:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
           runAsNonRoot: true
+          capabilities:
+            drop:
+              - ALL
         ports:
           - name: http
             containerPort: 8080
@@ -240,9 +243,11 @@ spec:
         - name: {{ $components.cloudSecret.name }}
           mountPath: /etc/credentials
           readOnly: true
+        {{- if .Values.kubescape.downloadArtifacts }}
         - name: kubescape-volume
           mountPath: /home/nonroot/.kubescape
           subPath: config.json
+        {{- end }}
         - name: host-scanner-definition
           mountPath: /home/nonroot/.kubescape/host-scanner.yaml
           subPath: host-scanner-yaml
@@ -305,8 +310,10 @@ spec:
       - name: host-scanner-definition
         configMap:
           name: host-scanner-definition
+      {{- if .Values.kubescape.downloadArtifacts }}
       - name: kubescape-volume
         emptyDir: {}
+      {{- end }}
       - name: results
         emptyDir: {}
       - name: failed

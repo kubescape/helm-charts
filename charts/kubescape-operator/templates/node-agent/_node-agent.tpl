@@ -227,7 +227,11 @@ Parameters:
         - IPC_LOCK
         - NET_RAW
     seLinuxOptions:
+      {{- if .autoscalerMode }}
+      type: "{{`{{ .SELinuxType }}`}}"
+      {{- else }}
       type: {{ .Values.nodeAgent.seLinuxType }}
+      {{- end }}
   volumeMounts:
     {{- include "node-agent.volumeMounts" (dict "Values" .Values "components" .components) | nindent 4 }}
 {{- end -}}
@@ -305,9 +309,29 @@ Parameters:
           fieldPath: metadata.namespace
     - name: CLUSTER_NAME
       value: "{{ .Values.clusterName }}"
-  {{- if .Values.nodeAgent.sbomScanner.volumeMounts }}
   volumeMounts:
+  {{- if .Values.nodeAgent.sbomScanner.volumeMounts }}
     {{- toYaml .Values.nodeAgent.sbomScanner.volumeMounts | nindent 4 }}
+  {{- end }}
+  {{- if ne .Values.global.proxySecretFile "" }}
+    - name: proxy-secret
+      mountPath: /etc/ssl/certs/proxy.crt
+      subPath: proxy.crt
+      readOnly: true
+  {{- end }}
+  {{- if .Values.global.overrideDefaultCaCertificates.enabled }}
+    - name: custom-ca-certificates
+      mountPath: /etc/ssl/certs/ca-certificates.crt
+      subPath: ca-certificates.crt
+      readOnly: true
+  {{- end }}
+  {{- if .Values.global.extraCaCertificates.enabled }}
+  {{- range $key, $value := (lookup "v1" "Secret" .Values.ksNamespace .Values.global.extraCaCertificates.secretName).data }}
+    - name: extra-ca-certificates
+      mountPath: /etc/ssl/certs/{{ $key }}
+      subPath: {{ $key }}
+      readOnly: true
+  {{- end }}
   {{- end }}
 {{- end }}
 {{- end -}}

@@ -1,0 +1,73 @@
+suite: Container capability tests
+tests:
+  - it: drops all capabilities on the kubescape container
+    template: kubescape/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.capabilities.drop
+          value:
+            - ALL
+
+  - it: drops all capabilities on the operator container
+    template: operator/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.capabilities.drop
+          value:
+            - ALL
+
+  - it: drops all capabilities on the storage apiserver container
+    template: storage/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.capabilities.drop
+          value:
+            - ALL
+
+  - it: drops all capabilities on the prometheus exporter container
+    template: prometheus-exporter/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.prometheusExporter: enable
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.capabilities.drop
+          value:
+            - ALL
+
+  - it: drops all capabilities on the kubescape scheduler container
+    template: kubescape-scheduler/cronjob.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.continuousScan: disable
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].securityContext.capabilities.drop
+          value:
+            - ALL

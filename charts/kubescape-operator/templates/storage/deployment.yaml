@@ -48,6 +48,10 @@ spec:
       {{- end }}
       {{- end }}
       serviceAccountName: {{ .Values.storage.name }}
+      {{- if .Values.storage.hostNetwork }}
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      {{- end }}
       securityContext:
         seccompProfile:
           type: RuntimeDefault
@@ -128,6 +132,9 @@ spec:
         securityContext:
           allowPrivilegeEscalation: false
           runAsNonRoot: true
+          capabilities:
+            drop:
+              - ALL
         livenessProbe:
           httpGet:
             path: /livez

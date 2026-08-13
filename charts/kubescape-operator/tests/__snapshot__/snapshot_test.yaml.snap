@@ -81,6 +81,9 @@ all capabilities:
                       memory: 256Mi
                   securityContext:
                     allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                        - ALL
                     readOnlyRootFilesystem: true
                   volumeMounts:
                     - mountPath: /data/helm-scratch-data
@@ -93,6 +96,8 @@ all capabilities:
                 runAsGroup: 1000
                 runAsNonRoot: true
                 runAsUser: 1000
+                seccompProfile:
+                  type: RuntimeDefault
               serviceAccountName: helm-release-upgrader
               tolerations: null
               volumes:
@@ -289,7 +294,7 @@ all capabilities:
     data:
       capabilities: |
         {
-          "capabilities":{"admissionController":"enable","autoUpgrading":"enable","configurationScan":"enable","continuousScan":"enable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"enable","manageWorkloads":"enable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"enable","relevancy":"enable","remediation":"enable","riskAcceptance":"enable","runtimeDetection":"enable","runtimeObservability":"enable","scanEmbeddedSBOMs":"enable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"enable","vulnerabilityScan":"enable"},
+          "capabilities":{"admissionController":"enable","agentRuntimePosture":"disable","autoUpgrading":"enable","configurationScan":"enable","continuousScan":"enable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"enable","manageWorkloads":"enable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"enable","relevancy":"enable","remediation":"enable","riskAcceptance":"enable","runtimeDetection":"enable","runtimeObservability":"enable","scanEmbeddedSBOMs":"enable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"enable","vulnerabilityScan":"enable"},
           "effectiveCapabilities":{"configurationScan":"enable","httpDetection":"enable","networkEventsStreaming":"enable","nodeProfileService":"enable","nodeScan":"enable","vulnerabilityScan":"enable"},
           "capabilityWarnings":[],
           "components":{"autoUpdater":{"enabled":true},"clamAV":{"enabled":true},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":true},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
@@ -439,6 +444,9 @@ all capabilities:
                       memory: 10Mi
                   securityContext:
                     allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                        - ALL
                     readOnlyRootFilesystem: true
                     runAsNonRoot: true
                     runAsUser: 100
@@ -534,6 +542,9 @@ all capabilities:
                   memory: 200Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 runAsNonRoot: true
           imagePullSecrets:
             - name: foo
@@ -759,6 +770,9 @@ all capabilities:
                       memory: 10Mi
                   securityContext:
                     allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                        - ALL
                     readOnlyRootFilesystem: true
                     runAsNonRoot: true
                     runAsUser: 100
@@ -1293,6 +1307,9 @@ all capabilities:
                   memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -1700,6 +1717,9 @@ all capabilities:
                       memory: 10Mi
                   securityContext:
                     allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                        - ALL
                     readOnlyRootFilesystem: true
                     runAsNonRoot: true
                     runAsUser: 100
@@ -1974,6 +1994,9 @@ all capabilities:
                   memory: 1000Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -4390,7 +4413,9 @@ all capabilities:
             "reconcileInterval": "5m",
             "templatePath": "/etc/templates/daemonset-template.yaml",
             "operatorDeploymentName": "operator",
-            "goMemLimitPercentage": 0.8
+            "goMemLimitPercentage": 0.8,
+            "seLinuxType": "spc_t",
+            "bottlerocketAutoDetect": true
           }
         }
     kind: ConfigMap
@@ -4445,11 +4470,11 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 6db79c8d12264f020e5d43e428e025a3591915aa1427994781339608eae686f9
+            checksum/capabilities-config: 0df08c6374ed3582577744c8101b542f65f968db6796c43513cb20909b89e7fc
             checksum/cloud-config: 855b789e4a8cf20600be3d01d8be5336eabc27aa5e0b6bee0355beddaabbdcf3
             checksum/cloud-secret: e8328448f3b687462a4a6910297ca5389794e995dbb6cfdd25883ae4d793f885
             checksum/matching-rules-config: 2cf7aa789b2b23add575a83fd283650b8698a0c037e858ed8135a86c5cf5afd0
-            checksum/operator-config: 6474066defbc16f1219fdc2d450fa425c78cbaeb5c506ed5e211c28a52abb889
+            checksum/operator-config: b2d3f7aaaaaa09ce806b9e0e139310f2aea865ea77ffc5a0c908093b6b5869f4
             checksum/proxy-config: 002387b717ac7902fa61e3a9d133af3fb7b8396d84ecfc9ec980211054f0dc88
           labels:
             app: operator
@@ -4487,7 +4512,7 @@ all capabilities:
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
                   value: kubescape,kubevuln,node-agent,operator,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/operator:v0.2.159
+              image: quay.io/kubescape/operator:v0.2.162
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -4521,6 +4546,9 @@ all capabilities:
                   memory: 100Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -5242,6 +5270,9 @@ all capabilities:
                   memory: 10Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -5681,6 +5712,9 @@ all capabilities:
                   memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 runAsNonRoot: true
               volumeMounts:
                 - mountPath: /data
@@ -6883,6 +6917,9 @@ all capabilities:
                   memory: 250Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -7242,7 +7279,7 @@ autoscaler mode with sbom sidecar:
     data:
       capabilities: |
         {
-          "capabilities":{"admissionController":"enable","autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","remediation":"disable","riskAcceptance":"disable","runtimeDetection":"enable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
+          "capabilities":{"admissionController":"enable","agentRuntimePosture":"disable","autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","remediation":"disable","riskAcceptance":"disable","runtimeDetection":"enable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
           "effectiveCapabilities":{"configurationScan":"enable","httpDetection":"enable","networkEventsStreaming":"enable","nodeProfileService":"enable","nodeScan":"enable","vulnerabilityScan":"enable"},
           "capabilityWarnings":[],
           "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":true},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
@@ -7392,6 +7429,9 @@ autoscaler mode with sbom sidecar:
                       memory: 10Mi
                   securityContext:
                     allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                        - ALL
                     readOnlyRootFilesystem: true
                     runAsNonRoot: true
                     runAsUser: 100
@@ -7826,6 +7866,9 @@ autoscaler mode with sbom sidecar:
                   memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -8083,6 +8126,9 @@ autoscaler mode with sbom sidecar:
                       memory: 10Mi
                   securityContext:
                     allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                        - ALL
                     readOnlyRootFilesystem: true
                     runAsNonRoot: true
                     runAsUser: 100
@@ -8265,6 +8311,9 @@ autoscaler mode with sbom sidecar:
                   memory: 1000Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -9009,7 +9058,7 @@ autoscaler mode with sbom sidecar:
   39: |
     apiVersion: v1
     data:
-      daemonset-template.yaml: "apiVersion: apps/v1\nkind: DaemonSet\nmetadata:\n  name: \"{{ .Name }}\"\n  namespace: kubescape\n  annotations:\n    \n  labels:\n    helm.sh/chart: kubescape-operator-1.40.3-v0.3.171\n    app.kubernetes.io/name: kubescape-operator\n    app.kubernetes.io/instance: RELEASE-NAME\n    app.kubernetes.io/component: node-agent\n    app.kubernetes.io/version: \"v0.3.171\"\n    app.kubernetes.io/managed-by: Helm\n    app.kubernetes.io/part-of: kubescape\n    app: node-agent\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\n    kubescape.io/tier: \"core\"\n    kubescape.io/managed-by: operator-autoscaler\n    kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\nspec:\n  selector:\n    matchLabels:\n      app.kubernetes.io/name: kubescape-operator\n      app.kubernetes.io/instance: RELEASE-NAME\n      app.kubernetes.io/component: node-agent\n      kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\n  template:\n    metadata:\n      annotations:\n        \n        checksum/node-agent-config: 32d785dbd1f2afab15228b8577662e5970c6040977b38d0ce9910915f7668fd2\n        checksum/cloud-secret: e8328448f3b687462a4a6910297ca5389794e995dbb6cfdd25883ae4d793f885\n        checksum/cloud-config: 1d8e7172e6c72566018a64703397c3c43ccdc6c716a6495ec8a03a00a911403d\n        container.apparmor.security.beta.kubernetes.io/node-agent: unconfined\n      labels:\n        helm.sh/chart: kubescape-operator-1.40.3-v0.3.171\n        app.kubernetes.io/name: kubescape-operator\n        app.kubernetes.io/instance: RELEASE-NAME\n        app.kubernetes.io/component: node-agent\n        app.kubernetes.io/version: \"v0.3.171\"\n        app.kubernetes.io/managed-by: Helm\n        app.kubernetes.io/part-of: kubescape\n        app: node-agent\n        tier: ks-control-plane\n        kubescape.io/ignore: \"true\"\n        kubescape.io/tier: \"core\"\n        kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\n    spec:\n      securityContext:\n      priorityClassName: kubescape-critical\n      serviceAccountName: node-agent\n      automountServiceAccountToken: true\n      hostPID: true\n      volumes:\n      \n      - hostPath:\n          path: /\n        name: host\n      - hostPath:\n          path: /var/lib/kubelet\n        name: kubeletdir\n      - hostPath:\n          path: /run\n        name: run\n      - hostPath:\n          path: /var\n        name: var\n      - hostPath:\n          path: /sys/fs/cgroup\n        name: cgroup\n      - hostPath:\n          path: /lib/modules\n        name: modules\n      - hostPath:\n          path: /sys/fs/bpf\n        name: bpffs\n      - hostPath:\n          path: /sys/kernel/debug\n        name: debugfs\n      - hostPath:\n          path: /boot\n        name: boot\n      - emptyDir: null\n        name: data\n      - emptyDir: null\n        name: profiles\n      - hostPath:\n          path: /\n          type: Directory\n        name: host-filesystem\n      - emptyDir: {}\n        name: clamdb\n      - emptyDir: {}\n        name: clamrun\n      - configMap:\n          items:\n          - key: clamd.conf\n            path: clamd.conf\n          - key: freshclam.conf\n            path: freshclam.conf\n          name: clamav\n        name: etc\n      - emptyDir:\n          medium: Memory\n          sizeLimit: 10Mi\n        name: sbom-comm\n      - emptyDir: {}\n        name: sbom-scanner-tmp\n      - name: cloud-secret\n        secret:\n          secretName: cloud-secret\n      - name: ks-cloud-config\n        configMap:\n          name: ks-cloud-config\n          items:\n            - key: \"clusterData\"\n              path: \"clusterData.json\"\n      - name: config\n        configMap:\n          name: node-agent\n          items:\n            - key: \"config.json\"\n              path: \"config.json\"\n      containers:\n      \n      - name: sbom-scanner\n        image: \"quay.io/kubescape/node-agent:v0.3.171\"\n        imagePullPolicy: IfNotPresent\n        command: \n          - /usr/bin/sbom-scanner\n        securityContext:\n          runAsUser: 0\n          readOnlyRootFilesystem: true\n          capabilities:\n            drop: [\"ALL\"]\n        resources:\n          limits:\n            cpu: 1000m\n            memory: 4Gi\n          requests:\n            cpu: 50m\n            memory: 256Mi\n        env:\n          - name: GOMEMLIMIT\n            value: \"3276MiB\"\n          - name: SOCKET_PATH\n            value: \"/sbom-comm/scanner.sock\"\n          - name: HOST_ROOT\n            value: \"/host\"\n          - name: NODE_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: spec.nodeName\n          - name: POD_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: metadata.name\n          - name: NAMESPACE\n            valueFrom:\n              fieldRef:\n                fieldPath: metadata.namespace\n          - name: CLUSTER_NAME\n            value: \"kind-kind\"\n        volumeMounts:\n          - mountPath: /sbom-comm\n            name: sbom-comm\n          - mountPath: /host\n            name: host\n            readOnly: true\n          - mountPath: /tmp\n            name: sbom-scanner-tmp\n      \n      - name: node-agent\n        image: \"ghcr.io/k8sstormcenter/node-agent:v0.3.171\"\n        imagePullPolicy: IfNotPresent\n        livenessProbe:\n          httpGet:\n            path: /livez\n            port: 7888\n          periodSeconds: 3\n        readinessProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          periodSeconds: 3\n        startupProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          periodSeconds: 10\n          failureThreshold: 30\n          timeoutSeconds: 1\n        resources:\n          \n          requests:\n            cpu: \"{{ .Resources.Requests.CPU }}\"\n            memory: \"{{ .Resources.Requests.Memory }}\"\n          limits:\n            cpu: \"{{ .Resources.Limits.CPU }}\"\n            memory: \"{{ .Resources.Limits.Memory }}\"\n        env:\n          \n          - name: GOMEMLIMIT\n            value: \"{{ .GoMemLimit }}\"\n          - name: HOST_ROOT\n            value: \"/host\"\n          - name: KS_LOGGER_LEVEL\n            value: \"info\"\n          - name: KS_LOGGER_NAME\n            value: \"zap\"\n          - name: SBOM_SCANNER_SOCKET\n            value: \"/sbom-comm/scanner.sock\"\n          - name: SCANNER_MEMORY_LIMIT\n            value: \"4Gi\"\n          - name: NODE_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: spec.nodeName\n          - name: POD_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: metadata.name\n          - name: NAMESPACE_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: metadata.namespace\n          - name: KUBELET_ROOT\n            value: \"/var/lib/kubelet\"\n          - name: AGENT_VERSION\n            value: \"v0.3.171\"\n          - name: API_URL\n            value: \"https://api.armosec.io\"\n          - name: NodeName\n            valueFrom:\n              fieldRef:\n                fieldPath: spec.nodeName\n        securityContext:\n          runAsUser: 0\n          privileged: false\n          capabilities:\n            add:\n              - SYS_ADMIN\n              - SYS_PTRACE\n              - NET_ADMIN\n              - SYSLOG\n              - SYS_RESOURCE\n              - IPC_LOCK\n              - NET_RAW\n          seLinuxOptions:\n            type: spc_t\n        volumeMounts:\n          \n          - mountPath: /host\n            name: host\n            readOnly: true\n          - mountPath: /var/lib/kubelet\n            name: kubeletdir\n          - mountPath: /run\n            name: run\n          - mountPath: /var\n            name: var\n            readOnly: true\n          - mountPath: /lib/modules\n            name: modules\n            readOnly: true\n          - mountPath: /sys/kernel/debug\n            name: debugfs\n          - mountPath: /sys/fs/cgroup\n            name: cgroup\n            readOnly: true\n          - mountPath: /sys/fs/bpf\n            name: bpffs\n          - mountPath: /data\n            name: data\n          - mountPath: /profiles\n            name: profiles\n          - mountPath: /boot\n            name: boot\n            readOnly: true\n          - mountPath: /clamav\n            name: clamrun\n          - name: sbom-comm\n            mountPath: /sbom-comm\n          - name: cloud-secret\n            mountPath: /etc/credentials\n            readOnly: true\n          - name: ks-cloud-config\n            mountPath: /etc/config/clusterData.json\n            readOnly: true\n            subPath: \"clusterData.json\"\n          - name: config\n            mountPath: /etc/config/config.json\n            readOnly: true\n            subPath: \"config.json\"\n      nodeSelector:\n        kubernetes.io/os: linux\n      {{- if not .IsDefaultGroup }}\n        {{ .NodeGroupLabelKey }}: \"{{ .NodeGroupLabel }}\"\n      {{- end }}\n      affinity:\n      {{- if .IsDefaultGroup }}\n        nodeAffinity:\n          requiredDuringSchedulingIgnoredDuringExecution:\n            nodeSelectorTerms:\n            - matchExpressions:\n              - key: {{ .NodeGroupLabelKey }}\n                operator: DoesNotExist\n      {{- else }}\n      \n        nodeAffinity:\n          requiredDuringSchedulingIgnoredDuringExecution:\n            nodeSelectorTerms:\n            - matchExpressions:\n              - key: kubernetes.io/os\n                operator: In\n                values:\n                - linux\n      {{- end }}\n      tolerations:\n"
+      daemonset-template.yaml: "apiVersion: apps/v1\nkind: DaemonSet\nmetadata:\n  name: \"{{ .Name }}\"\n  namespace: kubescape\n  annotations:\n    \n  labels:\n    helm.sh/chart: kubescape-operator-1.40.3-v0.3.171\n    app.kubernetes.io/name: kubescape-operator\n    app.kubernetes.io/instance: RELEASE-NAME\n    app.kubernetes.io/component: node-agent\n    app.kubernetes.io/version: \"v0.3.171\"\n    app.kubernetes.io/managed-by: Helm\n    app.kubernetes.io/part-of: kubescape\n    app: node-agent\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\n    kubescape.io/tier: \"core\"\n    kubescape.io/managed-by: operator-autoscaler\n    kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\nspec:\n  selector:\n    matchLabels:\n      app.kubernetes.io/name: kubescape-operator\n      app.kubernetes.io/instance: RELEASE-NAME\n      app.kubernetes.io/component: node-agent\n      kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\n  template:\n    metadata:\n      annotations:\n        \n        checksum/node-agent-config: 32d785dbd1f2afab15228b8577662e5970c6040977b38d0ce9910915f7668fd2\n        checksum/cloud-secret: e8328448f3b687462a4a6910297ca5389794e995dbb6cfdd25883ae4d793f885\n        checksum/cloud-config: 1d8e7172e6c72566018a64703397c3c43ccdc6c716a6495ec8a03a00a911403d\n        container.apparmor.security.beta.kubernetes.io/node-agent: unconfined\n      labels:\n        helm.sh/chart: kubescape-operator-1.40.3-v0.3.171\n        app.kubernetes.io/name: kubescape-operator\n        app.kubernetes.io/instance: RELEASE-NAME\n        app.kubernetes.io/component: node-agent\n        app.kubernetes.io/version: \"v0.3.171\"\n        app.kubernetes.io/managed-by: Helm\n        app.kubernetes.io/part-of: kubescape\n        app: node-agent\n        tier: ks-control-plane\n        kubescape.io/ignore: \"true\"\n        kubescape.io/tier: \"core\"\n        kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\n    spec:\n      securityContext:\n      priorityClassName: kubescape-critical\n      serviceAccountName: node-agent\n      automountServiceAccountToken: true\n      hostPID: true\n      volumes:\n      \n      - hostPath:\n          path: /\n        name: host\n      - hostPath:\n          path: /var/lib/kubelet\n        name: kubeletdir\n      - hostPath:\n          path: /run\n        name: run\n      - hostPath:\n          path: /var\n        name: var\n      - hostPath:\n          path: /sys/fs/cgroup\n        name: cgroup\n      - hostPath:\n          path: /lib/modules\n        name: modules\n      - hostPath:\n          path: /sys/fs/bpf\n        name: bpffs\n      - hostPath:\n          path: /sys/kernel/debug\n        name: debugfs\n      - hostPath:\n          path: /boot\n        name: boot\n      - emptyDir: null\n        name: data\n      - emptyDir: null\n        name: profiles\n      - hostPath:\n          path: /\n          type: Directory\n        name: host-filesystem\n      - emptyDir: {}\n        name: clamdb\n      - emptyDir: {}\n        name: clamrun\n      - configMap:\n          items:\n          - key: clamd.conf\n            path: clamd.conf\n          - key: freshclam.conf\n            path: freshclam.conf\n          name: clamav\n        name: etc\n      - emptyDir:\n          medium: Memory\n          sizeLimit: 10Mi\n        name: sbom-comm\n      - emptyDir: {}\n        name: sbom-scanner-tmp\n      - name: cloud-secret\n        secret:\n          secretName: cloud-secret\n      - name: ks-cloud-config\n        configMap:\n          name: ks-cloud-config\n          items:\n            - key: \"clusterData\"\n              path: \"clusterData.json\"\n      - name: config\n        configMap:\n          name: node-agent\n          items:\n            - key: \"config.json\"\n              path: \"config.json\"\n      containers:\n      \n      - name: sbom-scanner\n        image: \"quay.io/kubescape/node-agent:v0.3.171\"\n        imagePullPolicy: IfNotPresent\n        command: \n          - /usr/bin/sbom-scanner\n        securityContext:\n          runAsUser: 0\n          readOnlyRootFilesystem: true\n          capabilities:\n            drop: [\"ALL\"]\n        resources:\n          limits:\n            cpu: 1000m\n            memory: 4Gi\n          requests:\n            cpu: 50m\n            memory: 256Mi\n        env:\n          - name: GOMEMLIMIT\n            value: \"3276MiB\"\n          - name: SOCKET_PATH\n            value: \"/sbom-comm/scanner.sock\"\n          - name: HOST_ROOT\n            value: \"/host\"\n          - name: NODE_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: spec.nodeName\n          - name: POD_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: metadata.name\n          - name: NAMESPACE\n            valueFrom:\n              fieldRef:\n                fieldPath: metadata.namespace\n          - name: CLUSTER_NAME\n            value: \"kind-kind\"\n        volumeMounts:\n          - mountPath: /sbom-comm\n            name: sbom-comm\n          - mountPath: /host\n            name: host\n            readOnly: true\n          - mountPath: /tmp\n            name: sbom-scanner-tmp\n      \n      - name: node-agent\n        image: \"ghcr.io/k8sstormcenter/node-agent:v0.3.171\"\n        imagePullPolicy: IfNotPresent\n        livenessProbe:\n          httpGet:\n            path: /livez\n            port: 7888\n          periodSeconds: 3\n        readinessProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          periodSeconds: 3\n        startupProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          periodSeconds: 10\n          failureThreshold: 30\n          timeoutSeconds: 1\n        resources:\n          \n          requests:\n            cpu: \"{{ .Resources.Requests.CPU }}\"\n            memory: \"{{ .Resources.Requests.Memory }}\"\n          limits:\n            cpu: \"{{ .Resources.Limits.CPU }}\"\n            memory: \"{{ .Resources.Limits.Memory }}\"\n        env:\n          \n          - name: GOMEMLIMIT\n            value: \"{{ .GoMemLimit }}\"\n          - name: HOST_ROOT\n            value: \"/host\"\n          - name: KS_LOGGER_LEVEL\n            value: \"info\"\n          - name: KS_LOGGER_NAME\n            value: \"zap\"\n          - name: SBOM_SCANNER_SOCKET\n            value: \"/sbom-comm/scanner.sock\"\n          - name: SCANNER_MEMORY_LIMIT\n            value: \"4Gi\"\n          - name: NODE_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: spec.nodeName\n          - name: POD_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: metadata.name\n          - name: NAMESPACE_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: metadata.namespace\n          - name: KUBELET_ROOT\n            value: \"/var/lib/kubelet\"\n          - name: AGENT_VERSION\n            value: \"v0.3.171\"\n          - name: API_URL\n            value: \"https://api.armosec.io\"\n          - name: NodeName\n            valueFrom:\n              fieldRef:\n                fieldPath: spec.nodeName\n        securityContext:\n          runAsUser: 0\n          privileged: false\n          capabilities:\n            add:\n              - SYS_ADMIN\n              - SYS_PTRACE\n              - NET_ADMIN\n              - SYSLOG\n              - SYS_RESOURCE\n              - IPC_LOCK\n              - NET_RAW\n          seLinuxOptions:\n            type: \"{{ .SELinuxType }}\"\n        volumeMounts:\n          \n          - mountPath: /host\n            name: host\n            readOnly: true\n          - mountPath: /var/lib/kubelet\n            name: kubeletdir\n          - mountPath: /run\n            name: run\n          - mountPath: /var\n            name: var\n            readOnly: true\n          - mountPath: /lib/modules\n            name: modules\n            readOnly: true\n          - mountPath: /sys/kernel/debug\n            name: debugfs\n          - mountPath: /sys/fs/cgroup\n            name: cgroup\n            readOnly: true\n          - mountPath: /sys/fs/bpf\n            name: bpffs\n          - mountPath: /data\n            name: data\n          - mountPath: /profiles\n            name: profiles\n          - mountPath: /boot\n            name: boot\n            readOnly: true\n          - mountPath: /clamav\n            name: clamrun\n          - name: sbom-comm\n            mountPath: /sbom-comm\n          - name: cloud-secret\n            mountPath: /etc/credentials\n            readOnly: true\n          - name: ks-cloud-config\n            mountPath: /etc/config/clusterData.json\n            readOnly: true\n            subPath: \"clusterData.json\"\n          - name: config\n            mountPath: /etc/config/config.json\n            readOnly: true\n            subPath: \"config.json\"\n      nodeSelector:\n        kubernetes.io/os: linux\n      {{- if not .IsDefaultGroup }}\n        {{ .NodeGroupLabelKey }}: \"{{ .NodeGroupLabel }}\"\n      {{- end }}\n      affinity:\n      {{- if .IsDefaultGroup }}\n        nodeAffinity:\n          requiredDuringSchedulingIgnoredDuringExecution:\n            nodeSelectorTerms:\n            - matchExpressions:\n              - key: {{ .NodeGroupLabelKey }}\n                operator: DoesNotExist\n      {{- else }}\n      \n        nodeAffinity:\n          requiredDuringSchedulingIgnoredDuringExecution:\n            nodeSelectorTerms:\n            - matchExpressions:\n              - key: kubernetes.io/os\n                operator: In\n                values:\n                - linux\n      {{- end }}\n      tolerations:\n"
     kind: ConfigMap
     metadata:
       annotations: null
@@ -9339,7 +9388,9 @@ autoscaler mode with sbom sidecar:
             "reconcileInterval": "5m",
             "templatePath": "/etc/templates/daemonset-template.yaml",
             "operatorDeploymentName": "operator",
-            "goMemLimitPercentage": 0.8
+            "goMemLimitPercentage": 0.8,
+            "seLinuxType": "spc_t",
+            "bottlerocketAutoDetect": true
           }
         }
     kind: ConfigMap
@@ -9394,11 +9445,11 @@ autoscaler mode with sbom sidecar:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 7aee53e21ca312988b1e54080af0196afa40c4383d9297531461dd6ea6c98a2f
+            checksum/capabilities-config: eb553195594f84c4ce174b918a531b7bb1d7557830244383d37cc525c1c0b922
             checksum/cloud-config: 1d8e7172e6c72566018a64703397c3c43ccdc6c716a6495ec8a03a00a911403d
             checksum/cloud-secret: e8328448f3b687462a4a6910297ca5389794e995dbb6cfdd25883ae4d793f885
             checksum/matching-rules-config: 2cf7aa789b2b23add575a83fd283650b8698a0c037e858ed8135a86c5cf5afd0
-            checksum/operator-config: 9ee029b8d6b2da3935f7b2d807e7a3532c81548f56eaaa81c62830c01631cf5a
+            checksum/operator-config: f8b888ebd7e3e26c6bc09a3978de2b3fc736bdd0cfe138e37bffefa97d13a5d1
           labels:
             app: operator
             app.kubernetes.io/component: operator
@@ -9431,7 +9482,7 @@ autoscaler mode with sbom sidecar:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.159
+              image: quay.io/kubescape/operator:v0.2.162
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -9465,6 +9516,9 @@ autoscaler mode with sbom sidecar:
                   memory: 100Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -10228,6 +10282,9 @@ autoscaler mode with sbom sidecar:
                   memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 runAsNonRoot: true
               volumeMounts:
                 - mountPath: /data
@@ -11256,6 +11313,9 @@ autoscaler mode with sbom sidecar:
                   memory: 250Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -11507,7 +11567,7 @@ autoscaler mode without sbom sidecar:
     data:
       capabilities: |
         {
-          "capabilities":{"admissionController":"enable","autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","remediation":"disable","riskAcceptance":"disable","runtimeDetection":"enable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
+          "capabilities":{"admissionController":"enable","agentRuntimePosture":"disable","autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","remediation":"disable","riskAcceptance":"disable","runtimeDetection":"enable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
           "effectiveCapabilities":{"configurationScan":"enable","httpDetection":"enable","networkEventsStreaming":"enable","nodeProfileService":"enable","nodeScan":"enable","vulnerabilityScan":"enable"},
           "capabilityWarnings":[],
           "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
@@ -11657,6 +11717,9 @@ autoscaler mode without sbom sidecar:
                       memory: 10Mi
                   securityContext:
                     allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                        - ALL
                     readOnlyRootFilesystem: true
                     runAsNonRoot: true
                     runAsUser: 100
@@ -12091,6 +12154,9 @@ autoscaler mode without sbom sidecar:
                   memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -12348,6 +12414,9 @@ autoscaler mode without sbom sidecar:
                       memory: 10Mi
                   securityContext:
                     allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                        - ALL
                     readOnlyRootFilesystem: true
                     runAsNonRoot: true
                     runAsUser: 100
@@ -12530,6 +12599,9 @@ autoscaler mode without sbom sidecar:
                   memory: 1000Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -13274,7 +13346,7 @@ autoscaler mode without sbom sidecar:
   39: |
     apiVersion: v1
     data:
-      daemonset-template.yaml: "apiVersion: apps/v1\nkind: DaemonSet\nmetadata:\n  name: \"{{ .Name }}\"\n  namespace: kubescape\n  annotations:\n    \n  labels:\n    helm.sh/chart: kubescape-operator-1.40.3-v0.3.171\n    app.kubernetes.io/name: kubescape-operator\n    app.kubernetes.io/instance: RELEASE-NAME\n    app.kubernetes.io/component: node-agent\n    app.kubernetes.io/version: \"v0.3.171\"\n    app.kubernetes.io/managed-by: Helm\n    app.kubernetes.io/part-of: kubescape\n    app: node-agent\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\n    kubescape.io/tier: \"core\"\n    kubescape.io/managed-by: operator-autoscaler\n    kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\nspec:\n  selector:\n    matchLabels:\n      app.kubernetes.io/name: kubescape-operator\n      app.kubernetes.io/instance: RELEASE-NAME\n      app.kubernetes.io/component: node-agent\n      kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\n  template:\n    metadata:\n      annotations:\n        \n        checksum/node-agent-config: 32d785dbd1f2afab15228b8577662e5970c6040977b38d0ce9910915f7668fd2\n        checksum/cloud-secret: e8328448f3b687462a4a6910297ca5389794e995dbb6cfdd25883ae4d793f885\n        checksum/cloud-config: 1d8e7172e6c72566018a64703397c3c43ccdc6c716a6495ec8a03a00a911403d\n        container.apparmor.security.beta.kubernetes.io/node-agent: unconfined\n      labels:\n        helm.sh/chart: kubescape-operator-1.40.3-v0.3.171\n        app.kubernetes.io/name: kubescape-operator\n        app.kubernetes.io/instance: RELEASE-NAME\n        app.kubernetes.io/component: node-agent\n        app.kubernetes.io/version: \"v0.3.171\"\n        app.kubernetes.io/managed-by: Helm\n        app.kubernetes.io/part-of: kubescape\n        app: node-agent\n        tier: ks-control-plane\n        kubescape.io/ignore: \"true\"\n        kubescape.io/tier: \"core\"\n        kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\n    spec:\n      securityContext:\n      priorityClassName: kubescape-critical\n      serviceAccountName: node-agent\n      automountServiceAccountToken: true\n      hostPID: true\n      volumes:\n      \n      - hostPath:\n          path: /\n        name: host\n      - hostPath:\n          path: /var/lib/kubelet\n        name: kubeletdir\n      - hostPath:\n          path: /run\n        name: run\n      - hostPath:\n          path: /var\n        name: var\n      - hostPath:\n          path: /sys/fs/cgroup\n        name: cgroup\n      - hostPath:\n          path: /lib/modules\n        name: modules\n      - hostPath:\n          path: /sys/fs/bpf\n        name: bpffs\n      - hostPath:\n          path: /sys/kernel/debug\n        name: debugfs\n      - hostPath:\n          path: /boot\n        name: boot\n      - emptyDir: null\n        name: data\n      - emptyDir: null\n        name: profiles\n      - hostPath:\n          path: /\n          type: Directory\n        name: host-filesystem\n      - emptyDir: {}\n        name: clamdb\n      - emptyDir: {}\n        name: clamrun\n      - configMap:\n          items:\n          - key: clamd.conf\n            path: clamd.conf\n          - key: freshclam.conf\n            path: freshclam.conf\n          name: clamav\n        name: etc\n      - name: cloud-secret\n        secret:\n          secretName: cloud-secret\n      - name: ks-cloud-config\n        configMap:\n          name: ks-cloud-config\n          items:\n            - key: \"clusterData\"\n              path: \"clusterData.json\"\n      - name: config\n        configMap:\n          name: node-agent\n          items:\n            - key: \"config.json\"\n              path: \"config.json\"\n      containers:\n      \n      - name: node-agent\n        image: \"ghcr.io/k8sstormcenter/node-agent:v0.3.171\"\n        imagePullPolicy: IfNotPresent\n        livenessProbe:\n          httpGet:\n            path: /livez\n            port: 7888\n          periodSeconds: 3\n        readinessProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          periodSeconds: 3\n        startupProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          periodSeconds: 10\n          failureThreshold: 30\n          timeoutSeconds: 1\n        resources:\n          \n          requests:\n            cpu: \"{{ .Resources.Requests.CPU }}\"\n            memory: \"{{ .Resources.Requests.Memory }}\"\n          limits:\n            cpu: \"{{ .Resources.Limits.CPU }}\"\n            memory: \"{{ .Resources.Limits.Memory }}\"\n        env:\n          \n          - name: GOMEMLIMIT\n            value: \"{{ .GoMemLimit }}\"\n          - name: HOST_ROOT\n            value: \"/host\"\n          - name: KS_LOGGER_LEVEL\n            value: \"info\"\n          - name: KS_LOGGER_NAME\n            value: \"zap\"\n          - name: NODE_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: spec.nodeName\n          - name: POD_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: metadata.name\n          - name: NAMESPACE_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: metadata.namespace\n          - name: KUBELET_ROOT\n            value: \"/var/lib/kubelet\"\n          - name: AGENT_VERSION\n            value: \"v0.3.171\"\n          - name: API_URL\n            value: \"https://api.armosec.io\"\n          - name: NodeName\n            valueFrom:\n              fieldRef:\n                fieldPath: spec.nodeName\n        securityContext:\n          runAsUser: 0\n          privileged: false\n          capabilities:\n            add:\n              - SYS_ADMIN\n              - SYS_PTRACE\n              - NET_ADMIN\n              - SYSLOG\n              - SYS_RESOURCE\n              - IPC_LOCK\n              - NET_RAW\n          seLinuxOptions:\n            type: spc_t\n        volumeMounts:\n          \n          - mountPath: /host\n            name: host\n            readOnly: true\n          - mountPath: /var/lib/kubelet\n            name: kubeletdir\n          - mountPath: /run\n            name: run\n          - mountPath: /var\n            name: var\n            readOnly: true\n          - mountPath: /lib/modules\n            name: modules\n            readOnly: true\n          - mountPath: /sys/kernel/debug\n            name: debugfs\n          - mountPath: /sys/fs/cgroup\n            name: cgroup\n            readOnly: true\n          - mountPath: /sys/fs/bpf\n            name: bpffs\n          - mountPath: /data\n            name: data\n          - mountPath: /profiles\n            name: profiles\n          - mountPath: /boot\n            name: boot\n            readOnly: true\n          - mountPath: /clamav\n            name: clamrun\n          - name: cloud-secret\n            mountPath: /etc/credentials\n            readOnly: true\n          - name: ks-cloud-config\n            mountPath: /etc/config/clusterData.json\n            readOnly: true\n            subPath: \"clusterData.json\"\n          - name: config\n            mountPath: /etc/config/config.json\n            readOnly: true\n            subPath: \"config.json\"\n      nodeSelector:\n        kubernetes.io/os: linux\n      {{- if not .IsDefaultGroup }}\n        {{ .NodeGroupLabelKey }}: \"{{ .NodeGroupLabel }}\"\n      {{- end }}\n      affinity:\n      {{- if .IsDefaultGroup }}\n        nodeAffinity:\n          requiredDuringSchedulingIgnoredDuringExecution:\n            nodeSelectorTerms:\n            - matchExpressions:\n              - key: {{ .NodeGroupLabelKey }}\n                operator: DoesNotExist\n      {{- else }}\n      \n        nodeAffinity:\n          requiredDuringSchedulingIgnoredDuringExecution:\n            nodeSelectorTerms:\n            - matchExpressions:\n              - key: kubernetes.io/os\n                operator: In\n                values:\n                - linux\n      {{- end }}\n      tolerations:\n"
+      daemonset-template.yaml: "apiVersion: apps/v1\nkind: DaemonSet\nmetadata:\n  name: \"{{ .Name }}\"\n  namespace: kubescape\n  annotations:\n    \n  labels:\n    helm.sh/chart: kubescape-operator-1.40.3-v0.3.171\n    app.kubernetes.io/name: kubescape-operator\n    app.kubernetes.io/instance: RELEASE-NAME\n    app.kubernetes.io/component: node-agent\n    app.kubernetes.io/version: \"v0.3.171\"\n    app.kubernetes.io/managed-by: Helm\n    app.kubernetes.io/part-of: kubescape\n    app: node-agent\n    tier: ks-control-plane\n    kubescape.io/ignore: \"true\"\n    kubescape.io/tier: \"core\"\n    kubescape.io/managed-by: operator-autoscaler\n    kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\nspec:\n  selector:\n    matchLabels:\n      app.kubernetes.io/name: kubescape-operator\n      app.kubernetes.io/instance: RELEASE-NAME\n      app.kubernetes.io/component: node-agent\n      kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\n  template:\n    metadata:\n      annotations:\n        \n        checksum/node-agent-config: 32d785dbd1f2afab15228b8577662e5970c6040977b38d0ce9910915f7668fd2\n        checksum/cloud-secret: e8328448f3b687462a4a6910297ca5389794e995dbb6cfdd25883ae4d793f885\n        checksum/cloud-config: 1d8e7172e6c72566018a64703397c3c43ccdc6c716a6495ec8a03a00a911403d\n        container.apparmor.security.beta.kubernetes.io/node-agent: unconfined\n      labels:\n        helm.sh/chart: kubescape-operator-1.40.3-v0.3.171\n        app.kubernetes.io/name: kubescape-operator\n        app.kubernetes.io/instance: RELEASE-NAME\n        app.kubernetes.io/component: node-agent\n        app.kubernetes.io/version: \"v0.3.171\"\n        app.kubernetes.io/managed-by: Helm\n        app.kubernetes.io/part-of: kubescape\n        app: node-agent\n        tier: ks-control-plane\n        kubescape.io/ignore: \"true\"\n        kubescape.io/tier: \"core\"\n        kubescape.io/node-group: \"{{ .NodeGroupLabel }}\"\n    spec:\n      securityContext:\n      priorityClassName: kubescape-critical\n      serviceAccountName: node-agent\n      automountServiceAccountToken: true\n      hostPID: true\n      volumes:\n      \n      - hostPath:\n          path: /\n        name: host\n      - hostPath:\n          path: /var/lib/kubelet\n        name: kubeletdir\n      - hostPath:\n          path: /run\n        name: run\n      - hostPath:\n          path: /var\n        name: var\n      - hostPath:\n          path: /sys/fs/cgroup\n        name: cgroup\n      - hostPath:\n          path: /lib/modules\n        name: modules\n      - hostPath:\n          path: /sys/fs/bpf\n        name: bpffs\n      - hostPath:\n          path: /sys/kernel/debug\n        name: debugfs\n      - hostPath:\n          path: /boot\n        name: boot\n      - emptyDir: null\n        name: data\n      - emptyDir: null\n        name: profiles\n      - hostPath:\n          path: /\n          type: Directory\n        name: host-filesystem\n      - emptyDir: {}\n        name: clamdb\n      - emptyDir: {}\n        name: clamrun\n      - configMap:\n          items:\n          - key: clamd.conf\n            path: clamd.conf\n          - key: freshclam.conf\n            path: freshclam.conf\n          name: clamav\n        name: etc\n      - name: cloud-secret\n        secret:\n          secretName: cloud-secret\n      - name: ks-cloud-config\n        configMap:\n          name: ks-cloud-config\n          items:\n            - key: \"clusterData\"\n              path: \"clusterData.json\"\n      - name: config\n        configMap:\n          name: node-agent\n          items:\n            - key: \"config.json\"\n              path: \"config.json\"\n      containers:\n      \n      - name: node-agent\n        image: \"ghcr.io/k8sstormcenter/node-agent:v0.3.171\"\n        imagePullPolicy: IfNotPresent\n        livenessProbe:\n          httpGet:\n            path: /livez\n            port: 7888\n          periodSeconds: 3\n        readinessProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          periodSeconds: 3\n        startupProbe:\n          httpGet:\n            path: /readyz\n            port: 7888\n          periodSeconds: 10\n          failureThreshold: 30\n          timeoutSeconds: 1\n        resources:\n          \n          requests:\n            cpu: \"{{ .Resources.Requests.CPU }}\"\n            memory: \"{{ .Resources.Requests.Memory }}\"\n          limits:\n            cpu: \"{{ .Resources.Limits.CPU }}\"\n            memory: \"{{ .Resources.Limits.Memory }}\"\n        env:\n          \n          - name: GOMEMLIMIT\n            value: \"{{ .GoMemLimit }}\"\n          - name: HOST_ROOT\n            value: \"/host\"\n          - name: KS_LOGGER_LEVEL\n            value: \"info\"\n          - name: KS_LOGGER_NAME\n            value: \"zap\"\n          - name: NODE_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: spec.nodeName\n          - name: POD_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: metadata.name\n          - name: NAMESPACE_NAME\n            valueFrom:\n              fieldRef:\n                fieldPath: metadata.namespace\n          - name: KUBELET_ROOT\n            value: \"/var/lib/kubelet\"\n          - name: AGENT_VERSION\n            value: \"v0.3.171\"\n          - name: API_URL\n            value: \"https://api.armosec.io\"\n          - name: NodeName\n            valueFrom:\n              fieldRef:\n                fieldPath: spec.nodeName\n        securityContext:\n          runAsUser: 0\n          privileged: false\n          capabilities:\n            add:\n              - SYS_ADMIN\n              - SYS_PTRACE\n              - NET_ADMIN\n              - SYSLOG\n              - SYS_RESOURCE\n              - IPC_LOCK\n              - NET_RAW\n          seLinuxOptions:\n            type: \"{{ .SELinuxType }}\"\n        volumeMounts:\n          \n          - mountPath: /host\n            name: host\n            readOnly: true\n          - mountPath: /var/lib/kubelet\n            name: kubeletdir\n          - mountPath: /run\n            name: run\n          - mountPath: /var\n            name: var\n            readOnly: true\n          - mountPath: /lib/modules\n            name: modules\n            readOnly: true\n          - mountPath: /sys/kernel/debug\n            name: debugfs\n          - mountPath: /sys/fs/cgroup\n            name: cgroup\n            readOnly: true\n          - mountPath: /sys/fs/bpf\n            name: bpffs\n          - mountPath: /data\n            name: data\n          - mountPath: /profiles\n            name: profiles\n          - mountPath: /boot\n            name: boot\n            readOnly: true\n          - mountPath: /clamav\n            name: clamrun\n          - name: cloud-secret\n            mountPath: /etc/credentials\n            readOnly: true\n          - name: ks-cloud-config\n            mountPath: /etc/config/clusterData.json\n            readOnly: true\n            subPath: \"clusterData.json\"\n          - name: config\n            mountPath: /etc/config/config.json\n            readOnly: true\n            subPath: \"config.json\"\n      nodeSelector:\n        kubernetes.io/os: linux\n      {{- if not .IsDefaultGroup }}\n        {{ .NodeGroupLabelKey }}: \"{{ .NodeGroupLabel }}\"\n      {{- end }}\n      affinity:\n      {{- if .IsDefaultGroup }}\n        nodeAffinity:\n          requiredDuringSchedulingIgnoredDuringExecution:\n            nodeSelectorTerms:\n            - matchExpressions:\n              - key: {{ .NodeGroupLabelKey }}\n                operator: DoesNotExist\n      {{- else }}\n      \n        nodeAffinity:\n          requiredDuringSchedulingIgnoredDuringExecution:\n            nodeSelectorTerms:\n            - matchExpressions:\n              - key: kubernetes.io/os\n                operator: In\n                values:\n                - linux\n      {{- end }}\n      tolerations:\n"
     kind: ConfigMap
     metadata:
       annotations: null
@@ -13604,7 +13676,9 @@ autoscaler mode without sbom sidecar:
             "reconcileInterval": "5m",
             "templatePath": "/etc/templates/daemonset-template.yaml",
             "operatorDeploymentName": "operator",
-            "goMemLimitPercentage": 0.8
+            "goMemLimitPercentage": 0.8,
+            "seLinuxType": "spc_t",
+            "bottlerocketAutoDetect": true
           }
         }
     kind: ConfigMap
@@ -13659,11 +13733,11 @@ autoscaler mode without sbom sidecar:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 3b31e94f69d6dd144c8535bf660b2e4dd94dada9549e44b2db3701fbc00f0f01
+            checksum/capabilities-config: 2261051665543aff61cd40e018be42aea313dcc7861210c41dced74591378cb7
             checksum/cloud-config: 1d8e7172e6c72566018a64703397c3c43ccdc6c716a6495ec8a03a00a911403d
             checksum/cloud-secret: e8328448f3b687462a4a6910297ca5389794e995dbb6cfdd25883ae4d793f885
             checksum/matching-rules-config: 2cf7aa789b2b23add575a83fd283650b8698a0c037e858ed8135a86c5cf5afd0
-            checksum/operator-config: 80d9ba1bbc893f6a7a7705793931c9e143d8fbec3100db271d3aff5f509f9b27
+            checksum/operator-config: 12f687a4b2ddf988e4d992088c6b992373f150b30c84fef2bfc9a576cec70d95
           labels:
             app: operator
             app.kubernetes.io/component: operator
@@ -13696,7 +13770,7 @@ autoscaler mode without sbom sidecar:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.159
+              image: quay.io/kubescape/operator:v0.2.162
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -13730,6 +13804,9 @@ autoscaler mode without sbom sidecar:
                   memory: 100Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -14493,6 +14570,9 @@ autoscaler mode without sbom sidecar:
                   memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 runAsNonRoot: true
               volumeMounts:
                 - mountPath: /data
@@ -15521,6 +15601,9 @@ autoscaler mode without sbom sidecar:
                   memory: 250Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -15774,7 +15857,7 @@ backend-storage enabled allows scanning capabilities:
     data:
       capabilities: |
         {
-          "capabilities":{"admissionController":"enable","autoUpgrading":"disable","backend-storage":"enable","configurationScan":"enable","continuousScan":"disable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","remediation":"disable","riskAcceptance":"disable","runtimeDetection":"disable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
+          "capabilities":{"admissionController":"enable","agentRuntimePosture":"disable","autoUpgrading":"disable","backend-storage":"enable","configurationScan":"enable","continuousScan":"disable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","remediation":"disable","riskAcceptance":"disable","runtimeDetection":"disable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
           "effectiveCapabilities":{"configurationScan":"backend","httpDetection":"disable","networkEventsStreaming":"enable","nodeProfileService":"enable","nodeScan":"backend","vulnerabilityScan":"backend"},
           "capabilityWarnings":["capabilities.httpDetection=enable but capabilities.runtimeDetection is not enabled. HTTP detection runs on top of runtime detection, so httpDetectionEnabled renders as FALSE in the node-agent configmap. To use it, set capabilities.runtimeDetection=enable."],
           "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
@@ -15924,6 +16007,9 @@ backend-storage enabled allows scanning capabilities:
                       memory: 10Mi
                   securityContext:
                     allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                        - ALL
                     readOnlyRootFilesystem: true
                     runAsNonRoot: true
                     runAsUser: 100
@@ -16358,6 +16444,9 @@ backend-storage enabled allows scanning capabilities:
                   memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -16615,6 +16704,9 @@ backend-storage enabled allows scanning capabilities:
                       memory: 10Mi
                   securityContext:
                     allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                        - ALL
                     readOnlyRootFilesystem: true
                     runAsNonRoot: true
                     runAsUser: 100
@@ -16797,6 +16889,9 @@ backend-storage enabled allows scanning capabilities:
                   memory: 1000Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -18865,7 +18960,9 @@ backend-storage enabled allows scanning capabilities:
             "reconcileInterval": "5m",
             "templatePath": "/etc/templates/daemonset-template.yaml",
             "operatorDeploymentName": "operator",
-            "goMemLimitPercentage": 0.8
+            "goMemLimitPercentage": 0.8,
+            "seLinuxType": "spc_t",
+            "bottlerocketAutoDetect": true
           }
         }
     kind: ConfigMap
@@ -18920,11 +19017,11 @@ backend-storage enabled allows scanning capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 5043aa58f5c1c4d9208f41aaa1e645b9e67fb3f6e9aa134bb3f7a4ab96ec846d
+            checksum/capabilities-config: 9285f6c6fd521979df4f7eaef6e30bcdd90aa1eee770bd6a3eb30f053749b0ad
             checksum/cloud-config: 1d8e7172e6c72566018a64703397c3c43ccdc6c716a6495ec8a03a00a911403d
             checksum/cloud-secret: e8328448f3b687462a4a6910297ca5389794e995dbb6cfdd25883ae4d793f885
             checksum/matching-rules-config: 2cf7aa789b2b23add575a83fd283650b8698a0c037e858ed8135a86c5cf5afd0
-            checksum/operator-config: 2839e4fc88985a6a2c30764682e3f9c191d808761c6dccefc6002c0a73a8896f
+            checksum/operator-config: ead94ff1d3bb090356a19ed8d98ada81c56a4465498e1e78dd19fb675fa1fded
           labels:
             app: operator
             app.kubernetes.io/component: operator
@@ -18957,7 +19054,7 @@ backend-storage enabled allows scanning capabilities:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.159
+              image: quay.io/kubescape/operator:v0.2.162
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -18991,6 +19088,9 @@ backend-storage enabled allows scanning capabilities:
                   memory: 100Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -19736,6 +19836,9 @@ backend-storage enabled allows scanning capabilities:
                   memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 runAsNonRoot: true
               volumeMounts:
                 - mountPath: /data
@@ -20764,6 +20867,9 @@ backend-storage enabled allows scanning capabilities:
                   memory: 250Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -20952,11 +21058,11 @@ cert strategy initContainer, admission disabled, mtls disabled:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: bdf6fa8083bbbb97d4fa5cc9a7d64fddba298fa5735e3b680034df1368ac7601
+            checksum/capabilities-config: cf4e67a619a9485d04119d9ac090ae28cc31f996d0071ed2a923a8d63f91a7e5
             checksum/cloud-config: 7cba657dfed14f6ea05b926040ae282d766b960bc9a170908523469eb299320c
             checksum/cloud-secret: 5650510cbe8b5c7276e9ed2e6e65499bb2e67db5f8e9e8de8c72c974dd9d86f3
             checksum/matching-rules-config: 2cf7aa789b2b23add575a83fd283650b8698a0c037e858ed8135a86c5cf5afd0
-            checksum/operator-config: 8d25dea53a6d7dae1a12b70b82a1c918955cbd215edbb926e923d74888db14ce
+            checksum/operator-config: 34aae95ecc7a187aa2ac6fbb90335a903f7f05c4e3bb421a6d044ce5af632db3
           labels:
             app: operator
             app.kubernetes.io/component: operator
@@ -20989,7 +21095,7 @@ cert strategy initContainer, admission disabled, mtls disabled:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.159
+              image: quay.io/kubescape/operator:v0.2.162
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -21020,6 +21126,9 @@ cert strategy initContainer, admission disabled, mtls disabled:
                   memory: 100Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -21190,6 +21299,9 @@ cert strategy initContainer, admission disabled, mtls disabled:
                   memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 runAsNonRoot: true
               volumeMounts:
                 - mountPath: /data
@@ -21263,11 +21375,11 @@ cert strategy initContainer, admission disabled, mtls enabled:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: bdf6fa8083bbbb97d4fa5cc9a7d64fddba298fa5735e3b680034df1368ac7601
+            checksum/capabilities-config: cf4e67a619a9485d04119d9ac090ae28cc31f996d0071ed2a923a8d63f91a7e5
             checksum/cloud-config: 7cba657dfed14f6ea05b926040ae282d766b960bc9a170908523469eb299320c
             checksum/cloud-secret: 5650510cbe8b5c7276e9ed2e6e65499bb2e67db5f8e9e8de8c72c974dd9d86f3
             checksum/matching-rules-config: 2cf7aa789b2b23add575a83fd283650b8698a0c037e858ed8135a86c5cf5afd0
-            checksum/operator-config: 8d25dea53a6d7dae1a12b70b82a1c918955cbd215edbb926e923d74888db14ce
+            checksum/operator-config: 34aae95ecc7a187aa2ac6fbb90335a903f7f05c4e3bb421a6d044ce5af632db3
           labels:
             app: operator
             app.kubernetes.io/component: operator
@@ -21300,7 +21412,7 @@ cert strategy initContainer, admission disabled, mtls enabled:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.159
+              image: quay.io/kubescape/operator:v0.2.162
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -21331,6 +21443,9 @@ cert strategy initContainer, admission disabled, mtls enabled:
                   memory: 100Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -21603,6 +21718,9 @@ cert strategy initContainer, admission disabled, mtls enabled:
                   memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 runAsNonRoot: true
               volumeMounts:
                 - mountPath: /data
@@ -21936,11 +22054,11 @@ cert strategy initContainer, admission enabled, mtls disabled:
         metadata:
           annotations:
             checksum/admission-certgen-scripts: e91dfc7ecf47b6db29584d1396ce064ba4e659c7e783c33202c3c8147009b45f
-            checksum/capabilities-config: f77947fd2389d8ac7e13027c6da332bec8dfd12c51556efc59b3f90054c71d9e
+            checksum/capabilities-config: cff8a8c677f315753bc8e0ae4b804218c554d28e389010845e42c345110ae6fa
             checksum/cloud-config: 7cba657dfed14f6ea05b926040ae282d766b960bc9a170908523469eb299320c
             checksum/cloud-secret: 5650510cbe8b5c7276e9ed2e6e65499bb2e67db5f8e9e8de8c72c974dd9d86f3
             checksum/matching-rules-config: 2cf7aa789b2b23add575a83fd283650b8698a0c037e858ed8135a86c5cf5afd0
-            checksum/operator-config: 8d25dea53a6d7dae1a12b70b82a1c918955cbd215edbb926e923d74888db14ce
+            checksum/operator-config: 34aae95ecc7a187aa2ac6fbb90335a903f7f05c4e3bb421a6d044ce5af632db3
           labels:
             app: operator
             app.kubernetes.io/component: operator
@@ -21973,7 +22091,7 @@ cert strategy initContainer, admission enabled, mtls disabled:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.159
+              image: quay.io/kubescape/operator:v0.2.162
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -22007,6 +22125,9 @@ cert strategy initContainer, admission enabled, mtls disabled:
                   memory: 100Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -22251,6 +22372,9 @@ cert strategy initContainer, admission enabled, mtls disabled:
                   memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 runAsNonRoot: true
               volumeMounts:
                 - mountPath: /data
@@ -22510,11 +22634,11 @@ cert strategy initContainer, admission enabled, mtls enabled:
         metadata:
           annotations:
             checksum/admission-certgen-scripts: e91dfc7ecf47b6db29584d1396ce064ba4e659c7e783c33202c3c8147009b45f
-            checksum/capabilities-config: f77947fd2389d8ac7e13027c6da332bec8dfd12c51556efc59b3f90054c71d9e
+            checksum/capabilities-config: cff8a8c677f315753bc8e0ae4b804218c554d28e389010845e42c345110ae6fa
             checksum/cloud-config: 7cba657dfed14f6ea05b926040ae282d766b960bc9a170908523469eb299320c
             checksum/cloud-secret: 5650510cbe8b5c7276e9ed2e6e65499bb2e67db5f8e9e8de8c72c974dd9d86f3
             checksum/matching-rules-config: 2cf7aa789b2b23add575a83fd283650b8698a0c037e858ed8135a86c5cf5afd0
-            checksum/operator-config: 8d25dea53a6d7dae1a12b70b82a1c918955cbd215edbb926e923d74888db14ce
+            checksum/operator-config: 34aae95ecc7a187aa2ac6fbb90335a903f7f05c4e3bb421a6d044ce5af632db3
           labels:
             app: operator
             app.kubernetes.io/component: operator
@@ -22547,7 +22671,7 @@ cert strategy initContainer, admission enabled, mtls enabled:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.159
+              image: quay.io/kubescape/operator:v0.2.162
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -22581,6 +22705,9 @@ cert strategy initContainer, admission enabled, mtls enabled:
                   memory: 100Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -22927,6 +23054,9 @@ cert strategy initContainer, admission enabled, mtls enabled:
                   memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 runAsNonRoot: true
               volumeMounts:
                 - mountPath: /data
@@ -23074,11 +23204,11 @@ cert strategy template, admission disabled, mtls disabled:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: bdf6fa8083bbbb97d4fa5cc9a7d64fddba298fa5735e3b680034df1368ac7601
+            checksum/capabilities-config: cf4e67a619a9485d04119d9ac090ae28cc31f996d0071ed2a923a8d63f91a7e5
             checksum/cloud-config: 7cba657dfed14f6ea05b926040ae282d766b960bc9a170908523469eb299320c
             checksum/cloud-secret: 5650510cbe8b5c7276e9ed2e6e65499bb2e67db5f8e9e8de8c72c974dd9d86f3
             checksum/matching-rules-config: 2cf7aa789b2b23add575a83fd283650b8698a0c037e858ed8135a86c5cf5afd0
-            checksum/operator-config: 8d25dea53a6d7dae1a12b70b82a1c918955cbd215edbb926e923d74888db14ce
+            checksum/operator-config: 34aae95ecc7a187aa2ac6fbb90335a903f7f05c4e3bb421a6d044ce5af632db3
           labels:
             app: operator
             app.kubernetes.io/component: operator
@@ -23111,7 +23241,7 @@ cert strategy template, admission disabled, mtls disabled:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.159
+              image: quay.io/kubescape/operator:v0.2.162
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -23142,6 +23272,9 @@ cert strategy template, admission disabled, mtls disabled:
                   memory: 100Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -23312,6 +23445,9 @@ cert strategy template, admission disabled, mtls disabled:
                   memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 runAsNonRoot: true
               volumeMounts:
                 - mountPath: /data
@@ -23385,11 +23521,11 @@ cert strategy template, admission disabled, mtls enabled:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: bdf6fa8083bbbb97d4fa5cc9a7d64fddba298fa5735e3b680034df1368ac7601
+            checksum/capabilities-config: cf4e67a619a9485d04119d9ac090ae28cc31f996d0071ed2a923a8d63f91a7e5
             checksum/cloud-config: 7cba657dfed14f6ea05b926040ae282d766b960bc9a170908523469eb299320c
             checksum/cloud-secret: 5650510cbe8b5c7276e9ed2e6e65499bb2e67db5f8e9e8de8c72c974dd9d86f3
             checksum/matching-rules-config: 2cf7aa789b2b23add575a83fd283650b8698a0c037e858ed8135a86c5cf5afd0
-            checksum/operator-config: 8d25dea53a6d7dae1a12b70b82a1c918955cbd215edbb926e923d74888db14ce
+            checksum/operator-config: 34aae95ecc7a187aa2ac6fbb90335a903f7f05c4e3bb421a6d044ce5af632db3
           labels:
             app: operator
             app.kubernetes.io/component: operator
@@ -23422,7 +23558,7 @@ cert strategy template, admission disabled, mtls enabled:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.159
+              image: quay.io/kubescape/operator:v0.2.162
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -23453,6 +23589,9 @@ cert strategy template, admission disabled, mtls enabled:
                   memory: 100Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -23669,6 +23808,9 @@ cert strategy template, admission disabled, mtls enabled:
                   memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 runAsNonRoot: true
               volumeMounts:
                 - mountPath: /data
@@ -23878,11 +24020,11 @@ cert strategy template, admission enabled, mtls disabled:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: f77947fd2389d8ac7e13027c6da332bec8dfd12c51556efc59b3f90054c71d9e
+            checksum/capabilities-config: cff8a8c677f315753bc8e0ae4b804218c554d28e389010845e42c345110ae6fa
             checksum/cloud-config: 7cba657dfed14f6ea05b926040ae282d766b960bc9a170908523469eb299320c
             checksum/cloud-secret: 5650510cbe8b5c7276e9ed2e6e65499bb2e67db5f8e9e8de8c72c974dd9d86f3
             checksum/matching-rules-config: 2cf7aa789b2b23add575a83fd283650b8698a0c037e858ed8135a86c5cf5afd0
-            checksum/operator-config: 8d25dea53a6d7dae1a12b70b82a1c918955cbd215edbb926e923d74888db14ce
+            checksum/operator-config: 34aae95ecc7a187aa2ac6fbb90335a903f7f05c4e3bb421a6d044ce5af632db3
           labels:
             app: operator
             app.kubernetes.io/component: operator
@@ -23915,7 +24057,7 @@ cert strategy template, admission enabled, mtls disabled:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.159
+              image: quay.io/kubescape/operator:v0.2.162
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -23949,6 +24091,9 @@ cert strategy template, admission enabled, mtls disabled:
                   memory: 100Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -24125,6 +24270,9 @@ cert strategy template, admission enabled, mtls disabled:
                   memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 runAsNonRoot: true
               volumeMounts:
                 - mountPath: /data
@@ -24328,11 +24476,11 @@ cert strategy template, admission enabled, mtls enabled:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: f77947fd2389d8ac7e13027c6da332bec8dfd12c51556efc59b3f90054c71d9e
+            checksum/capabilities-config: cff8a8c677f315753bc8e0ae4b804218c554d28e389010845e42c345110ae6fa
             checksum/cloud-config: 7cba657dfed14f6ea05b926040ae282d766b960bc9a170908523469eb299320c
             checksum/cloud-secret: 5650510cbe8b5c7276e9ed2e6e65499bb2e67db5f8e9e8de8c72c974dd9d86f3
             checksum/matching-rules-config: 2cf7aa789b2b23add575a83fd283650b8698a0c037e858ed8135a86c5cf5afd0
-            checksum/operator-config: 8d25dea53a6d7dae1a12b70b82a1c918955cbd215edbb926e923d74888db14ce
+            checksum/operator-config: 34aae95ecc7a187aa2ac6fbb90335a903f7f05c4e3bb421a6d044ce5af632db3
           labels:
             app: operator
             app.kubernetes.io/component: operator
@@ -24365,7 +24513,7 @@ cert strategy template, admission enabled, mtls enabled:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.159
+              image: quay.io/kubescape/operator:v0.2.162
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -24399,6 +24547,9 @@ cert strategy template, admission enabled, mtls enabled:
                   memory: 100Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -24621,6 +24772,9 @@ cert strategy template, admission enabled, mtls enabled:
                   memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 runAsNonRoot: true
               volumeMounts:
                 - mountPath: /data
@@ -24764,7 +24918,7 @@ default capabilities:
     data:
       capabilities: |
         {
-          "capabilities":{"admissionController":"disable","autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","httpDetection":"disable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"disable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","remediation":"disable","riskAcceptance":"disable","runtimeDetection":"disable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
+          "capabilities":{"admissionController":"disable","agentRuntimePosture":"disable","autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","httpDetection":"disable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"disable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","remediation":"disable","riskAcceptance":"disable","runtimeDetection":"disable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
           "effectiveCapabilities":{"configurationScan":"enable","httpDetection":"disable","networkEventsStreaming":"enable","nodeProfileService":"disable","nodeScan":"enable","vulnerabilityScan":"enable"},
           "capabilityWarnings":[],
           "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
@@ -24907,6 +25061,9 @@ default capabilities:
                   memory: 200Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 runAsNonRoot: true
           nodeSelector:
             kubernetes.io/os: linux
@@ -25079,6 +25236,9 @@ default capabilities:
                       memory: 10Mi
                   securityContext:
                     allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                        - ALL
                     readOnlyRootFilesystem: true
                     runAsNonRoot: true
                     runAsUser: 100
@@ -25559,6 +25719,9 @@ default capabilities:
                   memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -25929,6 +26092,9 @@ default capabilities:
                       memory: 10Mi
                   securityContext:
                     allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                        - ALL
                     readOnlyRootFilesystem: true
                     runAsNonRoot: true
                     runAsUser: 100
@@ -26157,6 +26323,9 @@ default capabilities:
                   memory: 1000Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -28226,7 +28395,9 @@ default capabilities:
             "reconcileInterval": "5m",
             "templatePath": "/etc/templates/daemonset-template.yaml",
             "operatorDeploymentName": "operator",
-            "goMemLimitPercentage": 0.8
+            "goMemLimitPercentage": 0.8,
+            "seLinuxType": "spc_t",
+            "bottlerocketAutoDetect": true
           }
         }
     kind: ConfigMap
@@ -28281,11 +28452,11 @@ default capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: c3bd10dad76b4629e3c43ad8e37a8898df88b24a5316ba561631b3401643a736
+            checksum/capabilities-config: 97db3294dee4621904ca2102d2ffdb2d16be8a5c5fc0a3301e962c600ac312be
             checksum/cloud-config: bdfe23915f881a1f35b37eef46cc76aa791c826720add2fcf8c5b6c4430c202e
             checksum/cloud-secret: e8328448f3b687462a4a6910297ca5389794e995dbb6cfdd25883ae4d793f885
             checksum/matching-rules-config: 2cf7aa789b2b23add575a83fd283650b8698a0c037e858ed8135a86c5cf5afd0
-            checksum/operator-config: 05671fca1049dd881560b27e8b07cab378d8523d0d7495556fa889b09a9c6451
+            checksum/operator-config: 72ac9115d28b9bdc27c6108a3efc80eaae2c3958abae32569dd4fae51ac32ae8
             checksum/proxy-config: 002387b717ac7902fa61e3a9d133af3fb7b8396d84ecfc9ec980211054f0dc88
           labels:
             app: operator
@@ -28319,7 +28490,7 @@ default capabilities:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.159
+              image: quay.io/kubescape/operator:v0.2.162
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -28350,6 +28521,9 @@ default capabilities:
                   memory: 100Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -29210,6 +29384,9 @@ default capabilities:
                   memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 runAsNonRoot: true
               volumeMounts:
                 - mountPath: /data
@@ -30290,6 +30467,9 @@ default capabilities:
                   memory: 250Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -30615,7 +30795,7 @@ disable otel:
     data:
       capabilities: |
         {
-          "capabilities":{"admissionController":"enable","autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","remediation":"disable","riskAcceptance":"disable","runtimeDetection":"disable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
+          "capabilities":{"admissionController":"enable","agentRuntimePosture":"disable","autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","remediation":"disable","riskAcceptance":"disable","runtimeDetection":"disable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
           "effectiveCapabilities":{"configurationScan":"enable","httpDetection":"disable","networkEventsStreaming":"enable","nodeProfileService":"enable","nodeScan":"enable","vulnerabilityScan":"enable"},
           "capabilityWarnings":["capabilities.httpDetection=enable but capabilities.runtimeDetection is not enabled. HTTP detection runs on top of runtime detection, so httpDetectionEnabled renders as FALSE in the node-agent configmap. To use it, set capabilities.runtimeDetection=enable."],
           "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
@@ -30765,6 +30945,9 @@ disable otel:
                       memory: 10Mi
                   securityContext:
                     allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                        - ALL
                     readOnlyRootFilesystem: true
                     runAsNonRoot: true
                     runAsUser: 100
@@ -31199,6 +31382,9 @@ disable otel:
                   memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -31456,6 +31642,9 @@ disable otel:
                       memory: 10Mi
                   securityContext:
                     allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                        - ALL
                     readOnlyRootFilesystem: true
                     runAsNonRoot: true
                     runAsUser: 100
@@ -31638,6 +31827,9 @@ disable otel:
                   memory: 1000Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -32930,7 +33122,9 @@ disable otel:
             "reconcileInterval": "5m",
             "templatePath": "/etc/templates/daemonset-template.yaml",
             "operatorDeploymentName": "operator",
-            "goMemLimitPercentage": 0.8
+            "goMemLimitPercentage": 0.8,
+            "seLinuxType": "spc_t",
+            "bottlerocketAutoDetect": true
           }
         }
     kind: ConfigMap
@@ -32985,11 +33179,11 @@ disable otel:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: dc1808f85e6ce262d2643ab2f5c8e12bd8d605a6b11e0527e6ed54e56d4f89b7
+            checksum/capabilities-config: 70b31dd387f74bcc31227e47130c7fc247f482db3ada620f288c61d1c299baa8
             checksum/cloud-config: 1d8e7172e6c72566018a64703397c3c43ccdc6c716a6495ec8a03a00a911403d
             checksum/cloud-secret: e8328448f3b687462a4a6910297ca5389794e995dbb6cfdd25883ae4d793f885
             checksum/matching-rules-config: 2cf7aa789b2b23add575a83fd283650b8698a0c037e858ed8135a86c5cf5afd0
-            checksum/operator-config: 05671fca1049dd881560b27e8b07cab378d8523d0d7495556fa889b09a9c6451
+            checksum/operator-config: 72ac9115d28b9bdc27c6108a3efc80eaae2c3958abae32569dd4fae51ac32ae8
           labels:
             app: operator
             app.kubernetes.io/component: operator
@@ -33022,7 +33216,7 @@ disable otel:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.159
+              image: quay.io/kubescape/operator:v0.2.162
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -33056,6 +33250,9 @@ disable otel:
                   memory: 100Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -33801,6 +33998,9 @@ disable otel:
                   memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 runAsNonRoot: true
               volumeMounts:
                 - mountPath: /data
@@ -34829,6 +35029,9 @@ disable otel:
                   memory: 250Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -35086,7 +35289,7 @@ minimal capabilities:
     data:
       capabilities: |
         {
-          "capabilities":{"admissionController":"enable","autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","remediation":"disable","riskAcceptance":"disable","runtimeDetection":"disable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
+          "capabilities":{"admissionController":"enable","agentRuntimePosture":"disable","autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","remediation":"disable","riskAcceptance":"disable","runtimeDetection":"disable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
           "effectiveCapabilities":{"configurationScan":"enable","httpDetection":"disable","networkEventsStreaming":"disable","nodeProfileService":"disable","nodeScan":"enable","vulnerabilityScan":"enable"},
           "capabilityWarnings":["capabilities.nodeProfileService=enable but the backend is not configured (.Values.server is empty / submit is disabled). This capability requires the synchronizer, which is only enabled when connected to a backend, so nodeProfileServiceEnabled renders as FALSE in the node-agent configmap and node profiles will NOT be generated. To use it, set .Values.server (requires account and accessKey, or an existing credentials.cloudSecret).","capabilities.networkEventsStreaming=enable but the backend is not configured (.Values.server is empty / submit is disabled). This capability requires submitting data to a backend, so networkStreamingEnabled renders as FALSE in the node-agent configmap and network events will NOT be streamed. To use it, set .Values.server (requires account and accessKey, or an existing credentials.cloudSecret).","capabilities.httpDetection=enable but capabilities.runtimeDetection is not enabled. HTTP detection runs on top of runtime detection, so httpDetectionEnabled renders as FALSE in the node-agent configmap. To use it, set capabilities.runtimeDetection=enable."],
           "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":false},"storage":{"enabled":true},"synchronizer":{"enabled":false}},
@@ -35236,6 +35439,9 @@ minimal capabilities:
                       memory: 10Mi
                   securityContext:
                     allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                        - ALL
                     readOnlyRootFilesystem: true
                     runAsNonRoot: true
                     runAsUser: 100
@@ -35666,6 +35872,9 @@ minimal capabilities:
                   memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -35923,6 +36132,9 @@ minimal capabilities:
                       memory: 10Mi
                   securityContext:
                     allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                        - ALL
                     readOnlyRootFilesystem: true
                     runAsNonRoot: true
                     runAsUser: 100
@@ -36103,6 +36315,9 @@ minimal capabilities:
                   memory: 1000Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -37392,7 +37607,9 @@ minimal capabilities:
             "reconcileInterval": "5m",
             "templatePath": "/etc/templates/daemonset-template.yaml",
             "operatorDeploymentName": "operator",
-            "goMemLimitPercentage": 0.8
+            "goMemLimitPercentage": 0.8,
+            "seLinuxType": "spc_t",
+            "bottlerocketAutoDetect": true
           }
         }
     kind: ConfigMap
@@ -37447,11 +37664,11 @@ minimal capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 7c283288695afa8d80d438b82be27e1ec176e9e30da6a4e0b93f371dc8594064
+            checksum/capabilities-config: d79b109d72b5070bc4ad7840acba7212a27d90cf44e4970cc817a9b6015ffbf9
             checksum/cloud-config: a582f92d5a1fb0a834275392ef66954da83bb1a198b43dbf7c8b170c0d785c9b
             checksum/cloud-secret: 5650510cbe8b5c7276e9ed2e6e65499bb2e67db5f8e9e8de8c72c974dd9d86f3
             checksum/matching-rules-config: 2cf7aa789b2b23add575a83fd283650b8698a0c037e858ed8135a86c5cf5afd0
-            checksum/operator-config: 9d2dca3732af1bef67587657c0415b16dda45921d2f0903d02dede043bd5ec05
+            checksum/operator-config: 427bef5f871a6a3c741affe888767cbe1a9fa64ac9983c5e421bcc69e3a7bbf5
           labels:
             app: operator
             app.kubernetes.io/component: operator
@@ -37484,7 +37701,7 @@ minimal capabilities:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.159
+              image: quay.io/kubescape/operator:v0.2.162
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -37518,6 +37735,9 @@ minimal capabilities:
                   memory: 100Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -38263,6 +38483,9 @@ minimal capabilities:
                   memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 runAsNonRoot: true
               volumeMounts:
                 - mountPath: /data
@@ -38810,6 +39033,9 @@ multiple node agents:
                       memory: 256Mi
                   securityContext:
                     allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                        - ALL
                     readOnlyRootFilesystem: true
                   volumeMounts:
                     - mountPath: /data/helm-scratch-data
@@ -38822,6 +39048,8 @@ multiple node agents:
                 runAsGroup: 1000
                 runAsNonRoot: true
                 runAsUser: 1000
+                seccompProfile:
+                  type: RuntimeDefault
               serviceAccountName: helm-release-upgrader
               tolerations: null
               volumes:
@@ -39018,7 +39246,7 @@ multiple node agents:
     data:
       capabilities: |
         {
-          "capabilities":{"admissionController":"enable","autoUpgrading":"enable","configurationScan":"enable","continuousScan":"enable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"enable","manageWorkloads":"enable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"enable","relevancy":"enable","remediation":"enable","riskAcceptance":"enable","runtimeDetection":"enable","runtimeObservability":"enable","scanEmbeddedSBOMs":"enable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"enable","vulnerabilityScan":"enable"},
+          "capabilities":{"admissionController":"enable","agentRuntimePosture":"disable","autoUpgrading":"enable","configurationScan":"enable","continuousScan":"enable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"enable","manageWorkloads":"enable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"enable","relevancy":"enable","remediation":"enable","riskAcceptance":"enable","runtimeDetection":"enable","runtimeObservability":"enable","scanEmbeddedSBOMs":"enable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"enable","vulnerabilityScan":"enable"},
           "effectiveCapabilities":{"configurationScan":"enable","httpDetection":"enable","networkEventsStreaming":"enable","nodeProfileService":"enable","nodeScan":"enable","vulnerabilityScan":"enable"},
           "capabilityWarnings":[],
           "components":{"autoUpdater":{"enabled":true},"clamAV":{"enabled":true},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":true},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
@@ -39168,6 +39396,9 @@ multiple node agents:
                       memory: 10Mi
                   securityContext:
                     allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                        - ALL
                     readOnlyRootFilesystem: true
                     runAsNonRoot: true
                     runAsUser: 100
@@ -39263,6 +39494,9 @@ multiple node agents:
                   memory: 200Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 runAsNonRoot: true
           imagePullSecrets:
             - name: foo
@@ -39488,6 +39722,9 @@ multiple node agents:
                       memory: 10Mi
                   securityContext:
                     allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                        - ALL
                     readOnlyRootFilesystem: true
                     runAsNonRoot: true
                     runAsUser: 100
@@ -40022,6 +40259,9 @@ multiple node agents:
                   memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -40429,6 +40669,9 @@ multiple node agents:
                       memory: 10Mi
                   securityContext:
                     allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                        - ALL
                     readOnlyRootFilesystem: true
                     runAsNonRoot: true
                     runAsUser: 100
@@ -40703,6 +40946,9 @@ multiple node agents:
                   memory: 1000Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -43413,7 +43659,9 @@ multiple node agents:
             "reconcileInterval": "5m",
             "templatePath": "/etc/templates/daemonset-template.yaml",
             "operatorDeploymentName": "operator",
-            "goMemLimitPercentage": 0.8
+            "goMemLimitPercentage": 0.8,
+            "seLinuxType": "spc_t",
+            "bottlerocketAutoDetect": true
           }
         }
     kind: ConfigMap
@@ -43468,11 +43716,11 @@ multiple node agents:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 6db79c8d12264f020e5d43e428e025a3591915aa1427994781339608eae686f9
+            checksum/capabilities-config: 0df08c6374ed3582577744c8101b542f65f968db6796c43513cb20909b89e7fc
             checksum/cloud-config: 855b789e4a8cf20600be3d01d8be5336eabc27aa5e0b6bee0355beddaabbdcf3
             checksum/cloud-secret: e8328448f3b687462a4a6910297ca5389794e995dbb6cfdd25883ae4d793f885
             checksum/matching-rules-config: 2cf7aa789b2b23add575a83fd283650b8698a0c037e858ed8135a86c5cf5afd0
-            checksum/operator-config: 6474066defbc16f1219fdc2d450fa425c78cbaeb5c506ed5e211c28a52abb889
+            checksum/operator-config: b2d3f7aaaaaa09ce806b9e0e139310f2aea865ea77ffc5a0c908093b6b5869f4
             checksum/proxy-config: 002387b717ac7902fa61e3a9d133af3fb7b8396d84ecfc9ec980211054f0dc88
           labels:
             app: operator
@@ -43510,7 +43758,7 @@ multiple node agents:
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
                   value: kubescape,kubevuln,node-agent,operator,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/operator:v0.2.159
+              image: quay.io/kubescape/operator:v0.2.162
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -43544,6 +43792,9 @@ multiple node agents:
                   memory: 100Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -44265,6 +44516,9 @@ multiple node agents:
                   memory: 10Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -44704,6 +44958,9 @@ multiple node agents:
                   memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 runAsNonRoot: true
               volumeMounts:
                 - mountPath: /data
@@ -45906,6 +46163,9 @@ multiple node agents:
                   memory: 250Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -46265,7 +46525,7 @@ priority class scheduling:
     data:
       capabilities: |
         {
-          "capabilities":{"admissionController":"enable","autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","remediation":"disable","riskAcceptance":"disable","runtimeDetection":"enable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
+          "capabilities":{"admissionController":"enable","agentRuntimePosture":"disable","autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","remediation":"disable","riskAcceptance":"disable","runtimeDetection":"enable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
           "effectiveCapabilities":{"configurationScan":"enable","httpDetection":"enable","networkEventsStreaming":"enable","nodeProfileService":"enable","nodeScan":"enable","vulnerabilityScan":"enable"},
           "capabilityWarnings":[],
           "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
@@ -46415,6 +46675,9 @@ priority class scheduling:
                       memory: 10Mi
                   securityContext:
                     allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                        - ALL
                     readOnlyRootFilesystem: true
                     runAsNonRoot: true
                     runAsUser: 100
@@ -46850,6 +47113,9 @@ priority class scheduling:
                   memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -47108,6 +47374,9 @@ priority class scheduling:
                       memory: 10Mi
                   securityContext:
                     allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                        - ALL
                     readOnlyRootFilesystem: true
                     runAsNonRoot: true
                     runAsUser: 100
@@ -47291,6 +47560,9 @@ priority class scheduling:
                   memory: 1000Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -48584,7 +48856,9 @@ priority class scheduling:
             "reconcileInterval": "5m",
             "templatePath": "/etc/templates/daemonset-template.yaml",
             "operatorDeploymentName": "operator",
-            "goMemLimitPercentage": 0.8
+            "goMemLimitPercentage": 0.8,
+            "seLinuxType": "spc_t",
+            "bottlerocketAutoDetect": true
           }
         }
     kind: ConfigMap
@@ -48639,11 +48913,11 @@ priority class scheduling:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 3b31e94f69d6dd144c8535bf660b2e4dd94dada9549e44b2db3701fbc00f0f01
+            checksum/capabilities-config: 2261051665543aff61cd40e018be42aea313dcc7861210c41dced74591378cb7
             checksum/cloud-config: 1d8e7172e6c72566018a64703397c3c43ccdc6c716a6495ec8a03a00a911403d
             checksum/cloud-secret: e8328448f3b687462a4a6910297ca5389794e995dbb6cfdd25883ae4d793f885
             checksum/matching-rules-config: 2cf7aa789b2b23add575a83fd283650b8698a0c037e858ed8135a86c5cf5afd0
-            checksum/operator-config: 05671fca1049dd881560b27e8b07cab378d8523d0d7495556fa889b09a9c6451
+            checksum/operator-config: 72ac9115d28b9bdc27c6108a3efc80eaae2c3958abae32569dd4fae51ac32ae8
           labels:
             app: operator
             app.kubernetes.io/component: operator
@@ -48676,7 +48950,7 @@ priority class scheduling:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.159
+              image: quay.io/kubescape/operator:v0.2.162
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -48710,6 +48984,9 @@ priority class scheduling:
                   memory: 100Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -49456,6 +49733,9 @@ priority class scheduling:
                   memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 runAsNonRoot: true
               volumeMounts:
                 - mountPath: /data
@@ -50485,6 +50765,9 @@ priority class scheduling:
                   memory: 250Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -50736,7 +51019,7 @@ relevancy only:
     data:
       capabilities: |
         {
-          "capabilities":{"admissionController":"disable","autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","httpDetection":"disable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"disable","networkPolicyService":"disable","nodeProfileService":"disable","nodeSbomGeneration":"disable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","remediation":"disable","riskAcceptance":"disable","runtimeDetection":"disable","runtimeObservability":"disable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"disable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
+          "capabilities":{"admissionController":"disable","agentRuntimePosture":"disable","autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","httpDetection":"disable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"disable","networkPolicyService":"disable","nodeProfileService":"disable","nodeSbomGeneration":"disable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","remediation":"disable","riskAcceptance":"disable","runtimeDetection":"disable","runtimeObservability":"disable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"disable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
           "effectiveCapabilities":{"configurationScan":"enable","httpDetection":"disable","networkEventsStreaming":"disable","nodeProfileService":"disable","nodeScan":"enable","vulnerabilityScan":"enable"},
           "capabilityWarnings":[],
           "components":{"autoUpdater":{"enabled":false},"clamAV":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":false},"storage":{"enabled":true},"synchronizer":{"enabled":false}},
@@ -50886,6 +51169,9 @@ relevancy only:
                       memory: 10Mi
                   securityContext:
                     allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                        - ALL
                     readOnlyRootFilesystem: true
                     runAsNonRoot: true
                     runAsUser: 100
@@ -51316,6 +51602,9 @@ relevancy only:
                   memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -51573,6 +51862,9 @@ relevancy only:
                       memory: 10Mi
                   securityContext:
                     allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                        - ALL
                     readOnlyRootFilesystem: true
                     runAsNonRoot: true
                     runAsUser: 100
@@ -51753,6 +52045,9 @@ relevancy only:
                   memory: 1000Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -52912,7 +53207,9 @@ relevancy only:
             "reconcileInterval": "5m",
             "templatePath": "/etc/templates/daemonset-template.yaml",
             "operatorDeploymentName": "operator",
-            "goMemLimitPercentage": 0.8
+            "goMemLimitPercentage": 0.8,
+            "seLinuxType": "spc_t",
+            "bottlerocketAutoDetect": true
           }
         }
     kind: ConfigMap
@@ -52967,11 +53264,11 @@ relevancy only:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: c0530542eda6e9bcd4aaa5952b19b358b540d15da5fab32d4cdd22ecaca5cd9c
+            checksum/capabilities-config: 913da33e5cf12f9c293a16fbe45828594581892f3dd79d9e44848d3135780190
             checksum/cloud-config: a582f92d5a1fb0a834275392ef66954da83bb1a198b43dbf7c8b170c0d785c9b
             checksum/cloud-secret: 5650510cbe8b5c7276e9ed2e6e65499bb2e67db5f8e9e8de8c72c974dd9d86f3
             checksum/matching-rules-config: 2cf7aa789b2b23add575a83fd283650b8698a0c037e858ed8135a86c5cf5afd0
-            checksum/operator-config: ef11d459e42fc07466b338525416620d08709fb8e03b88a57a25946465b0d02a
+            checksum/operator-config: c6a1bf7818b3a1d7287e849cbbe6bfdb098b15b8ceb6e821935465c5262df880
           labels:
             app: operator
             app.kubernetes.io/component: operator
@@ -53004,7 +53301,7 @@ relevancy only:
                   value: info
                 - name: KS_LOGGER_NAME
                   value: zap
-              image: quay.io/kubescape/operator:v0.2.159
+              image: quay.io/kubescape/operator:v0.2.162
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -53035,6 +53332,9 @@ relevancy only:
                   memory: 100Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -53774,6 +54074,9 @@ relevancy only:
                   memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 runAsNonRoot: true
               volumeMounts:
                 - mountPath: /data
@@ -54321,6 +54624,9 @@ skipPersistence enabled:
                       memory: 256Mi
                   securityContext:
                     allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                        - ALL
                     readOnlyRootFilesystem: true
                   volumeMounts:
                     - mountPath: /data/helm-scratch-data
@@ -54333,6 +54639,8 @@ skipPersistence enabled:
                 runAsGroup: 1000
                 runAsNonRoot: true
                 runAsUser: 1000
+                seccompProfile:
+                  type: RuntimeDefault
               serviceAccountName: helm-release-upgrader
               tolerations: null
               volumes:
@@ -54529,7 +54837,7 @@ skipPersistence enabled:
     data:
       capabilities: |
         {
-          "capabilities":{"admissionController":"enable","autoUpgrading":"enable","configurationScan":"enable","continuousScan":"enable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"enable","manageWorkloads":"enable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"enable","relevancy":"enable","remediation":"enable","riskAcceptance":"enable","runtimeDetection":"enable","runtimeObservability":"enable","scanEmbeddedSBOMs":"enable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"enable","vulnerabilityScan":"enable"},
+          "capabilities":{"admissionController":"enable","agentRuntimePosture":"disable","autoUpgrading":"enable","configurationScan":"enable","continuousScan":"enable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"enable","manageWorkloads":"enable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"enable","relevancy":"enable","remediation":"enable","riskAcceptance":"enable","runtimeDetection":"enable","runtimeObservability":"enable","scanEmbeddedSBOMs":"enable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"enable","vulnerabilityScan":"enable"},
           "effectiveCapabilities":{"configurationScan":"enable","httpDetection":"enable","networkEventsStreaming":"enable","nodeProfileService":"enable","nodeScan":"enable","vulnerabilityScan":"enable"},
           "capabilityWarnings":[],
           "components":{"autoUpdater":{"enabled":true},"clamAV":{"enabled":true},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":true},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
@@ -54679,6 +54987,9 @@ skipPersistence enabled:
                       memory: 10Mi
                   securityContext:
                     allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                        - ALL
                     readOnlyRootFilesystem: true
                     runAsNonRoot: true
                     runAsUser: 100
@@ -54774,6 +55085,9 @@ skipPersistence enabled:
                   memory: 200Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 runAsNonRoot: true
           imagePullSecrets:
             - name: foo
@@ -54999,6 +55313,9 @@ skipPersistence enabled:
                       memory: 10Mi
                   securityContext:
                     allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                        - ALL
                     readOnlyRootFilesystem: true
                     runAsNonRoot: true
                     runAsUser: 100
@@ -55533,6 +55850,9 @@ skipPersistence enabled:
                   memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -55943,6 +56263,9 @@ skipPersistence enabled:
                       memory: 10Mi
                   securityContext:
                     allowPrivilegeEscalation: false
+                    capabilities:
+                      drop:
+                        - ALL
                     readOnlyRootFilesystem: true
                     runAsNonRoot: true
                     runAsUser: 100
@@ -56217,6 +56540,9 @@ skipPersistence enabled:
                   memory: 1000Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -58633,7 +58959,9 @@ skipPersistence enabled:
             "reconcileInterval": "5m",
             "templatePath": "/etc/templates/daemonset-template.yaml",
             "operatorDeploymentName": "operator",
-            "goMemLimitPercentage": 0.8
+            "goMemLimitPercentage": 0.8,
+            "seLinuxType": "spc_t",
+            "bottlerocketAutoDetect": true
           }
         }
     kind: ConfigMap
@@ -58688,11 +59016,11 @@ skipPersistence enabled:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 6db79c8d12264f020e5d43e428e025a3591915aa1427994781339608eae686f9
+            checksum/capabilities-config: 0df08c6374ed3582577744c8101b542f65f968db6796c43513cb20909b89e7fc
             checksum/cloud-config: 855b789e4a8cf20600be3d01d8be5336eabc27aa5e0b6bee0355beddaabbdcf3
             checksum/cloud-secret: e8328448f3b687462a4a6910297ca5389794e995dbb6cfdd25883ae4d793f885
             checksum/matching-rules-config: 2cf7aa789b2b23add575a83fd283650b8698a0c037e858ed8135a86c5cf5afd0
-            checksum/operator-config: 6474066defbc16f1219fdc2d450fa425c78cbaeb5c506ed5e211c28a52abb889
+            checksum/operator-config: b2d3f7aaaaaa09ce806b9e0e139310f2aea865ea77ffc5a0c908093b6b5869f4
             checksum/proxy-config: 002387b717ac7902fa61e3a9d133af3fb7b8396d84ecfc9ec980211054f0dc88
           labels:
             app: operator
@@ -58730,7 +59058,7 @@ skipPersistence enabled:
                   value: https://foo:bar@baz:1234
                 - name: no_proxy
                   value: kubescape,kubevuln,node-agent,operator,kubernetes.default.svc.*,127.0.0.1,*.foo,bar.baz
-              image: quay.io/kubescape/operator:v0.2.159
+              image: quay.io/kubescape/operator:v0.2.162
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 httpGet:
@@ -58764,6 +59092,9 @@ skipPersistence enabled:
                   memory: 100Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -59485,6 +59816,9 @@ skipPersistence enabled:
                   memory: 10Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:
@@ -59924,6 +60258,9 @@ skipPersistence enabled:
                   memory: 400Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 runAsNonRoot: true
               volumeMounts:
                 - mountPath: /data
@@ -61126,6 +61463,9 @@ skipPersistence enabled:
                   memory: 250Mi
               securityContext:
                 allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
                 readOnlyRootFilesystem: true
                 runAsNonRoot: true
               volumeMounts:

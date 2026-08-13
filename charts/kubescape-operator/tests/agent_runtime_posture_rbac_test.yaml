@@ -1,0 +1,52 @@
+suite: Agent runtime posture RBAC tests
+templates:
+  - kubescape/clusterrole.yaml
+tests:
+  - it: omits agent runtime CRD permissions by default
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["agents.x-k8s.io"]
+            resources: ["sandboxes"]
+            verbs: ["get", "list", "watch"]
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["extensions.agents.x-k8s.io"]
+            resources: ["sandboxtemplates"]
+            verbs: ["get", "list", "watch"]
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["ate.dev"]
+            resources: ["actortemplates", "workerpools"]
+            verbs: ["get", "list", "watch"]
+
+  - it: grants read-only access to agent runtime CRDs when enabled
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.agentRuntimePosture: enable
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["agents.x-k8s.io"]
+            resources: ["sandboxes"]
+            verbs: ["get", "list", "watch"]
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["extensions.agents.x-k8s.io"]
+            resources: ["sandboxtemplates"]
+            verbs: ["get", "list", "watch"]
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["ate.dev"]
+            resources: ["actortemplates", "workerpools"]
+            verbs: ["get", "list", "watch"]

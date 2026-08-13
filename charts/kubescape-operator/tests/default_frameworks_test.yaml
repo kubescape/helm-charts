@@ -1,0 +1,85 @@
+suite: defaultFrameworks in clusterData
+templates:
+  - configs/cloudapi-configmap.yaml
+tests:
+  - it: should omit defaultFrameworks when empty (chart default)
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - notMatchRegex:
+          path: data.clusterData
+          pattern: '"defaultFrameworks"'
+
+  - it: should allow overriding default frameworks
+    set:
+      unittest: true
+      clusterName: kind-kind
+      defaultFrameworks:
+        - cis-aks-t1.2.0
+    asserts:
+      - matchRegex:
+          path: data.clusterData
+          pattern: '"defaultFrameworks":\s*\["cis-aks-t1\.2\.0"\]'
+
+  - it: should omit defaultFrameworks when explicitly empty
+    set:
+      unittest: true
+      clusterName: kind-kind
+      defaultFrameworks: []
+    asserts:
+      - notMatchRegex:
+          path: data.clusterData
+          pattern: '"defaultFrameworks"'
+
+  - it: should omit blank-only entries
+    set:
+      unittest: true
+      clusterName: kind-kind
+      defaultFrameworks:
+        - ""
+        - "  "
+    asserts:
+      - notMatchRegex:
+          path: data.clusterData
+          pattern: '"defaultFrameworks"'
+
+  - it: should fail when defaultFrameworks is not a list
+    set:
+      unittest: true
+      clusterName: kind-kind
+      defaultFrameworks: nsa
+    asserts:
+      - failedTemplate:
+          errorMessage: "defaultFrameworks must be a list of framework names, got string (use --set 'defaultFrameworks={nsa,mitre}')"
+
+  - it: should fail when defaultFrameworks is a falsy non-list
+    set:
+      unittest: true
+      clusterName: kind-kind
+      defaultFrameworks: false
+    asserts:
+      - failedTemplate:
+          errorMessage: "defaultFrameworks must be a list of framework names, got bool (use --set 'defaultFrameworks={nsa,mitre}')"
+
+  - it: should fail when an entry is not a string
+    set:
+      unittest: true
+      clusterName: kind-kind
+      defaultFrameworks:
+        - 1
+    asserts:
+      - failedTemplate:
+          errorMessage: "defaultFrameworks entries must be strings, got float64"
+
+  - it: should trim framework names
+    set:
+      unittest: true
+      clusterName: kind-kind
+      defaultFrameworks:
+        - "  nsa  "
+        - mitre
+    asserts:
+      - matchRegex:
+          path: data.clusterData
+          pattern: '"defaultFrameworks":\s*\["nsa","mitre"\]'

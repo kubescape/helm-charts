@@ -13,6 +13,16 @@ fullnameOverride: "kubescape"
 # --set clusterName=`kubectl config current-context`
 clusterName: "cluster"
 
+# Default posture frameworks used when a scan has no targetNames
+# (empty scheduler scanV1, startup scan, exception-triggered rescan).
+# Empty by default (opt-in) so upgrades do not narrow scheduled scans from "all".
+# Explicit scanV1/API targetNames override this list.
+# Clear with: --set defaultFrameworks=null
+# Example (AKS CIS): --set 'defaultFrameworks={cis-aks-t1.2.0}'
+# Example (allcontrols + current CIS): --set 'defaultFrameworks={allcontrols,cis-v1.10.0}'
+# Note: when operator.triggerSecurityFramework is true (default), "security" is also scanned.
+defaultFrameworks: []
+
 # The namespace for running the chart
 # If you wish to run the chart in a different namespace, make sure to update this value
 ksNamespace: kubescape
@@ -132,6 +142,14 @@ capabilities:
   seccompProfileBackend: crd
   manageWorkloads: disable
   syncSBOM: disable
+
+  # ====== Agent runtime posture ======
+  # Grants the scanner read-only access to the Agent Sandbox and Agent Substrate
+  # CRDs currently covered by the scan contract. Tracking issue:
+  # https://github.com/kubescape/kubescape/issues/2557
+  # Keep disabled until the Agent Runtime Hardening framework ships and is enabled
+  # by default for operator scans; that rollout is what should flip this default.
+  agentRuntimePosture: disable
 
   # ====== Risk acceptance ======
   riskAcceptance: disable
@@ -320,7 +338,7 @@ kubescape:
       cpu: 600m
       memory: 1Gi
 
-  # -- download policies every scan, we recommend it should remain true, you should change to 'false' when running in an air-gapped environment or when scanning with high frequency (when running with Prometheus)
+  # -- download policies every scan, we recommend it should remain true, you should change to 'false' when running in an air-gapped environment or when scanning with high frequency (when running with Prometheus). When 'false', the policy library baked into the image is used, so the controls are those of the image tag and do not change until the image does
   downloadArtifacts: true
 
   # -- skip check for a newer version
@@ -365,7 +383,7 @@ operator:
   image:
     # -- source code: https://github.com/kubescape/operator
     repository: quay.io/kubescape/operator
-    tag: v0.2.159
+    tag: v0.2.162
     pullPolicy: IfNotPresent
 
   nodeSelector:
@@ -529,6 +547,8 @@ storage:
       retries: 60
       retryIntervalSeconds: 5
   serverPort: 8443
+  # -- Bind the storage APIServer to the host network. Required when using a custom CNI where the control plane cannot reach pod IPs
+  hostNetwork: false
   service:
     type: ClusterIP
     annotations: {}
@@ -808,6 +828,8 @@ nodeAgent:
       memory: 4Gi
     # -- interval for reconciliation loop
     reconcileInterval: 5m
+    # -- auto-detect AWS Bottlerocket nodes and set seLinuxType: super_t on their rendered DaemonSets
+    bottlerocketAutoDetect: true
 
   priorityClassName: ""
 
@@ -1068,13 +1090,14 @@ helmReleaseUpgrader:
 kubescapeScheduler:
   # scan scheduler container name
   name: kubescape-scheduler
-  # Detemines what to scan. By default it will scan all resources in the cluster for all frameworks.
-  # Further details can be found here: https://github.com/kubescape/operator?tab=readme-ov-file#trigger-kubescape-scanning
+  # Determines what to scan. With an empty scanV1, the operator uses defaultFrameworks
+  # from clusterData. Set scanV1.targetNames to override those install-time defaults.
+  # Further details: https://github.com/kubescape/operator?tab=readme-ov-file#trigger-kubescape-scanning
   requestBody:
     commands:
       - CommandName: "kubescapeScan"
         args:
-          # To scan only specific frameworks, provide the list of frameworks to scan:
+          # Override defaultFrameworks for this CronJob only:
           # scanV1: {"targetType": "framework", "targetNames": [ "nsa" ] }
           scanV1: {}
 

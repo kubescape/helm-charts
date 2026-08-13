@@ -101,6 +101,8 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
+| defaultFrameworks | list | `[]` | Install-time posture frameworks when a scan omits `targetNames`. Empty = operator legacy fallbacks. Clear with `--set defaultFrameworks=null`. |
+| capabilities.agentRuntimePosture | string | `"disable"` | Grant the Kubescape scanner read-only access to Agent Sandbox and Agent Substrate CRDs currently covered by the scan contract. |
 | global.networkPolicy.enabled | bool | `false` | Create NetworkPolicies for all components |
 | global.networkPolicy.createEgressRules | bool | `false` | Create common Egress rules for NetworkPolicies |
 | global.kubescapePsp.enabled | bool | `false` | Enable all privileges in Pod Security Policies for Kubescape namespace |
@@ -120,7 +122,7 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | kubescape.affinity | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the deployment |
 | kubescape.podLabels| object | `{}` | Optional labels to add to the pods |
 | kubescape.podAnnotations| object | `{}` | optional map of annotations to be applied to the Pods |
-| kubescape.downloadArtifacts | bool | `true` | download policies every scan, we recommend it should remain true, you should change to 'false' when running in an air-gapped environment or when scanning with high frequency (when running with Prometheus) |
+| kubescape.downloadArtifacts | bool | `true` | download policies every scan, we recommend it should remain true, you should change to 'false' when running in an air-gapped environment or when scanning with high frequency (when running with Prometheus). When 'false', the policy library baked into the image is used, so the controls are those of the image tag and do not change until the image does |
 | kubescape.enableHostScan | bool | `true` | enable [host scanner feature](https://kubescape.io/docs/components/host-sensor/) |
 | kubescape.image.repository | string | `"quay.io/kubescape/kubescape"` | [source code](https://github.com/kubescape/kubescape/tree/master/httphandler) (public repo) |
 | kubescape.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
@@ -161,6 +163,8 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | operator.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | operator.volumes | object | `[]` | Additional volumes for the web socket |
 | operator.volumeMounts | object | `[]` | Additional volumeMounts for the web socket |
+| storage.hostNetwork | bool | `false` | Bind the storage APIServer to the host network. Required when using a custom CNI where the control plane cannot reach pod IPs |
+| nodeAgent.autoscaler.bottlerocketAutoDetect | bool | `true` | When the autoscaler is enabled, auto-detect AWS Bottlerocket nodes and set `seLinuxType: super_t` on the node-agent DaemonSet rendered for that node group, so you don't need to `--set nodeAgent.seLinuxType=super_t` manually |
 | prometheusExporter.serviceMonitor.enabled | bool | `false` | enable/disable service monitor for prometheus-exporter integration |
 | awsIamRoleArn | string | `nil` | AWS IAM arn role |
 | cloudProviderMetadata.secretRef.name | string | `nil` | secret name to define values for the provider's metadata |
