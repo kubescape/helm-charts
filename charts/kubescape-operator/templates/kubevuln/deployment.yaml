@@ -183,6 +183,23 @@ spec:
               mountPath: /sbom-comm
             - name: tmp-dir
               mountPath: /tmp
+{{- if ne .Values.global.proxySecretFile "" }}
+            - name: proxy-secret
+              mountPath: /etc/ssl/certs/proxy.crt
+              subPath: proxy.crt
+{{- end }}
+{{- if .Values.global.overrideDefaultCaCertificates.enabled }}
+            - name: custom-ca-certificates
+              mountPath: /etc/ssl/certs/ca-certificates.crt
+              subPath: ca-certificates.crt
+{{- end }}
+{{- if .Values.global.extraCaCertificates.enabled }}
+        {{- range $key, $value := (lookup "v1" "Secret" .Values.ksNamespace .Values.global.extraCaCertificates.secretName).data }}
+            - name: extra-ca-certificates
+              mountPath: /etc/ssl/certs/{{ $key }}
+              subPath: {{ $key }}
+        {{- end }}
+{{- end }}
 {{- end }}
       volumes:
         - name: {{ $components.cloudSecret.name }}
