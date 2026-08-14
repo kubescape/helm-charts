@@ -1,0 +1,28 @@
+suite: SeccompProfile CRD tests
+tests:
+  - it: omits the annotations key when no additional annotations are set
+    template: storage/seccompprofile-crd.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - notExists:
+          path: metadata.annotations
+
+  - it: carries additional annotations when they are set
+    template: storage/seccompprofile-crd.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      additionalAnnotations:
+        example.com/team: platform
+    asserts:
+      - equal:
+          path: metadata.annotations["example.com/team"]
+          value: platform
