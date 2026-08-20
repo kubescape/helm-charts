@@ -1,0 +1,1090 @@
+suite: Pod customization tests
+templates:
+  - autoupdater/cronjob.yaml
+  - configs/cloud-secret.yaml
+  - configs/cloudapi-configmap.yaml
+  - configs/components-configmap.yaml
+  - configs/matchingRules-configmap.yaml
+  - grype-offline-db/cronjob.yaml
+  - grype-offline-db/deployment.yaml
+  - kubevuln-scheduler/cronjob.yaml
+  - kubevuln/deployment.yaml
+  - kubescape-scheduler/configmap.yaml
+  - kubescape-scheduler/cronjob.yaml
+  - kubescape/deployment.yaml
+  - node-agent/configmap.yaml
+  - node-agent/daemonset.yaml
+  - node-agent/daemonsets.yaml
+  - operator/admission-webhook/configmap.yaml
+  - operator/configmap.yaml
+  - operator/deployment.yaml
+  - prometheus-exporter/deployment.yaml
+  - proxy-support/proxy-secret.yaml
+  - storage/certgen/configmap.yaml
+  - storage/configmap.yaml
+  - storage/deployment.yaml
+  - synchronizer/configmap.yaml
+  - synchronizer/deployment.yaml
+tests:
+  - it: applies pod metadata to the helm release upgrader CronJob
+    template: autoupdater/cronjob.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.autoUpgrading: enable
+      helmReleaseUpgrader.podAnnotations:
+        checksum.example.com/reloader: helm-upgrader
+        sidecar.istio.io/inject: "false"
+      helmReleaseUpgrader.podLabels:
+        workload.example.com/team: platform
+        workload.example.com/tier: maintenance
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.metadata.annotations["checksum.example.com/reloader"]
+          value: helm-upgrader
+      - equal:
+          path: spec.jobTemplate.spec.template.metadata.annotations["sidecar.istio.io/inject"]
+          value: "false"
+      - equal:
+          path: spec.jobTemplate.spec.template.metadata.labels["workload.example.com/team"]
+          value: platform
+      - equal:
+          path: spec.jobTemplate.spec.template.metadata.labels["workload.example.com/tier"]
+          value: maintenance
+
+  - it: applies component scheduling to the helm release upgrader CronJob
+    template: autoupdater/cronjob.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.autoUpgrading: enable
+      customScheduling.nodeSelector:
+        kubernetes.io/os: linux
+        scheduler.example.com/pool: global
+      customScheduling.affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 50
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/component: global
+                topologyKey: kubernetes.io/hostname
+      customScheduling.tolerations:
+        - key: global-only
+          operator: Exists
+          effect: NoSchedule
+      customScheduling.priorityClassName: global-low
+      helmReleaseUpgrader.nodeSelector:
+        kubernetes.io/os: linux
+        scheduler.example.com/pool: maintenance
+      helmReleaseUpgrader.affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: scheduler.example.com/pool
+                    operator: In
+                    values:
+                      - maintenance
+      helmReleaseUpgrader.tolerations:
+        - key: maintenance-only
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
+      helmReleaseUpgrader.priorityClassName: helm-upgrader-high
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.nodeSelector
+          value:
+            kubernetes.io/os: linux
+            scheduler.example.com/pool: maintenance
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.affinity
+          value:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: scheduler.example.com/pool
+                        operator: In
+                        values:
+                          - maintenance
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.tolerations
+          value:
+            - key: maintenance-only
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.priorityClassName
+          value: helm-upgrader-high
+
+  - it: falls back to global scheduling for unset helm release upgrader fields
+    template: autoupdater/cronjob.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.autoUpgrading: enable
+      helmReleaseUpgrader.nodeSelector: {}
+      helmReleaseUpgrader.affinity:
+      helmReleaseUpgrader.tolerations:
+      helmReleaseUpgrader.priorityClassName: ""
+      customScheduling.nodeSelector:
+        kubernetes.io/os: linux
+        scheduler.example.com/pool: global
+      customScheduling.affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 20
+              preference:
+                matchExpressions:
+                  - key: scheduler.example.com/pool
+                    operator: In
+                    values:
+                      - global
+      customScheduling.tolerations:
+        - key: global-only
+          operator: Exists
+          effect: NoSchedule
+      customScheduling.priorityClassName: global-low
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.nodeSelector
+          value:
+            kubernetes.io/os: linux
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.affinity
+          value:
+            nodeAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 20
+                  preference:
+                    matchExpressions:
+                      - key: scheduler.example.com/pool
+                        operator: In
+                        values:
+                          - global
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.tolerations
+          value:
+            - key: global-only
+              operator: Exists
+              effect: NoSchedule
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.priorityClassName
+          value: global-low
+
+  - it: applies pod metadata to the kubescape Deployment
+    template: kubescape/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubescape.podAnnotations:
+        checksum.example.com/reloader: kubescape
+        sidecar.istio.io/inject: "false"
+      kubescape.podLabels:
+        workload.example.com/team: posture
+        workload.example.com/tier: scanner
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations["checksum.example.com/reloader"]
+          value: kubescape
+      - equal:
+          path: spec.template.metadata.annotations["sidecar.istio.io/inject"]
+          value: "false"
+      - equal:
+          path: spec.template.metadata.labels["workload.example.com/team"]
+          value: posture
+      - equal:
+          path: spec.template.metadata.labels["workload.example.com/tier"]
+          value: scanner
+
+  - it: applies pod metadata to the operator Deployment
+    template: operator/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      operator.podAnnotations:
+        checksum.example.com/reloader: operator
+        sidecar.istio.io/inject: "false"
+      operator.podLabels:
+        workload.example.com/team: platform
+        workload.example.com/tier: control-plane
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations["checksum.example.com/reloader"]
+          value: operator
+      - equal:
+          path: spec.template.metadata.annotations["sidecar.istio.io/inject"]
+          value: "false"
+      - equal:
+          path: spec.template.metadata.labels["workload.example.com/team"]
+          value: platform
+      - equal:
+          path: spec.template.metadata.labels["workload.example.com/tier"]
+          value: control-plane
+
+  - it: applies pod metadata to the kubevuln Deployment
+    template: kubevuln/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubevuln.podAnnotations:
+        checksum.example.com/reloader: kubevuln
+        sidecar.istio.io/inject: "false"
+      kubevuln.podLabels:
+        workload.example.com/team: vulnerability
+        workload.example.com/tier: scanner
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations["checksum.example.com/reloader"]
+          value: kubevuln
+      - equal:
+          path: spec.template.metadata.annotations["sidecar.istio.io/inject"]
+          value: "false"
+      - equal:
+          path: spec.template.metadata.labels["workload.example.com/team"]
+          value: vulnerability
+      - equal:
+          path: spec.template.metadata.labels["workload.example.com/tier"]
+          value: scanner
+
+  - it: applies pod metadata to the storage Deployment
+    template: storage/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      storage.podAnnotations:
+        checksum.example.com/reloader: storage
+        sidecar.istio.io/inject: "false"
+      storage.podLabels:
+        workload.example.com/team: storage
+        workload.example.com/tier: api
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations["checksum.example.com/reloader"]
+          value: storage
+      - equal:
+          path: spec.template.metadata.annotations["sidecar.istio.io/inject"]
+          value: "false"
+      - equal:
+          path: spec.template.metadata.labels["workload.example.com/team"]
+          value: storage
+      - equal:
+          path: spec.template.metadata.labels["workload.example.com/tier"]
+          value: api
+
+  - it: applies pod metadata to the synchronizer Deployment
+    template: synchronizer/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      server: api.armosec.io
+      credentials.cloudSecret: existing-cloud-secret
+      synchronizer.podAnnotations:
+        checksum.example.com/reloader: synchronizer
+        sidecar.istio.io/inject: "false"
+      synchronizer.podLabels:
+        workload.example.com/team: sync
+        workload.example.com/tier: control-plane
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations["checksum.example.com/reloader"]
+          value: synchronizer
+      - equal:
+          path: spec.template.metadata.annotations["sidecar.istio.io/inject"]
+          value: "false"
+      - equal:
+          path: spec.template.metadata.labels["workload.example.com/team"]
+          value: sync
+      - equal:
+          path: spec.template.metadata.labels["workload.example.com/tier"]
+          value: control-plane
+
+  - it: applies pod metadata to the prometheus exporter Deployment
+    template: prometheus-exporter/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.prometheusExporter: enable
+      prometheusExporter.podAnnotations:
+        checksum.example.com/reloader: prometheus-exporter
+        sidecar.istio.io/inject: "false"
+      prometheusExporter.podLabels:
+        workload.example.com/team: metrics
+        workload.example.com/tier: exporter
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations["checksum.example.com/reloader"]
+          value: prometheus-exporter
+      - equal:
+          path: spec.template.metadata.annotations["sidecar.istio.io/inject"]
+          value: "false"
+      - equal:
+          path: spec.template.metadata.labels["workload.example.com/team"]
+          value: metrics
+      - equal:
+          path: spec.template.metadata.labels["workload.example.com/tier"]
+          value: exporter
+
+  - it: applies pod metadata to the grype offline db Deployment
+    template: grype-offline-db/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      grypeOfflineDB.enabled: true
+      grypeOfflineDB.podAnnotations:
+        checksum.example.com/reloader: grype-offline-db
+        sidecar.istio.io/inject: "false"
+      grypeOfflineDB.podLabels:
+        workload.example.com/team: vulnerability
+        workload.example.com/tier: database
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations["checksum.example.com/reloader"]
+          value: grype-offline-db
+      - equal:
+          path: spec.template.metadata.annotations["sidecar.istio.io/inject"]
+          value: "false"
+      - equal:
+          path: spec.template.metadata.labels["workload.example.com/team"]
+          value: vulnerability
+      - equal:
+          path: spec.template.metadata.labels["workload.example.com/tier"]
+          value: database
+
+  - it: applies rollout pod metadata to the grype offline db CronJob
+    template: grype-offline-db/cronjob.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      grypeOfflineDB.enabled: true
+      grypeOfflineDB.image.tag: latest
+      grypeOfflineDB.rollout.podAnnotations:
+        checksum.example.com/reloader: grype-rollout
+        sidecar.istio.io/inject: "false"
+      grypeOfflineDB.rollout.podLabels:
+        workload.example.com/team: vulnerability
+        workload.example.com/tier: rollout
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.metadata.annotations["checksum.example.com/reloader"]
+          value: grype-rollout
+      - equal:
+          path: spec.jobTemplate.spec.template.metadata.annotations["sidecar.istio.io/inject"]
+          value: "false"
+      - equal:
+          path: spec.jobTemplate.spec.template.metadata.labels["workload.example.com/team"]
+          value: vulnerability
+      - equal:
+          path: spec.jobTemplate.spec.template.metadata.labels["workload.example.com/tier"]
+          value: rollout
+
+  - it: applies pod metadata to the kubescape scheduler CronJob
+    template: kubescape-scheduler/cronjob.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.continuousScan: disable
+      kubescapeScheduler.podAnnotations:
+        checksum.example.com/reloader: kubescape-scheduler
+        sidecar.istio.io/inject: "false"
+      kubescapeScheduler.podLabels:
+        workload.example.com/team: posture
+        workload.example.com/tier: scheduler
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.metadata.annotations["checksum.example.com/reloader"]
+          value: kubescape-scheduler
+      - equal:
+          path: spec.jobTemplate.spec.template.metadata.annotations["sidecar.istio.io/inject"]
+          value: "false"
+      - equal:
+          path: spec.jobTemplate.spec.template.metadata.labels["workload.example.com/team"]
+          value: posture
+      - equal:
+          path: spec.jobTemplate.spec.template.metadata.labels["workload.example.com/tier"]
+          value: scheduler
+
+  - it: applies pod metadata to the kubevuln scheduler CronJob
+    template: kubevuln-scheduler/cronjob.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubevulnScheduler.podAnnotations:
+        checksum.example.com/reloader: kubevuln-scheduler
+        sidecar.istio.io/inject: "false"
+      kubevulnScheduler.podLabels:
+        workload.example.com/team: vulnerability
+        workload.example.com/tier: scheduler
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.metadata.annotations["checksum.example.com/reloader"]
+          value: kubevuln-scheduler
+      - equal:
+          path: spec.jobTemplate.spec.template.metadata.annotations["sidecar.istio.io/inject"]
+          value: "false"
+      - equal:
+          path: spec.jobTemplate.spec.template.metadata.labels["workload.example.com/team"]
+          value: vulnerability
+      - equal:
+          path: spec.jobTemplate.spec.template.metadata.labels["workload.example.com/tier"]
+          value: scheduler
+
+  - it: applies pod metadata to the node agent DaemonSet
+    template: node-agent/daemonset.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.runtimeObservability: enable
+      nodeAgent.podAnnotations:
+        checksum.example.com/reloader: node-agent
+        sidecar.istio.io/inject: "false"
+      nodeAgent.podLabels:
+        workload.example.com/team: runtime
+        workload.example.com/tier: daemon
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations["checksum.example.com/reloader"]
+          value: node-agent
+      - equal:
+          path: spec.template.metadata.annotations["sidecar.istio.io/inject"]
+          value: "false"
+      - equal:
+          path: spec.template.metadata.labels["workload.example.com/team"]
+          value: runtime
+      - equal:
+          path: spec.template.metadata.labels["workload.example.com/tier"]
+          value: daemon
+
+  - it: applies pod metadata to node agent multiplied DaemonSets
+    template: node-agent/daemonsets.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.runtimeObservability: enable
+      capabilities.testing.nodeAgentMultiplication.enabled: true
+      capabilities.testing.nodeAgentMultiplication.replicas: 2
+      nodeAgent.multipleDaemonSets.enabled: true
+      nodeAgent.multipleDaemonSets.configurations:
+        - nodeSelector:
+            kubernetes.io/os: linux
+            kubescape.io/node-group: first
+          resources:
+            requests:
+              cpu: 100m
+              memory: 180Mi
+            limits:
+              cpu: 500m
+              memory: 1400Mi
+        - nodeSelector:
+            kubernetes.io/os: linux
+            kubescape.io/node-group: second
+          resources:
+            requests:
+              cpu: 100m
+              memory: 180Mi
+            limits:
+              cpu: 500m
+              memory: 1400Mi
+      nodeAgent.podAnnotations:
+        checksum.example.com/reloader: node-agent-multiplied
+        sidecar.istio.io/inject: "false"
+      nodeAgent.podLabels:
+        workload.example.com/team: runtime
+        workload.example.com/tier: daemon
+    asserts:
+      - equal:
+          documentIndex: 0
+          path: spec.template.metadata.annotations["checksum.example.com/reloader"]
+          value: node-agent-multiplied
+      - equal:
+          documentIndex: 0
+          path: spec.template.metadata.annotations["sidecar.istio.io/inject"]
+          value: "false"
+      - equal:
+          documentIndex: 0
+          path: spec.template.metadata.labels["workload.example.com/team"]
+          value: runtime
+      - equal:
+          documentIndex: 0
+          path: spec.template.metadata.labels["workload.example.com/tier"]
+          value: daemon
+      - equal:
+          documentIndex: 1
+          path: spec.template.metadata.annotations["checksum.example.com/reloader"]
+          value: node-agent-multiplied
+      - equal:
+          documentIndex: 1
+          path: spec.template.metadata.annotations["sidecar.istio.io/inject"]
+          value: "false"
+      - equal:
+          documentIndex: 1
+          path: spec.template.metadata.labels["workload.example.com/team"]
+          value: runtime
+      - equal:
+          documentIndex: 1
+          path: spec.template.metadata.labels["workload.example.com/tier"]
+          value: daemon
+
+  - it: preserves global pod metadata alongside component pod metadata on Deployments
+    template: operator/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      additionalAnnotations:
+        global.example.com/annotation: shared
+      additionalLabels:
+        global.example.com/label: shared
+      operator.podAnnotations:
+        component.example.com/annotation: operator
+      operator.podLabels:
+        component.example.com/label: operator
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations["global.example.com/annotation"]
+          value: shared
+      - equal:
+          path: spec.template.metadata.annotations["component.example.com/annotation"]
+          value: operator
+      - equal:
+          path: spec.template.metadata.labels["global.example.com/label"]
+          value: shared
+      - equal:
+          path: spec.template.metadata.labels["component.example.com/label"]
+          value: operator
+
+  - it: preserves global pod metadata alongside component pod metadata on CronJobs
+    template: autoupdater/cronjob.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.autoUpgrading: enable
+      additionalAnnotations:
+        global.example.com/annotation: shared
+      additionalLabels:
+        global.example.com/label: shared
+      helmReleaseUpgrader.podAnnotations:
+        component.example.com/annotation: helm-upgrader
+      helmReleaseUpgrader.podLabels:
+        component.example.com/label: helm-upgrader
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.metadata.annotations["global.example.com/annotation"]
+          value: shared
+      - equal:
+          path: spec.jobTemplate.spec.template.metadata.annotations["component.example.com/annotation"]
+          value: helm-upgrader
+      - equal:
+          path: spec.jobTemplate.spec.template.metadata.labels["global.example.com/label"]
+          value: shared
+      - equal:
+          path: spec.jobTemplate.spec.template.metadata.labels["component.example.com/label"]
+          value: helm-upgrader
+
+  - it: prefers kubescape scheduling over global scheduling
+    template: kubescape/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      customScheduling.nodeSelector:
+        kubernetes.io/os: linux
+        scheduler.example.com/pool: global
+      customScheduling.affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 10
+              preference:
+                matchExpressions:
+                  - key: scheduler.example.com/pool
+                    operator: In
+                    values:
+                      - global
+      customScheduling.tolerations:
+        - key: global-only
+          operator: Exists
+          effect: NoSchedule
+      customScheduling.priorityClassName: global-low
+      kubescape.nodeSelector:
+        kubernetes.io/os: linux
+        scheduler.example.com/pool: scanner
+      kubescape.affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: scheduler.example.com/pool
+                    operator: In
+                    values:
+                      - scanner
+      kubescape.tolerations:
+        - key: scanner-only
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
+      kubescape.priorityClassName: scanner-high
+    asserts:
+      - equal:
+          path: spec.template.spec.nodeSelector
+          value:
+            kubernetes.io/os: linux
+            scheduler.example.com/pool: scanner
+      - equal:
+          path: spec.template.spec.affinity
+          value:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: scheduler.example.com/pool
+                        operator: In
+                        values:
+                          - scanner
+      - equal:
+          path: spec.template.spec.tolerations
+          value:
+            - key: scanner-only
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
+      - equal:
+          path: spec.template.spec.priorityClassName
+          value: scanner-high
+
+  - it: prefers operator scheduling over global scheduling
+    template: operator/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      customScheduling.nodeSelector:
+        kubernetes.io/os: linux
+        scheduler.example.com/pool: global
+      customScheduling.affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 20
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/component: global
+                topologyKey: kubernetes.io/hostname
+      customScheduling.tolerations:
+        - key: global-only
+          operator: Exists
+          effect: NoSchedule
+      customScheduling.priorityClassName: global-low
+      operator.nodeSelector:
+        kubernetes.io/os: linux
+        scheduler.example.com/pool: control-plane
+      operator.affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/component: operator
+              topologyKey: kubernetes.io/hostname
+      operator.tolerations:
+        - key: control-plane-only
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
+      operator.priorityClassName: control-plane-high
+    asserts:
+      - equal:
+          path: spec.template.spec.nodeSelector
+          value:
+            kubernetes.io/os: linux
+            scheduler.example.com/pool: control-plane
+      - equal:
+          path: spec.template.spec.affinity
+          value:
+            podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                - labelSelector:
+                    matchLabels:
+                      app.kubernetes.io/component: operator
+                  topologyKey: kubernetes.io/hostname
+      - equal:
+          path: spec.template.spec.tolerations
+          value:
+            - key: control-plane-only
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
+      - equal:
+          path: spec.template.spec.priorityClassName
+          value: control-plane-high
+
+  - it: prefers kubevuln scheduling over global scheduling
+    template: kubevuln/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      customScheduling.nodeSelector:
+        kubernetes.io/os: linux
+        scheduler.example.com/pool: global
+      customScheduling.affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 30
+              preference:
+                matchExpressions:
+                  - key: scheduler.example.com/pool
+                    operator: In
+                    values:
+                      - global
+      customScheduling.tolerations:
+        - key: global-only
+          operator: Exists
+          effect: NoSchedule
+      customScheduling.priorityClassName: global-low
+      kubevuln.nodeSelector:
+        kubernetes.io/os: linux
+        scheduler.example.com/pool: vulnerability
+      kubevuln.affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: scheduler.example.com/pool
+                    operator: In
+                    values:
+                      - vulnerability
+      kubevuln.tolerations:
+        - key: vulnerability-only
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
+      kubevuln.priorityClassName: vulnerability-high
+    asserts:
+      - equal:
+          path: spec.template.spec.nodeSelector
+          value:
+            kubernetes.io/os: linux
+            scheduler.example.com/pool: vulnerability
+      - equal:
+          path: spec.template.spec.affinity
+          value:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: scheduler.example.com/pool
+                        operator: In
+                        values:
+                          - vulnerability
+      - equal:
+          path: spec.template.spec.tolerations
+          value:
+            - key: vulnerability-only
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
+      - equal:
+          path: spec.template.spec.priorityClassName
+          value: vulnerability-high
+
+  - it: prefers kubescape scheduler scheduling over global scheduling
+    template: kubescape-scheduler/cronjob.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.continuousScan: disable
+      customScheduling.nodeSelector:
+        kubernetes.io/os: linux
+        scheduler.example.com/pool: global
+      customScheduling.affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 40
+              preference:
+                matchExpressions:
+                  - key: scheduler.example.com/pool
+                    operator: In
+                    values:
+                      - global
+      customScheduling.tolerations:
+        - key: global-only
+          operator: Exists
+          effect: NoSchedule
+      customScheduling.priorityClassName: global-low
+      kubescapeScheduler.nodeSelector:
+        kubernetes.io/os: linux
+        scheduler.example.com/pool: posture-scheduler
+      kubescapeScheduler.affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: scheduler.example.com/pool
+                    operator: In
+                    values:
+                      - posture-scheduler
+      kubescapeScheduler.tolerations:
+        - key: posture-scheduler-only
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
+      kubescapeScheduler.priorityClassName: posture-scheduler-high
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.nodeSelector
+          value:
+            kubernetes.io/os: linux
+            scheduler.example.com/pool: posture-scheduler
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.affinity
+          value:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: scheduler.example.com/pool
+                        operator: In
+                        values:
+                          - posture-scheduler
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.tolerations
+          value:
+            - key: posture-scheduler-only
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.priorityClassName
+          value: posture-scheduler-high
+
+  - it: prefers kubevuln scheduler scheduling over global scheduling
+    template: kubevuln-scheduler/cronjob.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      customScheduling.nodeSelector:
+        kubernetes.io/os: linux
+        scheduler.example.com/pool: global
+      customScheduling.affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 50
+              preference:
+                matchExpressions:
+                  - key: scheduler.example.com/pool
+                    operator: In
+                    values:
+                      - global
+      customScheduling.tolerations:
+        - key: global-only
+          operator: Exists
+          effect: NoSchedule
+      customScheduling.priorityClassName: global-low
+      kubevulnScheduler.nodeSelector:
+        kubernetes.io/os: linux
+        scheduler.example.com/pool: vuln-scheduler
+      kubevulnScheduler.affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: scheduler.example.com/pool
+                    operator: In
+                    values:
+                      - vuln-scheduler
+      kubevulnScheduler.tolerations:
+        - key: vuln-scheduler-only
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
+      kubevulnScheduler.priorityClassName: vuln-scheduler-high
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.nodeSelector
+          value:
+            kubernetes.io/os: linux
+            scheduler.example.com/pool: vuln-scheduler
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.affinity
+          value:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: scheduler.example.com/pool
+                        operator: In
+                        values:
+                          - vuln-scheduler
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.tolerations
+          value:
+            - key: vuln-scheduler-only
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.priorityClassName
+          value: vuln-scheduler-high
+
+  - it: prefers grype rollout node selector over deployment and global scheduling
+    template: grype-offline-db/cronjob.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      grypeOfflineDB.enabled: true
+      grypeOfflineDB.image.tag: latest
+      customScheduling.nodeSelector:
+        kubernetes.io/os: linux
+        scheduler.example.com/pool: global
+      grypeOfflineDB.nodeSelector:
+        kubernetes.io/os: linux
+        scheduler.example.com/pool: grype-db
+      grypeOfflineDB.rollout.nodeSelector:
+        kubernetes.io/os: linux
+        scheduler.example.com/pool: grype-rollout
+      grypeOfflineDB.affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: scheduler.example.com/pool
+                    operator: In
+                    values:
+                      - grype-rollout
+      grypeOfflineDB.tolerations:
+        - key: grype-rollout-only
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
+      grypeOfflineDB.priorityClassName: grype-rollout-high
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.nodeSelector
+          value:
+            kubernetes.io/os: linux
+            scheduler.example.com/pool: grype-rollout
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.affinity
+          value:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: scheduler.example.com/pool
+                        operator: In
+                        values:
+                          - grype-rollout
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.tolerations
+          value:
+            - key: grype-rollout-only
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.priorityClassName
+          value: grype-rollout-high
+
+  - it: keeps helm release upgrader pod metadata empty by default
+    template: autoupdater/cronjob.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.autoUpgrading: enable
+    asserts:
+      - notExists:
+          path: spec.jobTemplate.spec.template.metadata.annotations["checksum.example.com/reloader"]
+      - notExists:
+          path: spec.jobTemplate.spec.template.metadata.annotations["sidecar.istio.io/inject"]
+      - notExists:
+          path: spec.jobTemplate.spec.template.metadata.labels["workload.example.com/team"]
+      - notExists:
+          path: spec.jobTemplate.spec.template.metadata.labels["workload.example.com/tier"]
+
+  - it: does not render helm release upgrader pod metadata when auto upgrading is disabled
+    template: autoupdater/cronjob.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.autoUpgrading: disable
+      helmReleaseUpgrader.podAnnotations:
+        checksum.example.com/reloader: helm-upgrader
+      helmReleaseUpgrader.podLabels:
+        workload.example.com/team: platform
+    asserts:
+      - hasDocuments:
+          count: 0
