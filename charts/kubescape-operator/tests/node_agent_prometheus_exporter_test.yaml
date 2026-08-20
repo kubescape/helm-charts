@@ -1,0 +1,40 @@
+suite: node-agent Prometheus exporter OTEL env var
+templates:
+  - configs/components-configmap.yaml
+  - configs/cloudapi-configmap.yaml
+  - configs/cloud-secret.yaml
+  - configs/matchingRules-configmap.yaml
+  - node-agent/configmap.yaml
+  - node-agent/daemonset.yaml
+  - operator/configmap.yaml
+  - proxy-support/proxy-secret.yaml
+  - storage/certgen/configmap.yaml
+  - storage/configmap.yaml
+  - synchronizer/configmap.yaml
+  - operator/admission-webhook/configmap.yaml
+tests:
+  - it: sets OTEL_METRICS_EXPORTER when nodeAgent.config.prometheusExporter is enable
+    template: node-agent/daemonset.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.config.prometheusExporter: enable
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_METRICS_EXPORTER
+            value: "prometheus"
+
+  - it: does not set OTEL_METRICS_EXPORTER by default
+    template: node-agent/daemonset.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_METRICS_EXPORTER
+            value: "prometheus"
+            
