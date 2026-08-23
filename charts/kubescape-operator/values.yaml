@@ -739,9 +739,6 @@ nodeAgent:
     - mountPath: /boot
       name: boot
       readOnly: true
-    - mountPath: /clamav
-      name: clamrun
-      # readOnly: false # EmptyDir volume
   volumes:
     - hostPath:
         path: /
@@ -880,60 +877,6 @@ nodeAgent:
       - name: sbom-scanner-tmp
         emptyDir: {}
 
-# +++++++++++++++++++++++++++++++ ClamAV ++++++++++++++++++++++++++++++++++++++++++++++++
-clamav:
-  name: clamav
-  image:
-    # -- source code: https://github.com/kubescape/node-agent/tree/main/clamav
-    repository: quay.io/kubescape/klamav
-    tag: 1.3.1-34_alpha
-    pullPolicy: IfNotPresent
-
-  resources:
-    limits:
-      cpu: 300m
-      memory: 512Mi
-    requests:
-      cpu: 100m
-      memory: 256Mi
-
-  volumeMounts:
-    - mountPath: /var/lib/clamav-tmp
-      name: clamdb
-      # readOnly: false
-    - mountPath: /run/clamav
-      name: clamrun
-      # readOnly: false
-    - mountPath: /etc/clamav
-      name: etc
-      readOnly: true
-
-  volumes:
-    - name: clamdb
-      emptyDir: {}
-    - name: clamrun
-      emptyDir: {}
-    - name: etc
-      configMap:
-        name: clamav
-        items:
-          - key: clamd.conf
-            path: clamd.conf
-          - key: freshclam.conf
-            path: freshclam.conf
-
-  affinity:
-    nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-          - matchExpressions:
-              - key: kubernetes.io/os
-                operator: In
-                values:
-                  - linux
-
-  nodeSelector:
-    kubernetes.io/os: linux
 # +++++++++++++++++++++++++++++ Synchronizer ++++++++++++++++++++++++++++++++++++++++++++++++
 
 synchronizer:

@@ -25,7 +25,7 @@ release time instead of in the field.
   allowlist as `no-op`, `digest-only`, or `spec-drift` (exit code 2 on spec-drift).
 - **`scripts/gke-allowlist/check-drift.sh`** — the wrapper the release workflow calls. It renders the
   node-agent with the full set of optional features enabled (backend server/`API_URL`, HTTP proxy,
-  custom runtime path, kernel-check skip, full malware scan, ClamAV, SBOM scanner, OTEL) so the check
+  custom runtime path, kernel-check skip, full malware scan, SBOM scanner, OTEL) so the check
   exercises the maximal privileged surface, then verifies it is a subset of the allowlist.
 - **`scripts/gke-allowlist/build-allowlists.py`, `refresh-digests.py`** — allowlist-repo-side helpers
   (assemble allowlist files; append new node-agent image digests to the mutable `containerImageDigests`

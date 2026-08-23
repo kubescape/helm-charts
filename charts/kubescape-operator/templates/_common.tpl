@@ -97,8 +97,6 @@ cloudSecret:
   name: {{ if $configurations.createCloudSecret }}"cloud-secret"{{ else }}{{ .Values.credentials.cloudSecret }}{{ end }}
 synchronizer:
   enabled: {{ $configurations.submit }}
-clamAV:
-  enabled: {{ eq .Values.capabilities.malwareDetection "enable" }}
 sbomScanner:
   enabled: {{ and (eq .Values.capabilities.nodeSbomGeneration "enable") .Values.nodeAgent.sbomScanner.enabled }}
 customCaCertificates:

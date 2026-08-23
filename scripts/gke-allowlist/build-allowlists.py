@@ -41,7 +41,7 @@ ARMO_DIGESTS = load_digests(f"{GEN}/digests-armosec-node-agent.txt")
 # rejects the workload). Kept in sync with the vendored gke-allowlist/*-1.40-v2.yaml files.
 NODE_AGENT_ENV = [
     "GOMEMLIMIT", "HOST_ROOT", "KS_LOGGER_LEVEL", "KS_LOGGER_NAME",
-    "OTEL_COLLECTOR_SVC", "CLAMAV_SOCKET", "SBOM_SCANNER_SOCKET", "SCANNER_MEMORY_LIMIT",
+    "OTEL_COLLECTOR_SVC", "SBOM_SCANNER_SOCKET", "SCANNER_MEMORY_LIMIT",
     "NODE_NAME", "POD_NAME", "NAMESPACE_NAME", "KUBELET_ROOT", "AGENT_VERSION",
     "NodeName", "IGNORERULEBINDINGS", "API_URL",
     "HTTPS_PROXY", "no_proxy", "RUNTIME_PATH", "SKIP_KERNEL_VERSION_CHECK", "MALWARE_SCAN_ALL_FILES",
@@ -55,7 +55,7 @@ def env_block(names, indent):
     return "\n".join(f"{pad}- name: {n}" for n in names)
 
 
-def build(name, node_agent_img, sbom_img, clamav_img, na_digests, sbom_digests):
+def build(name, node_agent_img, sbom_img, na_digests, sbom_digests):
     return f"""apiVersion: auto.gke.io/v1
 kind: WorkloadAllowlist
 minGKEVersion: 1.32.0-gke.1000000
@@ -76,20 +76,6 @@ exemptions:
 matchingCriteria:
   hostPID: true
   containers:
-    - name: clamav
-      image: {clamav_img}
-      securityContext:
-        capabilities:
-          add:
-            - SYS_PTRACE
-      volumeMounts:
-        - mountPath: /var/lib/clamav-tmp
-          name: clamdb
-        - mountPath: /run/clamav
-          name: clamrun
-        - mountPath: /etc/clamav
-          name: etc
-          readOnly: true
     - name: sbom-scanner
       image: {sbom_img}
       command:
@@ -151,8 +137,6 @@ matchingCriteria:
         - mountPath: /boot
           name: boot
           readOnly: true
-        - mountPath: /clamav
-          name: clamrun
         - mountPath: /sbom-comm
           name: sbom-comm
         - mountPath: /etc/credentials
@@ -202,12 +186,6 @@ matchingCriteria:
     - hostPath:
         path: /
       name: host-filesystem
-    - name: clamdb
-    - name: clamrun
-    - configMap:
-        defaultMode: 420
-        name: clamav
-      name: etc
     - name: sbom-comm
     - name: sbom-scanner-tmp
     - name: cloud-secret
@@ -231,21 +209,20 @@ containerImageDigests:
 
 KS = r"^quay\.io/kubescape/node-agent$"
 ARMO = r"^quay\.io/(armosec|kubescape)/node-agent$"
-KLAMAV = r"^quay\.io/kubescape/klamav$"
 
 specs = [
-    # (dir, name, node-agent img, sbom img, clamav img, node-agent digests, sbom digests)
-    ("armo-kubescape-node-agent", "armo-kubescape-node-agent-1.40", KS, KS, KLAMAV, KS_DIGESTS, KS_DIGESTS),
-    ("armo-private-node-agent",   "armo-private-node-agent-1.40",   ARMO, ARMO, KLAMAV, ARMO_DIGESTS, ARMO_DIGESTS),
+    # (dir, name, node-agent img, sbom img, node-agent digests, sbom digests)
+    ("armo-kubescape-node-agent", "armo-kubescape-node-agent-1.40", KS, KS, KS_DIGESTS, KS_DIGESTS),
+    ("armo-private-node-agent",   "armo-private-node-agent-1.40",   ARMO, ARMO, ARMO_DIGESTS, ARMO_DIGESTS),
     # Rapid7: node-agent uses armosec; sbom-scanner image rendered as kubescape (chart-values gap),
     # both covered by the armosec|kubescape regex. Digests: node-agent=armosec, sbom-scanner=kubescape.
-    ("armo-rapid7-node-agent",    "armo-rapid7-node-agent-1.40",    ARMO, ARMO, KLAMAV, ARMO_DIGESTS, KS_DIGESTS),
+    ("armo-rapid7-node-agent",    "armo-rapid7-node-agent-1.40",    ARMO, ARMO, ARMO_DIGESTS, KS_DIGESTS),
 ]
 
-for d, name, na, sbom, clam, nad, sbd in specs:
+for d, name, na, sbom, nad, sbd in specs:
     outdir = f"{REPO}/{d}/1.40"
     os.makedirs(outdir, exist_ok=True)
     path = f"{outdir}/{name}.yaml"
     with open(path, "w") as f:
-        f.write(build(name, na, sbom, clam, nad, sbd))
+        f.write(build(name, na, sbom, nad, sbd))
     print(f"wrote {path} ({sum(1 for _ in open(path))} lines)")
