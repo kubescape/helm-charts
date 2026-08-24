@@ -35,4 +35,5 @@ exec python3 "$HERE/allowlist-drift.py" \
   --set "${prefix}global.httpsProxy=http://proxy:3128" \
   --set "${prefix}global.overrideRuntimePath=/run/containerd/containerd.sock" \
   --set "${prefix}nodeAgent.config.skipKernelVersionCheck=true" \
-  --set "${prefix}nodeAgent.config.malwareScanAllFiles=true"
+  --set "${prefix}nodeAgent.config.malwareScanAllFiles=true" \
+  --set "${prefix}nodeAgent.config.prometheusExporter=enable"

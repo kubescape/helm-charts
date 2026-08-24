@@ -1,0 +1,79 @@
+suite: node-agent Prometheus exporter OTEL env var
+templates:
+  - configs/components-configmap.yaml
+  - configs/cloudapi-configmap.yaml
+  - configs/cloud-secret.yaml
+  - configs/matchingRules-configmap.yaml
+  - node-agent/configmap.yaml
+  - node-agent/daemonset.yaml
+  - node-agent/template-configmap.yaml
+  - operator/admission-webhook/configmap.yaml
+  - operator/configmap.yaml
+  - proxy-support/proxy-secret.yaml
+  - storage/certgen/configmap.yaml
+  - storage/configmap.yaml
+  - synchronizer/configmap.yaml
+tests:
+  - it: adds OTEL_METRICS_EXPORTER env var to node-agent daemonset when prometheusExporter is enabled
+    template: node-agent/daemonset.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.runtimeObservability: enable
+      nodeAgent.config.prometheusExporter: enable
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_METRICS_EXPORTER
+            value: "prometheus"
+
+  - it: does not add OTEL_METRICS_EXPORTER env var by default
+    template: node-agent/daemonset.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.runtimeObservability: enable
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_METRICS_EXPORTER
+
+  - it: does not add OTEL_METRICS_EXPORTER env var when explicitly disabled
+    template: node-agent/daemonset.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.runtimeObservability: enable
+      nodeAgent.config.prometheusExporter: disable
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_METRICS_EXPORTER
+
+  - it: adds OTEL_METRICS_EXPORTER env var to autoscaler template-configmap when prometheusExporter is enabled
+    template: node-agent/template-configmap.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.runtimeObservability: enable
+      nodeAgent.autoscaler.enabled: true
+      nodeAgent.config.prometheusExporter: enable
+    asserts:
+      - matchRegex:
+          path: data["daemonset-template.yaml"]
+          pattern: "- name: OTEL_METRICS_EXPORTER\\s+value: \"prometheus\""
+
+  - it: does not add OTEL_METRICS_EXPORTER env var to autoscaler template-configmap by default
+    template: node-agent/template-configmap.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.runtimeObservability: enable
+      nodeAgent.autoscaler.enabled: true
+    asserts:
+      - notMatchRegex:
+          path: data["daemonset-template.yaml"]
+          pattern: "OTEL_METRICS_EXPORTER"

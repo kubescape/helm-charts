@@ -60,6 +60,10 @@ Parameters:
 - name: OTEL_COLLECTOR_SVC
   value: {{ .Values.configurations.otelUrl }}
 {{- end }}
+{{- if eq .Values.nodeAgent.config.prometheusExporter "enable" }}
+- name: OTEL_METRICS_EXPORTER
+  value: "prometheus"
+{{- end }}
 {{- if and .components.clamAV.enabled (not .autoscalerMode) }}
 - name: CLAMAV_SOCKET
   value: "/clamav/clamd.sock"
