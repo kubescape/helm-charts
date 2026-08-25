@@ -1,6 +1,6 @@
 suite: Offline mode tests
 tests:
-  - it: mounts kubescape config via the kubescape directory in offline mode
+  - it: does not shadow the baked policy library with an empty writable mount in offline mode
     template: kubescape/deployment.yaml
     capabilities:
       apiVersions:
@@ -13,12 +13,21 @@ tests:
       accessKey: key
       capabilities.kubescapeOffline: enable
     asserts:
-      - contains:
+      # KS_OFFLINE always forces the scanner to read policies from the local
+      # store (see httphandler's ScanRequest handling), regardless of
+      # downloadArtifacts, so mounting a fresh emptyDir here would hide the
+      # image-baked policy library the scanner needs to read.
+      - notContains:
           path: spec.template.spec.containers[0].volumeMounts
           content:
             name: kubescape-volume
             mountPath: /home/nonroot/.kubescape
             subPath: config.json
+      - notContains:
+          path: spec.template.spec.volumes
+          content:
+            name: kubescape-volume
+            emptyDir: {}
 
   - it: forces scheduler scans to keep results local in offline mode
     template: kubescape-scheduler/configmap.yaml

@@ -46,6 +46,32 @@ tests:
             name: kubescape-volume
             emptyDir: {}
 
+  - it: leaves the image's baked policy library visible when offline, even with downloads on
+    template: kubescape/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubescape.downloadArtifacts: true
+      capabilities.kubescapeOffline: enable
+    asserts:
+      # KS_OFFLINE always forces the scanner to read from the local store
+      # regardless of downloadArtifacts, so downloads never happen here and
+      # an emptyDir would just mask the baked-in policy library
+      - notContains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: kubescape-volume
+            mountPath: /home/nonroot/.kubescape
+            subPath: config.json
+      - notContains:
+          path: spec.template.spec.volumes
+          content:
+            name: kubescape-volume
+            emptyDir: {}
+
   - it: keeps the host-scanner definition mounted either way
     template: kubescape/deployment.yaml
     capabilities:

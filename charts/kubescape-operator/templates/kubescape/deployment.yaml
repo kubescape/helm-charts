@@ -243,7 +243,7 @@ spec:
         - name: {{ $components.cloudSecret.name }}
           mountPath: /etc/credentials
           readOnly: true
-        {{- if .Values.kubescape.downloadArtifacts }}
+        {{- if and .Values.kubescape.downloadArtifacts (ne .Values.capabilities.kubescapeOffline "enable") }}
         - name: kubescape-volume
           mountPath: /home/nonroot/.kubescape
           subPath: config.json
@@ -310,7 +310,7 @@ spec:
       - name: host-scanner-definition
         configMap:
           name: host-scanner-definition
-      {{- if .Values.kubescape.downloadArtifacts }}
+      {{- if and .Values.kubescape.downloadArtifacts (ne .Values.capabilities.kubescapeOffline "enable") }}
       - name: kubescape-volume
         emptyDir: {}
       {{- end }}
