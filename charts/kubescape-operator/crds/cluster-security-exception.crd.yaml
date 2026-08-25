@@ -67,6 +67,8 @@ spec:
                     x-kubernetes-validations:
                       - rule: "self.status != 'not_affected' || has(self.justification)"
                         message: "justification is required when status is not_affected"
+                      - rule: "self.status != 'affected' || has(self.actionStatement)"
+                        message: "actionStatement is required when status is affected"
                     required:
                       - vulnerability
                       - status
@@ -86,6 +88,7 @@ spec:
                         type: string
                         enum:
                           - not_affected
+                          - affected
                           - fixed
                           - under_investigation
                       justification:
@@ -100,6 +103,32 @@ spec:
                         type: string
                       expiredOnFix:
                         type: boolean
+                      # Overrides the document-level spec.expiresAt for this entry only.
+                      expiresAt:
+                        type: string
+                        format: date-time
+                      # Counterpart to impactStatement on the affected path; OpenVEX
+                      # requires an action statement for every affected statement.
+                      # The pattern rejects blank text: the rule above only checks the
+                      # field is present, and a CEL trim() here blows the rule cost budget.
+                      actionStatement:
+                        type: string
+                        pattern: '\S'
+                      response:
+                        type: array
+                        items:
+                          type: string
+                          enum:
+                            - can_not_fix
+                            - will_not_fix
+                            - update
+                            - rollback
+                            - workaround_available
+                      # Scopes the exception to packages within the matched product, as PURLs.
+                      subcomponents:
+                        type: array
+                        items:
+                          type: string
                 posture:
                   type: array
                   items:
