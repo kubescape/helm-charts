@@ -30,6 +30,32 @@ kubescape     operator-5d745b5b84-ts7zq                           1/1     Runnin
 kubescape     storage-59567854fd-hg8n8                            1/1     Running   0               60m
 ```
 
+## Upgrade
+
+`helm upgrade` updates everything in the chart **except** the CRDs under `crds/`. Helm installs those
+once, on first install, and [never touches them again](https://helm.sh/docs/chart_best_practices/custom_resource_definitions/).
+So when a release changes a CRD schema, the cluster keeps the old one: the API server rejects fields it
+does not know about under a strict apply, and silently prunes them otherwise.
+
+If a release notes a CRD change, apply the chart's CRDs yourself before upgrading:
+
+```shell
+helm repo update
+helm pull kubescape/kubescape-operator --untar --untardir /tmp
+kubectl apply --server-side --force-conflicts -f /tmp/kubescape-operator/crds/
+```
+
+Then run the usual `helm upgrade`. Applying the CRDs is safe to repeat and does not touch existing
+custom resources.
+
+> **`capabilities.riskAcceptance`:** the `SecurityException` and `ClusterSecurityException` schemas
+grew per-vulnerability `expiresAt`, `actionStatement`, `response`, `subcomponents`, and the `affected`
+status. Clusters that installed the chart before that change need the apply above, otherwise those
+fields are pruned or rejected.
+
+The CRDs under `templates/` (the node-agent sensing CRDs and `seccompprofiles`) are managed by Helm and
+do upgrade on their own.
+
 ## View results
 
 The scanning results will be available gradually as the scans are completed.
