@@ -123,16 +123,19 @@ that value can never drift apart. See issue #851.
 {{- $nodeProfileService := and $synchronizerEnabled (eq $c.nodeProfileService "enable") -}}
 {{- $networkStreaming := and $submit (eq $c.networkEventsStreaming "enable") -}}
 {{- $httpDetection := and (eq $c.httpDetection "enable") $runtimeDetection -}}
+{{- $hostMalwareSensor := and (eq $c.malwareDetection "enable") (eq .Values.nodeAgent.config.hostMalwareSensor "enable") $runtimeDetection -}}
 # effective.* are the node-agent config.json flags, consumed by node-agent/configmap.yaml
 effective:
   nodeProfileServiceEnabled: {{ $nodeProfileService }}
   networkStreamingEnabled: {{ $networkStreaming }}
   httpDetectionEnabled: {{ $httpDetection }}
+  hostMalwareSensorEnabled: {{ $hostMalwareSensor }}
 # effectiveCapabilities is requested-vs-effective per gated capability, consumed by ks-capabilities
 effectiveCapabilities:
   nodeProfileService: {{ if $nodeProfileService }}enable{{ else }}disable{{ end }}
   networkEventsStreaming: {{ if $networkStreaming }}enable{{ else }}disable{{ end }}
   httpDetection: {{ if $httpDetection }}enable{{ else }}disable{{ end }}
+  malwareDetection: {{ if $hostMalwareSensor }}enable{{ else }}disable{{ end }}
   nodeScan: {{ if and (eq $c.nodeScan "enable") $backendStorage }}backend{{ else }}{{ $c.nodeScan }}{{ end }}
   configurationScan: {{ if and (eq $c.configurationScan "enable") $backendStorage }}backend{{ else }}{{ $c.configurationScan }}{{ end }}
   vulnerabilityScan: {{ if and (eq $c.vulnerabilityScan "enable") $backendStorage }}backend{{ else }}{{ $c.vulnerabilityScan }}{{ end }}
@@ -145,6 +148,12 @@ warnings:
 {{- end }}
 {{- if and (eq $c.httpDetection "enable") (not $httpDetection) }}
 - "capabilities.httpDetection=enable but capabilities.runtimeDetection is not enabled. HTTP detection runs on top of runtime detection, so httpDetectionEnabled renders as FALSE in the node-agent configmap. To use it, set capabilities.runtimeDetection=enable."
+{{- end }}
+{{- if and (eq $c.malwareDetection "enable") (not (eq .Values.nodeAgent.config.hostMalwareSensor "enable")) }}
+- "capabilities.malwareDetection=enable but nodeAgent.config.hostMalwareSensor is not enabled, so nothing scans for malware. Malware detection works by file hash: the node-agent hashes executed and opened files and the backend matches the hashes against known-malicious files. Hashing reads whole files, so the sensor is a deliberate opt-in. To use it, set nodeAgent.config.hostMalwareSensor=enable, and bound its cost with nodeAgent.config.hostMalwareSensorMaxFileSizeBytes if needed."
+{{- end }}
+{{- if and (eq $c.malwareDetection "enable") (eq .Values.nodeAgent.config.hostMalwareSensor "enable") (not $runtimeDetection) }}
+- "capabilities.malwareDetection=enable and nodeAgent.config.hostMalwareSensor=enable, but capabilities.runtimeDetection is not enabled. The host malware sensor runs on top of runtime detection, so hostMalwareSensorEnabled renders as FALSE in the node-agent configmap. To use it, set capabilities.runtimeDetection=enable."
 {{- end }}
 {{- end -}}
 

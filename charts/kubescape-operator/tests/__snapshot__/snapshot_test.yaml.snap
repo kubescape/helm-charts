@@ -22,6 +22,8 @@ all capabilities:
       kubescape-operator generates suggested network policies. To view them:
       > kubectl get generatednetworkpolicies -n <namespace>
 
+      WARNING: capabilities.malwareDetection=enable but nodeAgent.config.hostMalwareSensor is not enabled, so nothing scans for malware. Malware detection works by file hash: the node-agent hashes executed and opened files and the backend matches the hashes against known-malicious files. Hashing reads whole files, so the sensor is a deliberate opt-in. To use it, set nodeAgent.config.hostMalwareSensor=enable, and bound its cost with nodeAgent.config.hostMalwareSensorMaxFileSizeBytes if needed.
+
   2: |
     apiVersion: batch/v1
     kind: CronJob
@@ -295,8 +297,8 @@ all capabilities:
       capabilities: |
         {
           "capabilities":{"admissionController":"enable","agentRuntimePosture":"disable","autoUpgrading":"enable","configurationScan":"enable","continuousScan":"enable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"enable","manageWorkloads":"enable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"enable","relevancy":"enable","remediation":"enable","riskAcceptance":"enable","runtimeDetection":"enable","runtimeObservability":"enable","scanEmbeddedSBOMs":"enable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"enable","vulnerabilityScan":"enable"},
-          "effectiveCapabilities":{"configurationScan":"enable","httpDetection":"enable","networkEventsStreaming":"enable","nodeProfileService":"enable","nodeScan":"enable","vulnerabilityScan":"enable"},
-          "capabilityWarnings":[],
+          "effectiveCapabilities":{"configurationScan":"enable","httpDetection":"enable","malwareDetection":"disable","networkEventsStreaming":"enable","nodeProfileService":"enable","nodeScan":"enable","vulnerabilityScan":"enable"},
+          "capabilityWarnings":["capabilities.malwareDetection=enable but nodeAgent.config.hostMalwareSensor is not enabled, so nothing scans for malware. Malware detection works by file hash: the node-agent hashes executed and opened files and the backend matches the hashes against known-malicious files. Hashing reads whole files, so the sensor is a deliberate opt-in. To use it, set nodeAgent.config.hostMalwareSensor=enable, and bound its cost with nodeAgent.config.hostMalwareSensorMaxFileSizeBytes if needed."],
           "components":{"autoUpdater":{"enabled":true},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":true},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"excludeJsonPaths":[".containers[*].env[?(@.name==\"KUBECONFIG\")]"],"otelUrl":"otelCollector.svc.monitoring:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
@@ -4402,7 +4404,7 @@ all capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 3f98089ad176269ad531ee1b472078d021ad1d359dde22141442dbcc23d1a824
+            checksum/capabilities-config: 58363d5a0bc865abe4257fd2b8986627b08b34938a9b702d88e063dfa6d640ab
             checksum/cloud-config: 386f162ec439ff76392d3c4e2ce2148fc09014faeed572df68565cffd4589bb6
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
@@ -7225,7 +7227,7 @@ autoscaler mode with sbom sidecar:
       capabilities: |
         {
           "capabilities":{"admissionController":"enable","agentRuntimePosture":"disable","autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","remediation":"disable","riskAcceptance":"disable","runtimeDetection":"enable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
-          "effectiveCapabilities":{"configurationScan":"enable","httpDetection":"enable","networkEventsStreaming":"enable","nodeProfileService":"enable","nodeScan":"enable","vulnerabilityScan":"enable"},
+          "effectiveCapabilities":{"configurationScan":"enable","httpDetection":"enable","malwareDetection":"disable","networkEventsStreaming":"enable","nodeProfileService":"enable","nodeScan":"enable","vulnerabilityScan":"enable"},
           "capabilityWarnings":[],
           "components":{"autoUpdater":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":true},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"excludeJsonPaths":null,"otelUrl":null,"persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
@@ -9398,7 +9400,7 @@ autoscaler mode with sbom sidecar:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: cc7043053376285077415c68f36362e969a9787ae1f191b407406e549b2b09bc
+            checksum/capabilities-config: 4bd90fcb8e1a833394741d45f3cf87c334e5cb36dd70dae24174562ec578f0f9
             checksum/cloud-config: 36cdbef2f6574028638c1fd9ce116f3aa533d846bd9af394c84fce27c04e1b0a
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
@@ -11534,7 +11536,7 @@ autoscaler mode without sbom sidecar:
       capabilities: |
         {
           "capabilities":{"admissionController":"enable","agentRuntimePosture":"disable","autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","remediation":"disable","riskAcceptance":"disable","runtimeDetection":"enable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
-          "effectiveCapabilities":{"configurationScan":"enable","httpDetection":"enable","networkEventsStreaming":"enable","nodeProfileService":"enable","nodeScan":"enable","vulnerabilityScan":"enable"},
+          "effectiveCapabilities":{"configurationScan":"enable","httpDetection":"enable","malwareDetection":"disable","networkEventsStreaming":"enable","nodeProfileService":"enable","nodeScan":"enable","vulnerabilityScan":"enable"},
           "capabilityWarnings":[],
           "components":{"autoUpdater":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"excludeJsonPaths":null,"otelUrl":null,"persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
@@ -13707,7 +13709,7 @@ autoscaler mode without sbom sidecar:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: b0c2ce11ce7cbd18dfb2b475cb55b48e8011a1fa399bcd783430949d6095703a
+            checksum/capabilities-config: d093525992aa75b937da23df5659e765b860acfccb514f34392d8daa67b7192f
             checksum/cloud-config: 36cdbef2f6574028638c1fd9ce116f3aa533d846bd9af394c84fce27c04e1b0a
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
@@ -15845,7 +15847,7 @@ backend-storage enabled allows scanning capabilities:
       capabilities: |
         {
           "capabilities":{"admissionController":"enable","agentRuntimePosture":"disable","autoUpgrading":"disable","backend-storage":"enable","configurationScan":"enable","continuousScan":"disable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","remediation":"disable","riskAcceptance":"disable","runtimeDetection":"disable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
-          "effectiveCapabilities":{"configurationScan":"backend","httpDetection":"disable","networkEventsStreaming":"enable","nodeProfileService":"enable","nodeScan":"backend","vulnerabilityScan":"backend"},
+          "effectiveCapabilities":{"configurationScan":"backend","httpDetection":"disable","malwareDetection":"disable","networkEventsStreaming":"enable","nodeProfileService":"enable","nodeScan":"backend","vulnerabilityScan":"backend"},
           "capabilityWarnings":["capabilities.httpDetection=enable but capabilities.runtimeDetection is not enabled. HTTP detection runs on top of runtime detection, so httpDetectionEnabled renders as FALSE in the node-agent configmap. To use it, set capabilities.runtimeDetection=enable."],
           "components":{"autoUpdater":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"excludeJsonPaths":null,"otelUrl":null,"persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
@@ -18998,7 +19000,7 @@ backend-storage enabled allows scanning capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 06db298552e7600a1d0bc52e17ccfede420045a0a00dd0b45d10040cc84c408d
+            checksum/capabilities-config: 4c67d6e898d551b35f9e983b1f45d78dc5a509a19fa06997972e2db98bf23542
             checksum/cloud-config: 36cdbef2f6574028638c1fd9ce116f3aa533d846bd9af394c84fce27c04e1b0a
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
@@ -21052,7 +21054,7 @@ cert strategy initContainer, admission disabled, mtls disabled:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 28589347b88347937179b56d16c44591421e8b2fa96cd247381e0cbdcd7270a2
+            checksum/capabilities-config: faa9478dd813e98bf5cd4ca259e2f09306b34dc1af3339a3cbac4477f56dbb64
             checksum/cloud-config: bff087e836e8f4a8e379d53fa4e58e9afd944697957647a6bf2e69ba65b2f905
             checksum/cloud-secret: 3248919273cee6d6f750f97ea378fc79fff1f03b131f21d584a00258bf475a80
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
@@ -21369,7 +21371,7 @@ cert strategy initContainer, admission disabled, mtls enabled:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 28589347b88347937179b56d16c44591421e8b2fa96cd247381e0cbdcd7270a2
+            checksum/capabilities-config: faa9478dd813e98bf5cd4ca259e2f09306b34dc1af3339a3cbac4477f56dbb64
             checksum/cloud-config: bff087e836e8f4a8e379d53fa4e58e9afd944697957647a6bf2e69ba65b2f905
             checksum/cloud-secret: 3248919273cee6d6f750f97ea378fc79fff1f03b131f21d584a00258bf475a80
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
@@ -22048,7 +22050,7 @@ cert strategy initContainer, admission enabled, mtls disabled:
         metadata:
           annotations:
             checksum/admission-certgen-scripts: 68045c1d7a9c76b19d12ac26a2d1634bfc5f4707f2e153ffd535add8e4fb9d24
-            checksum/capabilities-config: e5e945e6842058f54bdae35d686473d77e29019e97988782b56dfdaea0446a20
+            checksum/capabilities-config: 2cc69c7830063c5c2a6efd8707ee55d5b4dd07b7f9700b4f55ffe30aec98e6e9
             checksum/cloud-config: bff087e836e8f4a8e379d53fa4e58e9afd944697957647a6bf2e69ba65b2f905
             checksum/cloud-secret: 3248919273cee6d6f750f97ea378fc79fff1f03b131f21d584a00258bf475a80
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
@@ -22628,7 +22630,7 @@ cert strategy initContainer, admission enabled, mtls enabled:
         metadata:
           annotations:
             checksum/admission-certgen-scripts: 68045c1d7a9c76b19d12ac26a2d1634bfc5f4707f2e153ffd535add8e4fb9d24
-            checksum/capabilities-config: e5e945e6842058f54bdae35d686473d77e29019e97988782b56dfdaea0446a20
+            checksum/capabilities-config: 2cc69c7830063c5c2a6efd8707ee55d5b4dd07b7f9700b4f55ffe30aec98e6e9
             checksum/cloud-config: bff087e836e8f4a8e379d53fa4e58e9afd944697957647a6bf2e69ba65b2f905
             checksum/cloud-secret: 3248919273cee6d6f750f97ea378fc79fff1f03b131f21d584a00258bf475a80
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
@@ -23198,7 +23200,7 @@ cert strategy template, admission disabled, mtls disabled:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 28589347b88347937179b56d16c44591421e8b2fa96cd247381e0cbdcd7270a2
+            checksum/capabilities-config: faa9478dd813e98bf5cd4ca259e2f09306b34dc1af3339a3cbac4477f56dbb64
             checksum/cloud-config: bff087e836e8f4a8e379d53fa4e58e9afd944697957647a6bf2e69ba65b2f905
             checksum/cloud-secret: 3248919273cee6d6f750f97ea378fc79fff1f03b131f21d584a00258bf475a80
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
@@ -23515,7 +23517,7 @@ cert strategy template, admission disabled, mtls enabled:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 28589347b88347937179b56d16c44591421e8b2fa96cd247381e0cbdcd7270a2
+            checksum/capabilities-config: faa9478dd813e98bf5cd4ca259e2f09306b34dc1af3339a3cbac4477f56dbb64
             checksum/cloud-config: bff087e836e8f4a8e379d53fa4e58e9afd944697957647a6bf2e69ba65b2f905
             checksum/cloud-secret: 3248919273cee6d6f750f97ea378fc79fff1f03b131f21d584a00258bf475a80
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
@@ -24014,7 +24016,7 @@ cert strategy template, admission enabled, mtls disabled:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: e5e945e6842058f54bdae35d686473d77e29019e97988782b56dfdaea0446a20
+            checksum/capabilities-config: 2cc69c7830063c5c2a6efd8707ee55d5b4dd07b7f9700b4f55ffe30aec98e6e9
             checksum/cloud-config: bff087e836e8f4a8e379d53fa4e58e9afd944697957647a6bf2e69ba65b2f905
             checksum/cloud-secret: 3248919273cee6d6f750f97ea378fc79fff1f03b131f21d584a00258bf475a80
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
@@ -24470,7 +24472,7 @@ cert strategy template, admission enabled, mtls enabled:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: e5e945e6842058f54bdae35d686473d77e29019e97988782b56dfdaea0446a20
+            checksum/capabilities-config: 2cc69c7830063c5c2a6efd8707ee55d5b4dd07b7f9700b4f55ffe30aec98e6e9
             checksum/cloud-config: bff087e836e8f4a8e379d53fa4e58e9afd944697957647a6bf2e69ba65b2f905
             checksum/cloud-secret: 3248919273cee6d6f750f97ea378fc79fff1f03b131f21d584a00258bf475a80
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
@@ -24913,7 +24915,7 @@ default capabilities:
       capabilities: |
         {
           "capabilities":{"admissionController":"disable","agentRuntimePosture":"disable","autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","httpDetection":"disable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"disable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","remediation":"disable","riskAcceptance":"disable","runtimeDetection":"disable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
-          "effectiveCapabilities":{"configurationScan":"enable","httpDetection":"disable","networkEventsStreaming":"enable","nodeProfileService":"disable","nodeScan":"enable","vulnerabilityScan":"enable"},
+          "effectiveCapabilities":{"configurationScan":"enable","httpDetection":"disable","malwareDetection":"disable","networkEventsStreaming":"enable","nodeProfileService":"disable","nodeScan":"enable","vulnerabilityScan":"enable"},
           "capabilityWarnings":[],
           "components":{"autoUpdater":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"excludeJsonPaths":null,"otelUrl":null,"persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
@@ -28440,7 +28442,7 @@ default capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 2cef4747eba4fcdd7df863e800cc0d4252f93791e8999f1236ceef62170434fc
+            checksum/capabilities-config: dd587aab3eceb0d595fde4bcd6866433ad20fbc4352467632a5ce927d3fa190b
             checksum/cloud-config: 719d88462288fae1490ad7bb25c35ba14212abccaba0790e4b537d313825242c
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
@@ -30797,7 +30799,7 @@ disable otel:
       capabilities: |
         {
           "capabilities":{"admissionController":"enable","agentRuntimePosture":"disable","autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","remediation":"disable","riskAcceptance":"disable","runtimeDetection":"disable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
-          "effectiveCapabilities":{"configurationScan":"enable","httpDetection":"disable","networkEventsStreaming":"enable","nodeProfileService":"enable","nodeScan":"enable","vulnerabilityScan":"enable"},
+          "effectiveCapabilities":{"configurationScan":"enable","httpDetection":"disable","malwareDetection":"disable","networkEventsStreaming":"enable","nodeProfileService":"enable","nodeScan":"enable","vulnerabilityScan":"enable"},
           "capabilityWarnings":["capabilities.httpDetection=enable but capabilities.runtimeDetection is not enabled. HTTP detection runs on top of runtime detection, so httpDetectionEnabled renders as FALSE in the node-agent configmap. To use it, set capabilities.runtimeDetection=enable."],
           "components":{"autoUpdater":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"excludeJsonPaths":null,"otelUrl":null,"persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
@@ -33174,7 +33176,7 @@ disable otel:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 063387e1d1952608349c250f947e121f3af8a60109445980ffd8fd4baf1c62d0
+            checksum/capabilities-config: cdf20f43c89f6c876b5feaae750c990c87c7fbcd77e89e6255233d4dd6c72f88
             checksum/cloud-config: 36cdbef2f6574028638c1fd9ce116f3aa533d846bd9af394c84fce27c04e1b0a
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
@@ -35298,7 +35300,7 @@ minimal capabilities:
       capabilities: |
         {
           "capabilities":{"admissionController":"enable","agentRuntimePosture":"disable","autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","remediation":"disable","riskAcceptance":"disable","runtimeDetection":"disable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
-          "effectiveCapabilities":{"configurationScan":"enable","httpDetection":"disable","networkEventsStreaming":"disable","nodeProfileService":"disable","nodeScan":"enable","vulnerabilityScan":"enable"},
+          "effectiveCapabilities":{"configurationScan":"enable","httpDetection":"disable","malwareDetection":"disable","networkEventsStreaming":"disable","nodeProfileService":"disable","nodeScan":"enable","vulnerabilityScan":"enable"},
           "capabilityWarnings":["capabilities.nodeProfileService=enable but the backend is not configured (.Values.server is empty / submit is disabled). This capability requires the synchronizer, which is only enabled when connected to a backend, so nodeProfileServiceEnabled renders as FALSE in the node-agent configmap and node profiles will NOT be generated. To use it, set .Values.server (requires account and accessKey, or an existing credentials.cloudSecret).","capabilities.networkEventsStreaming=enable but the backend is not configured (.Values.server is empty / submit is disabled). This capability requires submitting data to a backend, so networkStreamingEnabled renders as FALSE in the node-agent configmap and network events will NOT be streamed. To use it, set .Values.server (requires account and accessKey, or an existing credentials.cloudSecret).","capabilities.httpDetection=enable but capabilities.runtimeDetection is not enabled. HTTP detection runs on top of runtime detection, so httpDetectionEnabled renders as FALSE in the node-agent configmap. To use it, set capabilities.runtimeDetection=enable."],
           "components":{"autoUpdater":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":false},"storage":{"enabled":true},"synchronizer":{"enabled":false}},
           "configurations":{"excludeJsonPaths":null,"otelUrl":"otelCollector.svc.monitoring:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
@@ -37666,7 +37668,7 @@ minimal capabilities:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 0801a0c27c4e95e6d769fce4afd20ccbdea8260df8e6a41c3e1287f1a660cd40
+            checksum/capabilities-config: f12c48bd3e8093800759586ce28997104794c7e5ba01c68a6f8e504fe8368b40
             checksum/cloud-config: 4412fb00c4beca01a812d925460a5bd2a4fa14469527d28622d8b987f3649f46
             checksum/cloud-secret: 3248919273cee6d6f750f97ea378fc79fff1f03b131f21d584a00258bf475a80
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
@@ -38975,6 +38977,8 @@ multiple node agents:
       kubescape-operator generates suggested network policies. To view them:
       > kubectl get generatednetworkpolicies -n <namespace>
 
+      WARNING: capabilities.malwareDetection=enable but nodeAgent.config.hostMalwareSensor is not enabled, so nothing scans for malware. Malware detection works by file hash: the node-agent hashes executed and opened files and the backend matches the hashes against known-malicious files. Hashing reads whole files, so the sensor is a deliberate opt-in. To use it, set nodeAgent.config.hostMalwareSensor=enable, and bound its cost with nodeAgent.config.hostMalwareSensorMaxFileSizeBytes if needed.
+
   2: |
     apiVersion: batch/v1
     kind: CronJob
@@ -39248,8 +39252,8 @@ multiple node agents:
       capabilities: |
         {
           "capabilities":{"admissionController":"enable","agentRuntimePosture":"disable","autoUpgrading":"enable","configurationScan":"enable","continuousScan":"enable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"enable","manageWorkloads":"enable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"enable","relevancy":"enable","remediation":"enable","riskAcceptance":"enable","runtimeDetection":"enable","runtimeObservability":"enable","scanEmbeddedSBOMs":"enable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"enable","vulnerabilityScan":"enable"},
-          "effectiveCapabilities":{"configurationScan":"enable","httpDetection":"enable","networkEventsStreaming":"enable","nodeProfileService":"enable","nodeScan":"enable","vulnerabilityScan":"enable"},
-          "capabilityWarnings":[],
+          "effectiveCapabilities":{"configurationScan":"enable","httpDetection":"enable","malwareDetection":"disable","networkEventsStreaming":"enable","nodeProfileService":"enable","nodeScan":"enable","vulnerabilityScan":"enable"},
+          "capabilityWarnings":["capabilities.malwareDetection=enable but nodeAgent.config.hostMalwareSensor is not enabled, so nothing scans for malware. Malware detection works by file hash: the node-agent hashes executed and opened files and the backend matches the hashes against known-malicious files. Hashing reads whole files, so the sensor is a deliberate opt-in. To use it, set nodeAgent.config.hostMalwareSensor=enable, and bound its cost with nodeAgent.config.hostMalwareSensorMaxFileSizeBytes if needed."],
           "components":{"autoUpdater":{"enabled":true},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":true},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"excludeJsonPaths":[".containers[*].env[?(@.name==\"KUBECONFIG\")]"],"otelUrl":"otelCollector.svc.monitoring:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
@@ -43610,7 +43614,7 @@ multiple node agents:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 3f98089ad176269ad531ee1b472078d021ad1d359dde22141442dbcc23d1a824
+            checksum/capabilities-config: 58363d5a0bc865abe4257fd2b8986627b08b34938a9b702d88e063dfa6d640ab
             checksum/cloud-config: 386f162ec439ff76392d3c4e2ce2148fc09014faeed572df68565cffd4589bb6
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
@@ -46433,7 +46437,7 @@ priority class scheduling:
       capabilities: |
         {
           "capabilities":{"admissionController":"enable","agentRuntimePosture":"disable","autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","remediation":"disable","riskAcceptance":"disable","runtimeDetection":"enable","runtimeObservability":"enable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
-          "effectiveCapabilities":{"configurationScan":"enable","httpDetection":"enable","networkEventsStreaming":"enable","nodeProfileService":"enable","nodeScan":"enable","vulnerabilityScan":"enable"},
+          "effectiveCapabilities":{"configurationScan":"enable","httpDetection":"enable","malwareDetection":"disable","networkEventsStreaming":"enable","nodeProfileService":"enable","nodeScan":"enable","vulnerabilityScan":"enable"},
           "capabilityWarnings":[],
           "components":{"autoUpdater":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"excludeJsonPaths":null,"otelUrl":null,"persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
@@ -48814,7 +48818,7 @@ priority class scheduling:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: b0c2ce11ce7cbd18dfb2b475cb55b48e8011a1fa399bcd783430949d6095703a
+            checksum/capabilities-config: d093525992aa75b937da23df5659e765b860acfccb514f34392d8daa67b7192f
             checksum/cloud-config: 36cdbef2f6574028638c1fd9ce116f3aa533d846bd9af394c84fce27c04e1b0a
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
@@ -50934,7 +50938,7 @@ relevancy only:
       capabilities: |
         {
           "capabilities":{"admissionController":"disable","agentRuntimePosture":"disable","autoUpgrading":"disable","configurationScan":"enable","continuousScan":"disable","httpDetection":"disable","kubescapeOffline":"disable","malwareDetection":"disable","manageWorkloads":"disable","networkEventsStreaming":"disable","networkPolicyService":"disable","nodeProfileService":"disable","nodeSbomGeneration":"disable","nodeScan":"enable","operator":"enable","prometheusExporter":"disable","relevancy":"enable","remediation":"disable","riskAcceptance":"disable","runtimeDetection":"disable","runtimeObservability":"disable","scanEmbeddedSBOMs":"disable","seccompProfileBackend":"crd","seccompProfileService":"disable","syncSBOM":"disable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"disable","vulnerabilityScan":"enable"},
-          "effectiveCapabilities":{"configurationScan":"enable","httpDetection":"disable","networkEventsStreaming":"disable","nodeProfileService":"disable","nodeScan":"enable","vulnerabilityScan":"enable"},
+          "effectiveCapabilities":{"configurationScan":"enable","httpDetection":"disable","malwareDetection":"disable","networkEventsStreaming":"disable","nodeProfileService":"disable","nodeScan":"enable","vulnerabilityScan":"enable"},
           "capabilityWarnings":[],
           "components":{"autoUpdater":{"enabled":false},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":false},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":false},"storage":{"enabled":true},"synchronizer":{"enabled":false}},
           "configurations":{"excludeJsonPaths":null,"otelUrl":"otelCollector.svc.monitoring:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
@@ -53172,7 +53176,7 @@ relevancy only:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 2052534ec5527a8b0e1299105e5e98cf41c8b808598a452bcc8b6a21b640b611
+            checksum/capabilities-config: e12f845532e023715f791374402bde0bec6dd07f10fb0a179f7955f4a2a39993
             checksum/cloud-config: 4412fb00c4beca01a812d925460a5bd2a4fa14469527d28622d8b987f3649f46
             checksum/cloud-secret: 3248919273cee6d6f750f97ea378fc79fff1f03b131f21d584a00258bf475a80
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
@@ -54472,6 +54476,8 @@ skipPersistence enabled:
       kubescape-operator generates suggested network policies. To view them:
       > kubectl get generatednetworkpolicies -n <namespace>
 
+      WARNING: capabilities.malwareDetection=enable but nodeAgent.config.hostMalwareSensor is not enabled, so nothing scans for malware. Malware detection works by file hash: the node-agent hashes executed and opened files and the backend matches the hashes against known-malicious files. Hashing reads whole files, so the sensor is a deliberate opt-in. To use it, set nodeAgent.config.hostMalwareSensor=enable, and bound its cost with nodeAgent.config.hostMalwareSensorMaxFileSizeBytes if needed.
+
   2: |
     apiVersion: batch/v1
     kind: CronJob
@@ -54745,8 +54751,8 @@ skipPersistence enabled:
       capabilities: |
         {
           "capabilities":{"admissionController":"enable","agentRuntimePosture":"disable","autoUpgrading":"enable","configurationScan":"enable","continuousScan":"enable","httpDetection":"enable","kubescapeOffline":"disable","malwareDetection":"enable","manageWorkloads":"enable","networkEventsStreaming":"enable","networkPolicyService":"enable","nodeProfileService":"enable","nodeSbomGeneration":"enable","nodeScan":"enable","operator":"enable","prometheusExporter":"enable","relevancy":"enable","remediation":"enable","riskAcceptance":"enable","runtimeDetection":"enable","runtimeObservability":"enable","scanEmbeddedSBOMs":"enable","seccompProfileBackend":"crd","seccompProfileService":"enable","syncSBOM":"enable","testing":{"nodeAgentMultiplication":{"enabled":false,"replicas":5}},"vexGeneration":"enable","vulnerabilityScan":"enable"},
-          "effectiveCapabilities":{"configurationScan":"enable","httpDetection":"enable","networkEventsStreaming":"enable","nodeProfileService":"enable","nodeScan":"enable","vulnerabilityScan":"enable"},
-          "capabilityWarnings":[],
+          "effectiveCapabilities":{"configurationScan":"enable","httpDetection":"enable","malwareDetection":"disable","networkEventsStreaming":"enable","nodeProfileService":"enable","nodeScan":"enable","vulnerabilityScan":"enable"},
+          "capabilityWarnings":["capabilities.malwareDetection=enable but nodeAgent.config.hostMalwareSensor is not enabled, so nothing scans for malware. Malware detection works by file hash: the node-agent hashes executed and opened files and the backend matches the hashes against known-malicious files. Hashing reads whole files, so the sensor is a deliberate opt-in. To use it, set nodeAgent.config.hostMalwareSensor=enable, and bound its cost with nodeAgent.config.hostMalwareSensorMaxFileSizeBytes if needed."],
           "components":{"autoUpdater":{"enabled":true},"cloudSecret":{"create":true,"name":"cloud-secret"},"customCaCertificates":{"name":"custom-ca-certificates"},"kubescape":{"enabled":true},"kubescapeScheduler":{"enabled":true},"kubevuln":{"enabled":true},"kubevulnScheduler":{"enabled":true},"nodeAgent":{"enabled":true},"operator":{"enabled":true},"prometheusExporter":{"enabled":true},"sbomScanner":{"enabled":false},"serviceDiscovery":{"enabled":true},"storage":{"enabled":true},"synchronizer":{"enabled":true}},
           "configurations":{"excludeJsonPaths":[".containers[*].env[?(@.name==\"KUBECONFIG\")]"],"otelUrl":"otelCollector.svc.monitoring:4317","persistence":"enable","priorityClass":{"daemonset":100000100,"enabled":true},"prometheusAnnotations":"disable"} ,
           "serviceScanConfig" :{"enabled":false,"interval":"1h"}
@@ -58855,7 +58861,7 @@ skipPersistence enabled:
       template:
         metadata:
           annotations:
-            checksum/capabilities-config: 3f98089ad176269ad531ee1b472078d021ad1d359dde22141442dbcc23d1a824
+            checksum/capabilities-config: 58363d5a0bc865abe4257fd2b8986627b08b34938a9b702d88e063dfa6d640ab
             checksum/cloud-config: 386f162ec439ff76392d3c4e2ce2148fc09014faeed572df68565cffd4589bb6
             checksum/cloud-secret: 435193bc039d949c849ba4b141adeb4836e4d0fdcc4bf0b9588d0e36de86c424
             checksum/matching-rules-config: c81857b415602f6b161db3199a16461c5acd8ba44ec7572189441f4f294a3614
