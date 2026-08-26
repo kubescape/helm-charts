@@ -123,7 +123,9 @@ that value can never drift apart. See issue #851.
 {{- $nodeProfileService := and $synchronizerEnabled (eq $c.nodeProfileService "enable") -}}
 {{- $networkStreaming := and $submit (eq $c.networkEventsStreaming "enable") -}}
 {{- $httpDetection := and (eq $c.httpDetection "enable") $runtimeDetection -}}
-{{- $hostMalwareSensor := and (eq $c.malwareDetection "enable") (eq .Values.nodeAgent.config.hostMalwareSensor "enable") $runtimeDetection -}}
+{{- $sensorSetting := .Values.nodeAgent.config.hostMalwareSensor | default "" -}}
+{{- $sensorRequested := or (eq $sensorSetting "enable") (and (eq $sensorSetting "") (eq $c.malwareDetection "enable")) -}}
+{{- $hostMalwareSensor := and $sensorRequested $runtimeDetection -}}
 # effective.* are the node-agent config.json flags, consumed by node-agent/configmap.yaml
 effective:
   nodeProfileServiceEnabled: {{ $nodeProfileService }}
@@ -149,11 +151,11 @@ warnings:
 {{- if and (eq $c.httpDetection "enable") (not $httpDetection) }}
 - "capabilities.httpDetection=enable but capabilities.runtimeDetection is not enabled. HTTP detection runs on top of runtime detection, so httpDetectionEnabled renders as FALSE in the node-agent configmap. To use it, set capabilities.runtimeDetection=enable."
 {{- end }}
-{{- if and (eq $c.malwareDetection "enable") (not (eq .Values.nodeAgent.config.hostMalwareSensor "enable")) }}
-- "capabilities.malwareDetection=enable but nodeAgent.config.hostMalwareSensor is not enabled, so nothing scans for malware. Malware detection works by file hash: the node-agent hashes executed and opened files and the backend matches the hashes against known-malicious files. Hashing reads whole files, so the sensor is a deliberate opt-in. To use it, set nodeAgent.config.hostMalwareSensor=enable, and bound its cost with nodeAgent.config.hostMalwareSensorMaxFileSizeBytes if needed."
+{{- if and (eq $c.malwareDetection "enable") (eq $sensorSetting "disable") }}
+- "capabilities.malwareDetection=enable but nodeAgent.config.hostMalwareSensor=disable explicitly overrides it, so nothing scans for malware. Malware detection works by file hash: the node-agent hashes executed and opened files and the backend matches the hashes against known-malicious files. Clear nodeAgent.config.hostMalwareSensor to let the capability decide."
 {{- end }}
-{{- if and (eq $c.malwareDetection "enable") (eq .Values.nodeAgent.config.hostMalwareSensor "enable") (not $runtimeDetection) }}
-- "capabilities.malwareDetection=enable and nodeAgent.config.hostMalwareSensor=enable, but capabilities.runtimeDetection is not enabled. The host malware sensor runs on top of runtime detection, so hostMalwareSensorEnabled renders as FALSE in the node-agent configmap. To use it, set capabilities.runtimeDetection=enable."
+{{- if and $sensorRequested (not $runtimeDetection) }}
+- "The host malware sensor is requested but capabilities.runtimeDetection is not enabled. The sensor runs on top of runtime detection, so hostMalwareSensorEnabled renders as FALSE in the node-agent configmap. To use it, set capabilities.runtimeDetection=enable."
 {{- end }}
 {{- end -}}
 
