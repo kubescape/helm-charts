@@ -123,7 +123,19 @@ that value can never drift apart. See issue #851.
 {{- $nodeProfileService := and $synchronizerEnabled (eq $c.nodeProfileService "enable") -}}
 {{- $networkStreaming := and $submit (eq $c.networkEventsStreaming "enable") -}}
 {{- $httpDetection := and (eq $c.httpDetection "enable") $runtimeDetection -}}
-{{- $sensorSetting := .Values.nodeAgent.config.hostMalwareSensor | default "" | toString -}}
+{{/*
+The type check has to come before any defaulting: sprig's "default" counts Go
+zero values as empty, so "hostMalwareSensor: false" would collapse to "" and
+follow capabilities.malwareDetection - turning the sensor ON for a user who
+wrote it OFF. Only an unset value may become "".
+*/}}
+{{- $sensorSetting := "" -}}
+{{- if not (kindIs "invalid" .Values.nodeAgent.config.hostMalwareSensor) -}}
+{{- $sensorSetting = .Values.nodeAgent.config.hostMalwareSensor -}}
+{{- end -}}
+{{- if not (kindIs "string" $sensorSetting) -}}
+{{- fail (printf "nodeAgent.config.hostMalwareSensor must be a string, one of [\"\", enable, disable], got %s %v. Use \"disable\" to turn the sensor off, not a boolean or a number." (kindOf $sensorSetting) $sensorSetting) -}}
+{{- end -}}
 {{- if not (has $sensorSetting (list "" "enable" "disable")) -}}
 {{- fail (printf "nodeAgent.config.hostMalwareSensor must be one of [\"\", enable, disable], got %q" $sensorSetting) -}}
 {{- end -}}
