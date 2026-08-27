@@ -123,7 +123,10 @@ that value can never drift apart. See issue #851.
 {{- $nodeProfileService := and $synchronizerEnabled (eq $c.nodeProfileService "enable") -}}
 {{- $networkStreaming := and $submit (eq $c.networkEventsStreaming "enable") -}}
 {{- $httpDetection := and (eq $c.httpDetection "enable") $runtimeDetection -}}
-{{- $sensorSetting := .Values.nodeAgent.config.hostMalwareSensor | default "" -}}
+{{- $sensorSetting := .Values.nodeAgent.config.hostMalwareSensor | default "" | toString -}}
+{{- if not (has $sensorSetting (list "" "enable" "disable")) -}}
+{{- fail (printf "nodeAgent.config.hostMalwareSensor must be one of [\"\", enable, disable], got %q" $sensorSetting) -}}
+{{- end -}}
 {{- $sensorRequested := or (eq $sensorSetting "enable") (and (eq $sensorSetting "") (eq $c.malwareDetection "enable")) -}}
 {{- $hostMalwareSensor := and $sensorRequested $runtimeDetection -}}
 # effective.* are the node-agent config.json flags, consumed by node-agent/configmap.yaml
