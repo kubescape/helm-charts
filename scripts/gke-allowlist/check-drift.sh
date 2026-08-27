@@ -9,7 +9,7 @@
 #             nested under the `kubescape-operator.` key.
 #
 # Renders the node-agent with the FULL set of optional features enabled (server/API_URL,
-# proxy, custom runtime, kernel-check skip, full malware scan, ClamAV, SBOM scanner, OTEL)
+# proxy, custom runtime, kernel-check skip, full malware scan, SBOM scanner, OTEL)
 # so the check exercises the maximal privileged surface a customer could produce, then
 # verifies it is a subset of the approved allowlist. Exit 2 on drift.
 set -euo pipefail

@@ -650,7 +650,19 @@ nodeAgent:
     syslogExporterURL: ""
     skipKernelVersionCheck: false
     malwareScanAllFiles: false
-    hostMalwareSensor: disable
+    # -- host malware sensor override. Empty (the default) follows
+    # capabilities.malwareDetection, so a user who asks for malware detection gets
+    # it. "enable" forces the sensor on even when the capability is off; "disable"
+    # forces it off even when the capability is on. Must be one of those three
+    # strings - a boolean, a number or a typo is rejected at render time rather
+    # than guessed at, so it cannot silently flip the sensor. Note "disable", not
+    # false. The sensor also requires capabilities.runtimeDetection.
+    hostMalwareSensor: ""
+    # -- largest file the host malware sensor will read and hash, in bytes.
+    # 0 means no limit. The sensor's CPU cost is proportional to the bytes it
+    # hashes, and executed files carry no size limit of their own, so this is the
+    # setting that bounds what the sensor costs on a busy node.
+    hostMalwareSensorMaxFileSizeBytes: 0
     hostNetworkSensor: disable
     ruleCooldown:
       ruleCooldownDuration: 1h # duration string
@@ -739,9 +751,6 @@ nodeAgent:
     - mountPath: /boot
       name: boot
       readOnly: true
-    - mountPath: /clamav
-      name: clamrun
-      # readOnly: false # EmptyDir volume
   volumes:
     - hostPath:
         path: /
@@ -880,60 +889,6 @@ nodeAgent:
       - name: sbom-scanner-tmp
         emptyDir: {}
 
-# +++++++++++++++++++++++++++++++ ClamAV ++++++++++++++++++++++++++++++++++++++++++++++++
-clamav:
-  name: clamav
-  image:
-    # -- source code: https://github.com/kubescape/node-agent/tree/main/clamav
-    repository: quay.io/kubescape/klamav
-    tag: 1.3.1-34_alpha
-    pullPolicy: IfNotPresent
-
-  resources:
-    limits:
-      cpu: 300m
-      memory: 512Mi
-    requests:
-      cpu: 100m
-      memory: 256Mi
-
-  volumeMounts:
-    - mountPath: /var/lib/clamav-tmp
-      name: clamdb
-      # readOnly: false
-    - mountPath: /run/clamav
-      name: clamrun
-      # readOnly: false
-    - mountPath: /etc/clamav
-      name: etc
-      readOnly: true
-
-  volumes:
-    - name: clamdb
-      emptyDir: {}
-    - name: clamrun
-      emptyDir: {}
-    - name: etc
-      configMap:
-        name: clamav
-        items:
-          - key: clamd.conf
-            path: clamd.conf
-          - key: freshclam.conf
-            path: freshclam.conf
-
-  affinity:
-    nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-          - matchExpressions:
-              - key: kubernetes.io/os
-                operator: In
-                values:
-                  - linux
-
-  nodeSelector:
-    kubernetes.io/os: linux
 # +++++++++++++++++++++++++++++ Synchronizer ++++++++++++++++++++++++++++++++++++++++++++++++
 
 synchronizer:

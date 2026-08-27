@@ -64,10 +64,6 @@ Parameters:
 - name: OTEL_METRICS_EXPORTER
   value: "prometheus"
 {{- end }}
-{{- if and .components.clamAV.enabled (not .autoscalerMode) }}
-- name: CLAMAV_SOCKET
-  value: "/clamav/clamd.sock"
-{{- end }}
 {{- if .components.sbomScanner.enabled }}
 - name: SBOM_SCANNER_SOCKET
   value: "/sbom-comm/scanner.sock"
@@ -241,31 +237,6 @@ Parameters:
 {{- end -}}
 
 {{/*
-ClamAV Container (optional)
-Parameters:
-  - Values: .Values
-  - components: $components
-*/}}
-{{- define "node-agent.clamavContainer" -}}
-{{- if .components.clamAV.enabled }}
-- name: {{ .Values.clamav.name }}
-  image: "{{ .Values.clamav.image.repository }}:{{ .Values.clamav.image.tag }}"
-  imagePullPolicy: {{ .Values.clamav.image.pullPolicy }}
-  securityContext:
-    runAsUser: 0
-    capabilities:
-      add:
-        - SYS_PTRACE
-  resources:
-{{ toYaml .Values.clamav.resources | indent 4 }}
-  {{- if .Values.clamav.volumeMounts }}
-  volumeMounts:
-    {{- toYaml .Values.clamav.volumeMounts | nindent 4 }}
-  {{- end }}
-{{- end }}
-{{- end -}}
-
-{{/*
 SBOM Scanner Sidecar Container (optional)
 Parameters:
   - Values: .Values
@@ -375,9 +346,6 @@ Parameters:
 {{- if .Values.volumes }}
 {{ toYaml .Values.volumes | trim }}
 {{- end }}
-{{- if .Values.clamav.volumes }}
-{{ toYaml .Values.clamav.volumes | trim }}
-{{- end }}
 {{- if .components.sbomScanner.enabled }}
 {{- if .Values.nodeAgent.sbomScanner.volumes }}
 {{ toYaml .Values.nodeAgent.sbomScanner.volumes | trim }}
@@ -486,7 +454,6 @@ Parameters:
   - testingMode: boolean (for MULTIPLY env var and testing features)
   - resources: resources object (when autoscalerMode is false)
   - nodeSelector: optional custom nodeSelector
-  - includeClamAV: boolean - whether to include ClamAV container
   - includeSbomScanner: boolean - whether to include SBOM scanner sidecar container
 */}}
 {{- define "node-agent.podSpec" -}}
@@ -523,9 +490,6 @@ initContainers:
 volumes:
 {{ include "node-agent.volumes" (dict "Values" .Values "components" .components) | trim | nindent 0 }}
 containers:
-{{- if .includeClamAV }}
-{{ include "node-agent.clamavContainer" (dict "Values" .Values "components" .components) | trim | nindent 0 }}
-{{- end }}
 {{- if .includeSbomScanner }}
 {{ include "node-agent.sbomScannerContainer" (dict "Values" .Values "components" .components) | trim | nindent 0 }}
 {{- end }}
@@ -597,6 +561,6 @@ template:
     labels:
       {{- include "node-agent.podLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "components" .components "autoscalerMode" .autoscalerMode) | nindent 6 }}
   spec:
-    {{- include "node-agent.podSpec" (dict "Values" .Values "Chart" .Chart "Release" .Release "Capabilities" .Capabilities "components" .components "checksums" .checksums "no_proxy_envar_list" .no_proxy_envar_list "autoscalerMode" .autoscalerMode "testingMode" .testingMode "resources" .resources "nodeSelector" .nodeSelector "includeClamAV" .includeClamAV "includeSbomScanner" .includeSbomScanner) | nindent 4 }}
+    {{- include "node-agent.podSpec" (dict "Values" .Values "Chart" .Chart "Release" .Release "Capabilities" .Capabilities "components" .components "checksums" .checksums "no_proxy_envar_list" .no_proxy_envar_list "autoscalerMode" .autoscalerMode "testingMode" .testingMode "resources" .resources "nodeSelector" .nodeSelector "includeSbomScanner" .includeSbomScanner) | nindent 4 }}
 {{- end -}}
 

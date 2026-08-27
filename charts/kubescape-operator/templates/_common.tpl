@@ -97,8 +97,6 @@ cloudSecret:
   name: {{ if $configurations.createCloudSecret }}"cloud-secret"{{ else }}{{ .Values.credentials.cloudSecret }}{{ end }}
 synchronizer:
   enabled: {{ $configurations.submit }}
-clamAV:
-  enabled: {{ eq .Values.capabilities.malwareDetection "enable" }}
 sbomScanner:
   enabled: {{ and (eq .Values.capabilities.nodeSbomGeneration "enable") .Values.nodeAgent.sbomScanner.enabled }}
 customCaCertificates:
@@ -125,16 +123,36 @@ that value can never drift apart. See issue #851.
 {{- $nodeProfileService := and $synchronizerEnabled (eq $c.nodeProfileService "enable") -}}
 {{- $networkStreaming := and $submit (eq $c.networkEventsStreaming "enable") -}}
 {{- $httpDetection := and (eq $c.httpDetection "enable") $runtimeDetection -}}
+{{/*
+The type check has to come before any defaulting: sprig's "default" counts Go
+zero values as empty, so "hostMalwareSensor: false" would collapse to "" and
+follow capabilities.malwareDetection - turning the sensor ON for a user who
+wrote it OFF. Only an unset value may become "".
+*/}}
+{{- $sensorSetting := "" -}}
+{{- if not (kindIs "invalid" .Values.nodeAgent.config.hostMalwareSensor) -}}
+{{- $sensorSetting = .Values.nodeAgent.config.hostMalwareSensor -}}
+{{- end -}}
+{{- if not (kindIs "string" $sensorSetting) -}}
+{{- fail (printf "nodeAgent.config.hostMalwareSensor must be a string, one of [\"\", enable, disable], got %s %v. Use \"disable\" to turn the sensor off, not a boolean or a number." (kindOf $sensorSetting) $sensorSetting) -}}
+{{- end -}}
+{{- if not (has $sensorSetting (list "" "enable" "disable")) -}}
+{{- fail (printf "nodeAgent.config.hostMalwareSensor must be one of [\"\", enable, disable], got %q" $sensorSetting) -}}
+{{- end -}}
+{{- $sensorRequested := or (eq $sensorSetting "enable") (and (eq $sensorSetting "") (eq $c.malwareDetection "enable")) -}}
+{{- $hostMalwareSensor := and $sensorRequested $runtimeDetection -}}
 # effective.* are the node-agent config.json flags, consumed by node-agent/configmap.yaml
 effective:
   nodeProfileServiceEnabled: {{ $nodeProfileService }}
   networkStreamingEnabled: {{ $networkStreaming }}
   httpDetectionEnabled: {{ $httpDetection }}
+  hostMalwareSensorEnabled: {{ $hostMalwareSensor }}
 # effectiveCapabilities is requested-vs-effective per gated capability, consumed by ks-capabilities
 effectiveCapabilities:
   nodeProfileService: {{ if $nodeProfileService }}enable{{ else }}disable{{ end }}
   networkEventsStreaming: {{ if $networkStreaming }}enable{{ else }}disable{{ end }}
   httpDetection: {{ if $httpDetection }}enable{{ else }}disable{{ end }}
+  malwareDetection: {{ if $hostMalwareSensor }}enable{{ else }}disable{{ end }}
   nodeScan: {{ if and (eq $c.nodeScan "enable") $backendStorage }}backend{{ else }}{{ $c.nodeScan }}{{ end }}
   configurationScan: {{ if and (eq $c.configurationScan "enable") $backendStorage }}backend{{ else }}{{ $c.configurationScan }}{{ end }}
   vulnerabilityScan: {{ if and (eq $c.vulnerabilityScan "enable") $backendStorage }}backend{{ else }}{{ $c.vulnerabilityScan }}{{ end }}
@@ -147,6 +165,12 @@ warnings:
 {{- end }}
 {{- if and (eq $c.httpDetection "enable") (not $httpDetection) }}
 - "capabilities.httpDetection=enable but capabilities.runtimeDetection is not enabled. HTTP detection runs on top of runtime detection, so httpDetectionEnabled renders as FALSE in the node-agent configmap. To use it, set capabilities.runtimeDetection=enable."
+{{- end }}
+{{- if and (eq $c.malwareDetection "enable") (eq $sensorSetting "disable") }}
+- "capabilities.malwareDetection=enable but nodeAgent.config.hostMalwareSensor=disable explicitly overrides it, so nothing scans for malware. Malware detection works by file hash: the node-agent hashes executed and opened files and the backend matches the hashes against known-malicious files. Clear nodeAgent.config.hostMalwareSensor to let the capability decide."
+{{- end }}
+{{- if and $sensorRequested (not $runtimeDetection) }}
+- "The host malware sensor is requested but capabilities.runtimeDetection is not enabled. The sensor runs on top of runtime detection, so hostMalwareSensorEnabled renders as FALSE in the node-agent configmap. To use it, set capabilities.runtimeDetection=enable."
 {{- end }}
 {{- end -}}
 
