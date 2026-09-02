@@ -191,6 +191,25 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | operator.volumeMounts | object | `[]` | Additional volumeMounts for the web socket |
 | storage.hostNetwork | bool | `false` | Bind the storage APIServer to the host network. Required when using a custom CNI where the control plane cannot reach pod IPs |
 | nodeAgent.autoscaler.bottlerocketAutoDetect | bool | `true` | When the autoscaler is enabled, auto-detect AWS Bottlerocket nodes and set `seLinuxType: super_t` on the node-agent DaemonSet rendered for that node group, so you don't need to `--set nodeAgent.seLinuxType=super_t` manually |
+| nodeAgent.config.tracers.capSys | string | `enable` | Allow capSys tracing when required by enabled node-agent features. Set to disable to force-disable the capSys tracer |
+| nodeAgent.config.tracers.dns | string | `enable` | Allow dns tracing when required by enabled node-agent features. Set to disable to force-disable the dns tracer |
+| nodeAgent.config.tracers.exec | string | `enable` | Allow exec tracing when required by enabled node-agent features. Set to disable to force-disable the exec tracer |
+| nodeAgent.config.tracers.exit | string | `enable` | Allow exit tracing when required by enabled node-agent features. Set to disable to force-disable the exit tracer |
+| nodeAgent.config.tracers.fork | string | `enable` | Allow fork tracing when required by enabled node-agent features. Set to disable to force-disable the fork tracer |
+| nodeAgent.config.tracers.hardlink | string | `enable` | Allow hardlink tracing when required by enabled node-agent features. Set to disable to force-disable the hardlink tracer |
+| nodeAgent.config.tracers.http | string | `enable` | Allow HTTP tracing when required by enabled node-agent features. Set to disable to force-disable the HTTP tracer |
+| nodeAgent.config.tracers.iouring | string | `enable` | Allow io_uring tracing when required by enabled node-agent features. Set to disable to force-disable the io_uring tracer |
+| nodeAgent.config.tracers.network | string | `enable` | Allow network tracing when required by enabled node-agent features. Set to disable to force-disable the network tracer |
+| nodeAgent.config.tracers.open | string | `enable` | Allow file-open tracing when required by enabled node-agent features. Set to disable to force-disable the file-open tracer |
+| nodeAgent.config.tracers.ptrace | string | `enable` | Allow ptrace tracing when required by enabled node-agent features. Set to disable to force-disable the ptrace tracer |
+| nodeAgent.config.tracers.randomx | string | `enable` | Allow RandomX tracing when required by enabled node-agent features. Set to disable to force-disable the RandomX tracer |
+| nodeAgent.config.tracers.seccomp | string | `enable` | Allow seccomp tracing when required by enabled node-agent features. Set to disable to force-disable the seccomp tracer |
+| nodeAgent.config.tracers.ssh | string | `enable` | Allow SSH tracing when required by enabled node-agent features. Set to disable to force-disable the SSH tracer |
+| nodeAgent.config.tracers.symlink | string | `enable` | Allow symlink tracing when required by enabled node-agent features. Set to disable to force-disable the symlink tracer |
+| nodeAgent.config.tracers.kmod | string | `enable` | Allow kernel module tracing when required by enabled node-agent features. Set to disable to force-disable the kernel module tracer |
+| nodeAgent.config.tracers.unshare | string | `enable` | Allow unshare tracing when required by enabled node-agent features. Set to disable to force-disable the unshare tracer |
+| nodeAgent.config.tracers.bpf | string | `enable` | Allow BPF tracing when required by enabled node-agent features. Set to disable to force-disable the BPF tracer |
+| nodeAgent.config.tracers.top | string | `enable` | Allow top tracing when required by enabled node-agent features. Set to disable to force-disable the top tracer |
 | prometheusExporter.serviceMonitor.enabled | bool | `false` | enable/disable service monitor for prometheus-exporter integration |
 | awsIamRoleArn | string | `nil` | AWS IAM arn role |
 | cloudProviderMetadata.secretRef.name | string | `nil` | secret name to define values for the provider's metadata |
