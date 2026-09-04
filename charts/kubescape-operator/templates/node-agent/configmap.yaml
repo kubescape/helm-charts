@@ -21,16 +21,16 @@ metadata:
 data:
   config.json: |
     {
+        {{- $extra := default dict .Values.nodeAgent.config.extra }}
+        {{- if $configurations.backendStorageEnabled }}
+        "backendStorageEnabled": true,
+        {{- end }}
         "applicationProfileServiceEnabled": {{ or $configurations.runtimeObservability (eq .Values.capabilities.relevancy "enable") }},
-        "backendStorageEnabled": {{ $configurations.backendStorageEnabled }},
         "prometheusExporterEnabled": {{ eq .Values.nodeAgent.config.prometheusExporter "enable" }},
         "runtimeDetectionEnabled": {{ eq .Values.capabilities.runtimeDetection "enable" }},
         "httpDetectionEnabled": {{ $gates.httpDetectionEnabled }},
         "networkServiceEnabled": {{ eq .Values.capabilities.networkPolicyService "enable" }},
-        "malwareDetectionEnabled": {{ eq .Values.capabilities.malwareDetection "enable" }},
-        "hostMalwareSensorEnabled": {{ $gates.hostMalwareSensorEnabled }},
-        "hostMalwareSensorMaxFileSizeBytes": {{ .Values.nodeAgent.config.hostMalwareSensorMaxFileSizeBytes }},
-        "hostNetworkSensorEnabled": {{ eq .Values.nodeAgent.config.hostNetworkSensor "enable" }},
+        "malwareDetectionEnabled": {{ $gates.malwareDetectionEnabled }},
         "hostSensorEnabled": {{ .Values.nodeAgent.config.hostSensor.enabled }},
         "hostSensorInterval": "{{ .Values.nodeAgent.config.hostSensor.interval }}",
         "nodeProfileServiceEnabled": {{ $gates.nodeProfileServiceEnabled }},
@@ -89,5 +89,16 @@ data:
         "dUnshare": {{ eq .Values.nodeAgent.config.tracers.unshare "disable" }},
         "dBpf": {{ eq .Values.nodeAgent.config.tracers.bpf "disable" }},
         "dTop": {{ eq .Values.nodeAgent.config.tracers.top "disable" }}
+        {{- /*
+        nodeAgent.config.extra is an unvalidated passthrough intended for downstream/private
+        consumers to set fields not exposed by this public chart (e.g. hostNetworkSensorEnabled).
+        It is emitted at the end so any explicit overrides take precedence without requiring
+        a fragile, hardcoded list of chart-managed keys.
+        */}}
+        {{- range $k, $v := $extra }}
+        {{- if ne $k "backendStorageEnabled" }},
+        {{ $k | toJson }}: {{ $v | toJson }}
+        {{- end }}
+        {{- end }}
     }
 {{- end }}
