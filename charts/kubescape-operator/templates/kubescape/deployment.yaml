@@ -88,11 +88,10 @@ spec:
           initialDelaySeconds: 3
           periodSeconds: 3
         env:
+        {{- if .Values.kubescape.resources.limits.memory }}
         - name: GOMEMLIMIT
-          valueFrom:
-            resourceFieldRef:
-              resource: limits.memory
-              divisor: '1'
+          value: {{ include "kubescape-operator.gomemlimit" (dict "memory" .Values.kubescape.resources.limits.memory "percentage" .Values.kubescape.gomemlimitPercentage) | quote }}
+        {{- end }}
         - name: KS_LOGGER_LEVEL
           value: "{{ .Values.logger.level }}"
         - name: KS_LOGGER_NAME
