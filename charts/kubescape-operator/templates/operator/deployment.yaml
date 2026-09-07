@@ -175,11 +175,10 @@ spec:
                   fieldPath: spec.nodeName
             - name: HELM_RELEASE
               value: kubescape-operator-{{ .Chart.Version | replace "+" "_" }}
+            {{- if .Values.operator.resources.limits.memory }}
             - name: GOMEMLIMIT
-              valueFrom:
-                resourceFieldRef:
-                  resource: limits.memory
-                  divisor: '1'
+              value: {{ include "kubescape-operator.gomemlimit" (dict "memory" .Values.operator.resources.limits.memory "percentage" .Values.operator.gomemlimitPercentage) | quote }}
+            {{- end }}
             - name: KS_LOGGER_LEVEL
               value: "{{ .Values.logger.level }}"
             - name: KS_LOGGER_NAME

@@ -69,11 +69,10 @@ spec:
           resources:
 {{ toYaml .Values.prometheusExporter.resources | indent 12 }}
           env:
+            {{- if .Values.prometheusExporter.resources.limits.memory }}
             - name: GOMEMLIMIT
-              valueFrom:
-                resourceFieldRef:
-                  resource: limits.memory
-                  divisor: '1'
+              value: {{ include "kubescape-operator.gomemlimit" (dict "memory" .Values.prometheusExporter.resources.limits.memory "percentage" .Values.prometheusExporter.gomemlimitPercentage) | quote }}
+            {{- end }}
             - name: KS_LOGGER_LEVEL
               value: "{{ .Values.logger.level }}"
             - name: KS_LOGGER_NAME
