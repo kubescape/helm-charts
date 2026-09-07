@@ -149,11 +149,10 @@ spec:
             port: {{ .Values.storage.serverPort }}
             scheme: HTTPS
         env:
+          {{- if .Values.storage.resources.limits.memory }}
           - name: GOMEMLIMIT
-            valueFrom:
-              resourceFieldRef:
-                resource: limits.memory
-                divisor: '1'
+            value: {{ include "kubescape-operator.gomemlimit" (dict "memory" .Values.storage.resources.limits.memory "percentage" .Values.storage.gomemlimitPercentage) | quote }}
+          {{- end }}
           - name: KS_LOGGER_LEVEL
             value: "{{ .Values.logger.level }}"
           - name: KS_LOGGER_NAME

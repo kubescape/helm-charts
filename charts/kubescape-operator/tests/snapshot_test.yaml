@@ -1071,3 +1071,16 @@ tests:
             apiGroups: ["networking.k8s.io"]
             resources: ["networkpolicies"]
             verbs: ["create", "delete", "get", "list"]
+  - it: storage profile size caps and GOMEMLIMIT headroom
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      storage.resources.limits.memory: 2000Mi
+      storage.gomemlimitPercentage: 0.7
+      nodeAgent.config.maxTsProfileSize: 1000000
+      storage.maxContainerProfileSize: 50000
+    asserts:
+      - matchSnapshot: {}
+    
