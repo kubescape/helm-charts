@@ -1,0 +1,42 @@
+suite: Operator rules update config tests
+tests:
+  - it: renders rulesUpdateConfig disabled by default
+    template: operator/configmap.yaml
+    documentIndex: 0
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"rulesUpdateConfig": \{\s*"Enabled": false,'
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"Interval": "5m"'
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"Namespace": "kubescape"'
+
+  - it: enables the rules updater with a custom interval
+    template: operator/configmap.yaml
+    documentIndex: 0
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      operator:
+        rulesUpdateConfig:
+          enabled: true
+          interval: 30m
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"Enabled": true'
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"Interval": "30m"'
