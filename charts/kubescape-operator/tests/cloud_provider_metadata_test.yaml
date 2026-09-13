@@ -1,0 +1,130 @@
+suite: Cloud provider metadata tests
+tests:
+  - it: renders inline AKS and GKE metadata as plain env values
+    template: kubescape/deployment.yaml
+    documentIndex: 0
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      cloudProviderMetadata:
+        cloudRegion: eu-west-1
+        gkeProject: gke-project-1
+        aksSubscriptionID: sub-123
+        aksResourceGroup: rg-1
+        aksClientID: client-123
+        aksClientSecret: client-secret-123
+        aksTenantID: tenant-123
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KS_CLOUD_REGION
+            value: eu-west-1
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KS_GKE_PROJECT
+            value: gke-project-1
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AZURE_SUBSCRIPTION_ID
+            value: sub-123
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AZURE_RESOURCE_GROUP
+            value: rg-1
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AZURE_CLIENT_ID
+            value: client-123
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AZURE_CLIENT_SECRET
+            value: client-secret-123
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AZURE_TENANT_ID
+            value: tenant-123
+
+  - it: reads the metadata from the referenced secret when the key mappings are set
+    template: kubescape/deployment.yaml
+    documentIndex: 0
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      cloudProviderMetadata:
+        cloudRegion: eu-west-1
+        secretRef:
+          name: kubescape-secret
+          cloudRegionKey: cloudRegion
+          subscriptionIdKey: aksSubscriptionID
+          clientIdKey: aksClientID
+          clientSecretKey: aksClientSecret
+          tenantIdKey: aksTenantID
+          resourceGroupKey: aksResourceGroup
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KS_CLOUD_REGION
+            valueFrom:
+              secretKeyRef:
+                name: kubescape-secret
+                key: cloudRegion
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AZURE_CLIENT_ID
+            valueFrom:
+              secretKeyRef:
+                name: kubescape-secret
+                key: aksClientID
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AZURE_TENANT_ID
+            valueFrom:
+              secretKeyRef:
+                name: kubescape-secret
+                key: aksTenantID
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KS_CLOUD_REGION
+            value: eu-west-1
+
+  - it: renders no cloud metadata when secretRef is set without key mappings
+    template: kubescape/deployment.yaml
+    documentIndex: 0
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      cloudProviderMetadata:
+        cloudRegion: eu-west-1
+        secretRef:
+          name: kubescape-secret
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KS_CLOUD_REGION
+            value: eu-west-1
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AZURE_CLIENT_ID
+            value: ""
