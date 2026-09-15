@@ -30,8 +30,6 @@ storageCertgenScripts: {{ include (printf "%s/storage/certgen/configmap.yaml" $.
     {{- fail (printf "nodeAgent.config.extra.backendStorageEnabled must be a bool (true or false), got %s %v" (kindOf $val) $val) -}}
   {{- end -}}
   {{- $backendStorage = $val -}}
-{{- else if eq (index .Values.capabilities "backend-storage" | default "") "enable" -}}
-  {{- $backendStorage = true -}}
 {{- end -}}
 continuousScan: {{ and (eq .Values.capabilities.continuousScan "enable") (not $submit) }}
 createCloudSecret: {{ $createCloudSecret }}
