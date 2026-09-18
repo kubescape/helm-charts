@@ -11,8 +11,14 @@ metadata:
     {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.operator.name "tier" .Values.global.namespaceTier) | nindent 4 }}
 rules:
   - apiGroups: [""]
-    resources: ["configmaps", "secrets"]
+    resources: ["configmaps"]
     verbs: ["create", "get", "update", "watch", "list", "patch", "delete"]
+  {{- if $components.kubevuln.enabled }}
+  # Registry-scan credentials; only the kubevuln path reads or removes Secrets
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["create", "get", "update", "watch", "list", "patch", "delete"]
+  {{- end }}
   - apiGroups: ["batch"]
     resources: ["cronjobs"]
     verbs: ["create", "get", "update", "watch", "list", "patch", "delete"]
