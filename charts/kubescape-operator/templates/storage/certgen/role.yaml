@@ -10,7 +10,12 @@ metadata:
   labels:
     {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.storage.name "tier" .Values.global.namespaceTier) | nindent 4 }}
 rules:
+  # The init containers read back the Secret they mint; create cannot be pinned by name
   - apiGroups: [""]
     resources: ["secrets"]
-    verbs: ["get", "create"]
+    resourceNames: [{{ include "storage.certgen.secretName" . | quote }}]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["create"]
 {{- end }}
