@@ -1,0 +1,109 @@
+name: kubectl-tools image
+
+on:
+  pull_request:
+    paths:
+      - images/kubectl-tools/**
+      - .github/workflows/kubectl-tools-image.yaml
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish after maintainer approval and Quay setup
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  IMAGE: quay.io/kubescape/kubectl-tools
+  TAG: 1.36.1-r1
+
+jobs:
+  build-test-scan:
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Build local image
+        run: docker buildx build --platform linux/${{ matrix.arch }} --load -t kubectl-tools-test:${{ matrix.arch }} -f images/kubectl-tools/Dockerfile .
+      - name: Test both chart UIDs and required tools
+        run: |
+          for uid in 65532 100; do
+            docker run --rm --platform linux/${{ matrix.arch }} --user "$uid:$uid" --read-only kubectl-tools-test:${{ matrix.arch }} /bin/sh -ec '
+              for tool in bash kubectl jq openssl base64 mktemp seq cp mkdir rm sleep; do command -v "$tool"; done
+              bash -c "[[ -x /usr/local/bin/kubectl ]]"
+              kubectl version --client
+              openssl version
+            '
+          done
+      - name: Test rollout command shape under read-only root
+        run: |
+          docker run --rm --platform linux/${{ matrix.arch }} --user 100:100 --read-only kubectl-tools-test:${{ matrix.arch }} /bin/sh -ec '
+            kubectl rollout restart --help >/dev/null
+          '
+      - name: Save exact tested image
+        run: docker save kubectl-tools-test:${{ matrix.arch }} -o kubectl-tools-${{ matrix.arch }}.tar
+      - uses: aquasecurity/trivy-action@0.33.1
+        with:
+          input: kubectl-tools-${{ matrix.arch }}.tar
+          severity: CRITICAL
+          exit-code: '1'
+          ignore-unfixed: false
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kubectl-tools-${{ matrix.arch }}
+          path: kubectl-tools-${{ matrix.arch }}.tar
+          retention-days: 2
+
+  publish:
+    needs: build-test-scan
+    if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: quay-kubectl-tools
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: kubectl-tools-*
+          merge-multiple: true
+      - name: Install registry inspection tool
+        run: sudo apt-get update && sudo apt-get install -y skopeo
+      - name: Check that the released tag is unused
+        run: |
+          tags=$(skopeo list-tags docker://${IMAGE})
+          if jq -e --arg tag "$TAG" '.Tags | any(. == $tag or . == ($tag + "-amd64") or . == ($tag + "-arm64"))' <<< "$tags" >/dev/null; then
+            echo "Refusing to overwrite a released $IMAGE:$TAG tag" >&2
+            exit 1
+          fi
+      - name: Log in and push the tested images
+        env:
+          QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+          QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+        run: |
+          echo "$QUAY_PASSWORD" | docker login quay.io -u "$QUAY_USERNAME" --password-stdin
+          for arch in amd64 arm64; do
+            docker load -i "kubectl-tools-${arch}.tar"
+            docker tag "kubectl-tools-test:${arch}" "${IMAGE}:${TAG}-${arch}"
+            docker push "${IMAGE}:${TAG}-${arch}"
+          done
+          docker buildx imagetools create -t "${IMAGE}:${TAG}" "${IMAGE}:${TAG}-amd64" "${IMAGE}:${TAG}-arm64"
+          docker buildx imagetools inspect "${IMAGE}:${TAG}"
+          docker logout quay.io
+      - name: Verify anonymous public access
+        run: |
+          skopeo inspect docker://${IMAGE}:${TAG} >/dev/null
+          docker buildx imagetools inspect "${IMAGE}:${TAG}"
+          for arch in amd64 arm64; do
+            docker pull --platform "linux/${arch}" "${IMAGE}:${TAG}"
+          done
+      - uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: quay.io/kubescape/kubectl-tools:1.36.1-r1
+          severity: CRITICAL
+          exit-code: '1'
+          ignore-unfixed: false

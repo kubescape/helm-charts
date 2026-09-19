@@ -1,0 +1,42 @@
+name: Check kubectl-tools Alpine base
+
+on:
+  schedule:
+    - cron: '17 8 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Alpine manifest digest
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y skopeo
+          digest=$(skopeo inspect docker://docker.io/library/alpine:3.24.1 --format '{{.Digest}}')
+          python3 - "$digest" <<'PY'
+          from pathlib import Path
+          import re
+          import sys
+
+          path = Path('images/kubectl-tools/Dockerfile')
+          source = path.read_text()
+          updated, count = re.subn(r'alpine:3\.24\.1@sha256:[0-9a-f]{64}',
+                                   'alpine:3.24.1@' + sys.argv[1], source)
+          if count != 2:
+              raise SystemExit(f'expected two Alpine references, found {count}')
+          path.write_text(updated)
+          PY
+      - uses: peter-evans/create-pull-request@v7
+        with:
+          add-paths: images/kubectl-tools/Dockerfile
+          branch: codex/refresh-kubectl-tools-base
+          title: 'chore(image): refresh kubectl-tools Alpine base'
+          body: |
+            Updates the pinned Alpine base digest. Review the image build and both architecture scans, then publish a new immutable `-rN` tag and update the chart in a separate PR.
+          commit-message: 'chore(image): refresh kubectl-tools Alpine base'
