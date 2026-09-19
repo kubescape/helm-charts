@@ -6,8 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 jobs:
   refresh:
@@ -18,7 +17,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y skopeo
-          digest=$(skopeo inspect docker://docker.io/library/alpine:3.24.1 --format '{{.Digest}}')
+          digest=$(skopeo inspect docker://docker.io/library/alpine:3.24 --format '{{.Digest}}')
           python3 - "$digest" <<'PY'
           from pathlib import Path
           import re
@@ -26,16 +25,17 @@ jobs:
 
           path = Path('images/kubectl-tools/Dockerfile')
           source = path.read_text()
-          updated, count = re.subn(r'alpine:3\.24\.1@sha256:[0-9a-f]{64}',
-                                   'alpine:3.24.1@' + sys.argv[1], source)
+          updated, count = re.subn(r'alpine:3\.24@sha256:[0-9a-f]{64}',
+                                   'alpine:3.24@' + sys.argv[1], source)
           if count != 2:
               raise SystemExit(f'expected two Alpine references, found {count}')
           path.write_text(updated)
           PY
       - uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676 # v7
         with:
+          token: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
           add-paths: images/kubectl-tools/Dockerfile
-          branch: codex/refresh-kubectl-tools-base
+          branch: chore/refresh-kubectl-tools-base
           title: 'chore(image): refresh kubectl-tools Alpine base'
           body: |
             Updates the pinned Alpine base digest. Review the image build and both architecture scans, then publish a new immutable `-rN` tag and update the chart in a separate PR.

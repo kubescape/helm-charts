@@ -22,11 +22,16 @@ Kubescape maintainers.
    released tag. Add exact-image and override regression tests, update snapshots,
    and follow the chart release versioning convention.
 
-The first proposed tag is `1.36.1-r1`. A security rebuild must use `-r2`, `-r3`,
-and so on; released tags must never move. The weekly base check opens a PR when
-Alpine's digest changes. Review its two architecture builds and scans, bump the
-release tag in the image workflow, publish, and update the chart in a separate
-PR. Update `KUBECTL_VERSION` and the tag together when upgrading kubectl itself.
+The first proposed tag is `1.36.4-r1`. A security rebuild must use `-r2`, `-r3`,
+and so on; released tags must never move. The weekly base check uses the
+repository's PR token to open a PR when Alpine's 3.24 digest changes. Review its
+two architecture builds and scans, bump the release tag in the image workflow,
+publish, and update the chart in a separate PR. Update `KUBECTL_VERSION` and the
+tag together when upgrading kubectl itself.
+
+The refresh workflow requires the existing `GH_PERSONAL_ACCESS_TOKEN` secret
+with contents and pull-request write access. Its PR must trigger the image
+workflow before the base update is merged.
 
 For local checks, run:
 
