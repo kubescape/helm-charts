@@ -81,7 +81,6 @@ jobs:
     needs: build-test-scan
     if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    environment: quay-kubescape-ops-tool
     steps:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
@@ -96,12 +95,13 @@ jobs:
             echo "Refusing to overwrite a released $IMAGE:$TAG tag" >&2
             exit 1
           fi
-      - name: Log in and push the tested images
-        env:
-          QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
-          QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+      - uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAYIO_REGISTRY_USERNAME }}
+          password: ${{ secrets.QUAYIO_REGISTRY_PASSWORD }}
+      - name: Push the tested images
         run: |
-          echo "$QUAY_PASSWORD" | docker login quay.io -u "$QUAY_USERNAME" --password-stdin
           for arch in amd64 arm64; do
             docker load -i "kubescape-ops-tool-${arch}.tar"
             docker tag "kubescape-ops-tool-test:${arch}" "${IMAGE}:${TAG}-${arch}"
