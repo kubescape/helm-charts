@@ -36,9 +36,6 @@ spec:
       {{- if ne .Values.global.proxySecretFile "" }}
         checksum/proxy-config: {{ $checksums.proxySecret }}
       {{- end }}
-      {{- if and (eq .Values.capabilities.admissionController "enable") (eq (include "kubescape.certificates.strategy" .) "initContainer") }}
-        checksum/admission-certgen-scripts: {{ $checksums.admissionCertgenScripts }}
-      {{- end }}
       labels:
         {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.operator.name "tier" .Values.global.namespaceTier) | nindent 8 }}
         {{- with .Values.operator.podLabels }}{{- toYaml . | nindent 8 }}{{- end }}
@@ -64,11 +61,11 @@ spec:
       {{- $admissionName := include "kubescape-admission.name" . }}
       {{- $admissionSecret := include "kubescape-admission.secretName" . }}
       {{- $admissionHosts := printf "%s,%s" $admissionName (include "kubescape-admission.svcDomainName" .) }}
-      {{- $certgenImage := printf "%s:%s" .Values.certificates.certgen.image.repository (.Values.certificates.certgen.image.tag | toString) }}
+      {{- $certgenImage := printf "%s:%s" .Values.kubescapeOpsTool.image.repository (.Values.kubescapeOpsTool.image.tag | toString) }}
       initContainers:
         - name: certgen-create
           image: {{ $certgenImage }}
-          imagePullPolicy: {{ .Values.certificates.certgen.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.kubescapeOpsTool.image.pullPolicy }}
           securityContext:
             runAsUser: 65532
             runAsGroup: 65532
@@ -77,7 +74,7 @@ spec:
             capabilities:
               drop:
                 - ALL
-          command: ["/scripts/certgen-create.sh"]
+          command: ["/usr/bin/kubescape-ops-tool", "certgen-create"]
           args:
             - --namespace
             - {{ .Values.ksNamespace }}
@@ -94,14 +91,11 @@ spec:
             - --key-name
             - tls.key
           volumeMounts:
-            - name: admission-certgen-scripts
-              mountPath: /scripts
-              readOnly: true
             - name: tls-certs
               mountPath: /etc/certs
         - name: certgen-patch
           image: {{ $certgenImage }}
-          imagePullPolicy: {{ .Values.certificates.certgen.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.kubescapeOpsTool.image.pullPolicy }}
           securityContext:
             runAsUser: 65532
             runAsGroup: 65532
@@ -110,7 +104,7 @@ spec:
             capabilities:
               drop:
                 - ALL
-          command: ["/scripts/certgen-patch.sh"]
+          command: ["/usr/bin/kubescape-ops-tool", "certgen-patch"]
           args:
             - --namespace
             - {{ .Values.ksNamespace }}
@@ -126,10 +120,6 @@ spec:
             - {{ .Values.operator.admissionWebhooks.patch.retries | quote }}
             - --retry-interval
             - {{ .Values.operator.admissionWebhooks.patch.retryIntervalSeconds | quote }}
-          volumeMounts:
-            - name: admission-certgen-scripts
-              mountPath: /scripts
-              readOnly: true
       {{- end }}
       containers:
         - name: {{ .Values.operator.name }}
@@ -271,10 +261,6 @@ spec:
         {{- if eq (include "kubescape.certificates.strategy" .) "initContainer" }}
         - name: tls-certs
           emptyDir: {}
-        - name: admission-certgen-scripts
-          configMap:
-            name: {{ include "kubescape-admission.name" . }}-certgen-scripts-{{ include "kubescape.certgen.scriptsHash" . }}
-            defaultMode: 0755
         {{- else }}
         - name: tls-certs
           secret:

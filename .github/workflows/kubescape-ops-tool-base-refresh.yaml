@@ -1,0 +1,42 @@
+name: Check kubescape-ops-tool distroless base
+
+on:
+  schedule:
+    - cron: '17 8 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Check distroless manifest digest
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y skopeo
+          digest=$(skopeo inspect docker://gcr.io/distroless/static-debian13:nonroot --format '{{.Digest}}')
+          python3 - "$digest" <<'PY'
+          from pathlib import Path
+          import re
+          import sys
+
+          path = Path('images/kubescape-ops-tool/Dockerfile')
+          source = path.read_text()
+          updated, count = re.subn(r'static-debian13:nonroot@sha256:[0-9a-f]{64}',
+                                   'static-debian13:nonroot@' + sys.argv[1], source)
+          if count != 1:
+              raise SystemExit(f'expected exactly one pinned distroless reference, found {count}')
+          path.write_text(updated)
+          PY
+      - uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676 # v7
+        with:
+          token: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
+          add-paths: images/kubescape-ops-tool/Dockerfile
+          branch: chore/refresh-kubescape-ops-tool-base
+          title: 'chore(image): refresh kubescape-ops-tool distroless base'
+          body: |
+            Updates the pinned `gcr.io/distroless/static-debian13:nonroot` digest. Review the image build and both architecture scans, then publish a new immutable `-rN` tag and update the chart in a separate PR.
+          commit-message: 'chore(image): refresh kubescape-ops-tool distroless base'
