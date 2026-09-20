@@ -98,9 +98,10 @@ jobs:
           password: ${{ secrets.QUAYIO_REGISTRY_PASSWORD }}
       - name: Push a disposable per-commit test tag
         if: ${{ env.QUAY_USERNAME != '' && env.QUAY_PASSWORD != '' }}
+        env:
+          COMMIT_HASH: ${{ github.event.pull_request.head.sha }}
         run: |
-          COMMIT_HASH=$(git rev-parse --short HEAD)
-          TEST_TAG="test-${COMMIT_HASH}"
+          TEST_TAG="test-${COMMIT_HASH:0:7}"
           for arch in amd64 arm64; do
             docker load -i "kubescape-ops-tool-${arch}.tar"
             docker tag "kubescape-ops-tool-test:${arch}" "${IMAGE}:${TEST_TAG}-${arch}"
