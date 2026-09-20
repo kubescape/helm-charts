@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"helm.sh/helm/v3/pkg/action"
@@ -16,6 +17,7 @@ import (
 	"helm.sh/helm/v3/pkg/repo"
 	"helm.sh/helm/v3/pkg/storage"
 	"helm.sh/helm/v3/pkg/storage/driver"
+	"sigs.k8s.io/yaml"
 )
 
 func TestParseFlagsPrefersFlagsOverEnv(t *testing.T) {
@@ -100,6 +102,32 @@ func testChart(version string) *chart.Chart {
 	}
 }
 
+// testChartWithValues builds a chart whose ConfigMap renders two values keys,
+// so a test can tell whether the chart's own Values.yaml defaults survived an
+// upgrade alongside a previously-supplied user override for a different key.
+//
+// chartutil.Save only serializes values.yaml from Chart.Raw (not the Values
+// field directly), so Raw must carry the same content for it to survive the
+// package/serve/load round trip chartRepoServer performs.
+func testChartWithValues(t *testing.T, version string, values map[string]interface{}) *chart.Chart {
+	t.Helper()
+	rawValues, err := yaml.Marshal(values)
+	if err != nil {
+		t.Fatalf("marshal values: %v", err)
+	}
+	return &chart.Chart{
+		Metadata: &chart.Metadata{APIVersion: chart.APIVersionV2, Name: "demo", Version: version},
+		Values:   values,
+		Raw:      []*chart.File{{Name: "values.yaml", Data: rawValues}},
+		Templates: []*chart.File{{
+			Name: "templates/cm.yaml",
+			Data: []byte("apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: demo\ndata:\n" +
+				"  existingKey: {{ .Values.existingKey | quote }}\n" +
+				"  newKey: {{ .Values.newKey | default \"MISSING\" | quote }}\n"),
+		}},
+	}
+}
+
 func testSettings(t *testing.T, namespace string) *cli.EnvSettings {
 	t.Helper()
 	home := t.TempDir()
@@ -176,6 +204,57 @@ func TestUpgradeRunsAgainstInMemoryStorage(t *testing.T) {
 	}
 	if rel.Chart.Metadata.Version != "2.0.0" {
 		t.Fatalf("upgraded to chart version %s, want 2.0.0", rel.Chart.Metadata.Version)
+	}
+}
+
+// TestUpgradeKeepsUserValuesAndPicksUpNewChartDefaults guards against
+// regressing to action.Upgrade's plain ReuseValues, which would replace the
+// target chart's defaults with only the previously installed chart's
+// coalesced values -- silently dropping any values key introduced by a newer
+// chart version (such as this PR's own kubescapeOpsTool tree) unless the
+// user had already set it explicitly.
+func TestUpgradeKeepsUserValuesAndPicksUpNewChartDefaults(t *testing.T) {
+	installed := testChartWithValues(t, "1.0.0", map[string]interface{}{"existingKey": "old-default"})
+	url := chartRepoServer(t, testChartWithValues(t, "2.0.0", map[string]interface{}{
+		"existingKey": "new-default",
+		"newKey":      "new-default-value",
+	}))
+	settings := testSettings(t, "kubescape")
+
+	cfg := &action.Configuration{
+		Releases:     storage.Init(driver.NewMemory()),
+		KubeClient:   &kubefake.FailingKubeClient{PrintingKubeClient: kubefake.PrintingKubeClient{Out: io.Discard}},
+		Capabilities: chartutil.DefaultCapabilities,
+		Log:          func(string, ...interface{}) {},
+	}
+	if err := cfg.Releases.Create(&release.Release{
+		Name:      "kubescape",
+		Namespace: "kubescape",
+		Version:   1,
+		Info:      &release.Info{Status: release.StatusDeployed},
+		Chart:     installed,
+		// Models a user who previously ran `--set existingKey=user-override`;
+		// they never set newKey because it didn't exist in the old chart.
+		Config: map[string]interface{}{"existingKey": "user-override"},
+	}); err != nil {
+		t.Fatalf("seed release: %v", err)
+	}
+
+	rel, err := Upgrade(cfg, settings, Options{
+		Release:      "kubescape",
+		Namespace:    "kubescape",
+		ChartRepo:    "kubescape",
+		ChartRepoURL: url,
+		ChartName:    "demo",
+	})
+	if err != nil {
+		t.Fatalf("Upgrade: %v", err)
+	}
+	if !strings.Contains(rel.Manifest, `existingKey: "user-override"`) {
+		t.Fatalf("user's previous override was dropped, manifest:\n%s", rel.Manifest)
+	}
+	if !strings.Contains(rel.Manifest, `newKey: "new-default-value"`) {
+		t.Fatalf("new chart default was not applied (ReuseValues regression?), manifest:\n%s", rel.Manifest)
 	}
 }
 
