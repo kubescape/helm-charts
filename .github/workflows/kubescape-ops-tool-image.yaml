@@ -77,6 +77,38 @@ jobs:
           path: kubescape-ops-tool-${{ matrix.arch }}.tar
           retention-days: 2
 
+  pr-test-image:
+    needs: build-test-scan
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    env:
+      QUAY_USERNAME: ${{ secrets.QUAYIO_REGISTRY_USERNAME }}
+      QUAY_PASSWORD: ${{ secrets.QUAYIO_REGISTRY_PASSWORD }}
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: kubescape-ops-tool-*
+          merge-multiple: true
+      - name: Login to Quay.io
+        if: ${{ env.QUAY_USERNAME != '' && env.QUAY_PASSWORD != '' }}
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAYIO_REGISTRY_USERNAME }}
+          password: ${{ secrets.QUAYIO_REGISTRY_PASSWORD }}
+      - name: Push a disposable per-commit test tag
+        if: ${{ env.QUAY_USERNAME != '' && env.QUAY_PASSWORD != '' }}
+        run: |
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          TEST_TAG="test-${COMMIT_HASH}"
+          for arch in amd64 arm64; do
+            docker load -i "kubescape-ops-tool-${arch}.tar"
+            docker tag "kubescape-ops-tool-test:${arch}" "${IMAGE}:${TEST_TAG}-${arch}"
+            docker push "${IMAGE}:${TEST_TAG}-${arch}"
+          done
+          docker buildx imagetools create -t "${IMAGE}:${TEST_TAG}" "${IMAGE}:${TEST_TAG}-amd64" "${IMAGE}:${TEST_TAG}-arm64"
+          echo "Pushed disposable test image: ${IMAGE}:${TEST_TAG}" | tee -a "$GITHUB_STEP_SUMMARY"
+
   publish:
     needs: build-test-scan
     if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main'
