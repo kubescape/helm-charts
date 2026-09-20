@@ -143,8 +143,13 @@ func Upgrade(cfg *action.Configuration, settings *cli.EnvSettings, o Options) (*
 	up.Namespace = o.Namespace
 	up.Version = o.Version
 	up.Timeout = o.Timeout
-	// An unattended upgrade must not reset a user's configuration to chart defaults.
-	up.ReuseValues = true
+	// An unattended upgrade must keep the user's prior values AND pick up any
+	// new keys the target chart's defaults introduce (e.g. a values tree that
+	// didn't exist in the installed release's chart version). ReuseValues alone
+	// would silently drop new chart defaults; ResetThenReuseValues loads the
+	// new chart's defaults first, then reapplies the user's previous values on
+	// top of them.
+	up.ResetThenReuseValues = true
 
 	ref := o.ChartRepo + "/" + o.ChartName
 	chartPath, err := up.ChartPathOptions.LocateChart(ref, settings)
