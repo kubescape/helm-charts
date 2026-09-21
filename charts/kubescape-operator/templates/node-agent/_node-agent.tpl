@@ -100,6 +100,23 @@ Parameters:
   valueFrom:
     fieldRef:
       fieldPath: metadata.namespace
+{{- /*
+CPU_LIMIT_MILLIS exposes this container's own declared CPU limit, in integer
+millicores, so node-agent can bound Syft's cataloger parallelism for the host
+root-filesystem SBOM scan to the CPU it is actually allowed to use. Without it
+the scan runs at runtime.NumCPU() and CFS-throttles node-agent's own liveness
+endpoint hard enough for kubelet to kill the container.
+
+The downward API is used instead of reading the cgroup CPU quota in-process
+because node-agent bind-mounts the host's /sys/fs/cgroup over its own, so a
+cgroup read inside the container returns the node's quota, not the container's.
+When no CPU limit is set, kubelet substitutes the node's allocatable CPU here.
+*/}}
+- name: CPU_LIMIT_MILLIS
+  valueFrom:
+    resourceFieldRef:
+      resource: limits.cpu
+      divisor: "1m"
 - name: KUBELET_ROOT
   value: "/var/lib/kubelet"
 {{- if and .testingMode .Values.capabilities.testing.nodeAgentMultiplication.enabled }}
