@@ -79,7 +79,15 @@ jobs:
 
   pr-test-image:
     needs: build-test-scan
-    if: github.event_name == 'pull_request'
+    # Registry secrets must never be reachable from a workflow whose YAML a PR
+    # author controls. GitHub already withholds secrets from fork-originated
+    # `pull_request` runs by default; this condition makes that boundary
+    # explicit rather than relying on the platform default alone. Same-repo
+    # branch PRs (the only case this leaves eligible) already require push
+    # access to this repository to open in the first place.
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     env:
       QUAY_USERNAME: ${{ secrets.QUAYIO_REGISTRY_USERNAME }}
