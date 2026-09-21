@@ -1,0 +1,121 @@
+suite: Agent Runtime posture deployment smoke tests
+templates:
+  - configs/components-configmap.yaml
+  - configs/cloudapi-configmap.yaml
+  - kubescape/clusterrole.yaml
+  - operator/admission-webhook/webhook.yaml
+tests:
+  - it: keeps Agent Runtime posture disabled for an unchanged installation
+    template: configs/components-configmap.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - matchRegex:
+          path: data.capabilities
+          pattern: '"agentRuntimePosture":"disable"'
+
+  - it: does not select the Agent Runtime framework by default
+    template: configs/cloudapi-configmap.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - notMatchRegex:
+          path: data.clusterData
+          pattern: '"defaultFrameworks"'
+
+  - it: omits Agent Runtime CRD access for an unchanged installation
+    template: kubescape/clusterrole.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["agents.x-k8s.io"]
+            resources: ["sandboxes"]
+            verbs: ["get", "list", "watch"]
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["extensions.agents.x-k8s.io"]
+            resources: ["sandboxtemplates"]
+            verbs: ["get", "list", "watch"]
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["ate.dev"]
+            resources: ["actortemplates", "workerpools"]
+            verbs: ["get", "list", "watch"]
+
+  - it: records an enabled Agent Runtime posture in the operator configuration
+    template: configs/components-configmap.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.agentRuntimePosture: enable
+      defaultFrameworks:
+        - AgentRuntimeHardening
+    asserts:
+      - matchRegex:
+          path: data.capabilities
+          pattern: '"agentRuntimePosture":"enable"'
+
+  - it: wires an enabled Agent Runtime posture installation into the scanner
+    template: configs/cloudapi-configmap.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.agentRuntimePosture: enable
+      defaultFrameworks:
+        - AgentRuntimeHardening
+    asserts:
+      - matchRegex:
+          path: data.clusterData
+          pattern: '"defaultFrameworks":\s*\["AgentRuntimeHardening"\]'
+
+  - it: grants the scanner all required Agent Runtime CRD access when enabled
+    template: kubescape/clusterrole.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.agentRuntimePosture: enable
+      defaultFrameworks:
+        - AgentRuntimeHardening
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["agents.x-k8s.io"]
+            resources: ["sandboxes"]
+            verbs: ["get", "list", "watch"]
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["extensions.agents.x-k8s.io"]
+            resources: ["sandboxtemplates"]
+            verbs: ["get", "list", "watch"]
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["ate.dev"]
+            resources: ["actortemplates", "workerpools"]
+            verbs: ["get", "list", "watch"]
+
+  - it: keeps the admission webhook deployed with Agent Runtime posture enabled
+    template: operator/admission-webhook/webhook.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.agentRuntimePosture: enable
+      defaultFrameworks:
+        - AgentRuntimeHardening
+    asserts:
+      - equal:
+          path: kind
+          value: ValidatingWebhookConfiguration
+      - equal:
+          path: webhooks[0].name
+          value: validation.kubescape.admission
