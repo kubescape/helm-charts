@@ -1,6 +1,7 @@
 package helmupgrade
 
 import (
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -207,12 +208,8 @@ func TestUpgradeRunsAgainstInMemoryStorage(t *testing.T) {
 	}
 }
 
-// TestUpgradeKeepsUserValuesAndPicksUpNewChartDefaults guards against
-// regressing to action.Upgrade's plain ReuseValues, which would replace the
-// target chart's defaults with only the previously installed chart's
-// coalesced values -- silently dropping any values key introduced by a newer
-// chart version (such as this PR's own kubescapeOpsTool tree) unless the
-// user had already set it explicitly.
+// The upgrader preserves user overrides while picking up new chart defaults.
+// This also matches the old script's bare helm upgrade with no new values.
 func TestUpgradeKeepsUserValuesAndPicksUpNewChartDefaults(t *testing.T) {
 	installed := testChartWithValues(t, "1.0.0", map[string]interface{}{"existingKey": "old-default"})
 	url := chartRepoServer(t, testChartWithValues(t, "2.0.0", map[string]interface{}{
@@ -258,8 +255,7 @@ func TestUpgradeKeepsUserValuesAndPicksUpNewChartDefaults(t *testing.T) {
 	}
 }
 
-func TestUpgradeFailsOnUnknownRelease(t *testing.T) {
-	url := chartRepoServer(t, testChart("1.0.0"))
+func TestUpgradeSkipsUnknownRelease(t *testing.T) {
 	settings := testSettings(t, "kubescape")
 	cfg := &action.Configuration{
 		Releases:     storage.Init(driver.NewMemory()),
@@ -268,13 +264,39 @@ func TestUpgradeFailsOnUnknownRelease(t *testing.T) {
 		Log:          func(string, ...interface{}) {},
 	}
 
-	if _, err := Upgrade(cfg, settings, Options{
-		Release:      "absent",
-		Namespace:    "kubescape",
-		ChartRepo:    "kubescape",
-		ChartRepoURL: url,
+	rel, err := Upgrade(cfg, settings, Options{
+		Release:   "absent",
+		Namespace: "kubescape",
+		ChartRepo: "kubescape",
+		// A missing release must be skipped even when the repo is unreachable.
+		ChartRepoURL: "http://127.0.0.1:1/charts",
 		ChartName:    "demo",
-	}); err == nil {
-		t.Fatal("expected an error upgrading a release that does not exist")
+	})
+	if err != nil || rel != nil {
+		t.Fatalf("Upgrade = (%v, %v), want (nil, nil)", rel, err)
+	}
+}
+
+type failingHistoryDriver struct {
+	driver.Driver
+	err error
+}
+
+func (d failingHistoryDriver) Query(map[string]string) ([]*release.Release, error) {
+	return nil, d.err
+}
+
+func TestUpgradePropagatesHistoryError(t *testing.T) {
+	wantErr := errors.New("release storage unavailable")
+	cfg := &action.Configuration{
+		Releases: storage.Init(failingHistoryDriver{Driver: driver.NewMemory(), err: wantErr}),
+		KubeClient: &kubefake.FailingKubeClient{
+			PrintingKubeClient: kubefake.PrintingKubeClient{Out: io.Discard},
+		},
+		Log: func(string, ...interface{}) {},
+	}
+	rel, err := Upgrade(cfg, testSettings(t, "kubescape"), Options{Release: "kubescape"})
+	if !errors.Is(err, wantErr) || rel != nil {
+		t.Fatalf("Upgrade = (%v, %v), want nil release and storage error", rel, err)
 	}
 }

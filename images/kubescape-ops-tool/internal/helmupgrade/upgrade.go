@@ -1,6 +1,7 @@
 package helmupgrade
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -15,6 +16,7 @@ import (
 	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/repo"
+	"helm.sh/helm/v3/pkg/storage/driver"
 )
 
 // Options carries the fully resolved upgrade target. Nothing here has a
@@ -134,7 +136,18 @@ func AddRepo(settings *cli.EnvSettings, name, url string) (*repo.IndexFile, erro
 }
 
 // Upgrade resolves the chart from the registered repo and upgrades the release.
+// It returns a nil release without error when the release no longer exists.
 func Upgrade(cfg *action.Configuration, settings *cli.EnvSettings, o Options) (*release.Release, error) {
+	// The autoupdater CronJob can survive uninstalling the release. Avoid
+	// downloading a chart or retrying a job that has nothing left to upgrade.
+	if _, err := action.NewHistory(cfg).Run(o.Release); err != nil {
+		if errors.Is(err, driver.ErrReleaseNotFound) {
+			slog.Info("release not found, skipping upgrade", "release", o.Release, "namespace", o.Namespace)
+			return nil, nil
+		}
+		return nil, fmt.Errorf("get release history %s: %w", o.Release, err)
+	}
+
 	if _, err := AddRepo(settings, o.ChartRepo, o.ChartRepoURL); err != nil {
 		return nil, err
 	}
@@ -143,12 +156,9 @@ func Upgrade(cfg *action.Configuration, settings *cli.EnvSettings, o Options) (*
 	up.Namespace = o.Namespace
 	up.Version = o.Version
 	up.Timeout = o.Timeout
-	// An unattended upgrade must keep the user's prior values AND pick up any
-	// new keys the target chart's defaults introduce (e.g. a values tree that
-	// didn't exist in the installed release's chart version). ReuseValues alone
-	// would silently drop new chart defaults; ResetThenReuseValues loads the
-	// new chart's defaults first, then reapplies the user's previous values on
-	// top of them.
+	// Explicitly layer prior user overrides over the target chart's defaults.
+	// This matches the old script's bare helm upgrade with no new values;
+	// plain ReuseValues would also retain the old chart's defaults.
 	up.ResetThenReuseValues = true
 
 	ref := o.ChartRepo + "/" + o.ChartName

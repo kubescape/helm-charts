@@ -6,8 +6,11 @@ import (
 	"encoding/pem"
 	"errors"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
@@ -57,6 +60,33 @@ func TestParseCreateFlagsDefaults(t *testing.T) {
 func TestParseCreateFlagsRequired(t *testing.T) {
 	if _, err := ParseCreateFlags([]string{"-n", "ns"}, io.Discard); err == nil {
 		t.Fatal("expected error for missing required flags")
+	}
+}
+
+func TestParseCreateFlagsDays(t *testing.T) {
+	for _, days := range []int{1, 36500, 73000, 0, -1, 73001, 106752, math.MaxInt} {
+		t.Run(strconv.Itoa(days), func(t *testing.T) {
+			var errOut strings.Builder
+			o, err := ParseCreateFlags([]string{
+				"-n", "ns", "-s", "s", "-H", "h", "-o", "/tmp/out",
+				"--days", strconv.Itoa(days),
+			}, &errOut)
+			if days < 1 || days > 73000 {
+				if err == nil || !strings.Contains(err.Error(), "--days must be between 1 and 73000") {
+					t.Fatalf("expected days range error, got %v", err)
+				}
+				if !strings.Contains(errOut.String(), err.Error()) || !strings.Contains(errOut.String(), createUsage) {
+					t.Fatalf("expected range diagnostic and usage, got %q", errOut.String())
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("parse: %v", err)
+			}
+			if o.Days != days {
+				t.Fatalf("Days = %d, want %d", o.Days, days)
+			}
+		})
 	}
 }
 

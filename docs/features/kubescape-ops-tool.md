@@ -53,3 +53,17 @@ its defaults reproduce the prior hardcoded behavior exactly, so a default instal
 
 The autoupdater cronjob's `securityContext` (`runAsUser`/`runAsGroup`/`fsGroup`) changed from
 `1000` to `65532` to match the new distroless nonroot image's UID.
+
+## Autoupdater behavior
+
+The upgrader explicitly applies the target chart's defaults, then layers the release's
+previous user overrides on top (`ResetThenReuseValues`). This matches Helm's behavior for
+the old script's bare `helm upgrade` with no new values: prior overrides are preserved,
+not discarded. It differs from `--reuse-values`, which also retains the old chart's defaults.
+See [Helm's value handling](https://github.com/helm/helm/blob/v3.22.0/pkg/action/upgrade.go#L552-L589).
+
+Overrides for the three removed image keys can remain in `helm get values`, but have no
+effect; migrate them to `kubescapeOpsTool.image` as described above.
+
+If the release no longer exists, the upgrader exits successfully before contacting the
+chart repository. This preserves the old script's handling of a CronJob left after uninstall.
