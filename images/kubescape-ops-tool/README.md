@@ -25,7 +25,7 @@ Replaces `charts/kubescape-operator/scripts/certgen-create.sh` with the same fla
 | `--ca-name` | `ca` | Secret key for the CA cert |
 | `--cert-name` | `cert` | Secret key for the leaf cert |
 | `--key-name` | `key` | Secret key for the leaf key |
-| `--days` | `36500` | Validity in days |
+| `--days` | `36500` | Validity in days (1–73000) |
 
 ### `certgen-patch`
 
@@ -63,6 +63,9 @@ Upgrades a Helm release through the Helm Go SDK — no `helm` binary. Nothing is
 hardcoded: every value comes from a flag or its environment variable, and the
 upgrade reuses the release's existing values so an unattended run cannot reset a
 user's configuration to chart defaults.
+
+If the release no longer exists, it exits successfully without downloading the chart,
+so a CronJob left after uninstall does not retry an absent release.
 
 | Flag | Environment variable | Meaning |
 |---|---|---|

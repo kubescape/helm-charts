@@ -60,10 +60,15 @@ func ParseCreateFlags(args []string, errOut io.Writer) (CreateOptions, error) {
 		}
 		fs.StringVar(f.target, f.long, f.def, f.helpTxt)
 	}
-	fs.IntVar(&o.Days, "days", 36500, "Validity in days")
+	fs.IntVar(&o.Days, "days", 36500, "Validity in days (1-73000)")
 
 	if err := fs.Parse(args); err != nil {
 		return o, err
+	}
+	if o.Days < 1 || o.Days > 73000 {
+		fmt.Fprintln(errOut, "--days must be between 1 and 73000")
+		fmt.Fprint(errOut, createUsage)
+		return o, fmt.Errorf("--days must be between 1 and 73000")
 	}
 	for _, req := range []struct{ val, name string }{
 		{o.Namespace, "--namespace"},
@@ -88,7 +93,7 @@ const createUsage = `Usage: kubescape-ops-tool certgen-create [flags]
       --ca-name        Key in the secret for the CA cert (default: ca)
       --cert-name      Key in the secret for the leaf cert (default: cert)
       --key-name       Key in the secret for the leaf key (default: key)
-      --days           Validity in days (default: 36500 ~= 100y)
+      --days           Validity in days, 1-73000 (default: 36500 ~= 100y)
 `
 
 func Create(ctx context.Context, kc kubernetes.Interface, o CreateOptions) error {
