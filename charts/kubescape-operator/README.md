@@ -30,6 +30,20 @@ kubescape     operator-5d745b5b84-ts7zq                           1/1     Runnin
 kubescape     storage-59567854fd-hg8n8                            1/1     Running   0               60m
 ```
 
+## Offline daily reports
+
+Setting `capabilities.kubescapeOffline: enable` forces
+`KS_SKIP_UPDATE_CHECK="true"` on the Operator container, overriding entries with
+that name in `operator.env`. This suppresses the Operator's daily report to
+`version-check.ks-services.co` when using an Operator image containing
+[kubescape/operator#421](https://github.com/kubescape/operator/pull/421).
+The currently pinned Operator image predates that fix; the environment variable
+alone cannot suppress reports in older images.
+
+Online installations retain their existing reporting behavior. To opt out
+explicitly online, set `KS_SKIP_UPDATE_CHECK=true` through `operator.env`.
+`kubescape.skipUpdateCheck` remains scoped to the Kubescape scanner.
+
 ## Upgrade
 
 `helm upgrade` updates everything in the chart **except** the CRDs under `crds/`. Helm installs those
