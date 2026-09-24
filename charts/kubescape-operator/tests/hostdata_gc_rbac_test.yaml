@@ -1,0 +1,163 @@
+suite: Host-data garbage collection RBAC
+templates:
+  - node-agent/clusterrole.yaml
+  - node-agent/hostdata-gc-role.yaml
+  - node-agent/hostdata-gc-rolebinding.yaml
+tests:
+  - it: grants deletion only for the ten host-data resource types
+    template: node-agent/clusterrole.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups:
+              - hostdata.kubescape.cloud
+            resources:
+              - osreleasefiles
+              - kernelversions
+              - linuxsecurityhardeningstatuses
+              - openportslists
+              - linuxkernelvariables
+              - kubeletinfos
+              - kubeproxyinfos
+              - controlplaneinfos
+              - cloudproviderinfos
+              - cniinfos
+            verbs:
+              - create
+              - get
+              - update
+              - patch
+              - list
+              - watch
+              - delete
+      - notExists:
+          path: rules[?(@.apiGroups[0] == "coordination.k8s.io")]
+  - it: limits election to the named Lease except creation
+    template: node-agent/hostdata-gc-role.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - isKind:
+          of: Role
+      - equal:
+          path: metadata.namespace
+          value: kubescape
+      - equal:
+          path: rules
+          value:
+            - apiGroups:
+                - coordination.k8s.io
+              resources:
+                - leases
+              resourceNames:
+                - kubescape-hostdata-gc
+              verbs:
+                - get
+                - update
+            - apiGroups:
+                - coordination.k8s.io
+              resources:
+                - leases
+              verbs:
+                - create
+  - it: omits node-agent/hostdata-gc-role.yaml with host sensors disabled
+    template: node-agent/hostdata-gc-role.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.config.hostSensor.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: omits node-agent/hostdata-gc-role.yaml with node agent disabled
+    template: node-agent/hostdata-gc-role.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.relevancy: disable
+      capabilities.runtimeObservability: disable
+      capabilities.networkPolicyService: disable
+      capabilities.runtimeDetection: disable
+      capabilities.malwareDetection: disable
+      capabilities.nodeProfileService: disable
+      capabilities.seccompProfileService: disable
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: omits node-agent/hostdata-gc-rolebinding.yaml with host sensors disabled
+    template: node-agent/hostdata-gc-rolebinding.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.config.hostSensor.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: omits node-agent/hostdata-gc-rolebinding.yaml with node agent disabled
+    template: node-agent/hostdata-gc-rolebinding.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.relevancy: disable
+      capabilities.runtimeObservability: disable
+      capabilities.networkPolicyService: disable
+      capabilities.runtimeDetection: disable
+      capabilities.malwareDetection: disable
+      capabilities.nodeProfileService: disable
+      capabilities.seccompProfileService: disable
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: omits host-data permissions with sensors disabled
+    template: node-agent/clusterrole.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.config.hostSensor.enabled: false
+    asserts:
+      - notExists:
+          path: rules[?(@.apiGroups[0] == "hostdata.kubescape.cloud")]
+  - it: places the Role in the custom namespace
+    template: node-agent/hostdata-gc-role.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      ksNamespace: security
+      nodeAgent.name: custom-agent
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: security
+      - equal:
+          path: metadata.name
+          value: custom-agent-hostdata-gc
+  - it: binds the custom service account to its namespaced Role
+    template: node-agent/hostdata-gc-rolebinding.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      ksNamespace: security
+      nodeAgent.name: custom-agent
+    asserts:
+      - isKind:
+          of: RoleBinding
+      - equal:
+          path: metadata.namespace
+          value: security
+      - equal:
+          path: roleRef
+          value:
+            apiGroup: rbac.authorization.k8s.io
+            kind: Role
+            name: custom-agent-hostdata-gc
+      - equal:
+          path: subjects
+          value:
+            - kind: ServiceAccount
+              name: custom-agent
+              namespace: security
