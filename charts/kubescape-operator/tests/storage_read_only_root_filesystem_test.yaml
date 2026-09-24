@@ -1,0 +1,70 @@
+suite: Storage read-only root filesystem tests
+tests:
+  - it: runs the storage apiserver with a read-only root filesystem
+    template: storage/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem
+          value: true
+
+  - it: mounts a writable /tmp for the storage apiserver
+    template: storage/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: tmp-dir
+            mountPath: /tmp
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: tmp-dir
+            emptyDir: {}
+
+  - it: runs both certgen init containers with a read-only root filesystem
+    template: storage/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      certificates.strategy: initContainer
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].securityContext.readOnlyRootFilesystem
+          value: true
+      - equal:
+          path: spec.template.spec.initContainers[1].securityContext.readOnlyRootFilesystem
+          value: true
+
+  - it: mounts a writable /tmp for certgen-create's working directory
+    template: storage/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      certificates.strategy: initContainer
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: certgen-create
+      - contains:
+          path: spec.template.spec.initContainers[0].volumeMounts
+          content:
+            name: tmp-dir
+            mountPath: /tmp

@@ -71,6 +71,7 @@ spec:
             runAsGroup: 65532
             runAsNonRoot: true
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
@@ -96,6 +97,8 @@ spec:
               readOnly: true
             - name: ca-certificates
               mountPath: /etc/storage-ca-certificates
+            - name: tmp-dir
+              mountPath: /tmp
         - name: certgen-patch
           image: {{ $certgenImage }}
           imagePullPolicy: {{ .Values.certificates.certgen.image.pullPolicy }}
@@ -104,6 +107,7 @@ spec:
             runAsGroup: 65532
             runAsNonRoot: true
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
@@ -134,6 +138,7 @@ spec:
         imagePullPolicy: {{ .Values.storage.image.pullPolicy }}
         securityContext:
           allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
           runAsNonRoot: true
           capabilities:
             drop:
@@ -160,6 +165,8 @@ spec:
         volumeMounts:
           - name: "data"
             mountPath: "/data"
+          - name: tmp-dir
+            mountPath: /tmp
           - name: {{ .Values.global.cloudConfig }}
             mountPath: /etc/config/clusterData.json
             readOnly: true
@@ -202,6 +209,8 @@ spec:
           {{- else }}
           emptyDir: {}
           {{- end }}
+        - name: tmp-dir
+          emptyDir: {}
         - name: {{ .Values.global.cloudConfig }}
           configMap:
             name: {{ .Values.global.cloudConfig }}
