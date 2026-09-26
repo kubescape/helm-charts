@@ -1,0 +1,166 @@
+name: kubescape-ops-tool image
+
+on:
+  pull_request:
+    paths:
+      - images/kubescape-ops-tool/**
+      - .github/workflows/kubescape-ops-tool-image.yaml
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish after maintainer approval and Quay setup
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  IMAGE: quay.io/kubescape/kubescape-ops-tool
+  TAG: 0.1.0-r1
+
+jobs:
+  build-test-scan:
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Vet and test the Go module
+        run: |
+          docker run --rm -v "$PWD/images/kubescape-ops-tool:/src" -w /src \
+            golang:1.26-trixie sh -ec 'go vet ./... && go test ./... -race'
+      - name: Build local image
+        run: docker buildx build --platform linux/${{ matrix.arch }} --load -t kubescape-ops-tool-test:${{ matrix.arch }} -f images/kubescape-ops-tool/Dockerfile images/kubescape-ops-tool
+      - name: Test both chart UIDs under a read-only root
+        run: |
+          for uid in 65532 100; do
+            docker run --rm --platform linux/${{ matrix.arch }} --user "$uid:$uid" --read-only \
+              kubescape-ops-tool-test:${{ matrix.arch }} --help
+          done
+      - name: Assert the image has no shell
+        run: |
+          if docker run --rm --platform linux/${{ matrix.arch }} --entrypoint /bin/sh \
+            kubescape-ops-tool-test:${{ matrix.arch }} -c true 2>/dev/null; then
+            echo "Refusing an image that ships a shell" >&2
+            exit 1
+          fi
+      - name: Assert the image ships no kubectl, helm, jq or openssl
+        run: |
+          docker create --platform linux/${{ matrix.arch }} \
+            --name ops-tool-${{ matrix.arch }} kubescape-ops-tool-test:${{ matrix.arch }} >/dev/null
+          docker export ops-tool-${{ matrix.arch }} | tar -tf - > image-files.txt
+          docker rm ops-tool-${{ matrix.arch }} >/dev/null
+          status=0
+          for banned in sh bash ash dash busybox kubectl helm jq openssl; do
+            if awk -F/ -v b="$banned" '$NF == b { found = 1 } END { exit !found }' image-files.txt; then
+              echo "Found a banned binary in the image: $banned" >&2
+              status=1
+            fi
+          done
+          exit "$status"
+      - name: Save exact tested image
+        run: docker save kubescape-ops-tool-test:${{ matrix.arch }} -o kubescape-ops-tool-${{ matrix.arch }}.tar
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          input: kubescape-ops-tool-${{ matrix.arch }}.tar
+          severity: CRITICAL
+          exit-code: '1'
+          ignore-unfixed: false
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: kubescape-ops-tool-${{ matrix.arch }}
+          path: kubescape-ops-tool-${{ matrix.arch }}.tar
+          retention-days: 2
+
+  pr-test-image:
+    needs: build-test-scan
+    # Registry secrets must never be reachable from a workflow whose YAML a PR
+    # author controls. GitHub already withholds secrets from fork-originated
+    # `pull_request` runs by default; this condition makes that boundary
+    # explicit rather than relying on the platform default alone. Same-repo
+    # branch PRs (the only case this leaves eligible) already require push
+    # access to this repository to open in the first place.
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    env:
+      QUAY_USERNAME: ${{ secrets.QUAYIO_REGISTRY_USERNAME }}
+      QUAY_PASSWORD: ${{ secrets.QUAYIO_REGISTRY_PASSWORD }}
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: kubescape-ops-tool-*
+          merge-multiple: true
+      - name: Login to Quay.io
+        if: ${{ env.QUAY_USERNAME != '' && env.QUAY_PASSWORD != '' }}
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAYIO_REGISTRY_USERNAME }}
+          password: ${{ secrets.QUAYIO_REGISTRY_PASSWORD }}
+      - name: Push a disposable per-commit test tag
+        if: ${{ env.QUAY_USERNAME != '' && env.QUAY_PASSWORD != '' }}
+        env:
+          COMMIT_HASH: ${{ github.event.pull_request.head.sha }}
+        run: |
+          TEST_TAG="test-${COMMIT_HASH:0:7}"
+          for arch in amd64 arm64; do
+            docker load -i "kubescape-ops-tool-${arch}.tar"
+            docker tag "kubescape-ops-tool-test:${arch}" "${IMAGE}:${TEST_TAG}-${arch}"
+            docker push "${IMAGE}:${TEST_TAG}-${arch}"
+          done
+          docker buildx imagetools create -t "${IMAGE}:${TEST_TAG}" "${IMAGE}:${TEST_TAG}-amd64" "${IMAGE}:${TEST_TAG}-arm64"
+          echo "Pushed disposable test image: ${IMAGE}:${TEST_TAG}" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  publish:
+    needs: build-test-scan
+    if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: kubescape-ops-tool-*
+          merge-multiple: true
+      - name: Install registry inspection tool
+        run: sudo apt-get update && sudo apt-get install -y skopeo
+      - name: Check that the released tag is unused
+        run: |
+          tags=$(skopeo list-tags docker://${IMAGE})
+          if jq -e --arg tag "$TAG" '.Tags | any(. == $tag or . == ($tag + "-amd64") or . == ($tag + "-arm64"))' <<< "$tags" >/dev/null; then
+            echo "Refusing to overwrite a released $IMAGE:$TAG tag" >&2
+            exit 1
+          fi
+      - uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAYIO_REGISTRY_USERNAME }}
+          password: ${{ secrets.QUAYIO_REGISTRY_PASSWORD }}
+      - name: Push the tested images
+        run: |
+          for arch in amd64 arm64; do
+            docker load -i "kubescape-ops-tool-${arch}.tar"
+            docker tag "kubescape-ops-tool-test:${arch}" "${IMAGE}:${TAG}-${arch}"
+            docker push "${IMAGE}:${TAG}-${arch}"
+          done
+          docker buildx imagetools create -t "${IMAGE}:${TAG}" "${IMAGE}:${TAG}-amd64" "${IMAGE}:${TAG}-arm64"
+          docker buildx imagetools inspect "${IMAGE}:${TAG}"
+          docker logout quay.io
+      - name: Verify anonymous public access
+        run: |
+          skopeo inspect docker://${IMAGE}:${TAG} >/dev/null
+          docker buildx imagetools inspect "${IMAGE}:${TAG}"
+          for arch in amd64 arm64; do
+            docker pull --platform "linux/${arch}" "${IMAGE}:${TAG}"
+          done
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE }}:${{ env.TAG }}
+          severity: CRITICAL
+          exit-code: '1'
+          ignore-unfixed: false

@@ -37,11 +37,14 @@ additionalLabels: {}
 # - `initContainer`: certs generated at runtime by init containers on the consuming pod. GitOps/ArgoCD-safe (no Helm hooks), idempotent across pod restarts, and the CA is reused from a Secret once created.
 certificates:
   strategy: template
-  certgen:
-    image:
-      repository: quay.io/kubescape/kubectl
-      tag: "1.36.1"
-      pullPolicy: IfNotPresent
+
+# Shared operational tooling image. Used by the certificate init containers, the
+# grype-offline-db rollout CronJob and the Helm release upgrader CronJob.
+kubescapeOpsTool:
+  image:
+    repository: quay.io/kubescape/kubescape-ops-tool
+    tag: "0.1.0-r1"
+    pullPolicy: IfNotPresent
 
 # global logger name and level
 # the logger level and name are mapped to environment variables in each component
@@ -1021,10 +1024,6 @@ grypeOfflineDB:
       memory: 200Mi
 
   rollout:
-    image:
-      repository: quay.io/kubescape/kubectl
-      tag: 1.36.1
-      pullPolicy: IfNotPresent
     nodeSelector:
       kubernetes.io/os: linux
     podAnnotations: {}
@@ -1087,10 +1086,16 @@ prometheusExporter:
 # Configures the Helm Release Upgrader
 helmReleaseUpgrader:
   name: "helm-release-upgrader"
-  image:
-    repository: quay.io/kubescape/helm-release-upgrader
-    tag: v0.1.0
-    pullPolicy: IfNotPresent
+
+  # Target of the `helm upgrade` performed by the CronJob. The namespace is not
+  # configurable here: it is always `.Values.ksNamespace`.
+  upgrade:
+    release: kubescape
+    # Local repository alias registered before the upgrade
+    chartRepo: kubescape
+    # Repository index URL the chart is resolved from
+    chartRepoURL: https://kubescape.github.io/helm-charts
+    chartName: kubescape-operator
 
   nodeSelector:
     kubernetes.io/os: linux
