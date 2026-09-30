@@ -3,6 +3,9 @@
 1. Install 
 ```
 helm plugin install https://github.com/helm-unittest/helm-unittest.git
+
+# Using Helm v4
+helm plugin install https://github.com/helm-unittest/helm-unittest.git --verify=false
 ```
 2. Run
 ```
