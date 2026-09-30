@@ -72,7 +72,7 @@ tests:
           value:
             - ALL
 
-  - it: runs the grype-offline-db container with a read-only root filesystem
+  - it: runs the grype-offline-db container with a read-only root filesystem and writable /tmp mount
     template: grype-offline-db/deployment.yaml
     capabilities:
       apiVersions:
@@ -85,3 +85,13 @@ tests:
       - equal:
           path: spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem
           value: true
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: tmp-dir
+            mountPath: /tmp
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: tmp-dir
+            emptyDir: {}
