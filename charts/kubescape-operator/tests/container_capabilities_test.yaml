@@ -95,3 +95,41 @@ tests:
           content:
             name: tmp-dir
             emptyDir: {}
+
+  - it: runs both operator admission certgen init containers with a read-only root filesystem
+    template: operator/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      certificates.strategy: initContainer
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].securityContext.readOnlyRootFilesystem
+          value: true
+      - equal:
+          path: spec.template.spec.initContainers[1].securityContext.readOnlyRootFilesystem
+          value: true
+
+  - it: mounts a writable /tmp for operator certgen-create's working directory
+    template: operator/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      certificates.strategy: initContainer
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: certgen-create
+      - contains:
+          path: spec.template.spec.initContainers[0].volumeMounts
+          content:
+            name: tmp-dir
+            mountPath: /tmp
