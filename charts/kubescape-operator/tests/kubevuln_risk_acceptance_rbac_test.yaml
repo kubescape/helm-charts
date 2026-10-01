@@ -1,0 +1,75 @@
+suite: Kubevuln risk acceptance RBAC
+templates:
+  - kubevuln/clusterrole.yaml
+tests:
+  - it: grants only the required risk acceptance permissions
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.riskAcceptance: enable
+    asserts:
+      - isKind:
+          of: ClusterRole
+      - equal:
+          path: rules
+          value:
+            - &vulnerabilityRules
+              apiGroups: ["spdx.softwarecomposition.kubescape.io"]
+              resources: ["vulnerabilitymanifests", "vulnerabilitymanifestsummaries", "openvulnerabilityexchangecontainers", "sbomsyfts", "sbomsyftfiltereds"]
+              verbs: ["create", "get", "update", "watch", "list", "patch"]
+            - &sbomDeletionRules
+              apiGroups: ["spdx.softwarecomposition.kubescape.io"]
+              resources: ["sbomsyfts", "sbomsyftfiltereds"]
+              verbs: ["delete"]
+            - &containerProfileRules
+              apiGroups: ["spdx.softwarecomposition.kubescape.io"]
+              resources: ["containerprofiles"]
+              verbs: ["get", "watch", "list"]
+            - apiGroups: ["kubescape.io"]
+              resources: ["securityexceptions", "clustersecurityexceptions"]
+              verbs: ["get", "list", "watch"]
+            - apiGroups: [""]
+              resources: ["namespaces", "pods", "replicationcontrollers"]
+              verbs: ["get", "list", "watch"]
+            - apiGroups: ["apps"]
+              resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
+              verbs: ["get", "list", "watch"]
+            - apiGroups: ["batch"]
+              resources: ["jobs", "cronjobs"]
+              verbs: ["get", "list", "watch"]
+            - apiGroups: [""]
+              resources: ["events"]
+              verbs: ["create", "patch"]
+  - it: omits risk acceptance permissions when disabled
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.riskAcceptance: disable
+    asserts:
+      - isKind:
+          of: ClusterRole
+      - equal:
+          path: rules
+          value: &baselineRules
+            - *vulnerabilityRules
+            - *sbomDeletionRules
+            - *containerProfileRules
+  - it: omits risk acceptance permissions by default
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - isKind:
+          of: ClusterRole
+      - equal:
+          path: rules
+          value: *baselineRules
+  - it: omits the role when vulnerability scanning is disabled
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.riskAcceptance: enable
+      capabilities.vulnerabilityScan: disable
+    asserts:
+      - hasDocuments:
+          count: 0
