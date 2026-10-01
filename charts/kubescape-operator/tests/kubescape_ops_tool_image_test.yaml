@@ -1,0 +1,181 @@
+suite: kubescape-ops-tool shared image tests
+tests:
+  - it: uses the shared image for both storage certgen init containers
+    template: storage/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      storage.mtls.enabled: true
+      certificates.strategy: initContainer
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].image
+          value: quay.io/kubescape/kubescape-ops-tool:0.1.0-r1
+      - equal:
+          path: spec.template.spec.initContainers[0].command
+          value: ["/usr/bin/kubescape-ops-tool", "certgen-create"]
+      - equal:
+          path: spec.template.spec.initContainers[1].image
+          value: quay.io/kubescape/kubescape-ops-tool:0.1.0-r1
+      - equal:
+          path: spec.template.spec.initContainers[1].command
+          value: ["/usr/bin/kubescape-ops-tool", "certgen-patch"]
+      - notContains:
+          path: spec.template.spec.initContainers[0].volumeMounts
+          content:
+            name: storage-certgen-scripts
+            mountPath: /scripts
+            readOnly: true
+
+  - it: propagates a kubescapeOpsTool tag override to the storage certgen init containers
+    template: storage/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      storage.mtls.enabled: true
+      certificates.strategy: initContainer
+      kubescapeOpsTool.image.tag: 9.9.9-test
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].image
+          value: quay.io/kubescape/kubescape-ops-tool:9.9.9-test
+      - equal:
+          path: spec.template.spec.initContainers[1].image
+          value: quay.io/kubescape/kubescape-ops-tool:9.9.9-test
+
+  - it: uses the shared image for both admission-webhook certgen init containers
+    template: operator/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      certificates.strategy: initContainer
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].image
+          value: quay.io/kubescape/kubescape-ops-tool:0.1.0-r1
+      - equal:
+          path: spec.template.spec.initContainers[0].command
+          value: ["/usr/bin/kubescape-ops-tool", "certgen-create"]
+      - equal:
+          path: spec.template.spec.initContainers[1].image
+          value: quay.io/kubescape/kubescape-ops-tool:0.1.0-r1
+      - equal:
+          path: spec.template.spec.initContainers[1].command
+          value: ["/usr/bin/kubescape-ops-tool", "certgen-patch"]
+
+  - it: propagates a kubescapeOpsTool tag override to the admission-webhook certgen init containers
+    template: operator/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      certificates.strategy: initContainer
+      kubescapeOpsTool.image.tag: 9.9.9-test
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].image
+          value: quay.io/kubescape/kubescape-ops-tool:9.9.9-test
+      - equal:
+          path: spec.template.spec.initContainers[1].image
+          value: quay.io/kubescape/kubescape-ops-tool:9.9.9-test
+
+  - it: uses the shared image and rollout-restart subcommand in the grype-offline-db CronJob
+    template: grype-offline-db/cronjob.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      grypeOfflineDB.enabled: true
+      grypeOfflineDB.image.tag: latest
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].image
+          value: quay.io/kubescape/kubescape-ops-tool:0.1.0-r1
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].command
+          value: ["/usr/bin/kubescape-ops-tool", "rollout-restart"]
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].args
+          value: ["--namespace", "kubescape", "--deployment", "grype-offline-db"]
+
+  - it: propagates a kubescapeOpsTool tag override to the grype-offline-db CronJob
+    template: grype-offline-db/cronjob.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      grypeOfflineDB.enabled: true
+      grypeOfflineDB.image.tag: latest
+      kubescapeOpsTool.image.tag: 9.9.9-test
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].image
+          value: quay.io/kubescape/kubescape-ops-tool:9.9.9-test
+
+  - it: uses the shared image and helm-upgrade subcommand in the autoupdater CronJob
+    template: autoupdater/cronjob.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.autoUpgrading: enable
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].image
+          value: quay.io/kubescape/kubescape-ops-tool:0.1.0-r1
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].command
+          value: ["/usr/bin/kubescape-ops-tool", "helm-upgrade"]
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].args
+          value:
+            - --release
+            - kubescape
+            - --namespace
+            - kubescape
+            - --chart-repo
+            - kubescape
+            - --chart-repo-url
+            - https://kubescape.github.io/helm-charts
+            - --chart-name
+            - kubescape-operator
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.securityContext.runAsUser
+          value: 65532
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.securityContext.fsGroup
+          value: 65532
+
+  - it: propagates a kubescapeOpsTool tag override to the autoupdater CronJob
+    template: autoupdater/cronjob.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.autoUpgrading: enable
+      kubescapeOpsTool.image.tag: 9.9.9-test
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].image
+          value: quay.io/kubescape/kubescape-ops-tool:9.9.9-test

@@ -13,8 +13,6 @@ operatorConfig: {{ include (printf "%s/operator/configmap.yaml" $.Template.BaseP
 proxySecret: {{ include (printf "%s/%s/%s" $.Template.BasePath $.Values.global.proxySecretDirectory "proxy-secret.yaml") . | replace .Chart.AppVersion "" | sha256sum }}
 storageConfig: {{ include (printf "%s/storage/configmap.yaml" $.Template.BasePath) . | replace .Chart.AppVersion "" | sha256sum }}
 synchronizerConfig: {{ include (printf "%s/synchronizer/configmap.yaml" $.Template.BasePath) . | replace .Chart.AppVersion "" | sha256sum }}
-admissionCertgenScripts: {{ include (printf "%s/operator/admission-webhook/configmap.yaml" $.Template.BasePath) . | replace .Chart.AppVersion "" | sha256sum }}
-storageCertgenScripts: {{ include (printf "%s/storage/certgen/configmap.yaml" $.Template.BasePath) . | replace .Chart.AppVersion "" | sha256sum }}
 {{- end -}}
 
 
@@ -171,10 +169,6 @@ warnings:
 - "capabilities.malwareDetection=enable but capabilities.runtimeDetection is not enabled. Malware detection runs on top of runtime detection. To use it, set capabilities.runtimeDetection=enable."
 {{- end }}
 {{- end -}}
-
-{{- define "kubescape.certgen.scriptsHash" -}}
-{{- printf "%s%s" (.Files.Get "scripts/certgen-create.sh") (.Files.Get "scripts/certgen-patch.sh") | sha256sum | trunc 8 -}}
-{{- end }}
 
 {{- define "kubescape.certificates.strategy" -}}
 {{- $strategy := default "template" .Values.certificates.strategy -}}

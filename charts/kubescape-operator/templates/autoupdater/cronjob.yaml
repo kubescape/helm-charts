@@ -28,10 +28,10 @@ spec:
           serviceAccountName: {{ .Values.helmReleaseUpgrader.name }}
           securityContext:
             runAsNonRoot: true
-            # User and Group IDs as defined in the Helm Release Upgrader image
-            runAsUser: 1000
-            runAsGroup: 1000
-            fsGroup: 1000
+            # User and Group IDs of the distroless `nonroot` user in the kubescape-ops-tool image
+            runAsUser: 65532
+            runAsGroup: 65532
+            fsGroup: 65532
             seccompProfile:
               type: RuntimeDefault
           volumes:
@@ -40,8 +40,20 @@ spec:
                 sizeLimit: 500Mi
           containers:
           - name: {{ .Values.helmReleaseUpgrader.name }}
-            image: {{ printf "%s:%s" .Values.helmReleaseUpgrader.image.repository .Values.helmReleaseUpgrader.image.tag  | quote }}
-            imagePullPolicy: {{ .Values.helmReleaseUpgrader.image.pullPolicy | quote }}
+            image: {{ printf "%s:%s" .Values.kubescapeOpsTool.image.repository (.Values.kubescapeOpsTool.image.tag | toString) | quote }}
+            imagePullPolicy: {{ .Values.kubescapeOpsTool.image.pullPolicy | quote }}
+            command: ["/usr/bin/kubescape-ops-tool", "helm-upgrade"]
+            args:
+              - --release
+              - {{ .Values.helmReleaseUpgrader.upgrade.release | quote }}
+              - --namespace
+              - {{ .Values.ksNamespace | quote }}
+              - --chart-repo
+              - {{ .Values.helmReleaseUpgrader.upgrade.chartRepo | quote }}
+              - --chart-repo-url
+              - {{ .Values.helmReleaseUpgrader.upgrade.chartRepoURL | quote }}
+              - --chart-name
+              - {{ .Values.helmReleaseUpgrader.upgrade.chartName | quote }}
             securityContext:
               allowPrivilegeEscalation: false
               readOnlyRootFilesystem: true
