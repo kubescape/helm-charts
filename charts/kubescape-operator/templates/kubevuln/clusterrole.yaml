@@ -25,16 +25,20 @@ rules:
     resources: ["securityexceptions", "clustersecurityexceptions"]
     verbs: ["get", "list", "watch"]
   # Evaluating a SecurityException's match.objectSelector / match.namespaceSelector
-  # requires reading the labels of the scanned workload and its namespace. Without
-  # these, such exceptions fail closed and silently never apply.
+  # requires reading workload and namespace labels. List/watch lets the label-cache
+  # informers invalidate cached labels when those objects change or are deleted.
   - apiGroups: [""]
     resources: ["namespaces", "pods", "replicationcontrollers"]
-    verbs: ["get"]
+    verbs: ["get", "list", "watch"]
   - apiGroups: ["apps"]
     resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
-    verbs: ["get"]
+    verbs: ["get", "list", "watch"]
   - apiGroups: ["batch"]
     resources: ["jobs", "cronjobs"]
-    verbs: ["get"]
+    verbs: ["get", "list", "watch"]
+  # Record suppression Events and patch repeated occurrences.
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
 {{- end }}
 {{- end }}
