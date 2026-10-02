@@ -266,6 +266,23 @@ Parameters:
       value: "/sbom-comm/scanner.sock"
     - name: HOST_ROOT
       value: "/host"
+    {{- /*
+    CPU_LIMIT_MILLIS exposes THIS container's own declared CPU limit, in integer
+    millicores, so the sbom-scanner can bound Syft's cataloger parallelism to the
+    CPU it is actually allowed to use. Without it Syft's own default applies,
+    which in the vendored fork is runtime.NumCPU() * 4 -- far beyond this
+    container's quota -- and CFS throttling degrades every scan it serves.
+
+    This is the sbom-scanner's own copy of the variable, resolved from its own
+    resource limits. node-agent's identical variable lives in the node-agent
+    container's env block and resolves to a different value; a container's
+    resourceFieldRef only ever sees its own spec, so both are required.
+    */}}
+    - name: CPU_LIMIT_MILLIS
+      valueFrom:
+        resourceFieldRef:
+          resource: limits.cpu
+          divisor: "1m"
     {{- if .Values.configurations.otelUrl }}
     - name: OTEL_COLLECTOR_SVC
       value: {{ .Values.configurations.otelUrl }}
