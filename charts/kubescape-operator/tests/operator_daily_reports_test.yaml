@@ -1,0 +1,134 @@
+suite: Operator daily report configuration
+capabilities:
+  apiVersions:
+    - batch/v1
+set:
+  unittest: true
+  clusterName: kind-kind
+tests:
+
+  - it: preserves reporting by default
+    template: operator/deployment.yaml
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KS_SKIP_UPDATE_CHECK
+          any: true
+
+  - it: does not apply the scanner-only skip option to the online operator
+    template: operator/deployment.yaml
+    set:
+      kubescape.skipUpdateCheck: true
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KS_SKIP_UPDATE_CHECK
+          any: true
+
+  - it: disables operator reports offline even when scanner update checks are enabled
+    template: operator/deployment.yaml
+    set:
+      capabilities.kubescapeOffline: enable
+      kubescape.skipUpdateCheck: false
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KS_SKIP_UPDATE_CHECK
+            value: 'true'
+          count: 1
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KS_SKIP_UPDATE_CHECK
+          any: true
+          count: 1
+
+  - it: forces one skip entry offline while preserving unrelated and legacy environment entries
+    template: operator/deployment.yaml
+    set:
+      capabilities.kubescapeOffline: enable
+      operator.env:
+        - name: KS_SKIP_UPDATE_CHECK
+          value: 'false'
+        - name: KS_SKIP_UPDATE_CHECK
+          value: 'true'
+        - name: KUBESCAPE_SKIP_UPDATE_CHECK
+          value: 'false'
+        - name: CUSTOM_SETTING
+          value: custom
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KS_SKIP_UPDATE_CHECK
+            value: 'true'
+          count: 1
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KS_SKIP_UPDATE_CHECK
+          any: true
+          count: 1
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KUBESCAPE_SKIP_UPDATE_CHECK
+            value: 'false'
+          count: 1
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CUSTOM_SETTING
+            value: custom
+          count: 1
+
+  - it: preserves an explicit online opt-out
+    template: operator/deployment.yaml
+    set:
+      operator.env:
+        - name: KS_SKIP_UPDATE_CHECK
+          value: 'true'
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KS_SKIP_UPDATE_CHECK
+            value: 'true'
+          count: 1
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KS_SKIP_UPDATE_CHECK
+          any: true
+          count: 1
+
+  - it: preserves explicit online reporting and unrelated environment entries
+    template: operator/deployment.yaml
+    set:
+      operator.env:
+        - name: KS_SKIP_UPDATE_CHECK
+          value: 'false'
+        - name: CUSTOM_SETTING
+          value: custom
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KS_SKIP_UPDATE_CHECK
+            value: 'false'
+          count: 1
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KS_SKIP_UPDATE_CHECK
+          any: true
+          count: 1
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CUSTOM_SETTING
+            value: custom
+          count: 1

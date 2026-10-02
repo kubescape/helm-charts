@@ -2,6 +2,7 @@
 {{- $components := fromYaml (include "components" .) }}
 {{- if $components.operator.enabled }}
 {{- $no_proxy_envar_list := (include "no_proxy_envar_list" .) -}}
+{{- $offline := eq .Values.capabilities.kubescapeOffline "enable" -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -183,9 +184,15 @@ spec:
               value: "{{ .Values.logger.level }}"
             - name: KS_LOGGER_NAME
               value: "{{ .Values.logger.name }}"
+            {{- if $offline }}
+            - name: KS_SKIP_UPDATE_CHECK
+              value: "true"
+            {{- end }}
             {{- range .Values.operator.env }}
+            {{- if not (and $offline (eq .name "KS_SKIP_UPDATE_CHECK")) }}
             - name: {{ .name }}
               value: "{{ .value }}"
+            {{- end }}
             {{- end }}
             {{- if ne .Values.global.httpsProxy "" }}
             - name: HTTPS_PROXY
