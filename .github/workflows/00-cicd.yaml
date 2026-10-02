@@ -19,6 +19,8 @@ on:
         type: boolean
     # secrets: inherit
 
+permissions: read-all
+
 jobs:
   input-validator:
     runs-on: ubuntu-latest
@@ -39,6 +41,8 @@ jobs:
           fi
 
   helm-chart-update:
+    permissions:
+      contents: write # Pass through to the reusable chart update workflow.
     needs: input-validator
     uses: ./.github/workflows/01-update_tag.yaml
     with:
@@ -74,6 +78,10 @@ jobs:
           PULL_REQUEST: ${{ needs.helm-chart-update.outputs.PR_NUMBER }}
 
   helm-release: 
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
     needs: [helm-chart-update, merge-to-main]
     if: ${{ (always() && (contains(needs.*.result, 'success') || contains(needs.*.result, 'skipped')) && !(contains(needs.*.result, 'failure')) && !(contains(needs.*.result, 'cancelled'))) }}
     with:
