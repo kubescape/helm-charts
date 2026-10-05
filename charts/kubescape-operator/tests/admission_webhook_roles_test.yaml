@@ -1,0 +1,26 @@
+suite: Admission webhook RBAC resources
+templates:
+  - operator/admission-webhook/webhook.yaml
+tests:
+  - it: registers roles and clusterroles alongside existing admission resources
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+    asserts:
+      - isKind:
+          of: ValidatingWebhookConfiguration
+      - equal:
+          path: webhooks[0].rules[0].resources
+          value: ["pods", "pods/exec", "pods/portforward", "pods/attach", "clusterrolebindings", "rolebindings", "clusterroles", "roles"]
+      - equal:
+          path: webhooks[0].failurePolicy
+          value: Ignore
+  - it: omits the webhook when admission control is disabled
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: disable
+    asserts:
+      - hasDocuments:
+          count: 0
