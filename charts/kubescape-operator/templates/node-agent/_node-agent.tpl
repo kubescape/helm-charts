@@ -252,6 +252,8 @@ Parameters:
   {{- end }}
   securityContext:
     runAsUser: 0
+    runAsGroup: 0
+    allowPrivilegeEscalation: false
     readOnlyRootFilesystem: true
     capabilities:
       drop: ["ALL"]

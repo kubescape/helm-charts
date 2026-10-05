@@ -133,3 +133,30 @@ tests:
           content:
             name: tmp-dir
             mountPath: /tmp
+
+  - it: disallows privilege escalation and pins group on node-agent sbom-scanner sidecar
+    template: node-agent/daemonset.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.nodeSbomGeneration: enable
+      nodeAgent.sbomScanner.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].name
+          value: sbom-scanner
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation
+          value: false
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsGroup
+          value: 0
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsUser
+          value: 0
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem
+          value: true
