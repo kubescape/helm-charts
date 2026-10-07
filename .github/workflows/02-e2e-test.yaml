@@ -66,17 +66,21 @@ jobs:
         if: ${{ github.run_attempt == 1 }}
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          CORRELATION_ID: ${{ steps.dispatch-info.outputs.correlation_id }}
+          TESTS_BRANCH: ${{ inputs.TESTS_BRANCH }}
+          CHART_BRANCH: ${{ inputs.BRANCH }}
+          KS_BRANCH: ${{ inputs.KS_BRANCH }}
         run: |
           RESPONSE=$(gh api --method POST "repos/armosec/shared-workflows/actions/workflows/helm-e2e-receiver.yaml/dispatches" \
             -f ref=main \
             -F return_run_details=true \
-            -f "inputs[correlation_id]=${{ steps.dispatch-info.outputs.correlation_id }}" \
+            -f "inputs[correlation_id]=${CORRELATION_ID}" \
             -f "inputs[github_repository]=${GITHUB_REPOSITORY}" \
             -f "inputs[environment]=production" \
             -f "inputs[tests_groups]=HELM_CHARTS_E2E_KUBESCAPE" \
-            -f "inputs[systests_branch]=${{ inputs.TESTS_BRANCH }}" \
-            -f "inputs[in_cluster_chart_branch]=${{ inputs.BRANCH }}" \
-            -f "inputs[ks_branch]=${{ inputs.KS_BRANCH }}" \
+            -f "inputs[systests_branch]=${TESTS_BRANCH}" \
+            -f "inputs[in_cluster_chart_branch]=${CHART_BRANCH}" \
+            -f "inputs[ks_branch]=${KS_BRANCH}" \
             -f "inputs[charts_name]=kubescape-operator" \
             -f "inputs[charts_repo]=${GITHUB_REPOSITORY}")
 
@@ -104,9 +108,14 @@ jobs:
           fi
 
           # Re-run: the dispatch step is skipped, so find the run the first attempt started.
-          # It is minutes old by now, so the run list already shows it.
-          run_id=$(gh api "repos/armosec/shared-workflows/actions/workflows/helm-e2e-receiver.yaml/runs?per_page=100" \
-            --jq '.workflow_runs | map(select(.name | contains("'"$CORRELATION_ID"'"))) | first | .id // empty')
+          # The App token can see a new run minutes late, so retry for a while.
+          for i in {1..15}; do
+            run_id=$(gh api "repos/armosec/shared-workflows/actions/workflows/helm-e2e-receiver.yaml/runs?per_page=100" \
+              --jq '.workflow_runs | map(select(.name | contains("'"$CORRELATION_ID"'"))) | first | .id // empty')
+            [ -n "$run_id" ] && break
+            echo "Attempt $i: waiting for the first attempt's run to show up..."
+            sleep 30
+          done
           if [ -z "$run_id" ]; then
             echo "::error::Could not find the E2E run started by the first attempt (${CORRELATION_ID})"
             exit 1
