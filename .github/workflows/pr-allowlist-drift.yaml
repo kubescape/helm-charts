@@ -22,15 +22,13 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
-permissions:
-  contents: read
-  pull-requests: write   # post/update/delete the sticky drift comment (PR comments are
-                         # scoped to `pull-requests`, not `issues`, even though they go
-                         # through the issues API). A PR from a fork gets a read-only
-                         # token regardless, so the comment calls below tolerate a 403.
+permissions: read-all
 
 jobs:
   allowlist-drift:
+    permissions:
+      contents: read
+      pull-requests: write # Required for the sticky PR comment; fork tokens remain read-only.
     # Only the `allowlist-drift-ack` label affects this check, so skip label events for any
     # other label instead of re-running the whole checkout + helm + drift check needlessly.
     if: ${{ !((github.event.action == 'labeled' || github.event.action == 'unlabeled') && github.event.label.name != 'allowlist-drift-ack') }}
