@@ -62,42 +62,57 @@ jobs:
           repositories: shared-workflows
 
       - name: Dispatch Helm E2E to private repo
+        id: dispatch
         if: ${{ github.run_attempt == 1 }}
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          gh api "repos/armosec/shared-workflows/dispatches" \
-            -f event_type="e2e-test-trigger" \
-            -f "client_payload[correlation_id]=${{ steps.dispatch-info.outputs.correlation_id }}" \
-            -f "client_payload[github_repository]=${GITHUB_REPOSITORY}" \
-            -f "client_payload[environment]=production" \
-            -f "client_payload[tests_groups]=HELM_CHARTS_E2E_KUBESCAPE" \
-            -f "client_payload[systests_branch]=${{ inputs.TESTS_BRANCH }}" \
-            -f "client_payload[in_cluster_chart_branch]=${{ inputs.BRANCH }}" \
-            -f "client_payload[ks_branch]=${{ inputs.KS_BRANCH }}" \
-            -f "client_payload[charts_name]=kubescape-operator" \
-            -f "client_payload[charts_repo]=${GITHUB_REPOSITORY}"
+          RESPONSE=$(gh api --method POST "repos/armosec/shared-workflows/actions/workflows/helm-e2e-receiver.yaml/dispatches" \
+            -f ref=main \
+            -F return_run_details=true \
+            -f "inputs[correlation_id]=${{ steps.dispatch-info.outputs.correlation_id }}" \
+            -f "inputs[github_repository]=${GITHUB_REPOSITORY}" \
+            -f "inputs[environment]=production" \
+            -f "inputs[tests_groups]=HELM_CHARTS_E2E_KUBESCAPE" \
+            -f "inputs[systests_branch]=${{ inputs.TESTS_BRANCH }}" \
+            -f "inputs[in_cluster_chart_branch]=${{ inputs.BRANCH }}" \
+            -f "inputs[ks_branch]=${{ inputs.KS_BRANCH }}" \
+            -f "inputs[charts_name]=kubescape-operator" \
+            -f "inputs[charts_repo]=${GITHUB_REPOSITORY}")
+
+          RUN_ID=$(jq -r '.workflow_run_id // empty' <<<"$RESPONSE")
+          if [ -z "$RUN_ID" ]; then
+            echo "::error::Dispatch did not return a run ID: ${RESPONSE}"
+            exit 1
+          fi
+          echo "run_id=${RUN_ID}" >> "$GITHUB_OUTPUT"
+          echo "url=$(jq -r '.html_url' <<<"$RESPONSE")" >> "$GITHUB_OUTPUT"
 
       - name: Find E2E workflow run
         id: find-run
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           CORRELATION_ID: ${{ steps.dispatch-info.outputs.correlation_id }}
+          DISPATCHED_RUN_ID: ${{ steps.dispatch.outputs.run_id }}
+          DISPATCHED_URL: ${{ steps.dispatch.outputs.url }}
         run: |
-          for i in {1..15}; do
-            run_id=$(gh api "repos/armosec/shared-workflows/actions/runs?event=repository_dispatch&per_page=30" \
-              --jq '.workflow_runs | map(select(.name | contains("'"$CORRELATION_ID"'"))) | first | .id // empty')
-            
-            if [ -n "$run_id" ]; then
-              echo "run_id=${run_id}" >> "$GITHUB_OUTPUT"
-              gh api "repos/armosec/shared-workflows/actions/runs/${run_id}" --jq '"url=" + .html_url' >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-            echo "Attempt $i: waiting for run..."
-            sleep $((i < 5 ? 10 : 30))
-          done
-          echo "::error::Could not find workflow run"
-          exit 1
+          # First attempt: the dispatch call returned the run ID, so there is nothing to search for.
+          if [ -n "$DISPATCHED_RUN_ID" ]; then
+            echo "run_id=${DISPATCHED_RUN_ID}" >> "$GITHUB_OUTPUT"
+            echo "url=${DISPATCHED_URL}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Re-run: the dispatch step is skipped, so find the run the first attempt started.
+          # It is minutes old by now, so the run list already shows it.
+          run_id=$(gh api "repos/armosec/shared-workflows/actions/workflows/helm-e2e-receiver.yaml/runs?per_page=100" \
+            --jq '.workflow_runs | map(select(.name | contains("'"$CORRELATION_ID"'"))) | first | .id // empty')
+          if [ -z "$run_id" ]; then
+            echo "::error::Could not find the E2E run started by the first attempt (${CORRELATION_ID})"
+            exit 1
+          fi
+          echo "run_id=${run_id}" >> "$GITHUB_OUTPUT"
+          gh api "repos/armosec/shared-workflows/actions/runs/${run_id}" --jq '"url=" + .html_url' >> "$GITHUB_OUTPUT"
 
       - name: Re-run failed jobs in private repo
         id: rerun
