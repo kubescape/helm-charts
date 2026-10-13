@@ -549,10 +549,26 @@ kubevuln:
 
   tmpDirPersistence:
     enabled: false
+    # -- with enabled, create the claim per pod as a generic ephemeral volume
+    # (spec.volumes[].ephemeral): it is deleted together with the pod, does not
+    # count against the ephemeral-storage limits, and does not pin the pod to a node
+    # the way a standalone PVC on a node-local storage class does
+    ephemeral: false
     storageClassName: ""
     accessModes:
       - ReadWriteOnce
     size: 50Gi
+    annotations: {}
+
+  # -- Grype DB as a generic ephemeral volume (spec.volumes[].ephemeral) instead of an
+  # emptyDir; takes precedence over config.grypeDbPersistence. The DB is re-downloaded
+  # on every pod start; size it for the old and the new DB side by side during an update
+  grypeDbEphemeral:
+    enabled: false
+    storageClassName: ""
+    accessModes:
+      - ReadWriteOnce
+    size: 10Gi
     annotations: {}
 
   # SBOM scanner sidecar — isolates Syft memory usage in a separate container

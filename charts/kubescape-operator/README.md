@@ -168,6 +168,8 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | kubevuln.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | kubevuln.volumes | object | `[]` | Additional volumes for the image vulnerability scanning |
 | kubevuln.volumeMounts | object | `[]` | Additional volumeMounts for the image vulnerability scanning |
+| kubevuln.tmpDirPersistence.ephemeral | bool | `false` | With `tmpDirPersistence.enabled`, create the `/tmp` claim per pod as a [generic ephemeral volume](https://kubernetes.io/docs/concepts/storage/ephemeral-volumes/#generic-ephemeral-volumes) instead of a standalone PVC: deleted with the pod, not counted against the ephemeral-storage limits |
+| kubevuln.grypeDbEphemeral.enabled | bool | `false` | Put the Grype DB on a generic ephemeral volume (`storageClassName`, `accessModes`, `size` (default `10Gi`), `annotations`) instead of an emptyDir; takes precedence over `config.grypeDbPersistence` |
 | kubevuln.config.grypeDbListingURL | string | `""` | Parameter to override the default Grype vulnerability database URL (listings.json format) |
 | kubevuln.config.proxyRegistryMap | object | `{}` | Map of source registry address to mirror registry address. When set, kubevuln rewrites image pull references accordingly (useful for air-gapped or offline registry mirrors) |
 | kubevuln.config.cveMatchingMode | string | `""` | CVE matching mode: "off" (Grype defaults), "on" (CPE matching everywhere), or "adaptive" (CPE matching everywhere except trusted-vendor images, which rely on the vendor's authoritative feed). Empty derives the mode from useDefaultMatchers for backward compatibility (true -> "off", false -> "adaptive"). |

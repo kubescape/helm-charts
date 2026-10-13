@@ -222,7 +222,9 @@ spec:
             secretName: {{ .Values.global.extraCaCertificates.secretName }}
       {{- end }}
         - name: tmp-dir
-          {{- if .Values.kubevuln.tmpDirPersistence.enabled }}
+          {{- if and .Values.kubevuln.tmpDirPersistence.enabled .Values.kubevuln.tmpDirPersistence.ephemeral }}
+          {{- include "kubevuln.ephemeralVolume" .Values.kubevuln.tmpDirPersistence | nindent 10 }}
+          {{- else if .Values.kubevuln.tmpDirPersistence.enabled }}
           persistentVolumeClaim:
             claimName: kubescape-{{ .Values.kubevuln.name }}-tmp
           {{- else }}
@@ -237,7 +239,9 @@ spec:
             - key: "clusterData"
               path: "clusterData.json"
         - name: "grype-db"
-          {{- if .Values.kubevuln.config.grypeDbPersistence }}
+          {{- if .Values.kubevuln.grypeDbEphemeral.enabled }}
+          {{- include "kubevuln.ephemeralVolume" .Values.kubevuln.grypeDbEphemeral | nindent 10 }}
+          {{- else if .Values.kubevuln.config.grypeDbPersistence }}
           persistentVolumeClaim:
             claimName: kubescape-{{ .Values.kubevuln.name }}
           {{- else }}
