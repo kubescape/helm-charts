@@ -550,9 +550,12 @@ kubevuln:
   tmpDirPersistence:
     enabled: false
     # -- with enabled, create the claim per pod as a generic ephemeral volume
-    # (spec.volumes[].ephemeral): it is deleted together with the pod, does not
-    # count against the ephemeral-storage limits, and does not pin the pod to a node
-    # the way a standalone PVC on a node-local storage class does
+    # (spec.volumes[].ephemeral): it is deleted together with the pod and does not
+    # count against the ephemeral-storage limits. Each replacement pod gets a new
+    # claim, so unlike a standalone PVC on a node-local storage class it does not
+    # pin kubevuln to one node across restarts. Use a WaitForFirstConsumer class:
+    # with Immediate binding a node-local volume is provisioned before scheduling
+    # and the pod has to follow it to that node
     ephemeral: false
     storageClassName: ""
     accessModes:
