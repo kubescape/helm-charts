@@ -120,6 +120,7 @@ spec:
                           minLength: 1
                           type: string
                         name:
+                          maxLength: 256
                           minLength: 1
                           type: string
                         origin:
@@ -259,6 +260,7 @@ spec:
                           minLength: 1
                           type: string
                         name:
+                          maxLength: 256
                           minLength: 1
                           type: string
                         origin:
@@ -393,6 +395,7 @@ spec:
                           minLength: 1
                           type: string
                         name:
+                          maxLength: 256
                           minLength: 1
                           type: string
                         origin:
@@ -536,6 +539,7 @@ spec:
                           minLength: 1
                           type: string
                         name:
+                          maxLength: 256
                           minLength: 1
                           type: string
                         origin:
@@ -676,6 +680,7 @@ spec:
                           minLength: 1
                           type: string
                         name:
+                          maxLength: 256
                           minLength: 1
                           type: string
                         origin:
@@ -899,43 +904,22 @@ spec:
             type: object
           status:
             properties:
-              compiled:
-                properties:
-                  classesResolved:
-                    format: int64
-                    minimum: 0
-                    type: integer
-                  classesUnresolved:
-                    format: int64
-                    minimum: 0
-                    type: integer
-                  fromSources:
-                    format: int64
-                    minimum: 0
-                    type: integer
-                  rules:
-                    format: int64
-                    minimum: 0
-                    type: integer
-                required:
-                - rules
-                - fromSources
-                - classesResolved
-                - classesUnresolved
-                type: object
               conditions:
                 items:
                   properties:
                     lastTransitionTime:
                       format: date-time
+                      maxLength: 64
                       type: string
                     message:
+                      maxLength: 512
                       type: string
                     observedGeneration:
                       format: int64
                       minimum: 0
                       type: integer
                     reason:
+                      maxLength: 128
                       minLength: 1
                       type: string
                     status:
@@ -946,6 +930,7 @@ spec:
                       minLength: 1
                       type: string
                     type:
+                      maxLength: 128
                       minLength: 1
                       type: string
                   required:
@@ -955,131 +940,49 @@ spec:
                   - reason
                   - message
                   type: object
+                maxItems: 8
                 type: array
                 x-kubernetes-list-map-keys:
                 - type
                 x-kubernetes-list-type: map
-              nodes:
-                items:
-                  properties:
-                    appliesOnRestart:
-                      items:
-                        minLength: 1
-                        type: string
-                      minItems: 1
-                      type: array
-                    conditions:
-                      items:
-                        properties:
-                          lastTransitionTime:
-                            format: date-time
-                            type: string
-                          message:
-                            type: string
-                          observedGeneration:
-                            format: int64
-                            minimum: 0
-                            type: integer
-                          reason:
-                            minLength: 1
-                            type: string
-                          status:
-                            enum:
-                            - "True"
-                            - "False"
-                            - Unknown
-                            minLength: 1
-                            type: string
-                          type:
-                            minLength: 1
-                            type: string
-                        required:
-                        - type
-                        - status
-                        - lastTransitionTime
-                        - reason
-                        - message
-                        type: object
-                      type: array
-                      x-kubernetes-list-map-keys:
-                      - type
-                      x-kubernetes-list-type: map
-                    degraded:
-                      items:
-                        properties:
-                          effective:
-                            enum:
-                            - audit
-                            - enforce
-                            - tripwire
-                            minLength: 1
-                            type: string
-                          reason:
-                            minLength: 1
-                            type: string
-                          requested:
-                            enum:
-                            - audit
-                            - enforce
-                            minLength: 1
-                            type: string
-                          rule:
-                            minLength: 1
-                            type: string
-                        required:
-                        - rule
-                        - requested
-                        - effective
-                        - reason
-                        type: object
-                      type: array
-                      x-kubernetes-list-map-keys:
-                      - rule
-                      x-kubernetes-list-type: map
-                    error:
-                      type: string
-                    lastCompiled:
-                      format: date-time
-                      type: string
-                    name:
-                      minLength: 1
-                      type: string
-                    observedGeneration:
-                      format: int64
-                      minimum: 0
-                      type: integer
-                    ruleHitCounts:
-                      additionalProperties:
-                        format: int64
-                        minimum: 0
-                        type: integer
-                      type: object
-                    shadowedAllows:
-                      items:
-                        minLength: 1
-                        type: string
-                      minItems: 1
-                      type: array
-                    stale:
-                      type: boolean
-                    tier:
-                      enum:
-                      - bpf-lsm
-                      - kprobe-override
-                      - tripwire
-                      - seccomp-only
-                      - audit-only
-                      minLength: 1
-                      type: string
-                  required:
-                  - name
-                  - tier
-                  - stale
-                  type: object
-                type: array
-                x-kubernetes-list-map-keys:
-                - name
-                x-kubernetes-list-type: map
+              lastAggregated:
+                format: date-time
+                maxLength: 64
+                type: string
+              nodeSummary:
+                properties:
+                  degraded:
+                    format: int64
+                    minimum: 0
+                    type: integer
+                  ready:
+                    format: int64
+                    minimum: 0
+                    type: integer
+                  reporting:
+                    format: int64
+                    minimum: 0
+                    type: integer
+                  stale:
+                    format: int64
+                    minimum: 0
+                    type: integer
+                  total:
+                    format: int64
+                    minimum: 0
+                    type: integer
+                required:
+                - total
+                - reporting
+                - ready
+                - degraded
+                - stale
+                type: object
+                x-kubernetes-validations:
+                - message: reporting must be at most total; each categorized count
+                    must be at most reporting
+                  rule: self.reporting <= self.total && self.ready <= self.reporting
+                    && self.degraded <= self.reporting && self.stale <= self.reporting
               observedGeneration:
                 format: int64
                 minimum: 0
