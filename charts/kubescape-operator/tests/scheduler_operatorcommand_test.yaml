@@ -9,6 +9,8 @@ templates:
   - kubevuln/rolebinding.yaml
   - operator/command-scripts-configmap.yaml
   - operator/registry-scan-recurring-cronjob-configmap.yaml
+  - operator/ks-recurring-cronjob-configmap.yaml
+  - operator/kv-recurring-cronjob-configmap.yaml
 capabilities:
   apiVersions:
     - batch/v1
@@ -213,3 +215,26 @@ tests:
       - notMatchRegex:
           path: data.cronjobTemplate
           pattern: triggerAction
+  - it: renders the backend-driven scan CronJob templates with the same script
+    templates:
+      - operator/ks-recurring-cronjob-configmap.yaml
+      - operator/kv-recurring-cronjob-configmap.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: 'image: "quay.io/kubescape/kubectl:1.36.1"'
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: 'command: \["/scripts/create-operator-command.sh"\]'
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: 'name: operator-command-scripts'
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: 'automountServiceAccountToken: true'
+      - notMatchRegex:
+          path: data.cronjobTemplate
+          pattern: 'triggerAction|-method=post'
