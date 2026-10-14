@@ -130,3 +130,27 @@ Usage:
 {{- $bytes := include "kubescape-operator.convertMemToBytes" .memory | mulf $percentage -}}
 {{- printf "%dMiB" (divf $bytes 0x1p20 | floor | int64) -}}
 {{- end }}
+
+{{/*
+kubevuln.ephemeralVolume renders a generic ephemeral volume source from a
+{storageClassName, accessModes, size, annotations} block
+(kubevuln.tmpDirPersistence, kubevuln.grypeDbEphemeral).
+*/}}
+{{- define "kubevuln.ephemeralVolume" -}}
+ephemeral:
+  volumeClaimTemplate:
+    {{- with .annotations }}
+    metadata:
+      annotations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    spec:
+      accessModes:
+        {{- toYaml .accessModes | nindent 8 }}
+      {{- with .storageClassName }}
+      storageClassName: {{ . | quote }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .size }}
+{{- end }}

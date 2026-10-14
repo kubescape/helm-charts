@@ -1,0 +1,118 @@
+suite: kubevuln ephemeral volumes tests
+tests:
+  - it: keeps emptyDir volumes by default
+    template: kubevuln/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: tmp-dir
+            emptyDir: {}
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: grype-db
+            emptyDir: {}
+
+  - it: renders tmp-dir as a generic ephemeral volume
+    template: kubevuln/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubevuln.tmpDirPersistence.enabled: true
+      kubevuln.tmpDirPersistence.ephemeral: true
+      kubevuln.tmpDirPersistence.storageClassName: local-zfs
+      kubevuln.tmpDirPersistence.size: 20Gi
+      kubevuln.tmpDirPersistence.annotations:
+        example.com/owner: kubevuln
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: tmp-dir
+            ephemeral:
+              volumeClaimTemplate:
+                metadata:
+                  annotations:
+                    example.com/owner: kubevuln
+                spec:
+                  accessModes:
+                    - ReadWriteOnce
+                  storageClassName: local-zfs
+                  resources:
+                    requests:
+                      storage: 20Gi
+
+  - it: does not create the standalone tmp-dir PVC when ephemeral
+    template: kubevuln/tmp-dir-pvc.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubevuln.tmpDirPersistence.enabled: true
+      kubevuln.tmpDirPersistence.ephemeral: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: still creates the standalone tmp-dir PVC when not ephemeral
+    template: kubevuln/tmp-dir-pvc.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubevuln.tmpDirPersistence.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: renders grype-db as a generic ephemeral volume, taking precedence over grypeDbPersistence
+    template: kubevuln/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubevuln.config.grypeDbPersistence: true
+      kubevuln.grypeDbEphemeral.enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: grype-db
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes:
+                    - ReadWriteOnce
+                  resources:
+                    requests:
+                      storage: 10Gi
+
+  - it: does not create the grype-db PVC when grypeDbEphemeral is enabled
+    template: kubevuln/pvc.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubevuln.config.grypeDbPersistence: true
+      kubevuln.grypeDbEphemeral.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
