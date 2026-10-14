@@ -206,3 +206,86 @@ tests:
     asserts:
       - failedTemplate:
           errorMessage: excludeControls entries must be strings
+
+  - it: rejects scalar input even when the operator is disabled
+    template: operator/configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      capabilities.operator: disable
+      excludeControls: C-0069
+    asserts:
+      - failedTemplate:
+          errorMessage: excludeControls must be a list of control identifiers
+
+  - it: rejects non-string identifiers even when the operator is disabled
+    template: operator/configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      capabilities.operator: disable
+      excludeControls: [42]
+    asserts:
+      - failedTemplate:
+          errorMessage: excludeControls entries must be strings
+
+  - it: rejects blank identifiers even when the operator is disabled
+    template: operator/configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      capabilities.operator: disable
+      excludeControls: [" "]
+    asserts:
+      - failedTemplate:
+          errorMessage: excludeControls contains an empty control identifier
+
+  - it: keeps the disabled operator absent with omitted exclusions
+    template: operator/configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      capabilities.operator: disable
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: keeps the disabled operator absent with empty exclusions
+    template: operator/configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      capabilities.operator: disable
+      excludeControls: []
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: keeps the disabled operator absent with null exclusions
+    template: operator/configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      capabilities.operator: disable
+      excludeControls: null
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: keeps the disabled operator absent with valid exclusions
+    template: operator/configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      capabilities.operator: disable
+      excludeControls: [" C-0069 "]
+    asserts:
+      - hasDocuments:
+          count: 0
