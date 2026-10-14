@@ -35,27 +35,42 @@ apiVersion: batch/v1
               {{- end }}
               containers:
               - name: {{ .Values.kubescapeScheduler.name }}
-                image: "{{ .Values.kubescapeScheduler.backendImage.repository }}:{{ .Values.kubescapeScheduler.backendImage.tag }}"
-                imagePullPolicy: {{ .Values.kubescapeScheduler.backendImage.pullPolicy }}
+                image: "{{ .Values.kubescapeScheduler.image.repository }}:{{ .Values.kubescapeScheduler.image.tag }}"
+                imagePullPolicy: {{ .Values.kubescapeScheduler.image.pullPolicy }}
                 securityContext:
                   allowPrivilegeEscalation: false
                   readOnlyRootFilesystem: true
                   runAsNonRoot: true
-                  runAsUser: 100
+                  runAsUser: 65532
+                  runAsGroup: 65532
+                  capabilities:
+                    drop:
+                      - ALL
                 resources:
 {{ toYaml .Values.kubescapeScheduler.resources | indent 18 }}
+                command: ["/scripts/create-operator-command.sh"]
                 args:
-                  - -method=post
-                  - -scheme=http
-                  - -host={{ .Values.operator.name }}:{{ .Values.operator.service.port }}
-                  - -path=v1/triggerAction
-                  - -headers=Content-Type:application/json
-                  - -path-body=/home/ks/request-body.json
+                  - --namespace
+                  - {{ .Values.ksNamespace }}
+                  - --request-body
+                  - /home/ks/request-body.json
+                  - --generate-name
+                  - {{ .Values.kubescapeScheduler.name }}-
+                env:
+                  - name: JOB_NAME
+                    valueFrom:
+                      fieldRef:
+                        fieldPath: metadata.labels['batch.kubernetes.io/job-name']
                 volumeMounts:
                   - name: "request-body-volume"
                     mountPath: /home/ks/request-body.json
                     subPath: request-body.json
                     readOnly: true
+                  - name: command-scripts
+                    mountPath: /scripts
+                    readOnly: true
+                  - name: tmp-dir
+                    mountPath: /tmp
 {{- if .Values.volumeMounts }}
 {{ toYaml .Values.volumeMounts | indent 18 }}
 {{- end }}
@@ -64,7 +79,7 @@ apiVersion: batch/v1
 {{- end }}
               restartPolicy: Never
               serviceAccountName: {{ .Values.kubescape.name }}
-              automountServiceAccountToken: false
+              automountServiceAccountToken: true
               nodeSelector:
               {{- if .Values.kubescapeScheduler.nodeSelector }}
               {{- toYaml .Values.kubescapeScheduler.nodeSelector | nindent 16 }}
@@ -87,6 +102,12 @@ apiVersion: batch/v1
                 - name: "request-body-volume" # placeholder
                   configMap:
                     name: {{ .Values.kubescapeScheduler.name }}
+                - name: command-scripts
+                  configMap:
+                    name: {{ include "kubescape.commandScripts.name" . }}
+                    defaultMode: 0755
+                - name: tmp-dir
+                  emptyDir: {}
 {{- if .Values.volumes }}
 {{ toYaml .Values.volumes | indent 16 }}
 {{- end }}

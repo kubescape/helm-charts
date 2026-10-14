@@ -158,7 +158,6 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | kubescapeScheduler.podLabels| object | `{}` | Optional labels to add to the pods |
 | kubescapeScheduler.podAnnotations| object | `{}` | optional map of annotations to be applied to the Pods |
 | kubescapeScheduler.image.repository | string | `"quay.io/kubescape/kubectl"` | image that creates the `OperatorCommand` for the scheduled scan; it needs `kubectl`, `bash` and `jq` |
-| kubescapeScheduler.backendImage.repository | string | `"quay.io/kubescape/http-request"` | image of the configuration scan schedules the backend creates through the operator; they call the operator's trigger endpoint until a released operator carries [kubescape/operator#435](https://github.com/kubescape/operator/pull/435) |
 | kubescapeScheduler.scanSchedule | string | `"0 0 * * *"` | scan schedule frequency. The scheduled scan CronJob is created when `capabilities.configurationScan` is `enable` |
 | kubescapeScheduler.volumes | object | `[]` | Additional volumes for scan scheduler |
 | kubescapeScheduler.volumeMounts | object | `[]` | Additional volumeMounts for scan scheduler |
@@ -178,7 +177,6 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | kubevulnScheduler.podLabels| object | `{}` | Optional labels to add to the pods |
 | kubevulnScheduler.podAnnotations| object | `{}` | optional map of annotations to be applied to the Pods |
 | kubevulnScheduler.image.repository | string | `"quay.io/kubescape/kubectl"` | image that creates the `OperatorCommand` for the scheduled scan; it needs `kubectl`, `bash` and `jq` |
-| kubevulnScheduler.backendImage.repository | string | `"quay.io/kubescape/http-request"` | image of the vulnerability scan schedules the backend creates through the operator; they call the operator's trigger endpoint until a released operator carries [kubescape/operator#435](https://github.com/kubescape/operator/pull/435) |
 | kubevulnScheduler.scanSchedule | string | `"0 0 * * *"` | scan schedule frequency. The scheduled scan CronJob is created when `capabilities.vulnerabilityScan` is `enable` |
 | kubevulnScheduler.volumes | object | `[]` | Additional volumes for scan scheduler |
 | kubevulnScheduler.volumeMounts | object | `[]` | Additional volumeMounts for scan scheduler |
