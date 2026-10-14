@@ -1,0 +1,53 @@
+suite: kubevuln sidecar pod status RBAC
+templates:
+  - kubevuln/sbom-scanner-role.yaml
+  - kubevuln/sbom-scanner-rolebinding.yaml
+tests:
+  - it: grants kubevuln a read of its pod when the sidecar is enabled
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubevuln:
+        sbomScanner:
+          enabled: true
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: kubescape
+      - equal:
+          path: rules
+          value:
+            - apiGroups:
+                - ""
+              resources:
+                - pods
+              verbs:
+                - get
+        template: kubevuln/sbom-scanner-role.yaml
+      - equal:
+          path: roleRef.name
+          value: kubevuln-sbom-scanner
+        template: kubevuln/sbom-scanner-rolebinding.yaml
+      - equal:
+          path: subjects[0].name
+          value: kubevuln
+        template: kubevuln/sbom-scanner-rolebinding.yaml
+  - it: renders nothing when the sidecar is disabled
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: renders nothing when vulnerability scanning is disabled
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities:
+        vulnerabilityScan: disable
+      kubevuln:
+        sbomScanner:
+          enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
