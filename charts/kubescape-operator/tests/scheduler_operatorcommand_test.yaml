@@ -215,7 +215,7 @@ tests:
       - notMatchRegex:
           path: data.cronjobTemplate
           pattern: triggerAction
-  - it: renders the backend-driven scan CronJob templates with the same script
+  - it: keeps the backend-driven scan CronJob templates on the trigger endpoint with their own image
     templates:
       - operator/ks-recurring-cronjob-configmap.yaml
       - operator/kv-recurring-cronjob-configmap.yaml
@@ -225,16 +225,13 @@ tests:
     asserts:
       - matchRegex:
           path: data.cronjobTemplate
-          pattern: 'image: "quay.io/kubescape/kubectl:1.36.1"'
+          pattern: 'image: "quay.io/kubescape/http-request:v0.2.23"'
       - matchRegex:
           path: data.cronjobTemplate
-          pattern: 'command: \["/scripts/create-operator-command.sh"\]'
+          pattern: '-path=v1/triggerAction'
       - matchRegex:
           path: data.cronjobTemplate
-          pattern: 'name: operator-command-scripts'
-      - matchRegex:
-          path: data.cronjobTemplate
-          pattern: 'automountServiceAccountToken: true'
+          pattern: 'automountServiceAccountToken: false'
       - notMatchRegex:
           path: data.cronjobTemplate
-          pattern: 'triggerAction|-method=post'
+          pattern: 'create-operator-command|kubectl'

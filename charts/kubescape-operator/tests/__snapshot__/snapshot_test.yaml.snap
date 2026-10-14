@@ -4901,17 +4901,13 @@ all capabilities:
                   - name: bar
                   containers:
                   - name: kubescape-scheduler
-                    image: "quay.io/kubescape/kubectl:1.36.1"
+                    image: "quay.io/kubescape/http-request:v0.2.23"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
                       readOnlyRootFilesystem: true
                       runAsNonRoot: true
-                      runAsUser: 65532
-                      runAsGroup: 65532
-                      capabilities:
-                        drop:
-                          - ALL
+                      runAsUser: 100
                     resources:
                       limits:
                         cpu: 100m
@@ -4919,32 +4915,21 @@ all capabilities:
                       requests:
                         cpu: 10m
                         memory: 32Mi
-                    command: ["/scripts/create-operator-command.sh"]
                     args:
-                      - --namespace
-                      - kubescape
-                      - --request-body
-                      - /home/ks/request-body.json
-                      - --generate-name
-                      - kubescape-scheduler-
-                    env:
-                      - name: JOB_NAME
-                        valueFrom:
-                          fieldRef:
-                            fieldPath: metadata.labels['batch.kubernetes.io/job-name']
+                      - -method=post
+                      - -scheme=http
+                      - -host=operator:4002
+                      - -path=v1/triggerAction
+                      - -headers=Content-Type:application/json
+                      - -path-body=/home/ks/request-body.json
                     volumeMounts:
                       - name: "request-body-volume"
                         mountPath: /home/ks/request-body.json
                         subPath: request-body.json
                         readOnly: true
-                      - name: command-scripts
-                        mountPath: /scripts
-                        readOnly: true
-                      - name: tmp-dir
-                        mountPath: /tmp
                   restartPolicy: Never
                   serviceAccountName: kubescape
-                  automountServiceAccountToken: true
+                  automountServiceAccountToken: false
                   nodeSelector:
                     kubernetes.io/os: linux
                   affinity:
@@ -4953,12 +4938,6 @@ all capabilities:
                     - name: "request-body-volume" # placeholder
                       configMap:
                         name: kubescape-scheduler
-                    - name: command-scripts
-                      configMap:
-                        name: operator-command-scripts
-                        defaultMode: 0755
-                    - name: tmp-dir
-                      emptyDir: {}
     kind: ConfigMap
     metadata:
       annotations: null
@@ -5010,17 +4989,13 @@ all capabilities:
                   - name: bar
                   containers:
                   - name: kubevuln-scheduler
-                    image: "quay.io/kubescape/kubectl:1.36.1"
+                    image: "quay.io/kubescape/http-request:v0.2.23"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
                       readOnlyRootFilesystem: true
                       runAsNonRoot: true
-                      runAsUser: 65532
-                      runAsGroup: 65532
-                      capabilities:
-                        drop:
-                          - ALL
+                      runAsUser: 100
                     resources:
                       limits:
                         cpu: 100m
@@ -5028,32 +5003,21 @@ all capabilities:
                       requests:
                         cpu: 10m
                         memory: 32Mi
-                    command: ["/scripts/create-operator-command.sh"]
                     args:
-                      - --namespace
-                      - kubescape
-                      - --request-body
-                      - /home/ks/request-body.json
-                      - --generate-name
-                      - kubevuln-scheduler-
-                    env:
-                      - name: JOB_NAME
-                        valueFrom:
-                          fieldRef:
-                            fieldPath: metadata.labels['batch.kubernetes.io/job-name']
+                      - -method=post
+                      - -scheme=http
+                      - -host=operator:4002
+                      - -path=v1/triggerAction
+                      - -headers=Content-Type:application/json
+                      - -path-body=/home/ks/request-body.json
                     volumeMounts:
                       - name: "request-body-volume"
                         mountPath: /home/ks/request-body.json
                         subPath: request-body.json
                         readOnly: true
-                      - name: command-scripts
-                        mountPath: /scripts
-                        readOnly: true
-                      - name: tmp-dir
-                        mountPath: /tmp
                   restartPolicy: Never
                   serviceAccountName: kubevuln
-                  automountServiceAccountToken: true
+                  automountServiceAccountToken: false
                   nodeSelector:
                     kubernetes.io/os: linux
                   affinity:
@@ -5062,12 +5026,6 @@ all capabilities:
                     - name: "request-body-volume" # placeholder
                       configMap:
                         name: kubevuln-scheduler
-                    - name: command-scripts
-                      configMap:
-                        name: operator-command-scripts
-                        defaultMode: 0755
-                    - name: tmp-dir
-                      emptyDir: {}
     kind: ConfigMap
     metadata:
       annotations: null
@@ -10219,17 +10177,13 @@ autoscaler mode with sbom sidecar:
                       type: RuntimeDefault
                   containers:
                   - name: kubescape-scheduler
-                    image: "quay.io/kubescape/kubectl:1.36.1"
+                    image: "quay.io/kubescape/http-request:v0.2.23"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
                       readOnlyRootFilesystem: true
                       runAsNonRoot: true
-                      runAsUser: 65532
-                      runAsGroup: 65532
-                      capabilities:
-                        drop:
-                          - ALL
+                      runAsUser: 100
                     resources:
                       limits:
                         cpu: 100m
@@ -10237,32 +10191,21 @@ autoscaler mode with sbom sidecar:
                       requests:
                         cpu: 10m
                         memory: 32Mi
-                    command: ["/scripts/create-operator-command.sh"]
                     args:
-                      - --namespace
-                      - kubescape
-                      - --request-body
-                      - /home/ks/request-body.json
-                      - --generate-name
-                      - kubescape-scheduler-
-                    env:
-                      - name: JOB_NAME
-                        valueFrom:
-                          fieldRef:
-                            fieldPath: metadata.labels['batch.kubernetes.io/job-name']
+                      - -method=post
+                      - -scheme=http
+                      - -host=operator:4002
+                      - -path=v1/triggerAction
+                      - -headers=Content-Type:application/json
+                      - -path-body=/home/ks/request-body.json
                     volumeMounts:
                       - name: "request-body-volume"
                         mountPath: /home/ks/request-body.json
                         subPath: request-body.json
                         readOnly: true
-                      - name: command-scripts
-                        mountPath: /scripts
-                        readOnly: true
-                      - name: tmp-dir
-                        mountPath: /tmp
                   restartPolicy: Never
                   serviceAccountName: kubescape
-                  automountServiceAccountToken: true
+                  automountServiceAccountToken: false
                   nodeSelector:
                     kubernetes.io/os: linux
                   affinity:
@@ -10271,12 +10214,6 @@ autoscaler mode with sbom sidecar:
                     - name: "request-body-volume" # placeholder
                       configMap:
                         name: kubescape-scheduler
-                    - name: command-scripts
-                      configMap:
-                        name: operator-command-scripts
-                        defaultMode: 0755
-                    - name: tmp-dir
-                      emptyDir: {}
     kind: ConfigMap
     metadata:
       annotations: null
@@ -10325,17 +10262,13 @@ autoscaler mode with sbom sidecar:
                       type: RuntimeDefault
                   containers:
                   - name: kubevuln-scheduler
-                    image: "quay.io/kubescape/kubectl:1.36.1"
+                    image: "quay.io/kubescape/http-request:v0.2.23"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
                       readOnlyRootFilesystem: true
                       runAsNonRoot: true
-                      runAsUser: 65532
-                      runAsGroup: 65532
-                      capabilities:
-                        drop:
-                          - ALL
+                      runAsUser: 100
                     resources:
                       limits:
                         cpu: 100m
@@ -10343,32 +10276,21 @@ autoscaler mode with sbom sidecar:
                       requests:
                         cpu: 10m
                         memory: 32Mi
-                    command: ["/scripts/create-operator-command.sh"]
                     args:
-                      - --namespace
-                      - kubescape
-                      - --request-body
-                      - /home/ks/request-body.json
-                      - --generate-name
-                      - kubevuln-scheduler-
-                    env:
-                      - name: JOB_NAME
-                        valueFrom:
-                          fieldRef:
-                            fieldPath: metadata.labels['batch.kubernetes.io/job-name']
+                      - -method=post
+                      - -scheme=http
+                      - -host=operator:4002
+                      - -path=v1/triggerAction
+                      - -headers=Content-Type:application/json
+                      - -path-body=/home/ks/request-body.json
                     volumeMounts:
                       - name: "request-body-volume"
                         mountPath: /home/ks/request-body.json
                         subPath: request-body.json
                         readOnly: true
-                      - name: command-scripts
-                        mountPath: /scripts
-                        readOnly: true
-                      - name: tmp-dir
-                        mountPath: /tmp
                   restartPolicy: Never
                   serviceAccountName: kubevuln
-                  automountServiceAccountToken: true
+                  automountServiceAccountToken: false
                   nodeSelector:
                     kubernetes.io/os: linux
                   affinity:
@@ -10377,12 +10299,6 @@ autoscaler mode with sbom sidecar:
                     - name: "request-body-volume" # placeholder
                       configMap:
                         name: kubevuln-scheduler
-                    - name: command-scripts
-                      configMap:
-                        name: operator-command-scripts
-                        defaultMode: 0755
-                    - name: tmp-dir
-                      emptyDir: {}
     kind: ConfigMap
     metadata:
       annotations: null
@@ -14869,17 +14785,13 @@ autoscaler mode without sbom sidecar:
                       type: RuntimeDefault
                   containers:
                   - name: kubescape-scheduler
-                    image: "quay.io/kubescape/kubectl:1.36.1"
+                    image: "quay.io/kubescape/http-request:v0.2.23"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
                       readOnlyRootFilesystem: true
                       runAsNonRoot: true
-                      runAsUser: 65532
-                      runAsGroup: 65532
-                      capabilities:
-                        drop:
-                          - ALL
+                      runAsUser: 100
                     resources:
                       limits:
                         cpu: 100m
@@ -14887,32 +14799,21 @@ autoscaler mode without sbom sidecar:
                       requests:
                         cpu: 10m
                         memory: 32Mi
-                    command: ["/scripts/create-operator-command.sh"]
                     args:
-                      - --namespace
-                      - kubescape
-                      - --request-body
-                      - /home/ks/request-body.json
-                      - --generate-name
-                      - kubescape-scheduler-
-                    env:
-                      - name: JOB_NAME
-                        valueFrom:
-                          fieldRef:
-                            fieldPath: metadata.labels['batch.kubernetes.io/job-name']
+                      - -method=post
+                      - -scheme=http
+                      - -host=operator:4002
+                      - -path=v1/triggerAction
+                      - -headers=Content-Type:application/json
+                      - -path-body=/home/ks/request-body.json
                     volumeMounts:
                       - name: "request-body-volume"
                         mountPath: /home/ks/request-body.json
                         subPath: request-body.json
                         readOnly: true
-                      - name: command-scripts
-                        mountPath: /scripts
-                        readOnly: true
-                      - name: tmp-dir
-                        mountPath: /tmp
                   restartPolicy: Never
                   serviceAccountName: kubescape
-                  automountServiceAccountToken: true
+                  automountServiceAccountToken: false
                   nodeSelector:
                     kubernetes.io/os: linux
                   affinity:
@@ -14921,12 +14822,6 @@ autoscaler mode without sbom sidecar:
                     - name: "request-body-volume" # placeholder
                       configMap:
                         name: kubescape-scheduler
-                    - name: command-scripts
-                      configMap:
-                        name: operator-command-scripts
-                        defaultMode: 0755
-                    - name: tmp-dir
-                      emptyDir: {}
     kind: ConfigMap
     metadata:
       annotations: null
@@ -14975,17 +14870,13 @@ autoscaler mode without sbom sidecar:
                       type: RuntimeDefault
                   containers:
                   - name: kubevuln-scheduler
-                    image: "quay.io/kubescape/kubectl:1.36.1"
+                    image: "quay.io/kubescape/http-request:v0.2.23"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
                       readOnlyRootFilesystem: true
                       runAsNonRoot: true
-                      runAsUser: 65532
-                      runAsGroup: 65532
-                      capabilities:
-                        drop:
-                          - ALL
+                      runAsUser: 100
                     resources:
                       limits:
                         cpu: 100m
@@ -14993,32 +14884,21 @@ autoscaler mode without sbom sidecar:
                       requests:
                         cpu: 10m
                         memory: 32Mi
-                    command: ["/scripts/create-operator-command.sh"]
                     args:
-                      - --namespace
-                      - kubescape
-                      - --request-body
-                      - /home/ks/request-body.json
-                      - --generate-name
-                      - kubevuln-scheduler-
-                    env:
-                      - name: JOB_NAME
-                        valueFrom:
-                          fieldRef:
-                            fieldPath: metadata.labels['batch.kubernetes.io/job-name']
+                      - -method=post
+                      - -scheme=http
+                      - -host=operator:4002
+                      - -path=v1/triggerAction
+                      - -headers=Content-Type:application/json
+                      - -path-body=/home/ks/request-body.json
                     volumeMounts:
                       - name: "request-body-volume"
                         mountPath: /home/ks/request-body.json
                         subPath: request-body.json
                         readOnly: true
-                      - name: command-scripts
-                        mountPath: /scripts
-                        readOnly: true
-                      - name: tmp-dir
-                        mountPath: /tmp
                   restartPolicy: Never
                   serviceAccountName: kubevuln
-                  automountServiceAccountToken: true
+                  automountServiceAccountToken: false
                   nodeSelector:
                     kubernetes.io/os: linux
                   affinity:
@@ -15027,12 +14907,6 @@ autoscaler mode without sbom sidecar:
                     - name: "request-body-volume" # placeholder
                       configMap:
                         name: kubevuln-scheduler
-                    - name: command-scripts
-                      configMap:
-                        name: operator-command-scripts
-                        defaultMode: 0755
-                    - name: tmp-dir
-                      emptyDir: {}
     kind: ConfigMap
     metadata:
       annotations: null
@@ -24725,17 +24599,13 @@ default capabilities:
                       type: RuntimeDefault
                   containers:
                   - name: kubescape-scheduler
-                    image: "quay.io/kubescape/kubectl:1.36.1"
+                    image: "quay.io/kubescape/http-request:v0.2.23"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
                       readOnlyRootFilesystem: true
                       runAsNonRoot: true
-                      runAsUser: 65532
-                      runAsGroup: 65532
-                      capabilities:
-                        drop:
-                          - ALL
+                      runAsUser: 100
                     resources:
                       limits:
                         cpu: 100m
@@ -24743,32 +24613,21 @@ default capabilities:
                       requests:
                         cpu: 10m
                         memory: 32Mi
-                    command: ["/scripts/create-operator-command.sh"]
                     args:
-                      - --namespace
-                      - kubescape
-                      - --request-body
-                      - /home/ks/request-body.json
-                      - --generate-name
-                      - kubescape-scheduler-
-                    env:
-                      - name: JOB_NAME
-                        valueFrom:
-                          fieldRef:
-                            fieldPath: metadata.labels['batch.kubernetes.io/job-name']
+                      - -method=post
+                      - -scheme=http
+                      - -host=operator:4002
+                      - -path=v1/triggerAction
+                      - -headers=Content-Type:application/json
+                      - -path-body=/home/ks/request-body.json
                     volumeMounts:
                       - name: "request-body-volume"
                         mountPath: /home/ks/request-body.json
                         subPath: request-body.json
                         readOnly: true
-                      - name: command-scripts
-                        mountPath: /scripts
-                        readOnly: true
-                      - name: tmp-dir
-                        mountPath: /tmp
                   restartPolicy: Never
                   serviceAccountName: kubescape
-                  automountServiceAccountToken: true
+                  automountServiceAccountToken: false
                   nodeSelector:
                     kubernetes.io/os: linux
                   affinity:
@@ -24777,12 +24636,6 @@ default capabilities:
                     - name: "request-body-volume" # placeholder
                       configMap:
                         name: kubescape-scheduler
-                    - name: command-scripts
-                      configMap:
-                        name: operator-command-scripts
-                        defaultMode: 0755
-                    - name: tmp-dir
-                      emptyDir: {}
     kind: ConfigMap
     metadata:
       annotations: null
@@ -24831,17 +24684,13 @@ default capabilities:
                       type: RuntimeDefault
                   containers:
                   - name: kubevuln-scheduler
-                    image: "quay.io/kubescape/kubectl:1.36.1"
+                    image: "quay.io/kubescape/http-request:v0.2.23"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
                       readOnlyRootFilesystem: true
                       runAsNonRoot: true
-                      runAsUser: 65532
-                      runAsGroup: 65532
-                      capabilities:
-                        drop:
-                          - ALL
+                      runAsUser: 100
                     resources:
                       limits:
                         cpu: 100m
@@ -24849,32 +24698,21 @@ default capabilities:
                       requests:
                         cpu: 10m
                         memory: 32Mi
-                    command: ["/scripts/create-operator-command.sh"]
                     args:
-                      - --namespace
-                      - kubescape
-                      - --request-body
-                      - /home/ks/request-body.json
-                      - --generate-name
-                      - kubevuln-scheduler-
-                    env:
-                      - name: JOB_NAME
-                        valueFrom:
-                          fieldRef:
-                            fieldPath: metadata.labels['batch.kubernetes.io/job-name']
+                      - -method=post
+                      - -scheme=http
+                      - -host=operator:4002
+                      - -path=v1/triggerAction
+                      - -headers=Content-Type:application/json
+                      - -path-body=/home/ks/request-body.json
                     volumeMounts:
                       - name: "request-body-volume"
                         mountPath: /home/ks/request-body.json
                         subPath: request-body.json
                         readOnly: true
-                      - name: command-scripts
-                        mountPath: /scripts
-                        readOnly: true
-                      - name: tmp-dir
-                        mountPath: /tmp
                   restartPolicy: Never
                   serviceAccountName: kubevuln
-                  automountServiceAccountToken: true
+                  automountServiceAccountToken: false
                   nodeSelector:
                     kubernetes.io/os: linux
                   affinity:
@@ -24883,12 +24721,6 @@ default capabilities:
                     - name: "request-body-volume" # placeholder
                       configMap:
                         name: kubevuln-scheduler
-                    - name: command-scripts
-                      configMap:
-                        name: operator-command-scripts
-                        defaultMode: 0755
-                    - name: tmp-dir
-                      emptyDir: {}
     kind: ConfigMap
     metadata:
       annotations: null
@@ -29794,17 +29626,13 @@ disable otel:
                       type: RuntimeDefault
                   containers:
                   - name: kubescape-scheduler
-                    image: "quay.io/kubescape/kubectl:1.36.1"
+                    image: "quay.io/kubescape/http-request:v0.2.23"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
                       readOnlyRootFilesystem: true
                       runAsNonRoot: true
-                      runAsUser: 65532
-                      runAsGroup: 65532
-                      capabilities:
-                        drop:
-                          - ALL
+                      runAsUser: 100
                     resources:
                       limits:
                         cpu: 100m
@@ -29812,32 +29640,21 @@ disable otel:
                       requests:
                         cpu: 10m
                         memory: 32Mi
-                    command: ["/scripts/create-operator-command.sh"]
                     args:
-                      - --namespace
-                      - kubescape
-                      - --request-body
-                      - /home/ks/request-body.json
-                      - --generate-name
-                      - kubescape-scheduler-
-                    env:
-                      - name: JOB_NAME
-                        valueFrom:
-                          fieldRef:
-                            fieldPath: metadata.labels['batch.kubernetes.io/job-name']
+                      - -method=post
+                      - -scheme=http
+                      - -host=operator:4002
+                      - -path=v1/triggerAction
+                      - -headers=Content-Type:application/json
+                      - -path-body=/home/ks/request-body.json
                     volumeMounts:
                       - name: "request-body-volume"
                         mountPath: /home/ks/request-body.json
                         subPath: request-body.json
                         readOnly: true
-                      - name: command-scripts
-                        mountPath: /scripts
-                        readOnly: true
-                      - name: tmp-dir
-                        mountPath: /tmp
                   restartPolicy: Never
                   serviceAccountName: kubescape
-                  automountServiceAccountToken: true
+                  automountServiceAccountToken: false
                   nodeSelector:
                     kubernetes.io/os: linux
                   affinity:
@@ -29846,12 +29663,6 @@ disable otel:
                     - name: "request-body-volume" # placeholder
                       configMap:
                         name: kubescape-scheduler
-                    - name: command-scripts
-                      configMap:
-                        name: operator-command-scripts
-                        defaultMode: 0755
-                    - name: tmp-dir
-                      emptyDir: {}
     kind: ConfigMap
     metadata:
       annotations: null
@@ -29900,17 +29711,13 @@ disable otel:
                       type: RuntimeDefault
                   containers:
                   - name: kubevuln-scheduler
-                    image: "quay.io/kubescape/kubectl:1.36.1"
+                    image: "quay.io/kubescape/http-request:v0.2.23"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
                       readOnlyRootFilesystem: true
                       runAsNonRoot: true
-                      runAsUser: 65532
-                      runAsGroup: 65532
-                      capabilities:
-                        drop:
-                          - ALL
+                      runAsUser: 100
                     resources:
                       limits:
                         cpu: 100m
@@ -29918,32 +29725,21 @@ disable otel:
                       requests:
                         cpu: 10m
                         memory: 32Mi
-                    command: ["/scripts/create-operator-command.sh"]
                     args:
-                      - --namespace
-                      - kubescape
-                      - --request-body
-                      - /home/ks/request-body.json
-                      - --generate-name
-                      - kubevuln-scheduler-
-                    env:
-                      - name: JOB_NAME
-                        valueFrom:
-                          fieldRef:
-                            fieldPath: metadata.labels['batch.kubernetes.io/job-name']
+                      - -method=post
+                      - -scheme=http
+                      - -host=operator:4002
+                      - -path=v1/triggerAction
+                      - -headers=Content-Type:application/json
+                      - -path-body=/home/ks/request-body.json
                     volumeMounts:
                       - name: "request-body-volume"
                         mountPath: /home/ks/request-body.json
                         subPath: request-body.json
                         readOnly: true
-                      - name: command-scripts
-                        mountPath: /scripts
-                        readOnly: true
-                      - name: tmp-dir
-                        mountPath: /tmp
                   restartPolicy: Never
                   serviceAccountName: kubevuln
-                  automountServiceAccountToken: true
+                  automountServiceAccountToken: false
                   nodeSelector:
                     kubernetes.io/os: linux
                   affinity:
@@ -29952,12 +29748,6 @@ disable otel:
                     - name: "request-body-volume" # placeholder
                       configMap:
                         name: kubevuln-scheduler
-                    - name: command-scripts
-                      configMap:
-                        name: operator-command-scripts
-                        defaultMode: 0755
-                    - name: tmp-dir
-                      emptyDir: {}
     kind: ConfigMap
     metadata:
       annotations: null
@@ -35412,17 +35202,13 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
                       type: RuntimeDefault
                   containers:
                   - name: kubescape-scheduler
-                    image: "quay.io/kubescape/kubectl:1.36.1"
+                    image: "quay.io/kubescape/http-request:v0.2.23"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
                       readOnlyRootFilesystem: true
                       runAsNonRoot: true
-                      runAsUser: 65532
-                      runAsGroup: 65532
-                      capabilities:
-                        drop:
-                          - ALL
+                      runAsUser: 100
                     resources:
                       limits:
                         cpu: 100m
@@ -35430,32 +35216,21 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
                       requests:
                         cpu: 10m
                         memory: 32Mi
-                    command: ["/scripts/create-operator-command.sh"]
                     args:
-                      - --namespace
-                      - kubescape
-                      - --request-body
-                      - /home/ks/request-body.json
-                      - --generate-name
-                      - kubescape-scheduler-
-                    env:
-                      - name: JOB_NAME
-                        valueFrom:
-                          fieldRef:
-                            fieldPath: metadata.labels['batch.kubernetes.io/job-name']
+                      - -method=post
+                      - -scheme=http
+                      - -host=operator:4002
+                      - -path=v1/triggerAction
+                      - -headers=Content-Type:application/json
+                      - -path-body=/home/ks/request-body.json
                     volumeMounts:
                       - name: "request-body-volume"
                         mountPath: /home/ks/request-body.json
                         subPath: request-body.json
                         readOnly: true
-                      - name: command-scripts
-                        mountPath: /scripts
-                        readOnly: true
-                      - name: tmp-dir
-                        mountPath: /tmp
                   restartPolicy: Never
                   serviceAccountName: kubescape
-                  automountServiceAccountToken: true
+                  automountServiceAccountToken: false
                   nodeSelector:
                     kubernetes.io/os: linux
                   affinity:
@@ -35464,12 +35239,6 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
                     - name: "request-body-volume" # placeholder
                       configMap:
                         name: kubescape-scheduler
-                    - name: command-scripts
-                      configMap:
-                        name: operator-command-scripts
-                        defaultMode: 0755
-                    - name: tmp-dir
-                      emptyDir: {}
     kind: ConfigMap
     metadata:
       annotations: null
@@ -35518,17 +35287,13 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
                       type: RuntimeDefault
                   containers:
                   - name: kubevuln-scheduler
-                    image: "quay.io/kubescape/kubectl:1.36.1"
+                    image: "quay.io/kubescape/http-request:v0.2.23"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
                       readOnlyRootFilesystem: true
                       runAsNonRoot: true
-                      runAsUser: 65532
-                      runAsGroup: 65532
-                      capabilities:
-                        drop:
-                          - ALL
+                      runAsUser: 100
                     resources:
                       limits:
                         cpu: 100m
@@ -35536,32 +35301,21 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
                       requests:
                         cpu: 10m
                         memory: 32Mi
-                    command: ["/scripts/create-operator-command.sh"]
                     args:
-                      - --namespace
-                      - kubescape
-                      - --request-body
-                      - /home/ks/request-body.json
-                      - --generate-name
-                      - kubevuln-scheduler-
-                    env:
-                      - name: JOB_NAME
-                        valueFrom:
-                          fieldRef:
-                            fieldPath: metadata.labels['batch.kubernetes.io/job-name']
+                      - -method=post
+                      - -scheme=http
+                      - -host=operator:4002
+                      - -path=v1/triggerAction
+                      - -headers=Content-Type:application/json
+                      - -path-body=/home/ks/request-body.json
                     volumeMounts:
                       - name: "request-body-volume"
                         mountPath: /home/ks/request-body.json
                         subPath: request-body.json
                         readOnly: true
-                      - name: command-scripts
-                        mountPath: /scripts
-                        readOnly: true
-                      - name: tmp-dir
-                        mountPath: /tmp
                   restartPolicy: Never
                   serviceAccountName: kubevuln
-                  automountServiceAccountToken: true
+                  automountServiceAccountToken: false
                   nodeSelector:
                     kubernetes.io/os: linux
                   affinity:
@@ -35570,12 +35324,6 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
                     - name: "request-body-volume" # placeholder
                       configMap:
                         name: kubevuln-scheduler
-                    - name: command-scripts
-                      configMap:
-                        name: operator-command-scripts
-                        defaultMode: 0755
-                    - name: tmp-dir
-                      emptyDir: {}
     kind: ConfigMap
     metadata:
       annotations: null
@@ -40228,17 +39976,13 @@ minimal capabilities:
                       type: RuntimeDefault
                   containers:
                   - name: kubescape-scheduler
-                    image: "quay.io/kubescape/kubectl:1.36.1"
+                    image: "quay.io/kubescape/http-request:v0.2.23"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
                       readOnlyRootFilesystem: true
                       runAsNonRoot: true
-                      runAsUser: 65532
-                      runAsGroup: 65532
-                      capabilities:
-                        drop:
-                          - ALL
+                      runAsUser: 100
                     resources:
                       limits:
                         cpu: 100m
@@ -40246,32 +39990,21 @@ minimal capabilities:
                       requests:
                         cpu: 10m
                         memory: 32Mi
-                    command: ["/scripts/create-operator-command.sh"]
                     args:
-                      - --namespace
-                      - kubescape
-                      - --request-body
-                      - /home/ks/request-body.json
-                      - --generate-name
-                      - kubescape-scheduler-
-                    env:
-                      - name: JOB_NAME
-                        valueFrom:
-                          fieldRef:
-                            fieldPath: metadata.labels['batch.kubernetes.io/job-name']
+                      - -method=post
+                      - -scheme=http
+                      - -host=operator:4002
+                      - -path=v1/triggerAction
+                      - -headers=Content-Type:application/json
+                      - -path-body=/home/ks/request-body.json
                     volumeMounts:
                       - name: "request-body-volume"
                         mountPath: /home/ks/request-body.json
                         subPath: request-body.json
                         readOnly: true
-                      - name: command-scripts
-                        mountPath: /scripts
-                        readOnly: true
-                      - name: tmp-dir
-                        mountPath: /tmp
                   restartPolicy: Never
                   serviceAccountName: kubescape
-                  automountServiceAccountToken: true
+                  automountServiceAccountToken: false
                   nodeSelector:
                     kubernetes.io/os: linux
                   affinity:
@@ -40280,12 +40013,6 @@ minimal capabilities:
                     - name: "request-body-volume" # placeholder
                       configMap:
                         name: kubescape-scheduler
-                    - name: command-scripts
-                      configMap:
-                        name: operator-command-scripts
-                        defaultMode: 0755
-                    - name: tmp-dir
-                      emptyDir: {}
     kind: ConfigMap
     metadata:
       annotations: null
@@ -40334,17 +40061,13 @@ minimal capabilities:
                       type: RuntimeDefault
                   containers:
                   - name: kubevuln-scheduler
-                    image: "quay.io/kubescape/kubectl:1.36.1"
+                    image: "quay.io/kubescape/http-request:v0.2.23"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
                       readOnlyRootFilesystem: true
                       runAsNonRoot: true
-                      runAsUser: 65532
-                      runAsGroup: 65532
-                      capabilities:
-                        drop:
-                          - ALL
+                      runAsUser: 100
                     resources:
                       limits:
                         cpu: 100m
@@ -40352,32 +40075,21 @@ minimal capabilities:
                       requests:
                         cpu: 10m
                         memory: 32Mi
-                    command: ["/scripts/create-operator-command.sh"]
                     args:
-                      - --namespace
-                      - kubescape
-                      - --request-body
-                      - /home/ks/request-body.json
-                      - --generate-name
-                      - kubevuln-scheduler-
-                    env:
-                      - name: JOB_NAME
-                        valueFrom:
-                          fieldRef:
-                            fieldPath: metadata.labels['batch.kubernetes.io/job-name']
+                      - -method=post
+                      - -scheme=http
+                      - -host=operator:4002
+                      - -path=v1/triggerAction
+                      - -headers=Content-Type:application/json
+                      - -path-body=/home/ks/request-body.json
                     volumeMounts:
                       - name: "request-body-volume"
                         mountPath: /home/ks/request-body.json
                         subPath: request-body.json
                         readOnly: true
-                      - name: command-scripts
-                        mountPath: /scripts
-                        readOnly: true
-                      - name: tmp-dir
-                        mountPath: /tmp
                   restartPolicy: Never
                   serviceAccountName: kubevuln
-                  automountServiceAccountToken: true
+                  automountServiceAccountToken: false
                   nodeSelector:
                     kubernetes.io/os: linux
                   affinity:
@@ -40386,12 +40098,6 @@ minimal capabilities:
                     - name: "request-body-volume" # placeholder
                       configMap:
                         name: kubevuln-scheduler
-                    - name: command-scripts
-                      configMap:
-                        name: operator-command-scripts
-                        defaultMode: 0755
-                    - name: tmp-dir
-                      emptyDir: {}
     kind: ConfigMap
     metadata:
       annotations: null
@@ -46579,17 +46285,13 @@ multiple node agents:
                   - name: bar
                   containers:
                   - name: kubescape-scheduler
-                    image: "quay.io/kubescape/kubectl:1.36.1"
+                    image: "quay.io/kubescape/http-request:v0.2.23"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
                       readOnlyRootFilesystem: true
                       runAsNonRoot: true
-                      runAsUser: 65532
-                      runAsGroup: 65532
-                      capabilities:
-                        drop:
-                          - ALL
+                      runAsUser: 100
                     resources:
                       limits:
                         cpu: 100m
@@ -46597,32 +46299,21 @@ multiple node agents:
                       requests:
                         cpu: 10m
                         memory: 32Mi
-                    command: ["/scripts/create-operator-command.sh"]
                     args:
-                      - --namespace
-                      - kubescape
-                      - --request-body
-                      - /home/ks/request-body.json
-                      - --generate-name
-                      - kubescape-scheduler-
-                    env:
-                      - name: JOB_NAME
-                        valueFrom:
-                          fieldRef:
-                            fieldPath: metadata.labels['batch.kubernetes.io/job-name']
+                      - -method=post
+                      - -scheme=http
+                      - -host=operator:4002
+                      - -path=v1/triggerAction
+                      - -headers=Content-Type:application/json
+                      - -path-body=/home/ks/request-body.json
                     volumeMounts:
                       - name: "request-body-volume"
                         mountPath: /home/ks/request-body.json
                         subPath: request-body.json
                         readOnly: true
-                      - name: command-scripts
-                        mountPath: /scripts
-                        readOnly: true
-                      - name: tmp-dir
-                        mountPath: /tmp
                   restartPolicy: Never
                   serviceAccountName: kubescape
-                  automountServiceAccountToken: true
+                  automountServiceAccountToken: false
                   nodeSelector:
                     kubernetes.io/os: linux
                   affinity:
@@ -46631,12 +46322,6 @@ multiple node agents:
                     - name: "request-body-volume" # placeholder
                       configMap:
                         name: kubescape-scheduler
-                    - name: command-scripts
-                      configMap:
-                        name: operator-command-scripts
-                        defaultMode: 0755
-                    - name: tmp-dir
-                      emptyDir: {}
     kind: ConfigMap
     metadata:
       annotations: null
@@ -46688,17 +46373,13 @@ multiple node agents:
                   - name: bar
                   containers:
                   - name: kubevuln-scheduler
-                    image: "quay.io/kubescape/kubectl:1.36.1"
+                    image: "quay.io/kubescape/http-request:v0.2.23"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
                       readOnlyRootFilesystem: true
                       runAsNonRoot: true
-                      runAsUser: 65532
-                      runAsGroup: 65532
-                      capabilities:
-                        drop:
-                          - ALL
+                      runAsUser: 100
                     resources:
                       limits:
                         cpu: 100m
@@ -46706,32 +46387,21 @@ multiple node agents:
                       requests:
                         cpu: 10m
                         memory: 32Mi
-                    command: ["/scripts/create-operator-command.sh"]
                     args:
-                      - --namespace
-                      - kubescape
-                      - --request-body
-                      - /home/ks/request-body.json
-                      - --generate-name
-                      - kubevuln-scheduler-
-                    env:
-                      - name: JOB_NAME
-                        valueFrom:
-                          fieldRef:
-                            fieldPath: metadata.labels['batch.kubernetes.io/job-name']
+                      - -method=post
+                      - -scheme=http
+                      - -host=operator:4002
+                      - -path=v1/triggerAction
+                      - -headers=Content-Type:application/json
+                      - -path-body=/home/ks/request-body.json
                     volumeMounts:
                       - name: "request-body-volume"
                         mountPath: /home/ks/request-body.json
                         subPath: request-body.json
                         readOnly: true
-                      - name: command-scripts
-                        mountPath: /scripts
-                        readOnly: true
-                      - name: tmp-dir
-                        mountPath: /tmp
                   restartPolicy: Never
                   serviceAccountName: kubevuln
-                  automountServiceAccountToken: true
+                  automountServiceAccountToken: false
                   nodeSelector:
                     kubernetes.io/os: linux
                   affinity:
@@ -46740,12 +46410,6 @@ multiple node agents:
                     - name: "request-body-volume" # placeholder
                       configMap:
                         name: kubevuln-scheduler
-                    - name: command-scripts
-                      configMap:
-                        name: operator-command-scripts
-                        defaultMode: 0755
-                    - name: tmp-dir
-                      emptyDir: {}
     kind: ConfigMap
     metadata:
       annotations: null
@@ -52101,17 +51765,13 @@ priority class scheduling:
                       type: RuntimeDefault
                   containers:
                   - name: kubescape-scheduler
-                    image: "quay.io/kubescape/kubectl:1.36.1"
+                    image: "quay.io/kubescape/http-request:v0.2.23"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
                       readOnlyRootFilesystem: true
                       runAsNonRoot: true
-                      runAsUser: 65532
-                      runAsGroup: 65532
-                      capabilities:
-                        drop:
-                          - ALL
+                      runAsUser: 100
                     resources:
                       limits:
                         cpu: 100m
@@ -52119,32 +51779,21 @@ priority class scheduling:
                       requests:
                         cpu: 10m
                         memory: 32Mi
-                    command: ["/scripts/create-operator-command.sh"]
                     args:
-                      - --namespace
-                      - kubescape
-                      - --request-body
-                      - /home/ks/request-body.json
-                      - --generate-name
-                      - kubescape-scheduler-
-                    env:
-                      - name: JOB_NAME
-                        valueFrom:
-                          fieldRef:
-                            fieldPath: metadata.labels['batch.kubernetes.io/job-name']
+                      - -method=post
+                      - -scheme=http
+                      - -host=operator:4002
+                      - -path=v1/triggerAction
+                      - -headers=Content-Type:application/json
+                      - -path-body=/home/ks/request-body.json
                     volumeMounts:
                       - name: "request-body-volume"
                         mountPath: /home/ks/request-body.json
                         subPath: request-body.json
                         readOnly: true
-                      - name: command-scripts
-                        mountPath: /scripts
-                        readOnly: true
-                      - name: tmp-dir
-                        mountPath: /tmp
                   restartPolicy: Never
                   serviceAccountName: kubescape
-                  automountServiceAccountToken: true
+                  automountServiceAccountToken: false
                   nodeSelector:
                     kubernetes.io/os: linux
                   affinity:
@@ -52153,12 +51802,6 @@ priority class scheduling:
                     - name: "request-body-volume" # placeholder
                       configMap:
                         name: kubescape-scheduler
-                    - name: command-scripts
-                      configMap:
-                        name: operator-command-scripts
-                        defaultMode: 0755
-                    - name: tmp-dir
-                      emptyDir: {}
     kind: ConfigMap
     metadata:
       annotations: null
@@ -52207,17 +51850,13 @@ priority class scheduling:
                       type: RuntimeDefault
                   containers:
                   - name: kubevuln-scheduler
-                    image: "quay.io/kubescape/kubectl:1.36.1"
+                    image: "quay.io/kubescape/http-request:v0.2.23"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
                       readOnlyRootFilesystem: true
                       runAsNonRoot: true
-                      runAsUser: 65532
-                      runAsGroup: 65532
-                      capabilities:
-                        drop:
-                          - ALL
+                      runAsUser: 100
                     resources:
                       limits:
                         cpu: 100m
@@ -52225,32 +51864,21 @@ priority class scheduling:
                       requests:
                         cpu: 10m
                         memory: 32Mi
-                    command: ["/scripts/create-operator-command.sh"]
                     args:
-                      - --namespace
-                      - kubescape
-                      - --request-body
-                      - /home/ks/request-body.json
-                      - --generate-name
-                      - kubevuln-scheduler-
-                    env:
-                      - name: JOB_NAME
-                        valueFrom:
-                          fieldRef:
-                            fieldPath: metadata.labels['batch.kubernetes.io/job-name']
+                      - -method=post
+                      - -scheme=http
+                      - -host=operator:4002
+                      - -path=v1/triggerAction
+                      - -headers=Content-Type:application/json
+                      - -path-body=/home/ks/request-body.json
                     volumeMounts:
                       - name: "request-body-volume"
                         mountPath: /home/ks/request-body.json
                         subPath: request-body.json
                         readOnly: true
-                      - name: command-scripts
-                        mountPath: /scripts
-                        readOnly: true
-                      - name: tmp-dir
-                        mountPath: /tmp
                   restartPolicy: Never
                   serviceAccountName: kubevuln
-                  automountServiceAccountToken: true
+                  automountServiceAccountToken: false
                   nodeSelector:
                     kubernetes.io/os: linux
                   affinity:
@@ -52259,12 +51887,6 @@ priority class scheduling:
                     - name: "request-body-volume" # placeholder
                       configMap:
                         name: kubevuln-scheduler
-                    - name: command-scripts
-                      configMap:
-                        name: operator-command-scripts
-                        defaultMode: 0755
-                    - name: tmp-dir
-                      emptyDir: {}
     kind: ConfigMap
     metadata:
       annotations: null
@@ -56788,17 +56410,13 @@ relevancy only:
                       type: RuntimeDefault
                   containers:
                   - name: kubescape-scheduler
-                    image: "quay.io/kubescape/kubectl:1.36.1"
+                    image: "quay.io/kubescape/http-request:v0.2.23"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
                       readOnlyRootFilesystem: true
                       runAsNonRoot: true
-                      runAsUser: 65532
-                      runAsGroup: 65532
-                      capabilities:
-                        drop:
-                          - ALL
+                      runAsUser: 100
                     resources:
                       limits:
                         cpu: 100m
@@ -56806,32 +56424,21 @@ relevancy only:
                       requests:
                         cpu: 10m
                         memory: 32Mi
-                    command: ["/scripts/create-operator-command.sh"]
                     args:
-                      - --namespace
-                      - kubescape
-                      - --request-body
-                      - /home/ks/request-body.json
-                      - --generate-name
-                      - kubescape-scheduler-
-                    env:
-                      - name: JOB_NAME
-                        valueFrom:
-                          fieldRef:
-                            fieldPath: metadata.labels['batch.kubernetes.io/job-name']
+                      - -method=post
+                      - -scheme=http
+                      - -host=operator:4002
+                      - -path=v1/triggerAction
+                      - -headers=Content-Type:application/json
+                      - -path-body=/home/ks/request-body.json
                     volumeMounts:
                       - name: "request-body-volume"
                         mountPath: /home/ks/request-body.json
                         subPath: request-body.json
                         readOnly: true
-                      - name: command-scripts
-                        mountPath: /scripts
-                        readOnly: true
-                      - name: tmp-dir
-                        mountPath: /tmp
                   restartPolicy: Never
                   serviceAccountName: kubescape
-                  automountServiceAccountToken: true
+                  automountServiceAccountToken: false
                   nodeSelector:
                     kubernetes.io/os: linux
                   affinity:
@@ -56840,12 +56447,6 @@ relevancy only:
                     - name: "request-body-volume" # placeholder
                       configMap:
                         name: kubescape-scheduler
-                    - name: command-scripts
-                      configMap:
-                        name: operator-command-scripts
-                        defaultMode: 0755
-                    - name: tmp-dir
-                      emptyDir: {}
     kind: ConfigMap
     metadata:
       annotations: null
@@ -56894,17 +56495,13 @@ relevancy only:
                       type: RuntimeDefault
                   containers:
                   - name: kubevuln-scheduler
-                    image: "quay.io/kubescape/kubectl:1.36.1"
+                    image: "quay.io/kubescape/http-request:v0.2.23"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
                       readOnlyRootFilesystem: true
                       runAsNonRoot: true
-                      runAsUser: 65532
-                      runAsGroup: 65532
-                      capabilities:
-                        drop:
-                          - ALL
+                      runAsUser: 100
                     resources:
                       limits:
                         cpu: 100m
@@ -56912,32 +56509,21 @@ relevancy only:
                       requests:
                         cpu: 10m
                         memory: 32Mi
-                    command: ["/scripts/create-operator-command.sh"]
                     args:
-                      - --namespace
-                      - kubescape
-                      - --request-body
-                      - /home/ks/request-body.json
-                      - --generate-name
-                      - kubevuln-scheduler-
-                    env:
-                      - name: JOB_NAME
-                        valueFrom:
-                          fieldRef:
-                            fieldPath: metadata.labels['batch.kubernetes.io/job-name']
+                      - -method=post
+                      - -scheme=http
+                      - -host=operator:4002
+                      - -path=v1/triggerAction
+                      - -headers=Content-Type:application/json
+                      - -path-body=/home/ks/request-body.json
                     volumeMounts:
                       - name: "request-body-volume"
                         mountPath: /home/ks/request-body.json
                         subPath: request-body.json
                         readOnly: true
-                      - name: command-scripts
-                        mountPath: /scripts
-                        readOnly: true
-                      - name: tmp-dir
-                        mountPath: /tmp
                   restartPolicy: Never
                   serviceAccountName: kubevuln
-                  automountServiceAccountToken: true
+                  automountServiceAccountToken: false
                   nodeSelector:
                     kubernetes.io/os: linux
                   affinity:
@@ -56946,12 +56532,6 @@ relevancy only:
                     - name: "request-body-volume" # placeholder
                       configMap:
                         name: kubevuln-scheduler
-                    - name: command-scripts
-                      configMap:
-                        name: operator-command-scripts
-                        defaultMode: 0755
-                    - name: tmp-dir
-                      emptyDir: {}
     kind: ConfigMap
     metadata:
       annotations: null
@@ -62886,17 +62466,13 @@ skipPersistence enabled:
                   - name: bar
                   containers:
                   - name: kubescape-scheduler
-                    image: "quay.io/kubescape/kubectl:1.36.1"
+                    image: "quay.io/kubescape/http-request:v0.2.23"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
                       readOnlyRootFilesystem: true
                       runAsNonRoot: true
-                      runAsUser: 65532
-                      runAsGroup: 65532
-                      capabilities:
-                        drop:
-                          - ALL
+                      runAsUser: 100
                     resources:
                       limits:
                         cpu: 100m
@@ -62904,32 +62480,21 @@ skipPersistence enabled:
                       requests:
                         cpu: 10m
                         memory: 32Mi
-                    command: ["/scripts/create-operator-command.sh"]
                     args:
-                      - --namespace
-                      - kubescape
-                      - --request-body
-                      - /home/ks/request-body.json
-                      - --generate-name
-                      - kubescape-scheduler-
-                    env:
-                      - name: JOB_NAME
-                        valueFrom:
-                          fieldRef:
-                            fieldPath: metadata.labels['batch.kubernetes.io/job-name']
+                      - -method=post
+                      - -scheme=http
+                      - -host=operator:4002
+                      - -path=v1/triggerAction
+                      - -headers=Content-Type:application/json
+                      - -path-body=/home/ks/request-body.json
                     volumeMounts:
                       - name: "request-body-volume"
                         mountPath: /home/ks/request-body.json
                         subPath: request-body.json
                         readOnly: true
-                      - name: command-scripts
-                        mountPath: /scripts
-                        readOnly: true
-                      - name: tmp-dir
-                        mountPath: /tmp
                   restartPolicy: Never
                   serviceAccountName: kubescape
-                  automountServiceAccountToken: true
+                  automountServiceAccountToken: false
                   nodeSelector:
                     kubernetes.io/os: linux
                   affinity:
@@ -62938,12 +62503,6 @@ skipPersistence enabled:
                     - name: "request-body-volume" # placeholder
                       configMap:
                         name: kubescape-scheduler
-                    - name: command-scripts
-                      configMap:
-                        name: operator-command-scripts
-                        defaultMode: 0755
-                    - name: tmp-dir
-                      emptyDir: {}
     kind: ConfigMap
     metadata:
       annotations: null
@@ -62995,17 +62554,13 @@ skipPersistence enabled:
                   - name: bar
                   containers:
                   - name: kubevuln-scheduler
-                    image: "quay.io/kubescape/kubectl:1.36.1"
+                    image: "quay.io/kubescape/http-request:v0.2.23"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
                       readOnlyRootFilesystem: true
                       runAsNonRoot: true
-                      runAsUser: 65532
-                      runAsGroup: 65532
-                      capabilities:
-                        drop:
-                          - ALL
+                      runAsUser: 100
                     resources:
                       limits:
                         cpu: 100m
@@ -63013,32 +62568,21 @@ skipPersistence enabled:
                       requests:
                         cpu: 10m
                         memory: 32Mi
-                    command: ["/scripts/create-operator-command.sh"]
                     args:
-                      - --namespace
-                      - kubescape
-                      - --request-body
-                      - /home/ks/request-body.json
-                      - --generate-name
-                      - kubevuln-scheduler-
-                    env:
-                      - name: JOB_NAME
-                        valueFrom:
-                          fieldRef:
-                            fieldPath: metadata.labels['batch.kubernetes.io/job-name']
+                      - -method=post
+                      - -scheme=http
+                      - -host=operator:4002
+                      - -path=v1/triggerAction
+                      - -headers=Content-Type:application/json
+                      - -path-body=/home/ks/request-body.json
                     volumeMounts:
                       - name: "request-body-volume"
                         mountPath: /home/ks/request-body.json
                         subPath: request-body.json
                         readOnly: true
-                      - name: command-scripts
-                        mountPath: /scripts
-                        readOnly: true
-                      - name: tmp-dir
-                        mountPath: /tmp
                   restartPolicy: Never
                   serviceAccountName: kubevuln
-                  automountServiceAccountToken: true
+                  automountServiceAccountToken: false
                   nodeSelector:
                     kubernetes.io/os: linux
                   affinity:
@@ -63047,12 +62591,6 @@ skipPersistence enabled:
                     - name: "request-body-volume" # placeholder
                       configMap:
                         name: kubevuln-scheduler
-                    - name: command-scripts
-                      configMap:
-                        name: operator-command-scripts
-                        defaultMode: 0755
-                    - name: tmp-dir
-                      emptyDir: {}
     kind: ConfigMap
     metadata:
       annotations: null
@@ -68401,17 +67939,13 @@ storage profile size caps and GOMEMLIMIT headroom:
                       type: RuntimeDefault
                   containers:
                   - name: kubescape-scheduler
-                    image: "quay.io/kubescape/kubectl:1.36.1"
+                    image: "quay.io/kubescape/http-request:v0.2.23"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
                       readOnlyRootFilesystem: true
                       runAsNonRoot: true
-                      runAsUser: 65532
-                      runAsGroup: 65532
-                      capabilities:
-                        drop:
-                          - ALL
+                      runAsUser: 100
                     resources:
                       limits:
                         cpu: 100m
@@ -68419,32 +67953,21 @@ storage profile size caps and GOMEMLIMIT headroom:
                       requests:
                         cpu: 10m
                         memory: 32Mi
-                    command: ["/scripts/create-operator-command.sh"]
                     args:
-                      - --namespace
-                      - kubescape
-                      - --request-body
-                      - /home/ks/request-body.json
-                      - --generate-name
-                      - kubescape-scheduler-
-                    env:
-                      - name: JOB_NAME
-                        valueFrom:
-                          fieldRef:
-                            fieldPath: metadata.labels['batch.kubernetes.io/job-name']
+                      - -method=post
+                      - -scheme=http
+                      - -host=operator:4002
+                      - -path=v1/triggerAction
+                      - -headers=Content-Type:application/json
+                      - -path-body=/home/ks/request-body.json
                     volumeMounts:
                       - name: "request-body-volume"
                         mountPath: /home/ks/request-body.json
                         subPath: request-body.json
                         readOnly: true
-                      - name: command-scripts
-                        mountPath: /scripts
-                        readOnly: true
-                      - name: tmp-dir
-                        mountPath: /tmp
                   restartPolicy: Never
                   serviceAccountName: kubescape
-                  automountServiceAccountToken: true
+                  automountServiceAccountToken: false
                   nodeSelector:
                     kubernetes.io/os: linux
                   affinity:
@@ -68453,12 +67976,6 @@ storage profile size caps and GOMEMLIMIT headroom:
                     - name: "request-body-volume" # placeholder
                       configMap:
                         name: kubescape-scheduler
-                    - name: command-scripts
-                      configMap:
-                        name: operator-command-scripts
-                        defaultMode: 0755
-                    - name: tmp-dir
-                      emptyDir: {}
     kind: ConfigMap
     metadata:
       annotations: null
@@ -68507,17 +68024,13 @@ storage profile size caps and GOMEMLIMIT headroom:
                       type: RuntimeDefault
                   containers:
                   - name: kubevuln-scheduler
-                    image: "quay.io/kubescape/kubectl:1.36.1"
+                    image: "quay.io/kubescape/http-request:v0.2.23"
                     imagePullPolicy: IfNotPresent
                     securityContext:
                       allowPrivilegeEscalation: false
                       readOnlyRootFilesystem: true
                       runAsNonRoot: true
-                      runAsUser: 65532
-                      runAsGroup: 65532
-                      capabilities:
-                        drop:
-                          - ALL
+                      runAsUser: 100
                     resources:
                       limits:
                         cpu: 100m
@@ -68525,32 +68038,21 @@ storage profile size caps and GOMEMLIMIT headroom:
                       requests:
                         cpu: 10m
                         memory: 32Mi
-                    command: ["/scripts/create-operator-command.sh"]
                     args:
-                      - --namespace
-                      - kubescape
-                      - --request-body
-                      - /home/ks/request-body.json
-                      - --generate-name
-                      - kubevuln-scheduler-
-                    env:
-                      - name: JOB_NAME
-                        valueFrom:
-                          fieldRef:
-                            fieldPath: metadata.labels['batch.kubernetes.io/job-name']
+                      - -method=post
+                      - -scheme=http
+                      - -host=operator:4002
+                      - -path=v1/triggerAction
+                      - -headers=Content-Type:application/json
+                      - -path-body=/home/ks/request-body.json
                     volumeMounts:
                       - name: "request-body-volume"
                         mountPath: /home/ks/request-body.json
                         subPath: request-body.json
                         readOnly: true
-                      - name: command-scripts
-                        mountPath: /scripts
-                        readOnly: true
-                      - name: tmp-dir
-                        mountPath: /tmp
                   restartPolicy: Never
                   serviceAccountName: kubevuln
-                  automountServiceAccountToken: true
+                  automountServiceAccountToken: false
                   nodeSelector:
                     kubernetes.io/os: linux
                   affinity:
@@ -68559,12 +68061,6 @@ storage profile size caps and GOMEMLIMIT headroom:
                     - name: "request-body-volume" # placeholder
                       configMap:
                         name: kubevuln-scheduler
-                    - name: command-scripts
-                      configMap:
-                        name: operator-command-scripts
-                        defaultMode: 0755
-                    - name: tmp-dir
-                      emptyDir: {}
     kind: ConfigMap
     metadata:
       annotations: null
