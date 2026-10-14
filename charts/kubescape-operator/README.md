@@ -1,6 +1,6 @@
 # Kubescape Operator
 
-![Version: 1.40.4](https://img.shields.io/badge/Version-1.40.4-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.40.4](https://img.shields.io/badge/AppVersion-v1.40.4-informational?style=flat-square)
+![Version: 1.41.0](https://img.shields.io/badge/Version-1.41.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 1.40.5](https://img.shields.io/badge/AppVersion-1.40.5-informational?style=flat-square)
 
 [Kubescape operator documentation](https://kubescape.io/docs/install-operator/)
 
@@ -127,6 +127,7 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
+| excludeControls | list | `[]` | Control IDs or legacy CIS section numbers omitted from every operator-triggered posture scan. Request exclusions are added to this list. |
 | defaultFrameworks | list | `[]` | Install-time posture frameworks when a scan omits `targetNames`. Empty = operator legacy fallbacks. Clear with `--set defaultFrameworks=null`. |
 | capabilities.agentRuntimePosture | string | `"disable"` | Grant the Kubescape scanner read-only access to the supported Agent Runtime resources: Sandbox, SandboxTemplate, and WorkerPool. |
 | global.networkPolicy.enabled | bool | `false` | Create NetworkPolicies for all components |
@@ -641,3 +642,21 @@ The scan results are then sent by each relevant component to the CloudEndpoint.
   ```bash
   --set global.overrideRuntimePath="/host/var/lib/rancher/k3s/data/current/bin/runc"
   ```
+
+### Excluding controls from automatic scans
+
+```yaml
+excludeControls:
+  - C-0069
+  - C-0070
+```
+
+This installation setting applies to explicit, scheduled, and continuous
+operator-triggered scans. Individual `scanV1` requests can add exclusions; an
+empty request list does not clear the installation list. Controls are omitted
+before evaluation and compliance scoring, using the CLI's `--exclude-controls`
+behavior. Exclusions narrow the assessment scope; they do not make checks pass.
+The default empty list changes nothing. Non-list, non-string, and blank values
+are rejected. The chart defaults select operator `v0.2.186` and Kubescape scanner
+`v4.0.16`, which include support for this setting. Keep a compatible pair if
+overriding the image versions.
