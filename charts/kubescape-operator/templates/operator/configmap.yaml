@@ -1,5 +1,20 @@
 {{- $components := fromYaml (include "components" .) }}
   {{- if $components.operator.enabled }}
+{{- $excludedControls := list }}
+{{- if not (kindIs "invalid" .Values.excludeControls) }}
+  {{- if not (kindIs "slice" .Values.excludeControls) }}
+    {{- fail "excludeControls must be a list of control identifiers" }}
+  {{- end }}
+  {{- range .Values.excludeControls }}
+    {{- if not (kindIs "string" .) }}
+      {{- fail "excludeControls entries must be strings" }}
+    {{- end }}
+    {{- if eq (trim .) "" }}
+      {{- fail "excludeControls contains an empty control identifier" }}
+    {{- end }}
+    {{- $excludedControls = append $excludedControls (trim .) }}
+  {{- end }}
+{{- end }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -18,6 +33,9 @@ data:
         {{- else if ne .Values.excludeNamespaces "" }}
       "excludeNamespaces": "{{ .Values.excludeNamespaces }}",
         {{- end }}
+      {{- if $excludedControls }}
+      "excludeControls": {{ $excludedControls | toJson }},
+      {{- end }}
       "namespace": "{{ .Values.ksNamespace }}",
       "triggersecurityframework": {{ .Values.operator.triggerSecurityFramework }},
       "podScanGuardTime": "{{ .Values.operator.podScanGuardTime }}",

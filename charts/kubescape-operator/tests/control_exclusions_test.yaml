@@ -1,0 +1,208 @@
+suite: control exclusions for operator scans
+templates:
+  - operator/configmap.yaml
+  - kubescape-scheduler/configmap.yaml
+  - operator/ks-recurring-cronjob-configmap.yaml
+tests:
+  - it: leaves exclusions unset by default
+    template: operator/configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: exclusion-check
+    asserts:
+      - notMatchRegex:
+          path: data["config.json"]
+          pattern: '"excludeControls"'
+  - it: renders installation exclusions
+    template: operator/configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: exclusion-check
+      excludeControls: [C-0069, C-0070]
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"excludeControls":\s*\["C-0069","C-0070"\]'
+  - it: preserves per-request exclusions in scheduled requests
+    template: kubescape-scheduler/configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: exclusion-check
+      excludeControls: [C-0069]
+      kubescapeScheduler.requestBody.commands:
+        - CommandName: kubescapeScan
+          args:
+            scanV1:
+              targetType: framework
+              targetNames: [nsa]
+              excludeControls: [C-0070]
+    asserts:
+      - matchRegex:
+          path: data["request-body.json"]
+          pattern: '"excludeControls":\["C-0070"\]'
+      - matchRegex:
+          path: data["request-body.json"]
+          pattern: '"targetNames":\["nsa"\]'
+      - notMatchRegex:
+          path: data["request-body.json"]
+          pattern: 'C-0069'
+  - it: rejects a scalar list
+    template: operator/configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      excludeControls: C-0069
+    asserts:
+      - failedTemplate:
+          errorMessage: excludeControls must be a list of control identifiers
+  - it: rejects a non-string entry
+    template: operator/configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      excludeControls: [42]
+    asserts:
+      - failedTemplate:
+          errorMessage: excludeControls entries must be strings
+  - it: rejects blank identifiers
+    template: operator/configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      excludeControls: [" "]
+    asserts:
+      - failedTemplate:
+          errorMessage: excludeControls contains an empty control identifier
+
+  - it: recurring jobs send stored requests through the operator
+    template: operator/ks-recurring-cronjob-configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: exclusion-check
+      excludeControls: [C-0069]
+    asserts:
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: '-host=operator:4002'
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: '-path=v1/triggerAction'
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: 'request-body.json'
+
+  - it: leaves exclusions unset for explicit empty input
+    template: operator/configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: exclusion-check
+      excludeControls: []
+    asserts:
+      - notMatchRegex:
+          path: data["config.json"]
+          pattern: '"excludeControls"'
+
+  - it: leaves exclusions unset for null input
+    template: operator/configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: exclusion-check
+      excludeControls: null
+    asserts:
+      - notMatchRegex:
+          path: data["config.json"]
+          pattern: '"excludeControls"'
+
+  - it: trims installation identifiers before forwarding them
+    template: operator/configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: exclusion-check
+      excludeControls: [" C-0069 ", " 1.2.3 "]
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"excludeControls":\s*\["C-0069","1.2.3"\]'
+
+  - it: rejects false input
+    template: operator/configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      excludeControls: false
+    asserts:
+      - failedTemplate:
+          errorMessage: excludeControls must be a list of control identifiers
+
+  - it: rejects zero input
+    template: operator/configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      excludeControls: 0
+    asserts:
+      - failedTemplate:
+          errorMessage: excludeControls must be a list of control identifiers
+
+  - it: rejects empty string input
+    template: operator/configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      excludeControls: ''
+    asserts:
+      - failedTemplate:
+          errorMessage: excludeControls must be a list of control identifiers
+
+  - it: rejects object input
+    template: operator/configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      excludeControls: {}
+    asserts:
+      - failedTemplate:
+          errorMessage: excludeControls must be a list of control identifiers
+
+  - it: rejects null entry input
+    template: operator/configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      excludeControls: [null]
+    asserts:
+      - failedTemplate:
+          errorMessage: excludeControls entries must be strings
+
+  - it: rejects mixed entry input
+    template: operator/configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      excludeControls: [C-0069, true]
+    asserts:
+      - failedTemplate:
+          errorMessage: excludeControls entries must be strings
