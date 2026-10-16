@@ -172,6 +172,10 @@ warnings:
 {{- end }}
 {{- end -}}
 
+{{- define "kubescape.commandScripts.name" -}}
+{{- printf "%s-command-scripts" .Values.operator.name -}}
+{{- end }}
+
 {{- define "kubescape.certgen.scriptsHash" -}}
 {{- printf "%s%s" (.Files.Get "scripts/certgen-create.sh") (.Files.Get "scripts/certgen-patch.sh") | sha256sum | trunc 8 -}}
 {{- end }}

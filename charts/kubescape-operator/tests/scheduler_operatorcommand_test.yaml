@@ -1,0 +1,240 @@
+suite: Scheduled scans create OperatorCommands
+templates:
+  - kubescape-scheduler/cronjob.yaml
+  - kubevuln-scheduler/cronjob.yaml
+  - kubescape-scheduler/networkpolicy.yaml
+  - kubevuln-scheduler/networkpolicy.yaml
+  - kubescape/role.yaml
+  - kubevuln/role.yaml
+  - kubevuln/rolebinding.yaml
+  - operator/command-scripts-configmap.yaml
+  - operator/registry-scan-recurring-cronjob-configmap.yaml
+  - operator/ks-recurring-cronjob-configmap.yaml
+  - operator/kv-recurring-cronjob-configmap.yaml
+capabilities:
+  apiVersions:
+    - batch/v1
+tests:
+  - it: creates the OperatorCommand from the kubescape scheduler instead of calling the trigger endpoint
+    template: kubescape-scheduler/cronjob.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].command
+          value: ["/scripts/create-operator-command.sh"]
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].args
+          value:
+            - --namespace
+            - kubescape
+            - --request-body
+            - /home/ks/request-body.json
+            - --generate-name
+            - kubescape-scheduler-
+      - contains:
+          path: spec.jobTemplate.spec.template.spec.containers[0].env
+          content:
+            name: JOB_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.labels['batch.kubernetes.io/job-name']
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.serviceAccountName
+          value: kubescape
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.automountServiceAccountToken
+          value: true
+      - contains:
+          path: spec.jobTemplate.spec.template.spec.volumes
+          content:
+            name: command-scripts
+            configMap:
+              name: operator-command-scripts
+              defaultMode: 0755
+      - contains:
+          path: spec.jobTemplate.spec.template.spec.containers[0].volumeMounts
+          content:
+            name: command-scripts
+            mountPath: /scripts
+            readOnly: true
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].securityContext.runAsUser
+          value: 65532
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem
+          value: true
+  - it: creates the OperatorCommand from the kubevuln scheduler with the kubevuln ServiceAccount
+    template: kubevuln-scheduler/cronjob.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].command
+          value: ["/scripts/create-operator-command.sh"]
+      - contains:
+          path: spec.jobTemplate.spec.template.spec.containers[0].args
+          content: kubevuln-scheduler-
+      - notContains:
+          path: spec.jobTemplate.spec.template.spec.containers[0].args
+          content: -path=v1/triggerAction
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.serviceAccountName
+          value: kubevuln
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.automountServiceAccountToken
+          value: true
+  - it: lets the scheduler egress reach the API server rather than the operator trigger port
+    templates:
+      - kubescape-scheduler/networkpolicy.yaml
+      - kubevuln-scheduler/networkpolicy.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global:
+        networkPolicy:
+          enabled: true
+          createEgressRules: true
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            ports:
+              - port: 443
+                protocol: TCP
+            to:
+              - namespaceSelector:
+                  matchLabels:
+                    kubernetes.io/metadata.name: default
+                podSelector:
+                  matchLabels:
+                    component: apiserver
+                    provider: kubernetes
+      - notMatchRegexRaw:
+          pattern: 'port: 4002'
+  - it: grants the kubescape ServiceAccount creation of OperatorCommands and reading its Job
+    template: kubescape/role.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups:
+              - kubescape.io
+            resources:
+              - operatorcommands
+            verbs:
+              - create
+      - contains:
+          path: rules
+          content:
+            apiGroups:
+              - batch
+            resources:
+              - jobs
+            verbs:
+              - get
+  - it: binds the same namespaced permissions to the kubevuln ServiceAccount
+    templates:
+      - kubevuln/role.yaml
+      - kubevuln/rolebinding.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: kubescape
+      - equal:
+          path: rules
+          value:
+            - apiGroups:
+                - kubescape.io
+              resources:
+                - operatorcommands
+              verbs:
+                - create
+            - apiGroups:
+                - batch
+              resources:
+                - jobs
+              verbs:
+                - get
+        template: kubevuln/role.yaml
+      - equal:
+          path: roleRef.name
+          value: kubevuln
+        template: kubevuln/rolebinding.yaml
+      - equal:
+          path: subjects[0].name
+          value: kubevuln
+        template: kubevuln/rolebinding.yaml
+  - it: does not render the kubevuln Role when vulnerability scanning is disabled
+    templates:
+      - kubevuln/role.yaml
+      - kubevuln/rolebinding.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities:
+        vulnerabilityScan: disable
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: ships the script in a ConfigMap with a stable name
+    template: operator/command-scripts-configmap.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - equal:
+          path: metadata.name
+          value: operator-command-scripts
+      - matchRegex:
+          path: data["create-operator-command.sh"]
+          pattern: 'kind: "OperatorCommand"'
+      - matchRegex:
+          path: data["create-operator-command.sh"]
+          pattern: 'commandType: "OperatorAPI"'
+  - it: renders the registry scan CronJob template the operator uses with the same script
+    template: operator/registry-scan-recurring-cronjob-configmap.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: 'command: \["/scripts/create-operator-command.sh"\]'
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: 'automountServiceAccountToken: true'
+      - notMatchRegex:
+          path: data.cronjobTemplate
+          pattern: triggerAction
+  - it: renders the backend-driven scan CronJob templates with the same script
+    templates:
+      - operator/ks-recurring-cronjob-configmap.yaml
+      - operator/kv-recurring-cronjob-configmap.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: 'image: "quay.io/kubescape/kubectl:1.36.1"'
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: 'command: \["/scripts/create-operator-command.sh"\]'
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: 'name: operator-command-scripts'
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: 'automountServiceAccountToken: true'
+      - notMatchRegex:
+          path: data.cronjobTemplate
+          pattern: 'triggerAction|-method=post'

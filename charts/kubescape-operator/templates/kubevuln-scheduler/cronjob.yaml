@@ -55,26 +55,34 @@ spec:
               allowPrivilegeEscalation: false
               readOnlyRootFilesystem: true
               runAsNonRoot: true
-              runAsUser: 100
-              runAsGroup: 100
+              runAsUser: 65532
+              runAsGroup: 65532
               capabilities:
                 drop:
                   - ALL
+            command: ["/scripts/create-operator-command.sh"]
             args:
-              - -method=post
-              - -scheme=http
-              - -host={{ .Values.operator.name }}:{{ .Values.operator.service.port }}
-              - -path=v1/triggerAction
-              - -headers=Content-Type:application/json
-              - -path-body=/home/ks/request-body.json
-            {{- if .Values.kubevulnScheduler.insecureSkipTLSVerify }}
-              - -skip-ssl-verify=true
-            {{- end}}
+              - --namespace
+              - {{ .Values.ksNamespace }}
+              - --request-body
+              - /home/ks/request-body.json
+              - --generate-name
+              - {{ .Values.kubevulnScheduler.name }}-
+            env:
+              - name: JOB_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.labels['batch.kubernetes.io/job-name']
             volumeMounts:
               - name: {{ .Values.kubevulnScheduler.name }}
                 mountPath: /home/ks/request-body.json
                 subPath: request-body.json
                 readOnly: true
+              - name: command-scripts
+                mountPath: /scripts
+                readOnly: true
+              - name: tmp-dir
+                mountPath: /tmp
 {{- if .Values.volumeMounts }}
 {{ toYaml .Values.volumeMounts | indent 14 }}
 {{- end }}
@@ -83,7 +91,7 @@ spec:
 {{- end }}
           restartPolicy: Never
           serviceAccountName: {{ .Values.kubevuln.name }}
-          automountServiceAccountToken: false
+          automountServiceAccountToken: true
           nodeSelector:
           {{- if .Values.kubevulnScheduler.nodeSelector }}
           {{- toYaml .Values.kubevulnScheduler.nodeSelector | nindent 12 }}
@@ -107,6 +115,12 @@ spec:
           - name: {{ .Values.kubevulnScheduler.name }}
             configMap:
               name: {{ .Values.kubevulnScheduler.name }}
+          - name: command-scripts
+            configMap:
+              name: {{ include "kubescape.commandScripts.name" . }}
+              defaultMode: 0755
+          - name: tmp-dir
+            emptyDir: {}
 {{- if .Values.volumes }}
 {{ toYaml .Values.volumes | indent 10 }}
 {{- end }}
