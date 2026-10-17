@@ -35,14 +35,18 @@ kubescape     storage-59567854fd-hg8n8                            1/1     Runnin
 Setting `capabilities.kubescapeOffline: enable` forces
 `KS_SKIP_UPDATE_CHECK="true"` on the Operator container, overriding entries with
 that name in `operator.env`. This suppresses the Operator's daily report to
-`version-check.ks-services.co` when using an Operator image containing
-[kubescape/operator#421](https://github.com/kubescape/operator/pull/421).
-The currently pinned Operator image predates that fix; the environment variable
-alone cannot suppress reports in older images.
+`version-check.ks-services.co`. Operator v0.2.181 includes
+[kubescape/operator#421](https://github.com/kubescape/operator/pull/421);
+the chart defaults to the newer compatible v0.2.188 release. If overriding the
+image, use v0.2.181 or a later release containing that fix. Older images do not
+honor this setting for daily reports.
 
 Online installations retain their existing reporting behavior. To opt out
 explicitly online, set `KS_SKIP_UPDATE_CHECK=true` through `operator.env`.
 `kubescape.skipUpdateCheck` remains scoped to the Kubescape scanner.
+
+See the [published-image validation](../../docs/features/operator-daily-reports-validation.md)
+for a reproducible check of offline suppression and online reporting.
 
 ## Upgrade
 
