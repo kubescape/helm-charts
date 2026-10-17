@@ -44,11 +44,13 @@ def violations(workflows):
     errors = []
 
     def require(requested, ceiling, location):
+        """Record scopes that exceed the inherited permission ceiling."""
         denied = [scope for scope, level in requested.items() if level > ceiling[scope]]
         if denied:
             errors.append(f"{location}: insufficient permissions: {', '.join(denied)}")
 
     def visit(path, ceiling, chain):
+        """Follow local calls while carrying the most restrictive ceiling."""
         workflow = workflows[path]
         defaults = expand(workflow["permissions"])
         if ceiling is not None:
@@ -74,8 +76,11 @@ def violations(workflows):
 
 
 class PermissionContracts(unittest.TestCase):
+    """Protect read-only defaults, approved writes, and reusable call chains."""
+
     @classmethod
     def setUpClass(cls):
+        """Load every repository workflow without coercing YAML scalars."""
         cls.workflows = {
             str(path.relative_to(ROOT)): yaml.load(path.read_text(), Loader=yaml.BaseLoader)
             for path in (ROOT / ".github/workflows").iterdir()
@@ -83,36 +88,64 @@ class PermissionContracts(unittest.TestCase):
         }
 
     def test_workflow_defaults_are_read_only(self):
+        """Require explicit read-only defaults in every workflow."""
         for path, workflow in self.workflows.items():
             with self.subTest(workflow=path):
                 self.assertEqual(workflow["permissions"], "read-all")
 
     def test_all_local_calls_and_nested_jobs_are_compatible(self):
+        """Validate every local call against all inherited ceilings."""
         self.assertEqual(violations(self.workflows), [])
 
-    def test_caller_write_grants_remain_minimal(self):
+    def test_all_job_write_grants_remain_minimal(self):
+        """Require an approved write set for every job, including inherited grants."""
         expected = {
+            ("00-cicd.yaml", "input-validator"): set(),
             ("00-cicd.yaml", "helm-chart-update"): {"contents"},
+            ("00-cicd.yaml", "e2e-test"): set(),
+            ("00-cicd.yaml", "merge-to-main"): set(),
             ("00-cicd.yaml", "helm-release"): {"contents", "attestations", "id-token"},
+            ("01-update_tag.yaml", "update-helm-chart"): {"contents"},
+            ("02-e2e-test.yaml", "dispatch-e2e-tests"): set(),
+            ("03-helm-release.yaml", "e2e-test"): set(),
+            ("03-helm-release.yaml", "allowlist-drift-check"): set(),
+            ("03-helm-release.yaml", "helm-chart-release"): {"contents", "attestations", "id-token"},
+            ("04-helm-release-no-tests.yaml", "helm-chart-release"): {"contents", "attestations", "id-token"},
             ("inspektor-trigger-e2e-tests.yaml", "call-e2e-tests"): {"checks"},
+            ("kubescape.yaml", "kubescape"): {"security-events"},
+            ("pr-allowlist-drift.yaml", "allowlist-drift"): {"pull-requests"},
+            ("pr-created.yaml", "pr-created"): set(),
+            ("relevancy-e2e-test.yaml", "e2e-test"): {"checks"},
+            ("scorecard.yml", "analysis"): {"security-events", "id-token"},
+            ("trigger-performance-test.yaml", "trigger-performance-test"): set(),
         }
+        actual = {
+            (Path(path).name, job)
+            for path, workflow in self.workflows.items()
+            for job in workflow["jobs"]
+        }
+        self.assertEqual(set(expected), actual)
         for (path, job), writes in expected.items():
             with self.subTest(workflow=path, job=job):
-                permissions = self.workflows[f".github/workflows/{path}"]["jobs"][job]["permissions"]
-                self.assertEqual({scope for scope, level in permissions.items() if level == "write"}, writes)
+                workflow = self.workflows[f".github/workflows/{path}"]
+                permissions = expand(workflow["jobs"][job].get("permissions", workflow["permissions"]))
+                self.assertEqual({scope for scope, level in permissions.items() if level == LEVELS["write"]}, writes)
 
     def test_omitted_scopes_are_denied(self):
+        """An explicit map must deny scopes that it does not list."""
         permissions = expand({"contents": "write"})
         self.assertEqual(permissions["contents"], 2)
         self.assertEqual(permissions["actions"], 0)
         self.assertEqual(permissions["id-token"], 0)
 
     def test_read_all_does_not_grant_write_only_scopes(self):
+        """Read-all must not grant write access or OIDC/Copilot capabilities."""
         permissions = expand("read-all")
         self.assertTrue(all(permissions[scope] == 1 for scope in READ_SCOPES))
         self.assertTrue(all(permissions[scope] == 0 for scope in WRITE_ONLY_SCOPES))
 
     def test_original_three_callers_fail_default_compatibility(self):
+        """Reproduce all original caller failures, including the nested call."""
         workflows = deepcopy(self.workflows)
         workflows[".github/workflows/00-cicd.yaml"]["jobs"]["helm-chart-update"]["permissions"] = {"contents": "write"}
         workflows[".github/workflows/00-cicd.yaml"]["jobs"]["helm-release"]["permissions"] = {
@@ -128,6 +161,7 @@ class PermissionContracts(unittest.TestCase):
             self.assertTrue(any(callee in error for error in defaults), callee)
 
     def test_nested_call_cannot_restore_denied_permissions(self):
+        """A nested workflow must not regain a scope denied by its caller."""
         workflows = deepcopy(self.workflows)
         workflows[".github/workflows/03-helm-release.yaml"]["jobs"]["e2e-test"]["permissions"] = {"contents": "read"}
         errors = violations(workflows)
