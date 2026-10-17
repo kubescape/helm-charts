@@ -34,6 +34,9 @@ spec:
         {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.kubevuln.name "tier" .Values.global.namespaceTier) | nindent 8 }}
         {{- with .Values.kubevuln.podLabels }}{{- toYaml . | nindent 8 }}{{- end }}
         kubescape.io/tier: "core"
+        {{- if and .Values.cloudProviderMetadata.aksWorkloadIdentityClientID (not .Values.cloudProviderMetadata.awsIamRoleArn) (not .Values.cloudProviderMetadata.gkeServiceAccount) }}
+        azure.workload.identity/use: "true"
+        {{- end }}
     spec:
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:

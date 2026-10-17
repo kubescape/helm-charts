@@ -221,6 +221,8 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | cloudProviderMetadata.aksClientID | string or through `cloudProviderMetadata.secretRef.clientIdKey` if `cloudProviderMetadata.secretRef.name` is set | `nil` | AKS client ID |
 | cloudProviderMetadata.aksClientSecret | string or through `cloudProviderMetadata.secretRef.clientSecretKey` if `cloudProviderMetadata.secretRef.name` is set | `nil` | AKS client secret |
 | cloudProviderMetadata.aksTenantID | string or through `cloudProviderMetadata.secretRef.tenantIdKey` if `cloudProviderMetadata.secretRef.name` is set | `nil` | AKS tenant ID |
+| cloudProviderMetadata.aksWorkloadIdentityClientID | string | `nil` | Azure Workload Identity client ID federated with the kubevuln ServiceAccount, used to pull images from private Azure Container Registries without static credentials. Annotates the kubevuln ServiceAccount with `azure.workload.identity/client-id` and labels the kubevuln pod with `azure.workload.identity/use: "true"`. Requires the Azure Workload Identity webhook |
+| cloudProviderMetadata.aksWorkloadIdentityTenantID | string | `nil` | Azure Workload Identity tenant ID (optional). Annotates the kubevuln ServiceAccount with `azure.workload.identity/tenant-id` |
 | volumes | object | `[]` | Additional volumes for all containers |
 | volumeMounts | object | `[]` | Additional volumeMounts for all containers |
 | imageScanning.privateRegistries.credentials | object | `[]` | Credentials for scanning images pulled from private container registries. This configuration is not needed when using `imagePullSecrets`|
