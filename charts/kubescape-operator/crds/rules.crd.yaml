@@ -71,6 +71,45 @@ spec:
                           - message
                           - uniqueId
                           - ruleExpression
+                      stateWrites:
+                        type: array
+                        description: >-
+                          Facts this rule remembers across events, for
+                          cross-event correlation. Each entry is driven by one
+                          event type, which need not be an event type the rule
+                          alerts on -- that is what allows a rule to remember on
+                          exec and alert on network.
+                        items:
+                          type: object
+                          properties:
+                            eventType:
+                              type: string
+                              description: "Event stream that drives this write"
+                            when:
+                              type: string
+                              description: "CEL boolean guard; empty means always write"
+                            scope:
+                              type: string
+                              enum: ["container", "pod", "node", "identity"]
+                              description: "Bucket the entry belongs to. identity is operator-only."
+                            name:
+                              type: string
+                              description: "What kind of fact this is. A literal, never an expression."
+                            key:
+                              type: string
+                              description: "CEL string expression naming the subject. Omit for a scope-wide fact."
+                            value:
+                              type: object
+                              x-kubernetes-preserve-unknown-fields: true
+                              description: "Optional author extras as CEL expressions. Keys may not begin with an underscore."
+                            ttl:
+                              type: string
+                              description: "Go duration string; clamped to the agent's configured maxTtl at load"
+                          required:
+                            - eventType
+                            - scope
+                            - name
+                            - ttl
                       profileDependency:
                         type: integer
                         enum: [0, 1, 2]
