@@ -46,20 +46,10 @@ spec:
 {{ tpl (.Files.Get "assets/api-server-egress-rules.yaml") . | indent 4 }}
 {{ tpl (.Files.Get "assets/common-egress-rules.yaml") . | indent 4 }}
   {{- end }}
+  {{- if eq .Values.capabilities.admissionController "enable" }}
   ingress:
-    {{- if eq .Values.capabilities.admissionController "enable" }}
     - ports:
       - port: admission-port
         protocol: TCP
-    {{- end }}
-    - from:
-        - podSelector:
-            matchLabels:
-              armo.tier: kubescape-scan
-        - podSelector:
-            matchLabels:
-              armo.tier: vuln-scan
-      ports:
-        - port: trigger-port
-          protocol: TCP
+  {{- end }}
 {{- end }}
