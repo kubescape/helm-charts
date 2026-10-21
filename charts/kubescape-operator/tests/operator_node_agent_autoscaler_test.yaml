@@ -60,3 +60,154 @@ tests:
             name: node-agent-template
             configMap:
               name: node-agent-daemonset-template
+
+  - it: keeps the default node-agent floor when call stacks are off
+    template: operator/configmap.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.autoscaler.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"minResources": \{\s*"cpu": "100m",\s*"memory": "600Mi"'
+
+  - it: raises the default node-agent floor when call stacks are on
+    template: operator/configmap.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.autoscaler.enabled: true
+      nodeAgent.config.extra.callstackPipelineEnabled: true
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"minResources": \{\s*"cpu": "200m",\s*"memory": "768Mi"'
+
+  - it: raises the 180Mi floor (SBOM scanner sidecar on) when call stacks are on
+    template: operator/configmap.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.autoscaler.enabled: true
+      nodeAgent.sbomScanner.enabled: true
+      nodeAgent.config.extra.callstackPipelineEnabled: true
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"minResources": \{\s*"cpu": "200m",\s*"memory": "768Mi"'
+
+  - it: keeps a user-set node-agent floor when call stacks are on
+    template: operator/configmap.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.autoscaler.enabled: true
+      nodeAgent.autoscaler.minResources.cpu: 300m
+      nodeAgent.autoscaler.minResources.memory: 1Gi
+      nodeAgent.config.extra.callstackPipelineEnabled: true
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"minResources": \{\s*"cpu": "300m",\s*"memory": "1Gi"'
+
+  - it: keeps the default floor when the call-stack flag is false
+    template: operator/configmap.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.autoscaler.enabled: true
+      nodeAgent.config.extra.callstackPipelineEnabled: false
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"minResources": \{\s*"cpu": "100m",\s*"memory": "600Mi"'
+
+  - it: raises the 180Mi floor (SBOM generation off) when call stacks are on
+    template: operator/configmap.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.autoscaler.enabled: true
+      capabilities.nodeSbomGeneration: disable
+      nodeAgent.config.extra.callstackPipelineEnabled: true
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"minResources": \{\s*"cpu": "200m",\s*"memory": "768Mi"'
+
+  - it: keeps the 180Mi floor (SBOM scanner sidecar on) when call stacks are off
+    template: operator/configmap.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.autoscaler.enabled: true
+      nodeAgent.sbomScanner.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"minResources": \{\s*"cpu": "100m",\s*"memory": "180Mi"'
+
+  - it: keeps a user-set 600Mi floor when call stacks are on
+    template: operator/configmap.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.autoscaler.enabled: true
+      nodeAgent.autoscaler.minResources.memory: 600Mi
+      nodeAgent.config.extra.callstackPipelineEnabled: true
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"minResources": \{\s*"cpu": "200m",\s*"memory": "600Mi"'
+
+  - it: raises only the default CPU floor when memory is user-set
+    template: operator/configmap.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.autoscaler.enabled: true
+      nodeAgent.autoscaler.minResources.memory: 1Gi
+      nodeAgent.config.extra.callstackPipelineEnabled: true
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"minResources": \{\s*"cpu": "200m",\s*"memory": "1Gi"'
+
+  - it: raises only the default memory floor when CPU is user-set
+    template: operator/configmap.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.autoscaler.enabled: true
+      nodeAgent.autoscaler.minResources.cpu: 300m
+      nodeAgent.config.extra.callstackPipelineEnabled: true
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"minResources": \{\s*"cpu": "300m",\s*"memory": "768Mi"'
+
+  - it: ignores a call-stack flag that is not a bool
+    template: operator/configmap.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.autoscaler.enabled: true
+      nodeAgent.config.extra.callstackPipelineEnabled: "true"
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"minResources": \{\s*"cpu": "100m",\s*"memory": "600Mi"'
+
+  - it: keeps a numeric CPU floor when call stacks are on
+    template: operator/configmap.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.autoscaler.enabled: true
+      nodeAgent.autoscaler.minResources.cpu: "0.1"
+      nodeAgent.config.extra.callstackPipelineEnabled: true
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"minResources": \{\s*"cpu": "0.1",\s*"memory": "768Mi"'
