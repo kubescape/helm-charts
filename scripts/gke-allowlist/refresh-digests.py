@@ -96,7 +96,7 @@ def resolve_tags(registry, tags):
     return [(t, d) for (t, d) in results if d]
 
 
-def process(path, maxn, apply, explicit_tags=None, resolved_explicit=None):
+def process(path, maxn, apply, explicit_tags=None):
     lines = open(path).read().splitlines()
     # find each "imageDigests:" line and the extent of its block
     blocks = []  # (insert_after_idx, end_idx, registry, existing_digests:set, existing_tags:set)
@@ -138,21 +138,23 @@ def process(path, maxn, apply, explicit_tags=None, resolved_explicit=None):
             i += 1
 
     report, additions = [], []  # additions: (insert_idx, [new lines])
+    unresolved = 0
     for insert_after, _end, reg, existing_digests, existing_tags in blocks:
         if not reg:
             report.append(f"  ! could not infer registry for block at line {insert_after+1}; skipping")
             continue
 
         if explicit_tags:
-            candidate_tags = [t for t in explicit_tags if t not in existing_tags]
+            applicable_tags = [
+                t for t in explicit_tags
+                if not existing_tags or any(t.split('.')[0:2] == et.split('.')[0:2] for et in existing_tags)
+            ]
+            candidate_tags = [t for t in applicable_tags if t not in existing_tags]
             resolved = resolve_tags(reg, candidate_tags)
             resolved_dict = dict(resolved)
-            if resolved_explicit is not None:
-                for t in explicit_tags:
-                    if t in existing_tags or t in resolved_dict:
-                        resolved_explicit.add(t)
             for t in candidate_tags:
                 if t not in resolved_dict:
+                    unresolved += 1
                     report.append(f"  ! could not resolve digest for {reg}/node-agent:{t} (tag missing or inspect failed)")
             missing = [(t, d) for (t, d) in resolved if d not in existing_digests]
         else:
@@ -187,7 +189,7 @@ def process(path, maxn, apply, explicit_tags=None, resolved_explicit=None):
             lines[idx:idx] = new
         open(path, "w").write("\n".join(lines) + "\n")
         print(f"  -> applied: inserted {total_new} digest(s)")
-    return total_new
+    return total_new, unresolved
 
 
 def main():
@@ -218,14 +220,13 @@ def main():
                 seen.add(t)
                 explicit_tags.append(t)
 
-    resolved_explicit = set() if explicit_tags else None
-    total = sum(process(f, args.max, args.apply, explicit_tags=explicit_tags, resolved_explicit=resolved_explicit) for f in files)
+    results = [process(f, args.max, args.apply, explicit_tags=explicit_tags) for f in files]
+    total = sum(new for new, _ in results)
+    unresolved = sum(failed for _, failed in results)
     print(f"\nTotal new digests {'applied' if args.apply else 'available'}: {total}")
-    if explicit_tags:
-        unresolved = [t for t in explicit_tags if t not in resolved_explicit]
-        if unresolved:
-            print(f"\nerror: requested tag(s) could not be resolved: {', '.join(unresolved)}", file=sys.stderr)
-            sys.exit(11)
+    if unresolved:
+        print(f"\nerror: {unresolved} requested tag lookup(s) could not be resolved.", file=sys.stderr)
+        sys.exit(11)
     if total and not args.apply:
         print("Re-run with --apply to insert them, then commit + push to Gerrit refs/for/main.")
         sys.exit(10)
