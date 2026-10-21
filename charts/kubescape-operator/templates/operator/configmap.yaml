@@ -1,4 +1,21 @@
 {{- $components := fromYaml (include "components" .) }}
+{{- /* node-agent autoscaler floor. Only the chart defaults are raised; any other value is used as is. */}}
+{{- $naMinCPU := .Values.nodeAgent.autoscaler.minResources.cpu }}
+{{- $naMinMemory := .Values.nodeAgent.autoscaler.minResources.memory }}
+{{- $naMinMemoryIsDefault := eq (toString $naMinMemory) "180Mi" }}
+{{- if and (eq .Values.capabilities.nodeSbomGeneration "enable") (not $components.sbomScanner.enabled) $naMinMemoryIsDefault }}
+  {{- $naMinMemory = "600Mi" }}
+{{- end }}
+{{- /* Call stacks (private node-agent flag, set as a bool through nodeAgent.config.extra) need about 768Mi and 200m. */}}
+{{- $callstackFlag := index (default (dict) .Values.nodeAgent.config.extra) "callstackPipelineEnabled" }}
+{{- if and (kindIs "bool" $callstackFlag) $callstackFlag }}
+  {{- if $naMinMemoryIsDefault }}
+    {{- $naMinMemory = "768Mi" }}
+  {{- end }}
+  {{- if eq (toString $naMinCPU) "100m" }}
+    {{- $naMinCPU = "200m" }}
+  {{- end }}
+{{- end }}
 {{- $excludedControls := list }}
 {{- if not (kindIs "invalid" .Values.excludeControls) }}
   {{- if not (kindIs "slice" .Values.excludeControls) }}
@@ -60,8 +77,8 @@ data:
           "limitMemory": {{ .Values.nodeAgent.autoscaler.resourcePercentages.limitMemory }}
         },
         "minResources": {
-          "cpu": "{{ .Values.nodeAgent.autoscaler.minResources.cpu }}",
-          "memory": {{ if and (eq .Values.capabilities.nodeSbomGeneration "enable") (not $components.sbomScanner.enabled) (eq .Values.nodeAgent.autoscaler.minResources.memory "180Mi") }}"600Mi"{{ else }}"{{ .Values.nodeAgent.autoscaler.minResources.memory }}"{{ end }}
+          "cpu": "{{ $naMinCPU }}",
+          "memory": "{{ $naMinMemory }}"
         },
         "maxResources": {
           "cpu": "{{ .Values.nodeAgent.autoscaler.maxResources.cpu }}",
