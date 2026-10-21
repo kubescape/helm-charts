@@ -18,7 +18,7 @@ Usage:
   allowlist-drift.py --chart <path> --allowlist <yaml> [--values f.yaml ...]
                      [--set k=v ...] [--wrapper] [--check-digests]
 """
-import argparse, re, subprocess, sys
+import argparse, re, shutil, subprocess, sys
 import yaml
 
 
@@ -81,8 +81,13 @@ def repo(image):
 
 
 def resolve_digest(image):
-    out = subprocess.run(["skopeo", "inspect", f"docker://{image}"],
-                         capture_output=True, text=True)
+    if shutil.which("skopeo") is None:
+        return None
+    try:
+        out = subprocess.run(["skopeo", "inspect", "--no-tags", f"docker://{image}"],
+                             capture_output=True, text=True, timeout=30)
+    except (subprocess.TimeoutExpired, OSError):
+        return None
     if out.returncode != 0:
         return None
     import json
