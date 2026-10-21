@@ -82,11 +82,13 @@ def repo(image):
 
 def resolve_digest(image):
     if shutil.which("skopeo") is None:
+        print("warning: skopeo not found; cannot resolve image digests", file=sys.stderr)
         return None
     try:
         out = subprocess.run(["skopeo", "inspect", "--no-tags", f"docker://{image}"],
                              capture_output=True, text=True, timeout=30)
-    except (subprocess.TimeoutExpired, OSError):
+    except (subprocess.TimeoutExpired, OSError) as e:
+        print(f"warning: digest lookup failed for {image}: {e}", file=sys.stderr)
         return None
     if out.returncode != 0:
         return None

@@ -18,7 +18,7 @@ top of the block, preserving the file's comment+digest format.
 Usage:
   refresh-digests.py [--apply] [-t TAG ...] [--max N] [FILE ...]
 Default FILEs are the 1.40 allowlists. Dry-run by default (prints a report).
-Exit code: 0 = up to date, 10 = missing digests found (dry-run), 0 after --apply.
+Exit code: 0 = up to date, 10 = missing digests found (dry-run), 11 = unresolved tags, 0 after --apply.
 """
 import argparse, glob, json, os, re, shutil, subprocess, sys
 from concurrent.futures import ThreadPoolExecutor
@@ -60,11 +60,17 @@ def _skopeo(*args):
 @lru_cache(maxsize=None)
 def get_digest(repo, tag):
     """Resolve digest for repo:tag using skopeo with --no-tags."""
-    ins = _skopeo("inspect", "--no-tags", f"docker://{repo}:{tag}")
+    try:
+        ins = _skopeo("inspect", "--no-tags", f"docker://{repo}:{tag}")
+    except (subprocess.TimeoutExpired, OSError):
+        return None
     if ins.returncode == 0:
-        d = json.loads(ins.stdout).get("Digest", "").replace("sha256:", "")
-        if d:
-            return d.lower()
+        try:
+            d = json.loads(ins.stdout).get("Digest", "").replace("sha256:", "")
+            if d:
+                return d.lower()
+        except (ValueError, AttributeError):
+            return None
     return None
 
 
@@ -90,7 +96,7 @@ def resolve_tags(registry, tags):
     return [(t, d) for (t, d) in results if d]
 
 
-def process(path, maxn, apply, explicit_tags=None):
+def process(path, maxn, apply, explicit_tags=None, resolved_explicit=None):
     lines = open(path).read().splitlines()
     # find each "imageDigests:" line and the extent of its block
     blocks = []  # (insert_after_idx, end_idx, registry, existing_digests:set, existing_tags:set)
@@ -140,8 +146,13 @@ def process(path, maxn, apply, explicit_tags=None):
         if explicit_tags:
             candidate_tags = [t for t in explicit_tags if t not in existing_tags]
             resolved = resolve_tags(reg, candidate_tags)
+            resolved_dict = dict(resolved)
+            if resolved_explicit is not None:
+                for t in explicit_tags:
+                    if t in existing_tags or t in resolved_dict:
+                        resolved_explicit.add(t)
             for t in candidate_tags:
-                if t not in dict(resolved):
+                if t not in resolved_dict:
                     report.append(f"  ! could not resolve digest for {reg}/node-agent:{t} (tag missing or inspect failed)")
             missing = [(t, d) for (t, d) in resolved if d not in existing_digests]
         else:
@@ -207,8 +218,14 @@ def main():
                 seen.add(t)
                 explicit_tags.append(t)
 
-    total = sum(process(f, args.max, args.apply, explicit_tags=explicit_tags) for f in files)
+    resolved_explicit = set() if explicit_tags else None
+    total = sum(process(f, args.max, args.apply, explicit_tags=explicit_tags, resolved_explicit=resolved_explicit) for f in files)
     print(f"\nTotal new digests {'applied' if args.apply else 'available'}: {total}")
+    if explicit_tags:
+        unresolved = [t for t in explicit_tags if t not in resolved_explicit]
+        if unresolved:
+            print(f"\nerror: requested tag(s) could not be resolved: {', '.join(unresolved)}", file=sys.stderr)
+            sys.exit(11)
     if total and not args.apply:
         print("Re-run with --apply to insert them, then commit + push to Gerrit refs/for/main.")
         sys.exit(10)
