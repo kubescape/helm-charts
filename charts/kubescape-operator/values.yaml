@@ -255,12 +255,22 @@ cloudProviderMetadata:
 
   # -- Azure Workload Identity client ID (user-assigned managed identity or
   # app registration) federated with the kubevuln ServiceAccount. Lets kubevuln
-  # pull images from private Azure Container Registries without static
-  # credentials. Requires the Azure Workload Identity webhook on the cluster.
+  # pull images from private Azure Container Registries without static credentials.
+  #
+  # Prerequisites:
+  # - The Azure Workload Identity mutating webhook must be installed on the cluster.
+  # - Requires a kubevuln image supporting ambient ACR authentication (introduced in
+  #   kubescape/kubevuln#1163). The default chart image (v0.3.430) only supports GCP
+  #   and ECR ambient providers; to use ambient ACR authentication, override
+  #   `kubevuln.image.tag` with a compatible image version (e.g. `kubevuln.image.tag: <compatible-tag>`).
+  #
+  # Note: aksWorkloadIdentityClientID and aksWorkloadIdentityTenantID are public GUIDs
+  # used for ServiceAccount annotations and pod labels; they are always configured inline
+  # and are not read from nor overridden by cloudProviderMetadata.secretRef.
   aksWorkloadIdentityClientID:
 
   # -- Azure Workload Identity tenant ID (optional, defaults to the tenant
-  # configured on the Azure Workload Identity webhook)
+  # configured on the Azure Workload Identity webhook). Always read inline.
   aksWorkloadIdentityTenantID:
 
   # Provider Metadata can also be pulled from a kubernetes secret instead of
@@ -508,6 +518,8 @@ kubevuln:
   image:
     # -- source code: https://github.com/kubescape/kubevuln
     repository: quay.io/kubescape/kubevuln
+    # Note: v0.3.430 supports GCP and ECR ambient auth. For Azure Workload Identity
+    # ambient ACR auth (kubescape/kubevuln#1163), override with a compatible tag.
     tag: v0.3.430
     pullPolicy: IfNotPresent
 
