@@ -1,0 +1,139 @@
+# The current template guard uses latest; update this fixture to v6-latest when #944 lands.
+# This tests the rendered resource shape, not compatibility of the legacy DB image.
+suite: Grype restart CronJob extra volumes
+templates:
+  - grype-offline-db/cronjob.yaml
+tests:
+  - it: renders global volumes without changing arguments or scheduling
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      grypeOfflineDB.enabled: true
+      grypeOfflineDB.image.tag: latest
+      volumes:
+        - name: extra-ca
+          secret:
+            secretName: extra-ca
+      volumeMounts:
+        - name: extra-ca
+          mountPath: /etc/extra-ca
+          readOnly: true
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].args
+          value:
+            - |
+              kubectl rollout restart deployment -n kubescape grype-offline-db
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].volumeMounts
+          value:
+            - name: extra-ca
+              mountPath: /etc/extra-ca
+              readOnly: true
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.volumes
+          value:
+            - name: extra-ca
+              secret:
+                secretName: extra-ca
+  - it: renders component volumes without changing arguments or scheduling
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      grypeOfflineDB.enabled: true
+      grypeOfflineDB.image.tag: latest
+      grypeOfflineDB.volumes:
+        - name: db-config
+          secret:
+            secretName: db-config
+      grypeOfflineDB.volumeMounts:
+        - name: db-config
+          mountPath: /etc/db-config
+          readOnly: true
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].args
+          value:
+            - |
+              kubectl rollout restart deployment -n kubescape grype-offline-db
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].volumeMounts
+          value:
+            - name: db-config
+              mountPath: /etc/db-config
+              readOnly: true
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.volumes
+          value:
+            - name: db-config
+              secret:
+                secretName: db-config
+  - it: renders global and component volumes without changing arguments or scheduling
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      grypeOfflineDB.enabled: true
+      grypeOfflineDB.image.tag: latest
+      volumes:
+        - name: extra-ca
+          secret:
+            secretName: extra-ca
+      volumeMounts:
+        - name: extra-ca
+          mountPath: /etc/extra-ca
+          readOnly: true
+      grypeOfflineDB.volumes:
+        - name: db-config
+          secret:
+            secretName: db-config
+      grypeOfflineDB.volumeMounts:
+        - name: db-config
+          mountPath: /etc/db-config
+          readOnly: true
+      grypeOfflineDB.tolerations:
+        - key: maintenance
+          operator: Exists
+          effect: NoSchedule
+      grypeOfflineDB.priorityClassName: maintenance
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].args
+          value:
+            - |
+              kubectl rollout restart deployment -n kubescape grype-offline-db
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].volumeMounts
+          value:
+            - name: extra-ca
+              mountPath: /etc/extra-ca
+              readOnly: true
+            - name: db-config
+              mountPath: /etc/db-config
+              readOnly: true
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.volumes
+          value:
+            - name: extra-ca
+              secret:
+                secretName: extra-ca
+            - name: db-config
+              secret:
+                secretName: db-config
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.tolerations
+          value:
+            - key: maintenance
+              operator: Exists
+              effect: NoSchedule
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.priorityClassName
+          value: maintenance
