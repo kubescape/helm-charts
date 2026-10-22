@@ -95,6 +95,9 @@ class Acceptance:
         raise AssertionError(f"did not converge within {duration}s: {error}")
 
     def setup(self):
+        version = self.command("helm", "version", "--short").strip()
+        if not version.startswith("v3."):
+            raise RuntimeError(f"harness requires Helm 3 executable post-renderers; found {version}")
         if self.args.existing_kubeconfig:
             # Reuse only an explicitly supplied, dedicated cluster created for this test.
             self.kubeconfig.write_bytes(Path(self.args.existing_kubeconfig).read_bytes())
@@ -276,7 +279,7 @@ class Acceptance:
         for namespace in excluded:
             assert 'namespace="' + namespace + '"' not in metrics, f"metrics includes {namespace}"
 
-    def dispatch_probe(self, allowed, excluded):
+    def dispatch_probe(self, allowed, excluded, observe=True):
         marker = "dispatch-" + str(time.time_ns())
         start = time.time()
         self.apply(*[{"apiVersion": "apps/v1", "kind": "Deployment", "metadata": {"name": marker, "namespace": n},
@@ -291,7 +294,14 @@ class Acceptance:
             assert not (found & set(excluded)), f"Operator dispatched excluded workload: {found}"
             return set(allowed) <= found
         try:
-            self.until(dispatched)
+            if not observe:
+                self.until(dispatched)
+                return
+            # Wait for delivery, but never retry a negative assertion after convergence.
+            deadline = time.monotonic() + self.args.convergence
+            while not dispatched():
+                assert time.monotonic() < deadline, "Operator dispatch did not arrive"
+                time.sleep(2)
             end = time.monotonic() + self.args.observation
             while time.monotonic() < end:
                 assert dispatched()
@@ -348,6 +358,16 @@ class Acceptance:
             self.until(projected_invalid)
             self.behavior([NAMESPACES[1]], [NAMESPACES[0]], "invalid-" + label)
 
+    def observe_dispatch(self, allowed, excluded):
+        self.until(lambda: self.dispatch_probe(allowed, excluded, observe=False) or True)
+        self.dispatch_probe(allowed, excluded)
+
+    def deletion_retention(self):
+        self.filters([NAMESPACES[0]], name=EXTERNAL)
+        self.behavior([NAMESPACES[0]], [NAMESPACES[1]], "external-before-deletion")
+        self.kubectl("-n", NS, "delete", "configmap", EXTERNAL)
+        self.behavior([NAMESPACES[0]], [NAMESPACES[1]], "external-deletion-last-valid")
+
     def behavior(self, allowed, excluded, label):
         def scan_observed():
             self.until(lambda: self.scan_probe(allowed, excluded, label) or True)
@@ -359,7 +379,7 @@ class Acceptance:
         checks = [
             ("synchronizer-" + label, lambda: self.sync_probe(allowed, excluded)),
             ("operator-dispatch-" + label,
-             lambda: self.until(lambda: self.dispatch_probe(allowed, excluded) or True)),
+             lambda: self.observe_dispatch(allowed, excluded)),
             ("kubescape-" + label, scan_observed),
         ]
         with ThreadPoolExecutor(max_workers=3) as executor:
@@ -398,8 +418,7 @@ class Acceptance:
         assert not self.kubectl("-n", NS, "get", "configmap", MANAGED, "--ignore-not-found").strip()
         assert json.loads(self.kubectl("-n", NS, "get", "configmap", EXTERNAL, "-o", "json"))["data"] == data
         self.behavior(NAMESPACES, [], "external")
-        self.kubectl("-n", NS, "delete", "configmap", EXTERNAL)
-        self.behavior(NAMESPACES, [], "external-deletion-last-valid")
+        self.deletion_retention()
         self.apply({"apiVersion": "v1", "kind": "ConfigMap", "metadata": {"name": EXTERNAL, "namespace": NS},
                     "data": {"namespaceFilters.json": json.dumps({"includeNamespaces": [NAMESPACES[0]], "excludeNamespaces": []})}})
         self.behavior([NAMESPACES[0]], [NAMESPACES[1]], "external-recreation-recovery")

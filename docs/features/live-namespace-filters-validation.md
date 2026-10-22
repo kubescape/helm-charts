@@ -5,9 +5,13 @@ harness exercises production Operator, Synchronizer and Kubescape images in a
 dedicated Kind cluster. It records behavior at HTTP and WebSocket boundaries;
 readiness and reload logs alone are not success criteria.
 
+The harness requires Helm 3 executable post-renderers and rejects other major
+versions before creating a cluster. Run its offline fault-injection regressions with
+`python3 scripts/test-namespace-filters-harness.py`.
+
 ## Running the checks
 
-Prerequisites: Python 3 with PyYAML, Helm, kubectl, Kind, Podman and OpenSSL. Use
+Prerequisites: Python 3 with PyYAML, Helm 3, kubectl, Kind, Podman and OpenSSL. Use
 Helm unittest v1.2.1, verified with its official release checksum, before this
 integration check (`helm-unittest-linux-amd64-1.2.1.tgz` and
 `helm-unittest-checksum.sha`).
