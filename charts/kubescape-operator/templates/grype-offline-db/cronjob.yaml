@@ -62,11 +62,14 @@ spec:
             args:
               - |
                 kubectl rollout restart deployment -n {{ .Values.ksNamespace }} {{ .Values.grypeOfflineDB.name }}
+{{- if or .Values.volumeMounts .Values.grypeOfflineDB.volumeMounts }}
+            volumeMounts:
 {{- if .Values.volumeMounts }}
 {{ toYaml .Values.volumeMounts | indent 14 }}
 {{- end }}
 {{- if .Values.grypeOfflineDB.volumeMounts }}
 {{ toYaml .Values.grypeOfflineDB.volumeMounts | indent 14 }}
+{{- end }}
 {{- end }}
           restartPolicy: Never
           serviceAccountName: {{ .Values.grypeOfflineDB.name }}
@@ -92,10 +95,13 @@ spec:
           {{- toYaml .Values.customScheduling.tolerations | nindent 12 }}
           {{- end }}
           {{- include "kubescape-operator.priorityClassName" (dict "component" .Values.grypeOfflineDB "global" .Values.customScheduling) | nindent 10 }}
+{{- if or .Values.volumes .Values.grypeOfflineDB.volumes }}
+          volumes:
 {{- if .Values.volumes }}
-{{ toYaml .Values.volumes | indent 10 }}
+{{ toYaml .Values.volumes | indent 12 }}
 {{- end }}
 {{- if .Values.grypeOfflineDB.volumes }}
-{{ toYaml .Values.grypeOfflineDB.volumes | indent 10 }}
+{{ toYaml .Values.grypeOfflineDB.volumes | indent 12 }}
+{{- end }}
 {{- end }}
 {{- end }}
