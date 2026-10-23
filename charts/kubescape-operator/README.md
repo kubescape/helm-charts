@@ -239,6 +239,8 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | cloudProviderMetadata.aksClientID | string or through `cloudProviderMetadata.secretRef.clientIdKey` if `cloudProviderMetadata.secretRef.name` is set | `nil` | AKS client ID |
 | cloudProviderMetadata.aksClientSecret | string or through `cloudProviderMetadata.secretRef.clientSecretKey` if `cloudProviderMetadata.secretRef.name` is set | `nil` | AKS client secret |
 | cloudProviderMetadata.aksTenantID | string or through `cloudProviderMetadata.secretRef.tenantIdKey` if `cloudProviderMetadata.secretRef.name` is set | `nil` | AKS tenant ID |
+| cloudProviderMetadata.aksWorkloadIdentityClientID | string | `nil` | Azure Workload Identity client ID federated with the kubevuln ServiceAccount, used to pull images from private Azure Container Registries without static credentials. Annotates the kubevuln ServiceAccount with `azure.workload.identity/client-id` and labels the kubevuln pod with `azure.workload.identity/use: "true"`. Requires the Azure Workload Identity webhook and `kubevuln.image.tag` v0.3.545 or later (the first kubevuln release with kubevuln#1163). Ignored when `cloudProviderMetadata.awsIamRoleArn` or `cloudProviderMetadata.gkeServiceAccount` is set, since those take precedence on the kubevuln ServiceAccount. Configured inline; not affected by `cloudProviderMetadata.secretRef` |
+| cloudProviderMetadata.aksWorkloadIdentityTenantID | string | `nil` | Azure Workload Identity tenant ID (optional). Annotates the kubevuln ServiceAccount with `azure.workload.identity/tenant-id`. Configured inline; not affected by `cloudProviderMetadata.secretRef` |
 | volumes | object | `[]` | Additional volumes for all containers |
 | volumeMounts | object | `[]` | Additional volumeMounts for all containers |
 | imageScanning.privateRegistries.credentials | object | `[]` | Credentials for scanning images pulled from private container registries. This configuration is not needed when using `imagePullSecrets`|
@@ -678,3 +680,40 @@ The default empty list changes nothing. Non-list, non-string, and blank values
 are rejected. The chart defaults select operator `v0.2.186` and Kubescape scanner
 `v4.0.16`, which include support for this setting. Keep a compatible pair if
 overriding the image versions.
+
+### Azure Workload Identity for ambient ACR authentication
+
+To configure Kubevuln to scan private Azure Container Registries (ACR) using Azure Workload Identity without static credentials (`imagePullSecrets`):
+
+1. **Enable Azure Workload Identity on AKS**: Ensure the Azure Workload Identity mutating webhook and OIDC issuer are enabled on your AKS cluster.
+2. **Federate the ServiceAccount**: Establish federated identity credentials linking your Azure Managed Identity (or App Registration) with the `kubevuln` ServiceAccount in the release namespace (e.g. `system:serviceaccount:kubescape:kubevuln`). Ensure the identity has the `AcrPull` role on the target ACR.
+3. **Compatible Kubevuln image prerequisite**: Ambient ACR authentication requires the ACR provider introduced in [kubescape/kubevuln#1163](https://github.com/kubescape/kubevuln/pull/1163). Because the chart defaults to `kubevuln.image.tag: v0.3.430` (which predates this provider), override `kubevuln.image.tag` with v0.3.545 or later, the first kubevuln release that includes it.
+
+#### Example `values.yaml`
+
+```yaml
+clusterName: my-aks-cluster
+
+cloudProviderMetadata:
+  aksWorkloadIdentityClientID: "11111111-2222-3333-4444-555555555555"
+  aksWorkloadIdentityTenantID: "66666666-7777-8888-9999-000000000000" # optional
+
+kubevuln:
+  image:
+    tag: v0.3.566 # any release from v0.3.545 on has the ACR provider
+```
+
+Or via Helm CLI:
+
+```bash
+helm upgrade --install kubescape kubescape/kubescape-operator \
+  -n kubescape --create-namespace \
+  --set clusterName=my-aks-cluster \
+  --set cloudProviderMetadata.aksWorkloadIdentityClientID="11111111-2222-3333-4444-555555555555" \
+  --set cloudProviderMetadata.aksWorkloadIdentityTenantID="66666666-7777-8888-9999-000000000000" \
+  --set kubevuln.image.tag=v0.3.566
+```
+
+> **Note:**
+> - `aksWorkloadIdentityClientID` and `aksWorkloadIdentityTenantID` are configured inline and are not read from `cloudProviderMetadata.secretRef`.
+> - If updating an existing installation to enable Workload Identity, restart the Kubevuln pod (`kubectl rollout restart deployment/kubevuln -n kubescape`) to allow the Azure Workload Identity webhook to inject the federated token and environment variables.
