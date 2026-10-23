@@ -264,6 +264,9 @@ cloudProviderMetadata:
   #   and ECR ambient providers; to use ambient ACR authentication, override
   #   `kubevuln.image.tag` with v0.3.545 or later, the first release that includes it.
   #
+  # Ignored when awsIamRoleArn or gkeServiceAccount is set: those take precedence
+  # on the kubevuln ServiceAccount, so neither the annotations nor the pod label render.
+  #
   # Note: aksWorkloadIdentityClientID and aksWorkloadIdentityTenantID are public GUIDs
   # used for ServiceAccount annotations and pod labels; they are always configured inline
   # and are not read from nor overridden by cloudProviderMetadata.secretRef.
@@ -275,9 +278,10 @@ cloudProviderMetadata:
 
   # Provider Metadata can also be pulled from a kubernetes secret instead of
   # the values above. As soon as secretRef is non-empty the inline values are
-  # ignored and the metadata comes from the secret, so set `name` plus only the
-  # *Key mappings the selected provider needs. Setting only `name` renders no
-  # cloud metadata env vars at all.
+  # ignored (except aksWorkloadIdentityClientID and aksWorkloadIdentityTenantID,
+  # which are always read inline) and the metadata comes from the secret, so set
+  # `name` plus only the *Key mappings the selected provider needs. Setting only
+  # `name` renders no cloud metadata env vars at all.
   secretRef: {}
   #   name: kubescape-secret
   #   cloudRegionKey: cloudRegion
