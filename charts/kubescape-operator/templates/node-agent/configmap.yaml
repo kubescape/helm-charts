@@ -1,3 +1,4 @@
+{{- $filters := fromYaml (include "namespaceFilters.config" .) }}
 {{- $components := fromYaml (include "components" .) }}
 {{- $configurations := fromYaml (include "configurations" .) }}
 {{- $gates := (fromYaml (include "capabilities.gates" .)).effective }}
@@ -47,7 +48,9 @@ data:
         "nodeProfileInterval": "{{ .Values.nodeAgent.config.nodeProfileInterval }}",
         "networkStreamingInterval": "{{ .Values.nodeAgent.config.networkStreamingInterval }}",
         "maxSniffingTimePerContainer": "{{ .Values.nodeAgent.config.maxLearningPeriod }}",
-        {{- if ne .Values.includeNamespaces "" }}
+        {{- if $filters.enabled }}
+        "namespaceFilterFile": {{ "/etc/namespace-filters/namespaceFilters.json" | quote }},
+        {{- else if ne .Values.includeNamespaces "" }}
         "includeNamespaces": "{{ .Values.includeNamespaces }}",
         {{- else if ne .Values.excludeNamespaces "" }}
         "excludeNamespaces": "{{ .Values.excludeNamespaces }}",
