@@ -1,0 +1,75 @@
+suite: operator network policy
+templates:
+  - operator/networkpolicy.yaml
+tests:
+  - it: admits nothing on ingress when the admission controller is disabled
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.enabled: true
+      capabilities.admissionController: disable
+    asserts:
+      - isKind:
+          of: NetworkPolicy
+      - contains:
+          path: spec.policyTypes
+          content: Ingress
+      - notExists:
+          path: spec.ingress
+      - notMatchRegexRaw:
+          pattern: trigger-port
+
+  - it: admits only the admission port when the admission controller is enabled
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.enabled: true
+      capabilities.admissionController: enable
+    asserts:
+      - lengthEqual:
+          path: spec.ingress
+          count: 1
+      - equal:
+          path: spec.ingress[0].ports[0].port
+          value: admission-port
+      - notExists:
+          path: spec.ingress[0].from
+      - notMatchRegexRaw:
+          pattern: trigger-port
+
+  - it: keeps the egress rules when they are enabled
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.enabled: true
+      global.networkPolicy.createEgressRules: true
+      capabilities.admissionController: disable
+    asserts:
+      - contains:
+          path: spec.policyTypes
+          content: Egress
+      - notExists:
+          path: spec.ingress
+      - notMatchRegexRaw:
+          pattern: trigger-port
+
+  - it: renders nothing when network policies are disabled
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
