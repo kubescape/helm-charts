@@ -1,0 +1,115 @@
+suite: node-agent and kubevuln egress
+templates:
+  - node-agent/networkpolicy.yaml
+  - kubevuln/networkpolicy.yaml
+tests:
+  - it: lets node-agent reach the synchronizer when it is enabled
+    template: node-agent/networkpolicy.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.enabled: true
+      global.networkPolicy.createEgressRules: true
+      server: api.example
+      account: 11111111-1111-1111-1111-111111111111
+      accessKey: secret
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            to:
+              - podSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: kubescape-operator
+                    app.kubernetes.io/instance: RELEASE-NAME
+                    app.kubernetes.io/component: synchronizer
+            ports:
+              - port: 8089
+                protocol: TCP
+  - it: gives node-agent no synchronizer rule when the synchronizer is not installed
+    template: node-agent/networkpolicy.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.enabled: true
+      global.networkPolicy.createEgressRules: true
+    asserts:
+      - notMatchRegexRaw:
+          pattern: synchronizer
+  - it: lets kubevuln reach the API server like every other component
+    template: kubevuln/networkpolicy.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.enabled: true
+      global.networkPolicy.createEgressRules: true
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            ports:
+              - port: 443
+                protocol: TCP
+            to:
+              - namespaceSelector:
+                  matchLabels:
+                    kubernetes.io/metadata.name: default
+                podSelector:
+                  matchLabels:
+                    component: apiserver
+                    provider: kubernetes
+      - notMatchRegexRaw:
+          pattern: grype-offline-db
+  - it: lets kubevuln reach a pinned API server address
+    template: kubevuln/networkpolicy.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.enabled: true
+      global.networkPolicy.createEgressRules: true
+      global.networkPolicy.apiServerIP: 10.0.0.1
+      global.networkPolicy.apiServerPort: 6443
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            ports:
+              - port: 6443
+                protocol: TCP
+            to:
+              - ipBlock:
+                  cidr: 10.0.0.1/32
+  - it: lets kubevuln reach grype-offline-db when it is enabled
+    template: kubevuln/networkpolicy.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.enabled: true
+      global.networkPolicy.createEgressRules: true
+      grypeOfflineDB.enabled: true
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            to:
+              - podSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: kubescape-operator
+                    app.kubernetes.io/instance: RELEASE-NAME
+                    app.kubernetes.io/component: grype-offline-db
+            ports:
+              - port: 8080
+                protocol: TCP
+  - it: keeps kubevuln egress out of the policy when egress rules are off
+    template: kubevuln/networkpolicy.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.enabled: true
+      global.networkPolicy.createEgressRules: false
+      grypeOfflineDB.enabled: true
+    asserts:
+      - notExists:
+          path: spec.egress
+      - notMatchRegexRaw:
+          pattern: grype-offline-db

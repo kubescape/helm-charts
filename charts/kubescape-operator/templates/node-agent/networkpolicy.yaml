@@ -18,6 +18,16 @@ spec:
   egress:
 {{ tpl (.Files.Get "assets/api-server-egress-rules.yaml") . | indent 4 }}
 {{ tpl (.Files.Get "assets/common-egress-rules.yaml") . | indent 4 }}
+    {{- if $components.synchronizer.enabled }}
+    # node-agent posts its alerts and profiles to the synchronizer (httpExporterConfig).
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.synchronizer.name) | nindent 14 }}
+      ports:
+        - port: {{ .Values.synchronizer.service.port }}
+          protocol: TCP
+    {{- end }}
     {{- if .Values.configurations.otelUrl }}
     # OTLP export to configurations.otelUrl (gRPC 4317 / HTTP 4318). Ports-only
     # because otelUrl is an arbitrary host (often cross-namespace or external),
