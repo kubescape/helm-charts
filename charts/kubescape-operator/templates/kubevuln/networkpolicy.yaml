@@ -18,6 +18,8 @@ spec:
   {{- if .Values.global.networkPolicy.createEgressRules }}
     - Egress
   egress:
+    # storage is an aggregated API, so every SBOM and CVE manifest goes through the API server.
+{{ tpl (.Files.Get "assets/api-server-egress-rules.yaml") . | indent 4 }}
       # - eventReceiverHttpUrl ({{ .Values.eventReceiverHttpUrl }}/k8s/sysreport)
       # - Grype's update-url (https://toolbox-data.anchore.io/grype/databases/listing.json)
       # - All container registries
@@ -25,6 +27,16 @@ spec:
         - port: 443
           protocol: TCP
 {{ tpl (.Files.Get "assets/common-egress-rules.yaml") . | indent 4 }}
+    {{- if .Values.grypeOfflineDB.enabled }}
+    # the Grype database listing and archives come from grype-offline-db (cloudapi listingURL).
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.grypeOfflineDB.name) | nindent 14 }}
+      ports:
+        - port: 8080
+          protocol: TCP
+    {{- end }}
   {{- end }}
   ingress:
     - from:
