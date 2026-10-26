@@ -1,0 +1,91 @@
+suite: Least privilege RBAC
+templates:
+  - operator/clusterrole.yaml
+  - operator/role.yaml
+  - synchronizer/role.yaml
+  - kubescape/clusterrole.yaml
+  - kubescape/role.yaml
+tests:
+  - it: lets the operator read Jobs and CronJobs everywhere but write them nowhere
+    template: operator/clusterrole.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["batch"]
+            resources: ["jobs", "cronjobs"]
+            verbs: ["get", "watch", "list"]
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["batch"]
+            resources: ["jobs", "cronjobs"]
+            verbs: ["get", "watch", "list", "create", "update", "delete", "patch"]
+  - it: lets the operator write schedules and immediate scan jobs in its own namespace
+    template: operator/role.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["batch"]
+            resources: ["cronjobs"]
+            verbs: ["create", "get", "update", "watch", "list", "patch", "delete"]
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["batch"]
+            resources: ["jobs"]
+            verbs: ["create", "patch", "delete"]
+  - it: keeps the synchronizer away from Secrets
+    template: synchronizer/role.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      server: api.example
+      account: 11111111-1111-1111-1111-111111111111
+      accessKey: secret
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources: ["configmaps"]
+            verbs: ["create", "get", "update", "watch", "list", "patch", "delete"]
+      - notContains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources: ["configmaps", "secrets"]
+            verbs: ["create", "get", "update", "watch", "list", "patch", "delete"]
+  - it: gives the scanner no pod proxy and no namespace writes
+    template: kubescape/clusterrole.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - notContains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources: ["namespaces"]
+            verbs: ["update"]
+      - notMatchRegexRaw:
+          pattern: pods/proxy
+  - it: gives the scanner no DaemonSet writes
+    template: kubescape/role.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["apps"]
+            resources: ["daemonsets"]
+            verbs: ["create", "get", "update", "watch", "list", "patch", "delete"]
