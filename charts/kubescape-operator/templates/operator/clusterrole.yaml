@@ -20,9 +20,11 @@ rules:
     resources: ["secrets"]
     verbs: ["get", "watch", "list"]
   {{- end }}
+  # Reads only: the admission rules look up a pod's owning Job in any namespace. The
+  # operator writes Jobs and CronJobs in its own namespace alone, through the Role.
   - apiGroups: ["batch"]
     resources: ["jobs", "cronjobs"]
-    verbs: ["get", "watch", "list", "create", "update", "delete" ,"patch"]
+    verbs: ["get", "watch", "list"]
   - apiGroups: ["apps"]
     resources: ["deployments", "daemonsets", "statefulsets", "replicasets"]
     verbs: ["get", "watch", "list"]
@@ -54,7 +56,8 @@ rules:
   #   - patch on apps workloads + pods backs annotate (active now);
   #   - patch on nodes backs cordon (later phase) -- cluster-wide, as Kubernetes
   #     has no field-level RBAC for spec.unschedulable;
-  #   - networkpolicies backs quarantine (later phase).
+  #   - networkpolicies backs quarantine; a second quarantine of the same
+  #     workload reconciles the policy in place, which is an update.
   - apiGroups: ["apps"]
     resources: ["deployments", "statefulsets", "daemonsets"]
     verbs: ["patch"]
@@ -63,6 +66,6 @@ rules:
     verbs: ["patch"]
   - apiGroups: ["networking.k8s.io"]
     resources: ["networkpolicies"]
-    verbs: ["create", "delete", "get", "list"]
+    verbs: ["create", "delete", "get", "list", "update"]
   {{- end }}
 {{- end }}
