@@ -51,18 +51,16 @@ rules:
   {{- if eq .Values.capabilities.remediation "enable" }}
   # Post-scan remediation (opt-in). These mutating verbs are granted only when
   # capabilities.remediation is enabled; the default install stays read-only.
-  # Provisioned once for the whole action set so later phases need not reopen
-  # this ClusterRole:
-  #   - patch on apps workloads + pods backs annotate (active now);
-  #   - patch on nodes backs cordon (later phase) -- cluster-wide, as Kubernetes
-  #     has no field-level RBAC for spec.unschedulable;
+  # They follow the actions the operator implements today:
+  #   - patch on apps workloads + pods backs annotate;
   #   - networkpolicies backs quarantine; a second quarantine of the same
   #     workload reconciles the policy in place, which is an update.
+  # cordon (patch on nodes, cluster-wide) is granted when it lands in the operator.
   - apiGroups: ["apps"]
     resources: ["deployments", "statefulsets", "daemonsets"]
     verbs: ["patch"]
   - apiGroups: [""]
-    resources: ["pods", "nodes"]
+    resources: ["pods"]
     verbs: ["patch"]
   - apiGroups: ["networking.k8s.io"]
     resources: ["networkpolicies"]

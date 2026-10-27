@@ -89,3 +89,22 @@ tests:
             apiGroups: ["apps"]
             resources: ["daemonsets"]
             verbs: ["create", "get", "update", "watch", "list", "patch", "delete"]
+  - it: grants remediation the patch verbs the implemented actions use, nodes excluded
+    template: operator/clusterrole.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.remediation: enable
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources: ["pods"]
+            verbs: ["patch"]
+      - notContains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources: ["pods", "nodes"]
+            verbs: ["patch"]
