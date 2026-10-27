@@ -112,8 +112,6 @@ spec:
           value: "{{ .Values.nodeAgent.config.hostSensor.enabled }}"
         - name: KS_SKIP_UPDATE_CHECK
           value: "{{ .Values.kubescape.skipUpdateCheck }}"
-        - name: KS_HOST_SCAN_YAML
-          value: "/home/nonroot/.kubescape/host-scanner.yaml"
         - name: LARGE_CLUSTER_SIZE
           value: "1500"
         {{- if .Values.server }}
@@ -248,9 +246,6 @@ spec:
           mountPath: /home/nonroot/.kubescape
           subPath: config.json
         {{- end }}
-        - name: host-scanner-definition
-          mountPath: /home/nonroot/.kubescape/host-scanner.yaml
-          subPath: host-scanner-yaml
         - name: results
           mountPath: /home/nonroot/results
         - name: failed
@@ -307,9 +302,6 @@ spec:
           items:
           - key: "clusterData"
             path: "clusterData.json"
-      - name: host-scanner-definition
-        configMap:
-          name: host-scanner-definition
       {{- if and .Values.kubescape.downloadArtifacts (ne .Values.capabilities.kubescapeOffline "enable") }}
       - name: kubescape-volume
         emptyDir: {}

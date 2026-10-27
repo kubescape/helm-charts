@@ -71,21 +71,3 @@ tests:
           content:
             name: kubescape-volume
             emptyDir: {}
-
-  - it: keeps the host-scanner definition mounted either way
-    template: kubescape/deployment.yaml
-    capabilities:
-      apiVersions:
-        - batch/v1
-    set:
-      unittest: true
-      clusterName: kind-kind
-      kubescape.downloadArtifacts: false
-    asserts:
-      # a file mounted inside the directory masks only itself, not the library
-      - contains:
-          path: spec.template.spec.containers[0].volumeMounts
-          content:
-            name: host-scanner-definition
-            mountPath: /home/nonroot/.kubescape/host-scanner.yaml
-            subPath: host-scanner-yaml

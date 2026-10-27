@@ -1,0 +1,20 @@
+suite: scanner host sensor
+tests:
+  - it: keeps the CRD-based host sensor switch and nothing of the file-based one
+    template: kubescape/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KS_ENABLE_HOST_SCANNER
+            value: "true"
+      - notMatchRegexRaw:
+          pattern: KS_HOST_SCAN_YAML
+      - notMatchRegexRaw:
+          pattern: host-scanner-definition
