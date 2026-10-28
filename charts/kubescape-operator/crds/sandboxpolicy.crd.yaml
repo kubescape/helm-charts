@@ -76,6 +76,7 @@ spec:
                               properties:
                                 depth:
                                   format: int32
+                                  maximum: 16
                                   minimum: 1
                                   type: integer
                                 path:
@@ -197,10 +198,64 @@ spec:
               file:
                 properties:
                   default:
-                    description: allow or deny, or an object with read/write/create/delete/rename/chmod/execMap
-                      each set to allow or deny. Consumers must validate this string-or-object
-                      union; Kubernetes structural validation cannot do so.
-                    x-kubernetes-preserve-unknown-fields: true
+                    enum:
+                    - allow
+                    - deny
+                    minLength: 1
+                    type: string
+                  defaultByAccess:
+                    properties:
+                      chmod:
+                        enum:
+                        - allow
+                        - deny
+                        minLength: 1
+                        type: string
+                      create:
+                        enum:
+                        - allow
+                        - deny
+                        minLength: 1
+                        type: string
+                      delete:
+                        enum:
+                        - allow
+                        - deny
+                        minLength: 1
+                        type: string
+                      execMap:
+                        enum:
+                        - allow
+                        - deny
+                        minLength: 1
+                        type: string
+                      read:
+                        enum:
+                        - allow
+                        - deny
+                        minLength: 1
+                        type: string
+                      rename:
+                        enum:
+                        - allow
+                        - deny
+                        minLength: 1
+                        type: string
+                      write:
+                        enum:
+                        - allow
+                        - deny
+                        minLength: 1
+                        type: string
+                    required:
+                    - read
+                    - write
+                    - create
+                    - delete
+                    - rename
+                    - chmod
+                    - execMap
+                    type: object
                   rules:
                     items:
                       properties:
@@ -216,6 +271,7 @@ spec:
                               properties:
                                 depth:
                                   format: int32
+                                  maximum: 16
                                   minimum: 1
                                   type: integer
                                 path:
@@ -325,9 +381,10 @@ spec:
                     x-kubernetes-list-map-keys:
                     - name
                     x-kubernetes-list-type: map
-                required:
-                - default
                 type: object
+                x-kubernetes-validations:
+                - message: exactly one of default and defaultByAccess is required
+                  rule: has(self.default) != has(self.defaultByAccess)
               identity:
                 properties:
                   default:
@@ -351,6 +408,7 @@ spec:
                               properties:
                                 depth:
                                   format: int32
+                                  maximum: 16
                                   minimum: 1
                                   type: integer
                                 path:
@@ -408,23 +466,28 @@ spec:
                           minLength: 1
                           type: string
                         target:
+                          oneOf:
+                          - anyOf:
+                            - required:
+                              - path
+                            - required:
+                              - pathClass
+                          - required:
+                            - imds
+                          - required:
+                            - envRead
                           properties:
                             envRead:
                               type: boolean
                             fromImage:
+                              not: {}
                               type: boolean
                             fsType:
                               items:
-                                enum:
-                                - tmpfs
-                                - overlay
-                                - memfd
-                                - deleted
-                                - procfs
-                                - sysfs
                                 minLength: 1
                                 type: string
                               minItems: 1
+                              not: {}
                               type: array
                             imds:
                               type: boolean
@@ -495,6 +558,7 @@ spec:
                               properties:
                                 depth:
                                   format: int32
+                                  maximum: 16
                                   minimum: 1
                                   type: integer
                                 path:
@@ -555,6 +619,7 @@ spec:
                           properties:
                             cidr:
                               items:
+                                format: cidr
                                 minLength: 1
                                 type: string
                               minItems: 1
@@ -636,6 +701,7 @@ spec:
                               properties:
                                 depth:
                                   format: int32
+                                  maximum: 16
                                   minimum: 1
                                   type: integer
                                 path:
@@ -693,6 +759,15 @@ spec:
                           minLength: 1
                           type: string
                         target:
+                          oneOf:
+                          - required:
+                            - syscall
+                          - required:
+                            - capability
+                          - required:
+                            - mountFsType
+                          - required:
+                            - pathClass
                           properties:
                             capability:
                               items:
@@ -715,19 +790,14 @@ spec:
                               minItems: 1
                               type: array
                             fromImage:
+                              not: {}
                               type: boolean
                             fsType:
                               items:
-                                enum:
-                                - tmpfs
-                                - overlay
-                                - memfd
-                                - deleted
-                                - procfs
-                                - sysfs
                                 minLength: 1
                                 type: string
                               minItems: 1
+                              not: {}
                               type: array
                             mountFsType:
                               items:
@@ -740,6 +810,7 @@ spec:
                                 minLength: 1
                                 type: string
                               minItems: 1
+                              not: {}
                               type: array
                             pathClass:
                               items:
@@ -780,6 +851,9 @@ spec:
                               minItems: 1
                               type: array
                           type: object
+                          x-kubernetes-validations:
+                          - message: flags require syscall
+                            rule: '!has(self.flags) || has(self.syscall)'
                       required:
                       - name
                       - target
