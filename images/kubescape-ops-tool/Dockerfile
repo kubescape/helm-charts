@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM golang:1.26-trixie AS builder
+FROM --platform=$BUILDPLATFORM golang:1.27-trixie AS builder
 
 ENV GO111MODULE=on CGO_ENABLED=0
 WORKDIR /work

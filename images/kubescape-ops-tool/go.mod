@@ -1,6 +1,6 @@
 module github.com/kubescape/helm-charts/images/kubescape-ops-tool
 
-go 1.26.0
+go 1.27.0
 
 require (
 	helm.sh/helm/v3 v3.22.0
