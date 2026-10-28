@@ -678,7 +678,7 @@ before evaluation and compliance scoring, using the CLI's `--exclude-controls`
 behavior. Exclusions narrow the assessment scope; they do not make checks pass.
 The default empty list changes nothing. Non-list, non-string, and blank values
 are rejected. The chart defaults select operator `v0.2.186` and Kubescape scanner
-`v4.0.16`, which include support for this setting. Keep a compatible pair if
+`v4.0.17`, which include support for this setting. Keep a compatible pair if
 overriding the image versions.
 
 ### Azure Workload Identity for ambient ACR authentication
@@ -687,7 +687,7 @@ To configure Kubevuln to scan private Azure Container Registries (ACR) using Azu
 
 1. **Enable Azure Workload Identity on AKS**: Ensure the Azure Workload Identity mutating webhook and OIDC issuer are enabled on your AKS cluster.
 2. **Federate the ServiceAccount**: Establish federated identity credentials linking your Azure Managed Identity (or App Registration) with the `kubevuln` ServiceAccount in the release namespace (e.g. `system:serviceaccount:kubescape:kubevuln`). Ensure the identity has the `AcrPull` role on the target ACR.
-3. **Compatible Kubevuln image prerequisite**: Ambient ACR authentication requires the ACR provider introduced in [kubescape/kubevuln#1163](https://github.com/kubescape/kubevuln/pull/1163). Because the chart defaults to `kubevuln.image.tag: v0.3.430` (which predates this provider), override `kubevuln.image.tag` with v0.3.545 or later, the first kubevuln release that includes it.
+3. **Compatible Kubevuln image prerequisite**: Ambient ACR authentication requires the ACR provider introduced in [kubescape/kubevuln#1163](https://github.com/kubescape/kubevuln/pull/1163). The chart defaults to `kubevuln.image.tag: v0.3.571`, which includes ambient ACR authentication.
 
 #### Example `values.yaml`
 
