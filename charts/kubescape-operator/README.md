@@ -53,8 +53,84 @@ grew per-vulnerability `expiresAt`, `actionStatement`, `response`, `subcomponent
 status. Clusters that installed the chart before that change need the apply above, otherwise those
 fields are pruned or rejected.
 
-The CRDs under `templates/` (the node-agent sensing CRDs and `seccompprofiles`) are managed by Helm and
-do upgrade on their own.
+The CRDs under `templates/` (the node-agent sensing CRDs, `seccompprofiles`, and
+SandboxPolicy CRDs) are managed by Helm and do upgrade with the release.
+
+### SandboxPolicy CRD lifecycle and existing-install adoption
+
+The four SandboxPolicy definitions live in `templates/sandbox-policy-crds/`:
+`sandboxpolicies.kubescape.io`, `clustersandboxpolicies.kubescape.io`,
+`sandboxpolicyclasses.kubescape.io`, and `sandboxpolicynodestatuses.kubescape.io`.
+They are native Kubernetes API-server CRDs backed by etcd, not APIs served by
+the aggregated storage server. They render unconditionally, independently of
+`storage.enabled`, node-agent enablement and host sensors. Installing the APIs
+does not enable enforcement.
+Because these are templates, `--skip-crds` does not skip them. The release needs
+cluster-level permission to create/update these CRD definitions; external CRD
+management must be coordinated with Helm ownership rather than relying on that flag.
+
+Each rendered definition includes `helm.sh/resource-policy: keep`. Helm is asked
+to retain the CRD when a release operation would delete it, including uninstall,
+avoiding the deletion of its custom resources through deletion of the definition.
+This does not prevent direct deletion or garbage collection of individual
+policies, protect against administrator deletion, or keep enforcement running
+after its agent stops. Retained resources outlive an uninstalled release; reinstalling under a
+different release identity requires deliberate ownership reconciliation.
+
+These CRDs are cluster-scoped definitions, even when their custom resources are
+namespaced. Only one Helm release can own these four fixed names in a cluster.
+The ownership namespace below is the **release namespace**, not a namespace on
+the CRD itself. Do not adopt a definition belonging to another release or
+controller simply to make an upgrade pass.
+
+For installations that previously obtained these definitions from `crds/`, the
+first upgrade to the templated version may require explicit metadata adoption:
+
+1. Inventory and back up the four definitions and their existing custom resources
+   with an unstructured tool such as `kubectl`. Inspect all four definitions'
+   `app.kubernetes.io/managed-by` label and `meta.helm.sh/release-name` /
+   `meta.helm.sh/release-namespace` annotations, and confirm the intended release
+   with `helm list --all-namespaces`. Stop if ownership belongs elsewhere.
+2. Review the [alpha API migration guide](https://github.com/kubescape/storage/blob/feat/sandbox-policy-crd-api/docs/features/sandbox-policy-api.md#composition-and-migration).
+   The revised schema replaces object-valued `file.default` with
+   `file.defaultByAccess`, requires explicit cluster namespace selectors, and
+   separates hook primitives. A schema upgrade does not convert stored objects.
+   Coordinate schema/data migration or controlled recreation before deploying
+   new typed consumers; the old schema can prune new fields. Do not blindly
+   delete policies or apply the new representation against the old schema.
+3. For definitions confirmed unowned (or already matching the intended owner),
+   deliberately set the metadata expected by Helm. Substitute the **actual**
+   existing release name and namespace. These commands do not use `--overwrite`;
+   stop and investigate any conflicting ownership rather than force takeover:
+
+   ```shell
+   (
+   set -e
+   RELEASE=kubescape
+   RELEASE_NAMESPACE=kubescape
+   for crd in sandboxpolicies.kubescape.io clustersandboxpolicies.kubescape.io \
+     sandboxpolicyclasses.kubescape.io sandboxpolicynodestatuses.kubescape.io; do
+     kubectl label crd "$crd" app.kubernetes.io/managed-by=Helm
+     kubectl annotate crd "$crd" \
+       meta.helm.sh/release-name="$RELEASE" \
+       meta.helm.sh/release-namespace="$RELEASE_NAMESPACE"
+   done
+   )
+   ```
+
+4. Perform the reviewed Helm upgrade using the same release identity and values.
+   The four definitions, including their retention annotations, then enter the
+   release manifest. Verify the installed schemas and existing policies before
+   enabling or updating enforcement. Render/lint checks alone do not prove a
+   successful live adoption or data migration.
+
+Subsequent upgrades manage the schemas through Helm. `keep` prevents deletion,
+not incompatible schema updates or data conversion; review rollback compatibility
+as well. After uninstall, retained definitions still carry ownership metadata:
+do not assume a new release name or another namespace can adopt them automatically.
+Retention depends on Helm honoring `keep` in the stored release manifest; verify
+upgrade/uninstall behavior with the Helm version used for your deployment. Local
+template tests are not a live retention or reinstall proof.
 
 ## View results
 
