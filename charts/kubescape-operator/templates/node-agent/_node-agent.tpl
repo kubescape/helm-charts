@@ -135,6 +135,11 @@ Parameters:
   - components: $components
 */}}
 {{- define "node-agent.volumeMounts" -}}
+{{- if .Values.namespaceFilters.enabled }}
+- name: namespace-filters
+  mountPath: /etc/namespace-filters
+  readOnly: true
+{{- end }}
 {{- if .Values.volumeMounts }}
 {{ toYaml .Values.volumeMounts | trim }}
 {{- end }}
@@ -349,6 +354,16 @@ Parameters:
   - components: $components
 */}}
 {{- define "node-agent.volumes" -}}
+{{- $filters := fromYaml (include "namespaceFilters.config" .) -}}
+{{- if $filters.enabled }}
+- name: namespace-filters
+  configMap:
+    name: {{ $filters.name | quote }}
+    optional: false
+    items:
+    - key: namespaceFilters.json
+      path: namespaceFilters.json
+{{- end }}
 {{- if .Values.nodeAgent.volumes }}
 {{ toYaml .Values.nodeAgent.volumes | trim }}
 {{- end }}

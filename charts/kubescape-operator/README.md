@@ -1,6 +1,6 @@
 # Kubescape Operator
 
-![Version: 1.41.0](https://img.shields.io/badge/Version-1.41.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 1.40.5](https://img.shields.io/badge/AppVersion-1.40.5-informational?style=flat-square)
+![Version: 1.42.0](https://img.shields.io/badge/Version-1.42.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 1.41.0](https://img.shields.io/badge/AppVersion-1.41.0-informational?style=flat-square)
 
 [Kubescape operator documentation](https://kubescape.io/docs/install-operator/)
 
@@ -29,6 +29,14 @@ kubescape     kubevuln-6779c9d74b-wfgqf                           1/1     Runnin
 kubescape     operator-5d745b5b84-ts7zq                           1/1     Running   0               60m
 kubescape     storage-59567854fd-hg8n8                            1/1     Running   0               60m
 ```
+
+## Live namespace filters
+
+Set `namespaceFilters.enabled: true` to edit scanning and monitoring namespaces
+through one ConfigMap without restarting components after each filter edit.
+Leave `namespaceFilters.existingConfigMap` empty for chart-managed filters, or
+reference a separately named ConfigMap in `ksNamespace` for external ownership.
+See [configuration, recovery, and ownership migration](../../docs/features/live-namespace-filters.md).
 
 ## Offline daily reports
 
@@ -145,6 +153,8 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
+| namespaceFilters.enabled | bool | `false` | Reload namespace selection from one shared ConfigMap without restarting components after filter edits. |
+| namespaceFilters.existingConfigMap | string | `""` | External ConfigMap in ksNamespace with namespaceFilters.json; empty creates the chart-managed kubescape-namespace-filters. See the live-filter ownership migration guide above. |
 | excludeControls | list | `[]` | Control IDs or legacy CIS section numbers omitted from every operator-triggered posture scan. Request exclusions are added to this list. |
 | defaultFrameworks | list | `[]` | Install-time posture frameworks when a scan omits `targetNames`. Empty = operator legacy fallbacks. Clear with `--set defaultFrameworks=null`. |
 | capabilities.agentRuntimePosture | string | `"disable"` | Grant the Kubescape scanner read-only access to the supported Agent Runtime resources: Sandbox, SandboxTemplate, and WorkerPool. |
