@@ -1,0 +1,53 @@
+suite: SandboxPolicy seccomp layer
+templates:
+  - node-agent/clusterrole.yaml
+  - node-agent/configmap.yaml
+tests:
+  - it: is disabled by default without extra RBAC
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - template: node-agent/configmap.yaml
+        matchRegex:
+          path: data["config.json"]
+          pattern: '"sandboxSeccompEnabled": false'
+      - template: node-agent/clusterrole.yaml
+        notContains:
+          path: rules
+          content:
+            apiGroups: ["kubescape.io"]
+            resources: ["sandboxpolicies", "clustersandboxpolicies"]
+            verbs: ["get", "watch", "list"]
+  - it: enables the layer and grants policy reads and node report writes
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities:
+        sandboxSeccomp: enable
+    asserts:
+      - template: node-agent/configmap.yaml
+        matchRegex:
+          path: data["config.json"]
+          pattern: '"sandboxSeccompEnabled": true'
+      - template: node-agent/clusterrole.yaml
+        contains:
+          path: rules
+          content:
+            apiGroups: ["kubescape.io"]
+            resources: ["sandboxpolicies", "clustersandboxpolicies"]
+            verbs: ["get", "watch", "list"]
+      - template: node-agent/clusterrole.yaml
+        contains:
+          path: rules
+          content:
+            apiGroups: ["kubescape.io"]
+            resources: ["sandboxpolicynodestatuses"]
+            verbs: ["get", "create"]
+      - template: node-agent/clusterrole.yaml
+        contains:
+          path: rules
+          content:
+            apiGroups: ["kubescape.io"]
+            resources: ["sandboxpolicynodestatuses/status"]
+            verbs: ["update"]

@@ -90,6 +90,7 @@ nodeAgent:
    (eq .Values.capabilities.malwareDetection "enable")
    (eq .Values.capabilities.nodeProfileService "enable")
    (eq .Values.capabilities.seccompProfileService "enable")
+   (eq .Values.capabilities.sandboxSeccomp "enable")
   }}
 operator:
   enabled: {{ eq .Values.capabilities.operator "enable" }}
