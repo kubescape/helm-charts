@@ -158,6 +158,7 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | excludeControls | list | `[]` | Control IDs or legacy CIS section numbers omitted from every operator-triggered posture scan. Request exclusions are added to this list. |
 | defaultFrameworks | list | `[]` | Install-time posture frameworks when a scan omits `targetNames`. Empty = operator legacy fallbacks. Clear with `--set defaultFrameworks=null`. |
 | capabilities.agentRuntimePosture | string | `"disable"` | Grant the Kubescape scanner read-only access to the supported Agent Runtime resources: Sandbox, SandboxTemplate, and WorkerPool. |
+| capabilities.sandboxSeccomp | string | `"disable"` | Experimental. Enforce the syscall rules of SandboxPolicy `privilege` sections with seccomp. Profiles are injected through NRI (containerd >= 2.2 or CRI-O >= 1.34) and apply when a container starts. Requires the SandboxPolicy CRDs. |
 | global.networkPolicy.enabled | bool | `false` | Create NetworkPolicies for all components |
 | global.networkPolicy.createEgressRules | bool | `false` | Create common Egress rules for NetworkPolicies |
 | global.kubescapePsp.enabled | bool | `false` | Enable all privileges in Pod Security Policies for Kubescape namespace |

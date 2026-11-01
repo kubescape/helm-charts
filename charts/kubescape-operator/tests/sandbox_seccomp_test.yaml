@@ -13,12 +13,14 @@ tests:
           path: data["config.json"]
           pattern: '"sandboxSeccompEnabled": false'
       - template: node-agent/clusterrole.yaml
-        notContains:
-          path: rules
-          content:
-            apiGroups: ["kubescape.io"]
-            resources: ["sandboxpolicies", "clustersandboxpolicies"]
-            verbs: ["get", "watch", "list"]
+        notExists:
+          path: rules[?(@.resources[0] == "sandboxpolicies")]
+      - template: node-agent/clusterrole.yaml
+        notExists:
+          path: rules[?(@.resources[0] == "sandboxpolicynodestatuses")]
+      - template: node-agent/clusterrole.yaml
+        notExists:
+          path: rules[?(@.resources[0] == "sandboxpolicynodestatuses/status")]
   - it: enables the layer and grants policy reads and node report writes
     set:
       unittest: true
@@ -51,3 +53,21 @@ tests:
             apiGroups: ["kubescape.io"]
             resources: ["sandboxpolicynodestatuses/status"]
             verbs: ["update"]
+  # node-agent templates render only when node-agent is enabled
+  - it: runs node-agent when it is the only node-agent capability
+    template: node-agent/configmap.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities:
+        relevancy: disable
+        runtimeObservability: disable
+        networkPolicyService: disable
+        runtimeDetection: disable
+        malwareDetection: disable
+        nodeProfileService: disable
+        seccompProfileService: disable
+        sandboxSeccomp: enable
+    asserts:
+      - hasDocuments:
+          count: 1
