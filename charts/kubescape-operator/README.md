@@ -56,6 +56,28 @@ explicitly online, set `KS_SKIP_UPDATE_CHECK=true` through `operator.env`.
 See the [published-image validation](../../docs/features/operator-daily-reports-validation.md)
 for a reproducible check of offline suppression and online reporting.
 
+## MCP endpoint for AI agents
+
+Set `storage.mcp.enabled: true` to let AI agents in the cluster (for example [Kagent](https://kagent.dev)) read Kubescape's results over [MCP](https://modelcontextprotocol.io). Storage serves read-only tools at
+
+```
+POST /apis/spdx.softwarecomposition.kubescape.io/v1beta1/namespaces/<namespace>/mcpservers/default/mcp
+```
+
+The call goes through kube-apiserver with the agent's own token, and storage checks every read against the agent's RBAC, so an agent sees only what it may `get` or `list`. The chart creates two ClusterRoles to bind per namespace:
+
+- `kubescape-mcp-reader`: call the endpoint, read vulnerability manifests and configuration scans
+- `kubescape-mcp-runtime-reader`: read container profiles and SBOMs (what containers run and every package in an image)
+
+The tools depend on the storage version. The chart's default (v0.0.378) serves the vulnerability tools: `list_vulnerability_manifests`, `list_vulnerabilities_in_manifest` and `list_vulnerability_matches_for_cve`. `list_sboms` and `list_sbom_packages` come with v0.0.380, and the configuration-scan and container-profile tools with later releases. The two roles already cover them, so the RoleBindings stay the same when storage is upgraded.
+
+Image-level vulnerability manifests and SBOMs are stored in the Kubescape namespace, workload scans in the workload's namespace. For an agent with the ServiceAccount `kagent/agent`:
+
+```
+kubectl -n kagent create rolebinding kubescape-mcp --clusterrole=kubescape-mcp-reader --serviceaccount=kagent:agent
+kubectl -n kubescape create rolebinding kubescape-mcp --clusterrole=kubescape-mcp-reader --serviceaccount=kagent:agent
+```
+
 ## Upgrade
 
 `helm upgrade` updates everything in the chart **except** the CRDs under `crds/`. Helm installs those
@@ -217,6 +239,8 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | operator.volumes | object | `[]` | Additional volumes for the web socket |
 | operator.volumeMounts | object | `[]` | Additional volumeMounts for the web socket |
 | storage.hostNetwork | bool | `false` | Bind the storage APIServer to the host network. Required when using a custom CNI where the control plane cannot reach pod IPs |
+| storage.mcp.enabled | bool | `false` | Serve the read-only [MCP endpoint for AI agents](#mcp-endpoint-for-ai-agents) |
+| storage.mcp.readerClusterRoles | bool | `true` | With `storage.mcp.enabled`, create the `kubescape-mcp-reader` and `kubescape-mcp-runtime-reader` ClusterRoles |
 | nodeAgent.autoscaler.bottlerocketAutoDetect | bool | `true` | When the autoscaler is enabled, auto-detect AWS Bottlerocket nodes and set `seLinuxType: super_t` on the node-agent DaemonSet rendered for that node group, so you don't need to `--set nodeAgent.seLinuxType=super_t` manually |
 | nodeAgent.config.hostSensor.enabled | bool | `true` | Defines `KS_ENABLE_HOST_SCANNER` in kubescape to enable [host scanner feature](https://kubescape.io/docs/components/host-sensor/)
 | nodeAgent.config.tracers.capSys | string | `enable` | Allow capSys tracing when required by enabled node-agent features. Set to disable to force-disable the capSys tracer |
