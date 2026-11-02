@@ -3312,7 +3312,7 @@ all capabilities:
             message: '''Unexpected process launched: '' + event.comm + '' with PID '' + string(event.pid)'
             ruleExpression:
               - eventType: exec
-                expression: '!ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))'
+                expression: '!ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)))'
             uniqueId: event.comm + '_' + event.exepath
           id: R0001
           isTriggerAlert: true
@@ -3326,6 +3326,7 @@ all capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - anomaly
             - process
             - exec
@@ -3366,6 +3367,7 @@ all capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - anomaly
             - file
             - open
@@ -3390,6 +3392,7 @@ all capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - anomaly
             - syscall
             - applicationprofile
@@ -3413,6 +3416,7 @@ all capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - anomaly
             - capabilities
             - applicationprofile
@@ -3436,6 +3440,7 @@ all capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - dns
             - anomaly
             - networkprofile
@@ -3445,12 +3450,7 @@ all capabilities:
             message: '''Unexpected access to service account token: '' + event.path + '' with flags: '' + event.flags.join('','')'
             ruleExpression:
               - eventType: open
-                expression: |
-                  ((event.path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||
-                   (event.path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||
-                   (event.path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token')) ||
-                   (event.path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token'))) &&
-                  !ap.was_path_opened_with_suffix(event.containerId, '/token')
+                expression: "((event.path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) || \n (event.path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||\n (event.path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token')) ||\n (event.path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token'))) &&\n!ap.was_path_opened_with_suffix(event.containerId, '/token')\n"
             uniqueId: event.comm
           id: R0006
           isTriggerAlert: true
@@ -3478,7 +3478,7 @@ all capabilities:
             message: 'eventType == ''exec'' ? ''Kubernetes client ('' + event.comm + '') was executed with PID '' + string(event.pid) : ''Network connection to Kubernetes API server from container '' + event.containerName'
             ruleExpression:
               - eventType: exec
-                expression: (event.comm == 'kubectl' || event.exepath.endsWith('/kubectl')) && !ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))
+                expression: '(event.comm == ''kubectl'' || event.exepath.endsWith(''/kubectl'')) && !ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)))'
               - eventType: network
                 expression: event.pktType == 'OUTGOING' && k8s.is_api_server_address(event.dstAddr) && !nn.was_address_in_egress(event.containerId, event.dstAddr)
             uniqueId: 'eventType == ''exec'' ? ''exec_'' + event.comm : ''network_'' + event.dstAddr'
@@ -3506,7 +3506,7 @@ all capabilities:
             ruleExpression:
               - eventType: open
                 expression: |
-                  event.path.startsWith('/proc/') && event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
+                  event.path.startsWith('/proc/') &&  event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
             uniqueId: event.comm
           id: R0008
           isTriggerAlert: true
@@ -3524,6 +3524,7 @@ all capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - anomaly
             - procfs
             - environment
@@ -3574,6 +3575,7 @@ all capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - context:host
             - files
             - anomaly
@@ -3598,24 +3600,50 @@ all capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - whitelisted
             - network
             - anomaly
             - networkprofile
-        - description: 'Detecting exec calls that are from malicious source like: /dev/shm'
+        - description: Detects an exec event whose path IS in the application profile but whose argv vector does not match any recorded argv pattern for that path. Consumes ap.was_executed_with_args, which walks the ExecsByPath projection surface and delegates argv comparison to dynamicpathdetector.MatchExecArgs (storage). Stays silent when the path is unknown (R0001 covers that case) and when the argv vector matches any recorded pattern (including the trailing zero-or-more form and the single-arg form); a '*' in a recorded arg is a literal character, not a wildcard.
           enabled: true
           expressions:
-            message: '''Execution from malicious source: '' + event.exepath + '' in directory '' + event.cwd'
+            message: '''Unexpected process arguments: '' + event.comm + '' with PID '' + string(event.pid) + '' argv='' + event.args.map(a, string(a)).join('' '')'
+            ruleExpression:
+              - eventType: exec
+                expression: ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm, event.exepath)) && !ap.was_executed_with_args(event.containerId, parse.get_exec_path(event.args, event.comm, event.exepath), event.args)
+            uniqueId: event.comm + '_' + event.exepath + '_' + event.args.map(a, string(a)).join(' ')
+          id: R0040
+          isTriggerAlert: true
+          mitreTactic: TA0002
+          mitreTechnique: T1059
+          name: Unexpected process arguments
+          profileDataRequired:
+            execs: all
+          profileDependency: 0
+          severity: 3
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - context:container
+            - anomaly
+            - process
+            - exec
+            - applicationprofile
+        - description: Detecting exec calls whose executable path or working directory is under /dev/shm, a world-writable memory-backed (tmpfs) directory.
+          enabled: true
+          expressions:
+            message: '''Process executed from /dev/shm: '' + event.exepath + '' in directory '' + event.cwd'
             ruleExpression:
               - eventType: exec
                 expression: |
-                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') || (parse.get_exec_path(event.args, event.comm).startsWith('/dev/shm/')))
+                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/')) || (event.args.size() > 0 && (event.args[0] == '/dev/shm' || event.args[0].startsWith('/dev/shm/')))
             uniqueId: event.comm + '_' + event.exepath + '_' + event.pcomm
           id: R1000
           isTriggerAlert: true
           mitreTactic: TA0002
           mitreTechnique: T1059
-          name: Process executed from malicious source
+          name: Process Executed from /dev/shm
           profileDependency: 2
           severity: 8
           supportPolicy: false
@@ -3634,7 +3662,7 @@ all capabilities:
                 expression: |
                   (event.upperlayer == true ||
                    event.pupperlayer == true) &&
-                  !ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))
+                  !ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)))
             uniqueId: event.comm + '_' + event.exepath + '_' + event.pcomm
           id: R1001
           isTriggerAlert: true
@@ -3648,6 +3676,7 @@ all capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - exec
             - malicious
             - binary
@@ -3676,10 +3705,10 @@ all capabilities:
             - kernel
             - module
             - load
-        - description: Detecting ssh connection to disallowed port
+        - description: Detecting an SSH connection to a non-standard port where the destination address is not in the container's learned egress baseline.
           enabled: false
           expressions:
-            message: '''Malicious SSH connection attempt to '' + event.dstIp + '':'' + string(dyn(event.dstPort))'
+            message: '''SSH connection to unexpected destination on non-standard port: '' + event.dstIp + '':'' + string(dyn(event.dstPort))'
             ruleExpression:
               - eventType: ssh
                 expression: dyn(event.srcPort) >= 32768 && dyn(event.srcPort) <= 60999 && !(dyn(event.dstPort) in [22, 2022]) && !nn.was_address_in_egress(event.containerId, event.dstIp)
@@ -3688,7 +3717,7 @@ all capabilities:
           isTriggerAlert: true
           mitreTactic: TA0008
           mitreTechnique: T1021.001
-          name: Disallowed ssh connection
+          name: SSH Connection to Unexpected Destination on Non-Standard Port
           profileDataRequired:
             egressAddresses: all
           profileDependency: 1
@@ -3696,6 +3725,7 @@ all capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - ssh
             - connection
             - port
@@ -3707,7 +3737,7 @@ all capabilities:
             message: '''Process ('' + event.comm + '') was executed from a mounted path'''
             ruleExpression:
               - eventType: exec
-                expression: '!ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm)) && k8s.get_container_mount_paths(event.namespace, event.podName, event.containerName).exists(mount, event.exepath.startsWith(mount) || parse.get_exec_path(event.args, event.comm).startsWith(mount))'
+                expression: '!ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm))) && k8s.get_container_mount_paths(event.namespace, event.podName, event.containerName).exists(mount, event.exepath.startsWith(mount) || (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)).startsWith(mount))'
             uniqueId: event.comm
           id: R1004
           isTriggerAlert: true
@@ -3721,13 +3751,14 @@ all capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - exec
             - mount
             - applicationprofile
         - description: Detecting Fileless Execution
           enabled: true
           expressions:
-            message: '''Fileless execution detected: exec call "'' + event.comm + ''" is from a malicious source'''
+            message: '''Fileless execution detected: exec call "'' + event.comm + ''" runs from a memory-backed source (memfd / /proc/self/fd)'''
             ruleExpression:
               - eventType: exec
                 expression: event.exepath.contains('memfd') || event.exepath.startsWith('/proc/self/fd') || event.exepath.matches('/proc/[0-9]+/fd/[0-9]+')
@@ -3746,7 +3777,7 @@ all capabilities:
             - fileless
             - execution
             - malicious
-        - description: Detecting Unshare System Call usage, which can be used to escape container.
+        - description: Detecting use of the unshare system call (a namespace-manipulation capability that can be used to escape a container) by a non-runc process, where it was not seen in the container's application-profile baseline.
           enabled: true
           expressions:
             message: '''Unshare system call (unshare) was called by process ('' + event.comm + '')'''
@@ -3758,7 +3789,7 @@ all capabilities:
           isTriggerAlert: true
           mitreTactic: TA0004
           mitreTechnique: T1611
-          name: Process tries to escape container
+          name: Unexpected unshare Syscall in Container
           profileDataRequired:
             syscalls:
               - exact: unshare
@@ -3767,6 +3798,7 @@ all capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - unshare
             - escape
             - unshare
@@ -3790,6 +3822,7 @@ all capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - crypto
             - miners
             - malicious
@@ -3873,7 +3906,7 @@ all capabilities:
             - anomaly
             - symlink
             - applicationprofile
-        - description: Detecting ld_preload hook techniques.
+        - description: Detecting use of the LD_PRELOAD/LD_LIBRARY_PATH dynamic-linker hook mechanism, or an unexpected write to /etc/ld.so.preload relative to the container's application-profile baseline.
           enabled: false
           expressions:
             message: 'eventType == ''exec'' ? ''Process ('' + event.comm + '') is using a dynamic linker hook: '' + process.get_ld_hook_var(event.pid) : ''The dynamic linker configuration file ('' + event.path + '') was modified by process ('' + event.comm + '')'''
@@ -3887,7 +3920,7 @@ all capabilities:
           isTriggerAlert: true
           mitreTactic: TA0005
           mitreTechnique: T1574.006
-          name: ld_preload hooks technique detected
+          name: ld_preload Mechanism Use or ld.so.preload Modification
           profileDataRequired:
             opens:
               - exact: /etc/ld.so.preload
@@ -3924,10 +3957,10 @@ all capabilities:
             - files
             - malicious
             - applicationprofile
-        - description: Detecting potentially malicious ptrace usage.
+        - description: Detecting use of the ptrace syscall that was not seen in the container's application-profile baseline.
           enabled: true
           expressions:
-            message: '''Malicious ptrace usage detected from: '' + event.comm'
+            message: '''Unexpected ptrace syscall usage from: '' + event.comm'
             ruleExpression:
               - eventType: ptrace
                 expression: "true"
@@ -3936,7 +3969,7 @@ all capabilities:
           isTriggerAlert: true
           mitreTactic: TA0005
           mitreTechnique: T1622
-          name: Malicious Ptrace Usage
+          name: Unexpected Ptrace Syscall Usage
           profileDependency: 2
           severity: 5
           supportPolicy: false
@@ -3965,6 +3998,7 @@ all capabilities:
           supportPolicy: true
           tags:
             - context:kubernetes
+            - context:container
             - syscalls
             - io_uring
             - applicationprofile
@@ -4008,6 +4042,174 @@ all capabilities:
             - context:kubernetes
             - admission
             - network
+        - description: Detects pod creation with hostPID, hostIPC or hostNetwork enabled, via the Kubernetes admission webhook
+          enabled: true
+          expressions:
+            message: '''Pod shares host namespace ('' + ["hostPID", "hostIPC", "hostNetwork"].filter(f, f in object.spec && object.spec[f] == true).join('', '') + ''): '' + event.Namespace + ''/'' + (event.Name != '''' ? event.Name : (has(object.metadata.generateName) ? string(object.metadata.generateName) : ''unnamed'')) + '' by '' + event.UserInfo.Username'
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: event.Kind == "Pod" && event.Operation == "CREATE" && !(event.Namespace in ["kube-system", "kube-public", "kube-node-lease", "kubescape"]) && has(object.spec) && ["hostPID", "hostIPC", "hostNetwork"].exists(f, f in object.spec && object.spec[f] == true)
+            uniqueId: |-
+              event.Namespace + '/' + (has(object.metadata.ownerReferences) && object.metadata.ownerReferences.size() > 0
+                ? string(object.metadata.ownerReferences[0].kind) + '/' + string(object.metadata.ownerReferences[0].name)
+                : (event.Name != '' ? event.Name : (has(object.metadata.generateName) ? string(object.metadata.generateName) : 'unnamed')))
+          id: R2002
+          isTriggerAlert: true
+          mitreTactic: TA0004
+          mitreTechnique: T1611
+          name: Pod shares host namespace
+          profileDependency: 2
+          severity: 6
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - container-escape
+            - host-namespace
+        - description: Detects pod creation where a container runs privileged or adds a host-breaking Linux capability, via the Kubernetes admission webhook
+          enabled: true
+          expressions:
+            message: '''Privileged pod created: '' + event.Namespace + ''/'' + (event.Name != '''' ? event.Name : (has(object.metadata.generateName) ? string(object.metadata.generateName) : ''unnamed'')) + '' by '' + event.UserInfo.Username'
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: |-
+                  event.Kind == "Pod" && event.Operation == "CREATE" && !(event.Namespace in ["kube-system", "kube-public", "kube-node-lease", "kubescape"]) && has(object.spec) && has(object.spec.containers) && (object.spec.containers
+                    + (has(object.spec.initContainers) ? object.spec.initContainers : [])
+                    + (has(object.spec.ephemeralContainers) ? object.spec.ephemeralContainers : [])
+                  ).exists(c,
+                    has(c.securityContext) &&
+                    [
+                      has(c.securityContext.privileged) && c.securityContext.privileged == true,
+                      has(c.securityContext.capabilities) && has(c.securityContext.capabilities.add) &&
+                        c.securityContext.capabilities.add.exists(cap,
+                          cap in ["ALL", "SYS_ADMIN", "SYS_MODULE", "SYS_PTRACE", "SYS_RAWIO", "SYS_BOOT",
+                                  "NET_ADMIN", "DAC_READ_SEARCH", "BPF", "PERFMON", "SYS_TIME"])
+                    ].exists(b, b)
+                  )
+            uniqueId: |-
+              event.Namespace + '/' + (has(object.metadata.ownerReferences) && object.metadata.ownerReferences.size() > 0
+                ? string(object.metadata.ownerReferences[0].kind) + '/' + string(object.metadata.ownerReferences[0].name)
+                : (event.Name != '' ? event.Name : (has(object.metadata.generateName) ? string(object.metadata.generateName) : 'unnamed')))
+          id: R2003
+          isTriggerAlert: true
+          mitreTactic: TA0004
+          mitreTechnique: T1611
+          name: Privileged pod created
+          profileDependency: 2
+          severity: 8
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - container-escape
+            - privileged
+            - capabilities
+        - description: Detects pod creation with a hostPath volume on a sensitive host location such as /, /etc, /var/lib/kubelet or the container runtime socket directories, via the Kubernetes admission webhook
+          enabled: true
+          expressions:
+            message: '''Pod created with sensitive hostPath volume: '' + object.spec.volumes.filter(v, has(v.hostPath) && has(v.hostPath.path)).map(v, string(v.hostPath.path)).join('', '') + '' in '' + event.Namespace + ''/'' + (event.Name != '''' ? event.Name : (has(object.metadata.generateName) ? string(object.metadata.generateName) : ''unnamed'')) + '' by '' + event.UserInfo.Username'
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: |-
+                  event.Kind == "Pod" && event.Operation == "CREATE" && !(event.Namespace in ["kube-system", "kube-public", "kube-node-lease", "kubescape"]) && has(object.spec) && has(object.spec.volumes) && object.spec.volumes
+                    .filter(v, has(v.hostPath) && has(v.hostPath.path))
+                    .map(v, "/" + string(v.hostPath.path).split("/")
+                      .filter(c, c != "" && c != ".")
+                      .map(c, c + "/").join(""))
+                    .exists(p, [
+                      p == "/",
+                      ["/etc/", "/proc/", "/root/", "/home/", "/var/lib/kubelet/",
+                       "/var/lib/docker/overlay2/", "/var/run/", "/run/"].exists(d, p.startsWith(d))
+                    ].exists(b, b))
+            uniqueId: |-
+              event.Namespace + '/' + (has(object.metadata.ownerReferences) && object.metadata.ownerReferences.size() > 0
+                ? string(object.metadata.ownerReferences[0].kind) + '/' + string(object.metadata.ownerReferences[0].name)
+                : (event.Name != '' ? event.Name : (has(object.metadata.generateName) ? string(object.metadata.generateName) : 'unnamed')))
+          id: R2004
+          isTriggerAlert: true
+          mitreTactic: TA0004
+          mitreTechnique: T1611
+          name: Pod created with sensitive hostPath volume
+          profileDependency: 2
+          severity: 8
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - container-escape
+            - hostpath
+        - description: Detects a ClusterRoleBinding or RoleBinding that grants the cluster-admin ClusterRole, created or given new subjects, via the Kubernetes admission webhook
+          enabled: true
+          expressions:
+            message: |-
+              'cluster-admin granted via ' + event.Kind + ' ' + (event.Namespace != '' ? event.Namespace + '/' : '') + event.Name + ' to ' + (has(object.subjects)
+                ? object.subjects.map(s, string(s.kind) + ':' + (has(s.namespace) ? string(s.namespace) + '/' : '') + string(s.name)).join(', ')
+                : 'no subjects') +
+              ' by ' + event.UserInfo.Username
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: |-
+                  [event.Kind == "ClusterRoleBinding", event.Kind == "RoleBinding"].exists(k, k) && event.Operation in ["CREATE", "UPDATE"] && has(object.roleRef) && has(object.roleRef.kind) && has(object.roleRef.name) && object.roleRef.kind == "ClusterRole" && object.roleRef.name == "cluster-admin" && (event.Operation == "CREATE"
+                    ? true
+                    : (has(object.subjects) ? object.subjects : []) != (has(oldObject.subjects) ? oldObject.subjects : []))
+            uniqueId: 'event.Kind + ''/'' + (event.Namespace != '''' ? event.Namespace + ''/'' : '''') + event.Name'
+          id: R2005
+          isTriggerAlert: true
+          mitreTactic: TA0003
+          mitreTechnique: T1098.006
+          name: cluster-admin role bound
+          profileDependency: 2
+          severity: 8
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - rbac
+            - privilege-escalation
+        - description: Detects a ClusterRole or Role that grants wildcard verbs, escalate/bind/impersonate, write access to RBAC objects, pod exec, token or secret resources, or secret enumeration, created or widened via the Kubernetes admission webhook
+          enabled: true
+          expressions:
+            message: |-
+              'High privileges ' + event.Kind + ' ' + (event.Namespace != '' ? event.Namespace + '/' : '') + event.Name + (event.Operation == "CREATE" ? ' created' : ' updated') + ' by ' + event.UserInfo.Username + ' granting ' + ["*", "escalate", "bind", "impersonate", "create", "update", "patch", "list", "watch"]
+                .filter(v, object.rules.exists(r, has(r.verbs) && v in r.verbs)).join('/') +
+              ' on ' + ["*", "clusterroles", "clusterrolebindings", "roles", "rolebindings",
+               "pods/exec", "pods/attach", "serviceaccounts/token", "nodes/proxy", "secrets",
+               "*/exec", "*/attach", "*/token", "*/proxy"]
+                .filter(res, object.rules.exists(r, has(r.resources) && res in r.resources)).join(',')
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: |-
+                  [event.Kind == "ClusterRole", event.Kind == "Role"].exists(k, k) && event.Operation in ["CREATE", "UPDATE"] && event.UserInfo.Username != "system:serviceaccount:kube-system:clusterrole-aggregation-controller" && has(object.rules) && (event.Operation == "CREATE"
+                    ? true
+                    : object.rules != (has(oldObject.rules) ? oldObject.rules : [])) &&
+                  object.rules.exists(r,
+                    has(r.verbs) && has(r.resources) && has(r.apiGroups) && [
+                      r.verbs.exists(v, v in ["*", "escalate", "bind", "impersonate"]),
+                      (r.apiGroups.exists(g, g in ["", "*"]) &&
+                        r.verbs.exists(v, v in ["create", "update", "patch"]) &&
+                        r.resources.exists(res, res in ["*", "pods/exec", "pods/attach", "serviceaccounts/token", "nodes/proxy", "secrets",
+                                                        "*/exec", "*/attach", "*/token", "*/proxy"])),
+                      (r.apiGroups.exists(g, g in ["rbac.authorization.k8s.io", "*"]) &&
+                        r.verbs.exists(v, v in ["create", "update", "patch"]) &&
+                        r.resources.exists(res, res in ["*", "clusterroles", "clusterrolebindings", "roles", "rolebindings"])),
+                      (r.apiGroups.exists(g, g in ["", "*"]) &&
+                        r.verbs.exists(v, v in ["list", "watch"]) &&
+                        r.resources.exists(res, res in ["*", "secrets"]))
+                    ].exists(b, b))
+            uniqueId: 'event.Kind + ''/'' + (event.Namespace != '''' ? event.Namespace + ''/'' : '''') + event.Name'
+          id: R2006
+          isTriggerAlert: true
+          mitreTactic: TA0004
+          mitreTechnique: T1098.006
+          name: High privileges role created
+          profileDependency: 2
+          severity: 8
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - rbac
+            - privilege-escalation
   63: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
@@ -23225,7 +23427,7 @@ default capabilities:
             message: '''Unexpected process launched: '' + event.comm + '' with PID '' + string(event.pid)'
             ruleExpression:
               - eventType: exec
-                expression: '!ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))'
+                expression: '!ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)))'
             uniqueId: event.comm + '_' + event.exepath
           id: R0001
           isTriggerAlert: true
@@ -23239,6 +23441,7 @@ default capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - anomaly
             - process
             - exec
@@ -23279,6 +23482,7 @@ default capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - anomaly
             - file
             - open
@@ -23303,6 +23507,7 @@ default capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - anomaly
             - syscall
             - applicationprofile
@@ -23326,6 +23531,7 @@ default capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - anomaly
             - capabilities
             - applicationprofile
@@ -23349,6 +23555,7 @@ default capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - dns
             - anomaly
             - networkprofile
@@ -23358,12 +23565,7 @@ default capabilities:
             message: '''Unexpected access to service account token: '' + event.path + '' with flags: '' + event.flags.join('','')'
             ruleExpression:
               - eventType: open
-                expression: |
-                  ((event.path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||
-                   (event.path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||
-                   (event.path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token')) ||
-                   (event.path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token'))) &&
-                  !ap.was_path_opened_with_suffix(event.containerId, '/token')
+                expression: "((event.path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) || \n (event.path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||\n (event.path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token')) ||\n (event.path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token'))) &&\n!ap.was_path_opened_with_suffix(event.containerId, '/token')\n"
             uniqueId: event.comm
           id: R0006
           isTriggerAlert: true
@@ -23391,7 +23593,7 @@ default capabilities:
             message: 'eventType == ''exec'' ? ''Kubernetes client ('' + event.comm + '') was executed with PID '' + string(event.pid) : ''Network connection to Kubernetes API server from container '' + event.containerName'
             ruleExpression:
               - eventType: exec
-                expression: (event.comm == 'kubectl' || event.exepath.endsWith('/kubectl')) && !ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))
+                expression: '(event.comm == ''kubectl'' || event.exepath.endsWith(''/kubectl'')) && !ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)))'
               - eventType: network
                 expression: event.pktType == 'OUTGOING' && k8s.is_api_server_address(event.dstAddr) && !nn.was_address_in_egress(event.containerId, event.dstAddr)
             uniqueId: 'eventType == ''exec'' ? ''exec_'' + event.comm : ''network_'' + event.dstAddr'
@@ -23419,7 +23621,7 @@ default capabilities:
             ruleExpression:
               - eventType: open
                 expression: |
-                  event.path.startsWith('/proc/') && event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
+                  event.path.startsWith('/proc/') &&  event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
             uniqueId: event.comm
           id: R0008
           isTriggerAlert: true
@@ -23437,6 +23639,7 @@ default capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - anomaly
             - procfs
             - environment
@@ -23487,6 +23690,7 @@ default capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - context:host
             - files
             - anomaly
@@ -23511,24 +23715,50 @@ default capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - whitelisted
             - network
             - anomaly
             - networkprofile
-        - description: 'Detecting exec calls that are from malicious source like: /dev/shm'
+        - description: Detects an exec event whose path IS in the application profile but whose argv vector does not match any recorded argv pattern for that path. Consumes ap.was_executed_with_args, which walks the ExecsByPath projection surface and delegates argv comparison to dynamicpathdetector.MatchExecArgs (storage). Stays silent when the path is unknown (R0001 covers that case) and when the argv vector matches any recorded pattern (including the trailing zero-or-more form and the single-arg form); a '*' in a recorded arg is a literal character, not a wildcard.
           enabled: true
           expressions:
-            message: '''Execution from malicious source: '' + event.exepath + '' in directory '' + event.cwd'
+            message: '''Unexpected process arguments: '' + event.comm + '' with PID '' + string(event.pid) + '' argv='' + event.args.map(a, string(a)).join('' '')'
+            ruleExpression:
+              - eventType: exec
+                expression: ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm, event.exepath)) && !ap.was_executed_with_args(event.containerId, parse.get_exec_path(event.args, event.comm, event.exepath), event.args)
+            uniqueId: event.comm + '_' + event.exepath + '_' + event.args.map(a, string(a)).join(' ')
+          id: R0040
+          isTriggerAlert: true
+          mitreTactic: TA0002
+          mitreTechnique: T1059
+          name: Unexpected process arguments
+          profileDataRequired:
+            execs: all
+          profileDependency: 0
+          severity: 3
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - context:container
+            - anomaly
+            - process
+            - exec
+            - applicationprofile
+        - description: Detecting exec calls whose executable path or working directory is under /dev/shm, a world-writable memory-backed (tmpfs) directory.
+          enabled: true
+          expressions:
+            message: '''Process executed from /dev/shm: '' + event.exepath + '' in directory '' + event.cwd'
             ruleExpression:
               - eventType: exec
                 expression: |
-                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') || (parse.get_exec_path(event.args, event.comm).startsWith('/dev/shm/')))
+                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/')) || (event.args.size() > 0 && (event.args[0] == '/dev/shm' || event.args[0].startsWith('/dev/shm/')))
             uniqueId: event.comm + '_' + event.exepath + '_' + event.pcomm
           id: R1000
           isTriggerAlert: true
           mitreTactic: TA0002
           mitreTechnique: T1059
-          name: Process executed from malicious source
+          name: Process Executed from /dev/shm
           profileDependency: 2
           severity: 8
           supportPolicy: false
@@ -23547,7 +23777,7 @@ default capabilities:
                 expression: |
                   (event.upperlayer == true ||
                    event.pupperlayer == true) &&
-                  !ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))
+                  !ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)))
             uniqueId: event.comm + '_' + event.exepath + '_' + event.pcomm
           id: R1001
           isTriggerAlert: true
@@ -23561,6 +23791,7 @@ default capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - exec
             - malicious
             - binary
@@ -23589,10 +23820,10 @@ default capabilities:
             - kernel
             - module
             - load
-        - description: Detecting ssh connection to disallowed port
+        - description: Detecting an SSH connection to a non-standard port where the destination address is not in the container's learned egress baseline.
           enabled: false
           expressions:
-            message: '''Malicious SSH connection attempt to '' + event.dstIp + '':'' + string(dyn(event.dstPort))'
+            message: '''SSH connection to unexpected destination on non-standard port: '' + event.dstIp + '':'' + string(dyn(event.dstPort))'
             ruleExpression:
               - eventType: ssh
                 expression: dyn(event.srcPort) >= 32768 && dyn(event.srcPort) <= 60999 && !(dyn(event.dstPort) in [22, 2022]) && !nn.was_address_in_egress(event.containerId, event.dstIp)
@@ -23601,7 +23832,7 @@ default capabilities:
           isTriggerAlert: true
           mitreTactic: TA0008
           mitreTechnique: T1021.001
-          name: Disallowed ssh connection
+          name: SSH Connection to Unexpected Destination on Non-Standard Port
           profileDataRequired:
             egressAddresses: all
           profileDependency: 1
@@ -23609,6 +23840,7 @@ default capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - ssh
             - connection
             - port
@@ -23620,7 +23852,7 @@ default capabilities:
             message: '''Process ('' + event.comm + '') was executed from a mounted path'''
             ruleExpression:
               - eventType: exec
-                expression: '!ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm)) && k8s.get_container_mount_paths(event.namespace, event.podName, event.containerName).exists(mount, event.exepath.startsWith(mount) || parse.get_exec_path(event.args, event.comm).startsWith(mount))'
+                expression: '!ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm))) && k8s.get_container_mount_paths(event.namespace, event.podName, event.containerName).exists(mount, event.exepath.startsWith(mount) || (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)).startsWith(mount))'
             uniqueId: event.comm
           id: R1004
           isTriggerAlert: true
@@ -23634,13 +23866,14 @@ default capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - exec
             - mount
             - applicationprofile
         - description: Detecting Fileless Execution
           enabled: true
           expressions:
-            message: '''Fileless execution detected: exec call "'' + event.comm + ''" is from a malicious source'''
+            message: '''Fileless execution detected: exec call "'' + event.comm + ''" runs from a memory-backed source (memfd / /proc/self/fd)'''
             ruleExpression:
               - eventType: exec
                 expression: event.exepath.contains('memfd') || event.exepath.startsWith('/proc/self/fd') || event.exepath.matches('/proc/[0-9]+/fd/[0-9]+')
@@ -23659,7 +23892,7 @@ default capabilities:
             - fileless
             - execution
             - malicious
-        - description: Detecting Unshare System Call usage, which can be used to escape container.
+        - description: Detecting use of the unshare system call (a namespace-manipulation capability that can be used to escape a container) by a non-runc process, where it was not seen in the container's application-profile baseline.
           enabled: true
           expressions:
             message: '''Unshare system call (unshare) was called by process ('' + event.comm + '')'''
@@ -23671,7 +23904,7 @@ default capabilities:
           isTriggerAlert: true
           mitreTactic: TA0004
           mitreTechnique: T1611
-          name: Process tries to escape container
+          name: Unexpected unshare Syscall in Container
           profileDataRequired:
             syscalls:
               - exact: unshare
@@ -23680,6 +23913,7 @@ default capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - unshare
             - escape
             - unshare
@@ -23703,6 +23937,7 @@ default capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - crypto
             - miners
             - malicious
@@ -23786,7 +24021,7 @@ default capabilities:
             - anomaly
             - symlink
             - applicationprofile
-        - description: Detecting ld_preload hook techniques.
+        - description: Detecting use of the LD_PRELOAD/LD_LIBRARY_PATH dynamic-linker hook mechanism, or an unexpected write to /etc/ld.so.preload relative to the container's application-profile baseline.
           enabled: false
           expressions:
             message: 'eventType == ''exec'' ? ''Process ('' + event.comm + '') is using a dynamic linker hook: '' + process.get_ld_hook_var(event.pid) : ''The dynamic linker configuration file ('' + event.path + '') was modified by process ('' + event.comm + '')'''
@@ -23800,7 +24035,7 @@ default capabilities:
           isTriggerAlert: true
           mitreTactic: TA0005
           mitreTechnique: T1574.006
-          name: ld_preload hooks technique detected
+          name: ld_preload Mechanism Use or ld.so.preload Modification
           profileDataRequired:
             opens:
               - exact: /etc/ld.so.preload
@@ -23837,10 +24072,10 @@ default capabilities:
             - files
             - malicious
             - applicationprofile
-        - description: Detecting potentially malicious ptrace usage.
+        - description: Detecting use of the ptrace syscall that was not seen in the container's application-profile baseline.
           enabled: true
           expressions:
-            message: '''Malicious ptrace usage detected from: '' + event.comm'
+            message: '''Unexpected ptrace syscall usage from: '' + event.comm'
             ruleExpression:
               - eventType: ptrace
                 expression: "true"
@@ -23849,7 +24084,7 @@ default capabilities:
           isTriggerAlert: true
           mitreTactic: TA0005
           mitreTechnique: T1622
-          name: Malicious Ptrace Usage
+          name: Unexpected Ptrace Syscall Usage
           profileDependency: 2
           severity: 5
           supportPolicy: false
@@ -23878,6 +24113,7 @@ default capabilities:
           supportPolicy: true
           tags:
             - context:kubernetes
+            - context:container
             - syscalls
             - io_uring
             - applicationprofile
@@ -23921,6 +24157,174 @@ default capabilities:
             - context:kubernetes
             - admission
             - network
+        - description: Detects pod creation with hostPID, hostIPC or hostNetwork enabled, via the Kubernetes admission webhook
+          enabled: true
+          expressions:
+            message: '''Pod shares host namespace ('' + ["hostPID", "hostIPC", "hostNetwork"].filter(f, f in object.spec && object.spec[f] == true).join('', '') + ''): '' + event.Namespace + ''/'' + (event.Name != '''' ? event.Name : (has(object.metadata.generateName) ? string(object.metadata.generateName) : ''unnamed'')) + '' by '' + event.UserInfo.Username'
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: event.Kind == "Pod" && event.Operation == "CREATE" && !(event.Namespace in ["kube-system", "kube-public", "kube-node-lease", "kubescape"]) && has(object.spec) && ["hostPID", "hostIPC", "hostNetwork"].exists(f, f in object.spec && object.spec[f] == true)
+            uniqueId: |-
+              event.Namespace + '/' + (has(object.metadata.ownerReferences) && object.metadata.ownerReferences.size() > 0
+                ? string(object.metadata.ownerReferences[0].kind) + '/' + string(object.metadata.ownerReferences[0].name)
+                : (event.Name != '' ? event.Name : (has(object.metadata.generateName) ? string(object.metadata.generateName) : 'unnamed')))
+          id: R2002
+          isTriggerAlert: true
+          mitreTactic: TA0004
+          mitreTechnique: T1611
+          name: Pod shares host namespace
+          profileDependency: 2
+          severity: 6
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - container-escape
+            - host-namespace
+        - description: Detects pod creation where a container runs privileged or adds a host-breaking Linux capability, via the Kubernetes admission webhook
+          enabled: true
+          expressions:
+            message: '''Privileged pod created: '' + event.Namespace + ''/'' + (event.Name != '''' ? event.Name : (has(object.metadata.generateName) ? string(object.metadata.generateName) : ''unnamed'')) + '' by '' + event.UserInfo.Username'
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: |-
+                  event.Kind == "Pod" && event.Operation == "CREATE" && !(event.Namespace in ["kube-system", "kube-public", "kube-node-lease", "kubescape"]) && has(object.spec) && has(object.spec.containers) && (object.spec.containers
+                    + (has(object.spec.initContainers) ? object.spec.initContainers : [])
+                    + (has(object.spec.ephemeralContainers) ? object.spec.ephemeralContainers : [])
+                  ).exists(c,
+                    has(c.securityContext) &&
+                    [
+                      has(c.securityContext.privileged) && c.securityContext.privileged == true,
+                      has(c.securityContext.capabilities) && has(c.securityContext.capabilities.add) &&
+                        c.securityContext.capabilities.add.exists(cap,
+                          cap in ["ALL", "SYS_ADMIN", "SYS_MODULE", "SYS_PTRACE", "SYS_RAWIO", "SYS_BOOT",
+                                  "NET_ADMIN", "DAC_READ_SEARCH", "BPF", "PERFMON", "SYS_TIME"])
+                    ].exists(b, b)
+                  )
+            uniqueId: |-
+              event.Namespace + '/' + (has(object.metadata.ownerReferences) && object.metadata.ownerReferences.size() > 0
+                ? string(object.metadata.ownerReferences[0].kind) + '/' + string(object.metadata.ownerReferences[0].name)
+                : (event.Name != '' ? event.Name : (has(object.metadata.generateName) ? string(object.metadata.generateName) : 'unnamed')))
+          id: R2003
+          isTriggerAlert: true
+          mitreTactic: TA0004
+          mitreTechnique: T1611
+          name: Privileged pod created
+          profileDependency: 2
+          severity: 8
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - container-escape
+            - privileged
+            - capabilities
+        - description: Detects pod creation with a hostPath volume on a sensitive host location such as /, /etc, /var/lib/kubelet or the container runtime socket directories, via the Kubernetes admission webhook
+          enabled: true
+          expressions:
+            message: '''Pod created with sensitive hostPath volume: '' + object.spec.volumes.filter(v, has(v.hostPath) && has(v.hostPath.path)).map(v, string(v.hostPath.path)).join('', '') + '' in '' + event.Namespace + ''/'' + (event.Name != '''' ? event.Name : (has(object.metadata.generateName) ? string(object.metadata.generateName) : ''unnamed'')) + '' by '' + event.UserInfo.Username'
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: |-
+                  event.Kind == "Pod" && event.Operation == "CREATE" && !(event.Namespace in ["kube-system", "kube-public", "kube-node-lease", "kubescape"]) && has(object.spec) && has(object.spec.volumes) && object.spec.volumes
+                    .filter(v, has(v.hostPath) && has(v.hostPath.path))
+                    .map(v, "/" + string(v.hostPath.path).split("/")
+                      .filter(c, c != "" && c != ".")
+                      .map(c, c + "/").join(""))
+                    .exists(p, [
+                      p == "/",
+                      ["/etc/", "/proc/", "/root/", "/home/", "/var/lib/kubelet/",
+                       "/var/lib/docker/overlay2/", "/var/run/", "/run/"].exists(d, p.startsWith(d))
+                    ].exists(b, b))
+            uniqueId: |-
+              event.Namespace + '/' + (has(object.metadata.ownerReferences) && object.metadata.ownerReferences.size() > 0
+                ? string(object.metadata.ownerReferences[0].kind) + '/' + string(object.metadata.ownerReferences[0].name)
+                : (event.Name != '' ? event.Name : (has(object.metadata.generateName) ? string(object.metadata.generateName) : 'unnamed')))
+          id: R2004
+          isTriggerAlert: true
+          mitreTactic: TA0004
+          mitreTechnique: T1611
+          name: Pod created with sensitive hostPath volume
+          profileDependency: 2
+          severity: 8
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - container-escape
+            - hostpath
+        - description: Detects a ClusterRoleBinding or RoleBinding that grants the cluster-admin ClusterRole, created or given new subjects, via the Kubernetes admission webhook
+          enabled: true
+          expressions:
+            message: |-
+              'cluster-admin granted via ' + event.Kind + ' ' + (event.Namespace != '' ? event.Namespace + '/' : '') + event.Name + ' to ' + (has(object.subjects)
+                ? object.subjects.map(s, string(s.kind) + ':' + (has(s.namespace) ? string(s.namespace) + '/' : '') + string(s.name)).join(', ')
+                : 'no subjects') +
+              ' by ' + event.UserInfo.Username
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: |-
+                  [event.Kind == "ClusterRoleBinding", event.Kind == "RoleBinding"].exists(k, k) && event.Operation in ["CREATE", "UPDATE"] && has(object.roleRef) && has(object.roleRef.kind) && has(object.roleRef.name) && object.roleRef.kind == "ClusterRole" && object.roleRef.name == "cluster-admin" && (event.Operation == "CREATE"
+                    ? true
+                    : (has(object.subjects) ? object.subjects : []) != (has(oldObject.subjects) ? oldObject.subjects : []))
+            uniqueId: 'event.Kind + ''/'' + (event.Namespace != '''' ? event.Namespace + ''/'' : '''') + event.Name'
+          id: R2005
+          isTriggerAlert: true
+          mitreTactic: TA0003
+          mitreTechnique: T1098.006
+          name: cluster-admin role bound
+          profileDependency: 2
+          severity: 8
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - rbac
+            - privilege-escalation
+        - description: Detects a ClusterRole or Role that grants wildcard verbs, escalate/bind/impersonate, write access to RBAC objects, pod exec, token or secret resources, or secret enumeration, created or widened via the Kubernetes admission webhook
+          enabled: true
+          expressions:
+            message: |-
+              'High privileges ' + event.Kind + ' ' + (event.Namespace != '' ? event.Namespace + '/' : '') + event.Name + (event.Operation == "CREATE" ? ' created' : ' updated') + ' by ' + event.UserInfo.Username + ' granting ' + ["*", "escalate", "bind", "impersonate", "create", "update", "patch", "list", "watch"]
+                .filter(v, object.rules.exists(r, has(r.verbs) && v in r.verbs)).join('/') +
+              ' on ' + ["*", "clusterroles", "clusterrolebindings", "roles", "rolebindings",
+               "pods/exec", "pods/attach", "serviceaccounts/token", "nodes/proxy", "secrets",
+               "*/exec", "*/attach", "*/token", "*/proxy"]
+                .filter(res, object.rules.exists(r, has(r.resources) && res in r.resources)).join(',')
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: |-
+                  [event.Kind == "ClusterRole", event.Kind == "Role"].exists(k, k) && event.Operation in ["CREATE", "UPDATE"] && event.UserInfo.Username != "system:serviceaccount:kube-system:clusterrole-aggregation-controller" && has(object.rules) && (event.Operation == "CREATE"
+                    ? true
+                    : object.rules != (has(oldObject.rules) ? oldObject.rules : [])) &&
+                  object.rules.exists(r,
+                    has(r.verbs) && has(r.resources) && has(r.apiGroups) && [
+                      r.verbs.exists(v, v in ["*", "escalate", "bind", "impersonate"]),
+                      (r.apiGroups.exists(g, g in ["", "*"]) &&
+                        r.verbs.exists(v, v in ["create", "update", "patch"]) &&
+                        r.resources.exists(res, res in ["*", "pods/exec", "pods/attach", "serviceaccounts/token", "nodes/proxy", "secrets",
+                                                        "*/exec", "*/attach", "*/token", "*/proxy"])),
+                      (r.apiGroups.exists(g, g in ["rbac.authorization.k8s.io", "*"]) &&
+                        r.verbs.exists(v, v in ["create", "update", "patch"]) &&
+                        r.resources.exists(res, res in ["*", "clusterroles", "clusterrolebindings", "roles", "rolebindings"])),
+                      (r.apiGroups.exists(g, g in ["", "*"]) &&
+                        r.verbs.exists(v, v in ["list", "watch"]) &&
+                        r.resources.exists(res, res in ["*", "secrets"]))
+                    ].exists(b, b))
+            uniqueId: 'event.Kind + ''/'' + (event.Namespace != '''' ? event.Namespace + ''/'' : '''') + event.Name'
+          id: R2006
+          isTriggerAlert: true
+          mitreTactic: TA0004
+          mitreTechnique: T1098.006
+          name: High privileges role created
+          profileDependency: 2
+          severity: 8
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - rbac
+            - privilege-escalation
   50: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
@@ -33756,7 +34160,7 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
             message: '''Unexpected process launched: '' + event.comm + '' with PID '' + string(event.pid)'
             ruleExpression:
               - eventType: exec
-                expression: '!ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))'
+                expression: '!ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)))'
             uniqueId: event.comm + '_' + event.exepath
           id: R0001
           isTriggerAlert: true
@@ -33770,6 +34174,7 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - anomaly
             - process
             - exec
@@ -33810,6 +34215,7 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - anomaly
             - file
             - open
@@ -33834,6 +34240,7 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - anomaly
             - syscall
             - applicationprofile
@@ -33857,6 +34264,7 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - anomaly
             - capabilities
             - applicationprofile
@@ -33880,6 +34288,7 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - dns
             - anomaly
             - networkprofile
@@ -33889,12 +34298,7 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
             message: '''Unexpected access to service account token: '' + event.path + '' with flags: '' + event.flags.join('','')'
             ruleExpression:
               - eventType: open
-                expression: |
-                  ((event.path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||
-                   (event.path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||
-                   (event.path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token')) ||
-                   (event.path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token'))) &&
-                  !ap.was_path_opened_with_suffix(event.containerId, '/token')
+                expression: "((event.path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) || \n (event.path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||\n (event.path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token')) ||\n (event.path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token'))) &&\n!ap.was_path_opened_with_suffix(event.containerId, '/token')\n"
             uniqueId: event.comm
           id: R0006
           isTriggerAlert: true
@@ -33922,7 +34326,7 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
             message: 'eventType == ''exec'' ? ''Kubernetes client ('' + event.comm + '') was executed with PID '' + string(event.pid) : ''Network connection to Kubernetes API server from container '' + event.containerName'
             ruleExpression:
               - eventType: exec
-                expression: (event.comm == 'kubectl' || event.exepath.endsWith('/kubectl')) && !ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))
+                expression: '(event.comm == ''kubectl'' || event.exepath.endsWith(''/kubectl'')) && !ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)))'
               - eventType: network
                 expression: event.pktType == 'OUTGOING' && k8s.is_api_server_address(event.dstAddr) && !nn.was_address_in_egress(event.containerId, event.dstAddr)
             uniqueId: 'eventType == ''exec'' ? ''exec_'' + event.comm : ''network_'' + event.dstAddr'
@@ -33950,7 +34354,7 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
             ruleExpression:
               - eventType: open
                 expression: |
-                  event.path.startsWith('/proc/') && event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
+                  event.path.startsWith('/proc/') &&  event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
             uniqueId: event.comm
           id: R0008
           isTriggerAlert: true
@@ -33968,6 +34372,7 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - anomaly
             - procfs
             - environment
@@ -34018,6 +34423,7 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - context:host
             - files
             - anomaly
@@ -34042,24 +34448,50 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - whitelisted
             - network
             - anomaly
             - networkprofile
-        - description: 'Detecting exec calls that are from malicious source like: /dev/shm'
+        - description: Detects an exec event whose path IS in the application profile but whose argv vector does not match any recorded argv pattern for that path. Consumes ap.was_executed_with_args, which walks the ExecsByPath projection surface and delegates argv comparison to dynamicpathdetector.MatchExecArgs (storage). Stays silent when the path is unknown (R0001 covers that case) and when the argv vector matches any recorded pattern (including the trailing zero-or-more form and the single-arg form); a '*' in a recorded arg is a literal character, not a wildcard.
           enabled: true
           expressions:
-            message: '''Execution from malicious source: '' + event.exepath + '' in directory '' + event.cwd'
+            message: '''Unexpected process arguments: '' + event.comm + '' with PID '' + string(event.pid) + '' argv='' + event.args.map(a, string(a)).join('' '')'
+            ruleExpression:
+              - eventType: exec
+                expression: ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm, event.exepath)) && !ap.was_executed_with_args(event.containerId, parse.get_exec_path(event.args, event.comm, event.exepath), event.args)
+            uniqueId: event.comm + '_' + event.exepath + '_' + event.args.map(a, string(a)).join(' ')
+          id: R0040
+          isTriggerAlert: true
+          mitreTactic: TA0002
+          mitreTechnique: T1059
+          name: Unexpected process arguments
+          profileDataRequired:
+            execs: all
+          profileDependency: 0
+          severity: 3
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - context:container
+            - anomaly
+            - process
+            - exec
+            - applicationprofile
+        - description: Detecting exec calls whose executable path or working directory is under /dev/shm, a world-writable memory-backed (tmpfs) directory.
+          enabled: true
+          expressions:
+            message: '''Process executed from /dev/shm: '' + event.exepath + '' in directory '' + event.cwd'
             ruleExpression:
               - eventType: exec
                 expression: |
-                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') || (parse.get_exec_path(event.args, event.comm).startsWith('/dev/shm/')))
+                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/')) || (event.args.size() > 0 && (event.args[0] == '/dev/shm' || event.args[0].startsWith('/dev/shm/')))
             uniqueId: event.comm + '_' + event.exepath + '_' + event.pcomm
           id: R1000
           isTriggerAlert: true
           mitreTactic: TA0002
           mitreTechnique: T1059
-          name: Process executed from malicious source
+          name: Process Executed from /dev/shm
           profileDependency: 2
           severity: 8
           supportPolicy: false
@@ -34078,7 +34510,7 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
                 expression: |
                   (event.upperlayer == true ||
                    event.pupperlayer == true) &&
-                  !ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))
+                  !ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)))
             uniqueId: event.comm + '_' + event.exepath + '_' + event.pcomm
           id: R1001
           isTriggerAlert: true
@@ -34092,6 +34524,7 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - exec
             - malicious
             - binary
@@ -34120,10 +34553,10 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
             - kernel
             - module
             - load
-        - description: Detecting ssh connection to disallowed port
+        - description: Detecting an SSH connection to a non-standard port where the destination address is not in the container's learned egress baseline.
           enabled: false
           expressions:
-            message: '''Malicious SSH connection attempt to '' + event.dstIp + '':'' + string(dyn(event.dstPort))'
+            message: '''SSH connection to unexpected destination on non-standard port: '' + event.dstIp + '':'' + string(dyn(event.dstPort))'
             ruleExpression:
               - eventType: ssh
                 expression: dyn(event.srcPort) >= 32768 && dyn(event.srcPort) <= 60999 && !(dyn(event.dstPort) in [22, 2022]) && !nn.was_address_in_egress(event.containerId, event.dstIp)
@@ -34132,7 +34565,7 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
           isTriggerAlert: true
           mitreTactic: TA0008
           mitreTechnique: T1021.001
-          name: Disallowed ssh connection
+          name: SSH Connection to Unexpected Destination on Non-Standard Port
           profileDataRequired:
             egressAddresses: all
           profileDependency: 1
@@ -34140,6 +34573,7 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - ssh
             - connection
             - port
@@ -34151,7 +34585,7 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
             message: '''Process ('' + event.comm + '') was executed from a mounted path'''
             ruleExpression:
               - eventType: exec
-                expression: '!ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm)) && k8s.get_container_mount_paths(event.namespace, event.podName, event.containerName).exists(mount, event.exepath.startsWith(mount) || parse.get_exec_path(event.args, event.comm).startsWith(mount))'
+                expression: '!ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm))) && k8s.get_container_mount_paths(event.namespace, event.podName, event.containerName).exists(mount, event.exepath.startsWith(mount) || (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)).startsWith(mount))'
             uniqueId: event.comm
           id: R1004
           isTriggerAlert: true
@@ -34165,13 +34599,14 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - exec
             - mount
             - applicationprofile
         - description: Detecting Fileless Execution
           enabled: true
           expressions:
-            message: '''Fileless execution detected: exec call "'' + event.comm + ''" is from a malicious source'''
+            message: '''Fileless execution detected: exec call "'' + event.comm + ''" runs from a memory-backed source (memfd / /proc/self/fd)'''
             ruleExpression:
               - eventType: exec
                 expression: event.exepath.contains('memfd') || event.exepath.startsWith('/proc/self/fd') || event.exepath.matches('/proc/[0-9]+/fd/[0-9]+')
@@ -34190,7 +34625,7 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
             - fileless
             - execution
             - malicious
-        - description: Detecting Unshare System Call usage, which can be used to escape container.
+        - description: Detecting use of the unshare system call (a namespace-manipulation capability that can be used to escape a container) by a non-runc process, where it was not seen in the container's application-profile baseline.
           enabled: true
           expressions:
             message: '''Unshare system call (unshare) was called by process ('' + event.comm + '')'''
@@ -34202,7 +34637,7 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
           isTriggerAlert: true
           mitreTactic: TA0004
           mitreTechnique: T1611
-          name: Process tries to escape container
+          name: Unexpected unshare Syscall in Container
           profileDataRequired:
             syscalls:
               - exact: unshare
@@ -34211,6 +34646,7 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - unshare
             - escape
             - unshare
@@ -34234,6 +34670,7 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - crypto
             - miners
             - malicious
@@ -34317,7 +34754,7 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
             - anomaly
             - symlink
             - applicationprofile
-        - description: Detecting ld_preload hook techniques.
+        - description: Detecting use of the LD_PRELOAD/LD_LIBRARY_PATH dynamic-linker hook mechanism, or an unexpected write to /etc/ld.so.preload relative to the container's application-profile baseline.
           enabled: false
           expressions:
             message: 'eventType == ''exec'' ? ''Process ('' + event.comm + '') is using a dynamic linker hook: '' + process.get_ld_hook_var(event.pid) : ''The dynamic linker configuration file ('' + event.path + '') was modified by process ('' + event.comm + '')'''
@@ -34331,7 +34768,7 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
           isTriggerAlert: true
           mitreTactic: TA0005
           mitreTechnique: T1574.006
-          name: ld_preload hooks technique detected
+          name: ld_preload Mechanism Use or ld.so.preload Modification
           profileDataRequired:
             opens:
               - exact: /etc/ld.so.preload
@@ -34368,10 +34805,10 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
             - files
             - malicious
             - applicationprofile
-        - description: Detecting potentially malicious ptrace usage.
+        - description: Detecting use of the ptrace syscall that was not seen in the container's application-profile baseline.
           enabled: true
           expressions:
-            message: '''Malicious ptrace usage detected from: '' + event.comm'
+            message: '''Unexpected ptrace syscall usage from: '' + event.comm'
             ruleExpression:
               - eventType: ptrace
                 expression: "true"
@@ -34380,7 +34817,7 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
           isTriggerAlert: true
           mitreTactic: TA0005
           mitreTechnique: T1622
-          name: Malicious Ptrace Usage
+          name: Unexpected Ptrace Syscall Usage
           profileDependency: 2
           severity: 5
           supportPolicy: false
@@ -34409,6 +34846,7 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
           supportPolicy: true
           tags:
             - context:kubernetes
+            - context:container
             - syscalls
             - io_uring
             - applicationprofile
@@ -34452,6 +34890,174 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
             - context:kubernetes
             - admission
             - network
+        - description: Detects pod creation with hostPID, hostIPC or hostNetwork enabled, via the Kubernetes admission webhook
+          enabled: true
+          expressions:
+            message: '''Pod shares host namespace ('' + ["hostPID", "hostIPC", "hostNetwork"].filter(f, f in object.spec && object.spec[f] == true).join('', '') + ''): '' + event.Namespace + ''/'' + (event.Name != '''' ? event.Name : (has(object.metadata.generateName) ? string(object.metadata.generateName) : ''unnamed'')) + '' by '' + event.UserInfo.Username'
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: event.Kind == "Pod" && event.Operation == "CREATE" && !(event.Namespace in ["kube-system", "kube-public", "kube-node-lease", "kubescape"]) && has(object.spec) && ["hostPID", "hostIPC", "hostNetwork"].exists(f, f in object.spec && object.spec[f] == true)
+            uniqueId: |-
+              event.Namespace + '/' + (has(object.metadata.ownerReferences) && object.metadata.ownerReferences.size() > 0
+                ? string(object.metadata.ownerReferences[0].kind) + '/' + string(object.metadata.ownerReferences[0].name)
+                : (event.Name != '' ? event.Name : (has(object.metadata.generateName) ? string(object.metadata.generateName) : 'unnamed')))
+          id: R2002
+          isTriggerAlert: true
+          mitreTactic: TA0004
+          mitreTechnique: T1611
+          name: Pod shares host namespace
+          profileDependency: 2
+          severity: 6
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - container-escape
+            - host-namespace
+        - description: Detects pod creation where a container runs privileged or adds a host-breaking Linux capability, via the Kubernetes admission webhook
+          enabled: true
+          expressions:
+            message: '''Privileged pod created: '' + event.Namespace + ''/'' + (event.Name != '''' ? event.Name : (has(object.metadata.generateName) ? string(object.metadata.generateName) : ''unnamed'')) + '' by '' + event.UserInfo.Username'
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: |-
+                  event.Kind == "Pod" && event.Operation == "CREATE" && !(event.Namespace in ["kube-system", "kube-public", "kube-node-lease", "kubescape"]) && has(object.spec) && has(object.spec.containers) && (object.spec.containers
+                    + (has(object.spec.initContainers) ? object.spec.initContainers : [])
+                    + (has(object.spec.ephemeralContainers) ? object.spec.ephemeralContainers : [])
+                  ).exists(c,
+                    has(c.securityContext) &&
+                    [
+                      has(c.securityContext.privileged) && c.securityContext.privileged == true,
+                      has(c.securityContext.capabilities) && has(c.securityContext.capabilities.add) &&
+                        c.securityContext.capabilities.add.exists(cap,
+                          cap in ["ALL", "SYS_ADMIN", "SYS_MODULE", "SYS_PTRACE", "SYS_RAWIO", "SYS_BOOT",
+                                  "NET_ADMIN", "DAC_READ_SEARCH", "BPF", "PERFMON", "SYS_TIME"])
+                    ].exists(b, b)
+                  )
+            uniqueId: |-
+              event.Namespace + '/' + (has(object.metadata.ownerReferences) && object.metadata.ownerReferences.size() > 0
+                ? string(object.metadata.ownerReferences[0].kind) + '/' + string(object.metadata.ownerReferences[0].name)
+                : (event.Name != '' ? event.Name : (has(object.metadata.generateName) ? string(object.metadata.generateName) : 'unnamed')))
+          id: R2003
+          isTriggerAlert: true
+          mitreTactic: TA0004
+          mitreTechnique: T1611
+          name: Privileged pod created
+          profileDependency: 2
+          severity: 8
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - container-escape
+            - privileged
+            - capabilities
+        - description: Detects pod creation with a hostPath volume on a sensitive host location such as /, /etc, /var/lib/kubelet or the container runtime socket directories, via the Kubernetes admission webhook
+          enabled: true
+          expressions:
+            message: '''Pod created with sensitive hostPath volume: '' + object.spec.volumes.filter(v, has(v.hostPath) && has(v.hostPath.path)).map(v, string(v.hostPath.path)).join('', '') + '' in '' + event.Namespace + ''/'' + (event.Name != '''' ? event.Name : (has(object.metadata.generateName) ? string(object.metadata.generateName) : ''unnamed'')) + '' by '' + event.UserInfo.Username'
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: |-
+                  event.Kind == "Pod" && event.Operation == "CREATE" && !(event.Namespace in ["kube-system", "kube-public", "kube-node-lease", "kubescape"]) && has(object.spec) && has(object.spec.volumes) && object.spec.volumes
+                    .filter(v, has(v.hostPath) && has(v.hostPath.path))
+                    .map(v, "/" + string(v.hostPath.path).split("/")
+                      .filter(c, c != "" && c != ".")
+                      .map(c, c + "/").join(""))
+                    .exists(p, [
+                      p == "/",
+                      ["/etc/", "/proc/", "/root/", "/home/", "/var/lib/kubelet/",
+                       "/var/lib/docker/overlay2/", "/var/run/", "/run/"].exists(d, p.startsWith(d))
+                    ].exists(b, b))
+            uniqueId: |-
+              event.Namespace + '/' + (has(object.metadata.ownerReferences) && object.metadata.ownerReferences.size() > 0
+                ? string(object.metadata.ownerReferences[0].kind) + '/' + string(object.metadata.ownerReferences[0].name)
+                : (event.Name != '' ? event.Name : (has(object.metadata.generateName) ? string(object.metadata.generateName) : 'unnamed')))
+          id: R2004
+          isTriggerAlert: true
+          mitreTactic: TA0004
+          mitreTechnique: T1611
+          name: Pod created with sensitive hostPath volume
+          profileDependency: 2
+          severity: 8
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - container-escape
+            - hostpath
+        - description: Detects a ClusterRoleBinding or RoleBinding that grants the cluster-admin ClusterRole, created or given new subjects, via the Kubernetes admission webhook
+          enabled: true
+          expressions:
+            message: |-
+              'cluster-admin granted via ' + event.Kind + ' ' + (event.Namespace != '' ? event.Namespace + '/' : '') + event.Name + ' to ' + (has(object.subjects)
+                ? object.subjects.map(s, string(s.kind) + ':' + (has(s.namespace) ? string(s.namespace) + '/' : '') + string(s.name)).join(', ')
+                : 'no subjects') +
+              ' by ' + event.UserInfo.Username
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: |-
+                  [event.Kind == "ClusterRoleBinding", event.Kind == "RoleBinding"].exists(k, k) && event.Operation in ["CREATE", "UPDATE"] && has(object.roleRef) && has(object.roleRef.kind) && has(object.roleRef.name) && object.roleRef.kind == "ClusterRole" && object.roleRef.name == "cluster-admin" && (event.Operation == "CREATE"
+                    ? true
+                    : (has(object.subjects) ? object.subjects : []) != (has(oldObject.subjects) ? oldObject.subjects : []))
+            uniqueId: 'event.Kind + ''/'' + (event.Namespace != '''' ? event.Namespace + ''/'' : '''') + event.Name'
+          id: R2005
+          isTriggerAlert: true
+          mitreTactic: TA0003
+          mitreTechnique: T1098.006
+          name: cluster-admin role bound
+          profileDependency: 2
+          severity: 8
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - rbac
+            - privilege-escalation
+        - description: Detects a ClusterRole or Role that grants wildcard verbs, escalate/bind/impersonate, write access to RBAC objects, pod exec, token or secret resources, or secret enumeration, created or widened via the Kubernetes admission webhook
+          enabled: true
+          expressions:
+            message: |-
+              'High privileges ' + event.Kind + ' ' + (event.Namespace != '' ? event.Namespace + '/' : '') + event.Name + (event.Operation == "CREATE" ? ' created' : ' updated') + ' by ' + event.UserInfo.Username + ' granting ' + ["*", "escalate", "bind", "impersonate", "create", "update", "patch", "list", "watch"]
+                .filter(v, object.rules.exists(r, has(r.verbs) && v in r.verbs)).join('/') +
+              ' on ' + ["*", "clusterroles", "clusterrolebindings", "roles", "rolebindings",
+               "pods/exec", "pods/attach", "serviceaccounts/token", "nodes/proxy", "secrets",
+               "*/exec", "*/attach", "*/token", "*/proxy"]
+                .filter(res, object.rules.exists(r, has(r.resources) && res in r.resources)).join(',')
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: |-
+                  [event.Kind == "ClusterRole", event.Kind == "Role"].exists(k, k) && event.Operation in ["CREATE", "UPDATE"] && event.UserInfo.Username != "system:serviceaccount:kube-system:clusterrole-aggregation-controller" && has(object.rules) && (event.Operation == "CREATE"
+                    ? true
+                    : object.rules != (has(oldObject.rules) ? oldObject.rules : [])) &&
+                  object.rules.exists(r,
+                    has(r.verbs) && has(r.resources) && has(r.apiGroups) && [
+                      r.verbs.exists(v, v in ["*", "escalate", "bind", "impersonate"]),
+                      (r.apiGroups.exists(g, g in ["", "*"]) &&
+                        r.verbs.exists(v, v in ["create", "update", "patch"]) &&
+                        r.resources.exists(res, res in ["*", "pods/exec", "pods/attach", "serviceaccounts/token", "nodes/proxy", "secrets",
+                                                        "*/exec", "*/attach", "*/token", "*/proxy"])),
+                      (r.apiGroups.exists(g, g in ["rbac.authorization.k8s.io", "*"]) &&
+                        r.verbs.exists(v, v in ["create", "update", "patch"]) &&
+                        r.resources.exists(res, res in ["*", "clusterroles", "clusterrolebindings", "roles", "rolebindings"])),
+                      (r.apiGroups.exists(g, g in ["", "*"]) &&
+                        r.verbs.exists(v, v in ["list", "watch"]) &&
+                        r.resources.exists(res, res in ["*", "secrets"]))
+                    ].exists(b, b))
+            uniqueId: 'event.Kind + ''/'' + (event.Namespace != '''' ? event.Namespace + ''/'' : '''') + event.Name'
+          id: R2006
+          isTriggerAlert: true
+          mitreTactic: TA0004
+          mitreTechnique: T1098.006
+          name: High privileges role created
+          profileDependency: 2
+          severity: 8
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - rbac
+            - privilege-escalation
   41: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
@@ -44747,7 +45353,7 @@ multiple node agents:
             message: '''Unexpected process launched: '' + event.comm + '' with PID '' + string(event.pid)'
             ruleExpression:
               - eventType: exec
-                expression: '!ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))'
+                expression: '!ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)))'
             uniqueId: event.comm + '_' + event.exepath
           id: R0001
           isTriggerAlert: true
@@ -44761,6 +45367,7 @@ multiple node agents:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - anomaly
             - process
             - exec
@@ -44801,6 +45408,7 @@ multiple node agents:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - anomaly
             - file
             - open
@@ -44825,6 +45433,7 @@ multiple node agents:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - anomaly
             - syscall
             - applicationprofile
@@ -44848,6 +45457,7 @@ multiple node agents:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - anomaly
             - capabilities
             - applicationprofile
@@ -44871,6 +45481,7 @@ multiple node agents:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - dns
             - anomaly
             - networkprofile
@@ -44880,12 +45491,7 @@ multiple node agents:
             message: '''Unexpected access to service account token: '' + event.path + '' with flags: '' + event.flags.join('','')'
             ruleExpression:
               - eventType: open
-                expression: |
-                  ((event.path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||
-                   (event.path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||
-                   (event.path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token')) ||
-                   (event.path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token'))) &&
-                  !ap.was_path_opened_with_suffix(event.containerId, '/token')
+                expression: "((event.path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) || \n (event.path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||\n (event.path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token')) ||\n (event.path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token'))) &&\n!ap.was_path_opened_with_suffix(event.containerId, '/token')\n"
             uniqueId: event.comm
           id: R0006
           isTriggerAlert: true
@@ -44913,7 +45519,7 @@ multiple node agents:
             message: 'eventType == ''exec'' ? ''Kubernetes client ('' + event.comm + '') was executed with PID '' + string(event.pid) : ''Network connection to Kubernetes API server from container '' + event.containerName'
             ruleExpression:
               - eventType: exec
-                expression: (event.comm == 'kubectl' || event.exepath.endsWith('/kubectl')) && !ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))
+                expression: '(event.comm == ''kubectl'' || event.exepath.endsWith(''/kubectl'')) && !ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)))'
               - eventType: network
                 expression: event.pktType == 'OUTGOING' && k8s.is_api_server_address(event.dstAddr) && !nn.was_address_in_egress(event.containerId, event.dstAddr)
             uniqueId: 'eventType == ''exec'' ? ''exec_'' + event.comm : ''network_'' + event.dstAddr'
@@ -44941,7 +45547,7 @@ multiple node agents:
             ruleExpression:
               - eventType: open
                 expression: |
-                  event.path.startsWith('/proc/') && event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
+                  event.path.startsWith('/proc/') &&  event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
             uniqueId: event.comm
           id: R0008
           isTriggerAlert: true
@@ -44959,6 +45565,7 @@ multiple node agents:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - anomaly
             - procfs
             - environment
@@ -45009,6 +45616,7 @@ multiple node agents:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - context:host
             - files
             - anomaly
@@ -45033,24 +45641,50 @@ multiple node agents:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - whitelisted
             - network
             - anomaly
             - networkprofile
-        - description: 'Detecting exec calls that are from malicious source like: /dev/shm'
+        - description: Detects an exec event whose path IS in the application profile but whose argv vector does not match any recorded argv pattern for that path. Consumes ap.was_executed_with_args, which walks the ExecsByPath projection surface and delegates argv comparison to dynamicpathdetector.MatchExecArgs (storage). Stays silent when the path is unknown (R0001 covers that case) and when the argv vector matches any recorded pattern (including the trailing zero-or-more form and the single-arg form); a '*' in a recorded arg is a literal character, not a wildcard.
           enabled: true
           expressions:
-            message: '''Execution from malicious source: '' + event.exepath + '' in directory '' + event.cwd'
+            message: '''Unexpected process arguments: '' + event.comm + '' with PID '' + string(event.pid) + '' argv='' + event.args.map(a, string(a)).join('' '')'
+            ruleExpression:
+              - eventType: exec
+                expression: ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm, event.exepath)) && !ap.was_executed_with_args(event.containerId, parse.get_exec_path(event.args, event.comm, event.exepath), event.args)
+            uniqueId: event.comm + '_' + event.exepath + '_' + event.args.map(a, string(a)).join(' ')
+          id: R0040
+          isTriggerAlert: true
+          mitreTactic: TA0002
+          mitreTechnique: T1059
+          name: Unexpected process arguments
+          profileDataRequired:
+            execs: all
+          profileDependency: 0
+          severity: 3
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - context:container
+            - anomaly
+            - process
+            - exec
+            - applicationprofile
+        - description: Detecting exec calls whose executable path or working directory is under /dev/shm, a world-writable memory-backed (tmpfs) directory.
+          enabled: true
+          expressions:
+            message: '''Process executed from /dev/shm: '' + event.exepath + '' in directory '' + event.cwd'
             ruleExpression:
               - eventType: exec
                 expression: |
-                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') || (parse.get_exec_path(event.args, event.comm).startsWith('/dev/shm/')))
+                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/')) || (event.args.size() > 0 && (event.args[0] == '/dev/shm' || event.args[0].startsWith('/dev/shm/')))
             uniqueId: event.comm + '_' + event.exepath + '_' + event.pcomm
           id: R1000
           isTriggerAlert: true
           mitreTactic: TA0002
           mitreTechnique: T1059
-          name: Process executed from malicious source
+          name: Process Executed from /dev/shm
           profileDependency: 2
           severity: 8
           supportPolicy: false
@@ -45069,7 +45703,7 @@ multiple node agents:
                 expression: |
                   (event.upperlayer == true ||
                    event.pupperlayer == true) &&
-                  !ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))
+                  !ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)))
             uniqueId: event.comm + '_' + event.exepath + '_' + event.pcomm
           id: R1001
           isTriggerAlert: true
@@ -45083,6 +45717,7 @@ multiple node agents:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - exec
             - malicious
             - binary
@@ -45111,10 +45746,10 @@ multiple node agents:
             - kernel
             - module
             - load
-        - description: Detecting ssh connection to disallowed port
+        - description: Detecting an SSH connection to a non-standard port where the destination address is not in the container's learned egress baseline.
           enabled: false
           expressions:
-            message: '''Malicious SSH connection attempt to '' + event.dstIp + '':'' + string(dyn(event.dstPort))'
+            message: '''SSH connection to unexpected destination on non-standard port: '' + event.dstIp + '':'' + string(dyn(event.dstPort))'
             ruleExpression:
               - eventType: ssh
                 expression: dyn(event.srcPort) >= 32768 && dyn(event.srcPort) <= 60999 && !(dyn(event.dstPort) in [22, 2022]) && !nn.was_address_in_egress(event.containerId, event.dstIp)
@@ -45123,7 +45758,7 @@ multiple node agents:
           isTriggerAlert: true
           mitreTactic: TA0008
           mitreTechnique: T1021.001
-          name: Disallowed ssh connection
+          name: SSH Connection to Unexpected Destination on Non-Standard Port
           profileDataRequired:
             egressAddresses: all
           profileDependency: 1
@@ -45131,6 +45766,7 @@ multiple node agents:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - ssh
             - connection
             - port
@@ -45142,7 +45778,7 @@ multiple node agents:
             message: '''Process ('' + event.comm + '') was executed from a mounted path'''
             ruleExpression:
               - eventType: exec
-                expression: '!ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm)) && k8s.get_container_mount_paths(event.namespace, event.podName, event.containerName).exists(mount, event.exepath.startsWith(mount) || parse.get_exec_path(event.args, event.comm).startsWith(mount))'
+                expression: '!ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm))) && k8s.get_container_mount_paths(event.namespace, event.podName, event.containerName).exists(mount, event.exepath.startsWith(mount) || (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)).startsWith(mount))'
             uniqueId: event.comm
           id: R1004
           isTriggerAlert: true
@@ -45156,13 +45792,14 @@ multiple node agents:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - exec
             - mount
             - applicationprofile
         - description: Detecting Fileless Execution
           enabled: true
           expressions:
-            message: '''Fileless execution detected: exec call "'' + event.comm + ''" is from a malicious source'''
+            message: '''Fileless execution detected: exec call "'' + event.comm + ''" runs from a memory-backed source (memfd / /proc/self/fd)'''
             ruleExpression:
               - eventType: exec
                 expression: event.exepath.contains('memfd') || event.exepath.startsWith('/proc/self/fd') || event.exepath.matches('/proc/[0-9]+/fd/[0-9]+')
@@ -45181,7 +45818,7 @@ multiple node agents:
             - fileless
             - execution
             - malicious
-        - description: Detecting Unshare System Call usage, which can be used to escape container.
+        - description: Detecting use of the unshare system call (a namespace-manipulation capability that can be used to escape a container) by a non-runc process, where it was not seen in the container's application-profile baseline.
           enabled: true
           expressions:
             message: '''Unshare system call (unshare) was called by process ('' + event.comm + '')'''
@@ -45193,7 +45830,7 @@ multiple node agents:
           isTriggerAlert: true
           mitreTactic: TA0004
           mitreTechnique: T1611
-          name: Process tries to escape container
+          name: Unexpected unshare Syscall in Container
           profileDataRequired:
             syscalls:
               - exact: unshare
@@ -45202,6 +45839,7 @@ multiple node agents:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - unshare
             - escape
             - unshare
@@ -45225,6 +45863,7 @@ multiple node agents:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - crypto
             - miners
             - malicious
@@ -45308,7 +45947,7 @@ multiple node agents:
             - anomaly
             - symlink
             - applicationprofile
-        - description: Detecting ld_preload hook techniques.
+        - description: Detecting use of the LD_PRELOAD/LD_LIBRARY_PATH dynamic-linker hook mechanism, or an unexpected write to /etc/ld.so.preload relative to the container's application-profile baseline.
           enabled: false
           expressions:
             message: 'eventType == ''exec'' ? ''Process ('' + event.comm + '') is using a dynamic linker hook: '' + process.get_ld_hook_var(event.pid) : ''The dynamic linker configuration file ('' + event.path + '') was modified by process ('' + event.comm + '')'''
@@ -45322,7 +45961,7 @@ multiple node agents:
           isTriggerAlert: true
           mitreTactic: TA0005
           mitreTechnique: T1574.006
-          name: ld_preload hooks technique detected
+          name: ld_preload Mechanism Use or ld.so.preload Modification
           profileDataRequired:
             opens:
               - exact: /etc/ld.so.preload
@@ -45359,10 +45998,10 @@ multiple node agents:
             - files
             - malicious
             - applicationprofile
-        - description: Detecting potentially malicious ptrace usage.
+        - description: Detecting use of the ptrace syscall that was not seen in the container's application-profile baseline.
           enabled: true
           expressions:
-            message: '''Malicious ptrace usage detected from: '' + event.comm'
+            message: '''Unexpected ptrace syscall usage from: '' + event.comm'
             ruleExpression:
               - eventType: ptrace
                 expression: "true"
@@ -45371,7 +46010,7 @@ multiple node agents:
           isTriggerAlert: true
           mitreTactic: TA0005
           mitreTechnique: T1622
-          name: Malicious Ptrace Usage
+          name: Unexpected Ptrace Syscall Usage
           profileDependency: 2
           severity: 5
           supportPolicy: false
@@ -45400,6 +46039,7 @@ multiple node agents:
           supportPolicy: true
           tags:
             - context:kubernetes
+            - context:container
             - syscalls
             - io_uring
             - applicationprofile
@@ -45443,6 +46083,174 @@ multiple node agents:
             - context:kubernetes
             - admission
             - network
+        - description: Detects pod creation with hostPID, hostIPC or hostNetwork enabled, via the Kubernetes admission webhook
+          enabled: true
+          expressions:
+            message: '''Pod shares host namespace ('' + ["hostPID", "hostIPC", "hostNetwork"].filter(f, f in object.spec && object.spec[f] == true).join('', '') + ''): '' + event.Namespace + ''/'' + (event.Name != '''' ? event.Name : (has(object.metadata.generateName) ? string(object.metadata.generateName) : ''unnamed'')) + '' by '' + event.UserInfo.Username'
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: event.Kind == "Pod" && event.Operation == "CREATE" && !(event.Namespace in ["kube-system", "kube-public", "kube-node-lease", "kubescape"]) && has(object.spec) && ["hostPID", "hostIPC", "hostNetwork"].exists(f, f in object.spec && object.spec[f] == true)
+            uniqueId: |-
+              event.Namespace + '/' + (has(object.metadata.ownerReferences) && object.metadata.ownerReferences.size() > 0
+                ? string(object.metadata.ownerReferences[0].kind) + '/' + string(object.metadata.ownerReferences[0].name)
+                : (event.Name != '' ? event.Name : (has(object.metadata.generateName) ? string(object.metadata.generateName) : 'unnamed')))
+          id: R2002
+          isTriggerAlert: true
+          mitreTactic: TA0004
+          mitreTechnique: T1611
+          name: Pod shares host namespace
+          profileDependency: 2
+          severity: 6
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - container-escape
+            - host-namespace
+        - description: Detects pod creation where a container runs privileged or adds a host-breaking Linux capability, via the Kubernetes admission webhook
+          enabled: true
+          expressions:
+            message: '''Privileged pod created: '' + event.Namespace + ''/'' + (event.Name != '''' ? event.Name : (has(object.metadata.generateName) ? string(object.metadata.generateName) : ''unnamed'')) + '' by '' + event.UserInfo.Username'
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: |-
+                  event.Kind == "Pod" && event.Operation == "CREATE" && !(event.Namespace in ["kube-system", "kube-public", "kube-node-lease", "kubescape"]) && has(object.spec) && has(object.spec.containers) && (object.spec.containers
+                    + (has(object.spec.initContainers) ? object.spec.initContainers : [])
+                    + (has(object.spec.ephemeralContainers) ? object.spec.ephemeralContainers : [])
+                  ).exists(c,
+                    has(c.securityContext) &&
+                    [
+                      has(c.securityContext.privileged) && c.securityContext.privileged == true,
+                      has(c.securityContext.capabilities) && has(c.securityContext.capabilities.add) &&
+                        c.securityContext.capabilities.add.exists(cap,
+                          cap in ["ALL", "SYS_ADMIN", "SYS_MODULE", "SYS_PTRACE", "SYS_RAWIO", "SYS_BOOT",
+                                  "NET_ADMIN", "DAC_READ_SEARCH", "BPF", "PERFMON", "SYS_TIME"])
+                    ].exists(b, b)
+                  )
+            uniqueId: |-
+              event.Namespace + '/' + (has(object.metadata.ownerReferences) && object.metadata.ownerReferences.size() > 0
+                ? string(object.metadata.ownerReferences[0].kind) + '/' + string(object.metadata.ownerReferences[0].name)
+                : (event.Name != '' ? event.Name : (has(object.metadata.generateName) ? string(object.metadata.generateName) : 'unnamed')))
+          id: R2003
+          isTriggerAlert: true
+          mitreTactic: TA0004
+          mitreTechnique: T1611
+          name: Privileged pod created
+          profileDependency: 2
+          severity: 8
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - container-escape
+            - privileged
+            - capabilities
+        - description: Detects pod creation with a hostPath volume on a sensitive host location such as /, /etc, /var/lib/kubelet or the container runtime socket directories, via the Kubernetes admission webhook
+          enabled: true
+          expressions:
+            message: '''Pod created with sensitive hostPath volume: '' + object.spec.volumes.filter(v, has(v.hostPath) && has(v.hostPath.path)).map(v, string(v.hostPath.path)).join('', '') + '' in '' + event.Namespace + ''/'' + (event.Name != '''' ? event.Name : (has(object.metadata.generateName) ? string(object.metadata.generateName) : ''unnamed'')) + '' by '' + event.UserInfo.Username'
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: |-
+                  event.Kind == "Pod" && event.Operation == "CREATE" && !(event.Namespace in ["kube-system", "kube-public", "kube-node-lease", "kubescape"]) && has(object.spec) && has(object.spec.volumes) && object.spec.volumes
+                    .filter(v, has(v.hostPath) && has(v.hostPath.path))
+                    .map(v, "/" + string(v.hostPath.path).split("/")
+                      .filter(c, c != "" && c != ".")
+                      .map(c, c + "/").join(""))
+                    .exists(p, [
+                      p == "/",
+                      ["/etc/", "/proc/", "/root/", "/home/", "/var/lib/kubelet/",
+                       "/var/lib/docker/overlay2/", "/var/run/", "/run/"].exists(d, p.startsWith(d))
+                    ].exists(b, b))
+            uniqueId: |-
+              event.Namespace + '/' + (has(object.metadata.ownerReferences) && object.metadata.ownerReferences.size() > 0
+                ? string(object.metadata.ownerReferences[0].kind) + '/' + string(object.metadata.ownerReferences[0].name)
+                : (event.Name != '' ? event.Name : (has(object.metadata.generateName) ? string(object.metadata.generateName) : 'unnamed')))
+          id: R2004
+          isTriggerAlert: true
+          mitreTactic: TA0004
+          mitreTechnique: T1611
+          name: Pod created with sensitive hostPath volume
+          profileDependency: 2
+          severity: 8
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - container-escape
+            - hostpath
+        - description: Detects a ClusterRoleBinding or RoleBinding that grants the cluster-admin ClusterRole, created or given new subjects, via the Kubernetes admission webhook
+          enabled: true
+          expressions:
+            message: |-
+              'cluster-admin granted via ' + event.Kind + ' ' + (event.Namespace != '' ? event.Namespace + '/' : '') + event.Name + ' to ' + (has(object.subjects)
+                ? object.subjects.map(s, string(s.kind) + ':' + (has(s.namespace) ? string(s.namespace) + '/' : '') + string(s.name)).join(', ')
+                : 'no subjects') +
+              ' by ' + event.UserInfo.Username
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: |-
+                  [event.Kind == "ClusterRoleBinding", event.Kind == "RoleBinding"].exists(k, k) && event.Operation in ["CREATE", "UPDATE"] && has(object.roleRef) && has(object.roleRef.kind) && has(object.roleRef.name) && object.roleRef.kind == "ClusterRole" && object.roleRef.name == "cluster-admin" && (event.Operation == "CREATE"
+                    ? true
+                    : (has(object.subjects) ? object.subjects : []) != (has(oldObject.subjects) ? oldObject.subjects : []))
+            uniqueId: 'event.Kind + ''/'' + (event.Namespace != '''' ? event.Namespace + ''/'' : '''') + event.Name'
+          id: R2005
+          isTriggerAlert: true
+          mitreTactic: TA0003
+          mitreTechnique: T1098.006
+          name: cluster-admin role bound
+          profileDependency: 2
+          severity: 8
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - rbac
+            - privilege-escalation
+        - description: Detects a ClusterRole or Role that grants wildcard verbs, escalate/bind/impersonate, write access to RBAC objects, pod exec, token or secret resources, or secret enumeration, created or widened via the Kubernetes admission webhook
+          enabled: true
+          expressions:
+            message: |-
+              'High privileges ' + event.Kind + ' ' + (event.Namespace != '' ? event.Namespace + '/' : '') + event.Name + (event.Operation == "CREATE" ? ' created' : ' updated') + ' by ' + event.UserInfo.Username + ' granting ' + ["*", "escalate", "bind", "impersonate", "create", "update", "patch", "list", "watch"]
+                .filter(v, object.rules.exists(r, has(r.verbs) && v in r.verbs)).join('/') +
+              ' on ' + ["*", "clusterroles", "clusterrolebindings", "roles", "rolebindings",
+               "pods/exec", "pods/attach", "serviceaccounts/token", "nodes/proxy", "secrets",
+               "*/exec", "*/attach", "*/token", "*/proxy"]
+                .filter(res, object.rules.exists(r, has(r.resources) && res in r.resources)).join(',')
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: |-
+                  [event.Kind == "ClusterRole", event.Kind == "Role"].exists(k, k) && event.Operation in ["CREATE", "UPDATE"] && event.UserInfo.Username != "system:serviceaccount:kube-system:clusterrole-aggregation-controller" && has(object.rules) && (event.Operation == "CREATE"
+                    ? true
+                    : object.rules != (has(oldObject.rules) ? oldObject.rules : [])) &&
+                  object.rules.exists(r,
+                    has(r.verbs) && has(r.resources) && has(r.apiGroups) && [
+                      r.verbs.exists(v, v in ["*", "escalate", "bind", "impersonate"]),
+                      (r.apiGroups.exists(g, g in ["", "*"]) &&
+                        r.verbs.exists(v, v in ["create", "update", "patch"]) &&
+                        r.resources.exists(res, res in ["*", "pods/exec", "pods/attach", "serviceaccounts/token", "nodes/proxy", "secrets",
+                                                        "*/exec", "*/attach", "*/token", "*/proxy"])),
+                      (r.apiGroups.exists(g, g in ["rbac.authorization.k8s.io", "*"]) &&
+                        r.verbs.exists(v, v in ["create", "update", "patch"]) &&
+                        r.resources.exists(res, res in ["*", "clusterroles", "clusterrolebindings", "roles", "rolebindings"])),
+                      (r.apiGroups.exists(g, g in ["", "*"]) &&
+                        r.verbs.exists(v, v in ["list", "watch"]) &&
+                        r.resources.exists(res, res in ["*", "secrets"]))
+                    ].exists(b, b))
+            uniqueId: 'event.Kind + ''/'' + (event.Namespace != '''' ? event.Namespace + ''/'' : '''') + event.Name'
+          id: R2006
+          isTriggerAlert: true
+          mitreTactic: TA0004
+          mitreTechnique: T1098.006
+          name: High privileges role created
+          profileDependency: 2
+          severity: 8
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - rbac
+            - privilege-escalation
   64: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
@@ -60982,7 +61790,7 @@ skipPersistence enabled:
             message: '''Unexpected process launched: '' + event.comm + '' with PID '' + string(event.pid)'
             ruleExpression:
               - eventType: exec
-                expression: '!ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))'
+                expression: '!ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)))'
             uniqueId: event.comm + '_' + event.exepath
           id: R0001
           isTriggerAlert: true
@@ -60996,6 +61804,7 @@ skipPersistence enabled:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - anomaly
             - process
             - exec
@@ -61036,6 +61845,7 @@ skipPersistence enabled:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - anomaly
             - file
             - open
@@ -61060,6 +61870,7 @@ skipPersistence enabled:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - anomaly
             - syscall
             - applicationprofile
@@ -61083,6 +61894,7 @@ skipPersistence enabled:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - anomaly
             - capabilities
             - applicationprofile
@@ -61106,6 +61918,7 @@ skipPersistence enabled:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - dns
             - anomaly
             - networkprofile
@@ -61115,12 +61928,7 @@ skipPersistence enabled:
             message: '''Unexpected access to service account token: '' + event.path + '' with flags: '' + event.flags.join('','')'
             ruleExpression:
               - eventType: open
-                expression: |
-                  ((event.path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||
-                   (event.path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||
-                   (event.path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token')) ||
-                   (event.path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token'))) &&
-                  !ap.was_path_opened_with_suffix(event.containerId, '/token')
+                expression: "((event.path.startsWith('/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) || \n (event.path.startsWith('/var/run/secrets/kubernetes.io/serviceaccount') && event.path.endsWith('/token')) ||\n (event.path.startsWith('/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token')) ||\n (event.path.startsWith('/var/run/secrets/eks.amazonaws.com/serviceaccount') && event.path.endsWith('/token'))) &&\n!ap.was_path_opened_with_suffix(event.containerId, '/token')\n"
             uniqueId: event.comm
           id: R0006
           isTriggerAlert: true
@@ -61148,7 +61956,7 @@ skipPersistence enabled:
             message: 'eventType == ''exec'' ? ''Kubernetes client ('' + event.comm + '') was executed with PID '' + string(event.pid) : ''Network connection to Kubernetes API server from container '' + event.containerName'
             ruleExpression:
               - eventType: exec
-                expression: (event.comm == 'kubectl' || event.exepath.endsWith('/kubectl')) && !ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))
+                expression: '(event.comm == ''kubectl'' || event.exepath.endsWith(''/kubectl'')) && !ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)))'
               - eventType: network
                 expression: event.pktType == 'OUTGOING' && k8s.is_api_server_address(event.dstAddr) && !nn.was_address_in_egress(event.containerId, event.dstAddr)
             uniqueId: 'eventType == ''exec'' ? ''exec_'' + event.comm : ''network_'' + event.dstAddr'
@@ -61176,7 +61984,7 @@ skipPersistence enabled:
             ruleExpression:
               - eventType: open
                 expression: |
-                  event.path.startsWith('/proc/') && event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
+                  event.path.startsWith('/proc/') &&  event.path.endsWith('/environ') && !ap.was_path_opened_with_suffix(event.containerId, '/environ')
             uniqueId: event.comm
           id: R0008
           isTriggerAlert: true
@@ -61194,6 +62002,7 @@ skipPersistence enabled:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - anomaly
             - procfs
             - environment
@@ -61244,6 +62053,7 @@ skipPersistence enabled:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - context:host
             - files
             - anomaly
@@ -61268,24 +62078,50 @@ skipPersistence enabled:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - whitelisted
             - network
             - anomaly
             - networkprofile
-        - description: 'Detecting exec calls that are from malicious source like: /dev/shm'
+        - description: Detects an exec event whose path IS in the application profile but whose argv vector does not match any recorded argv pattern for that path. Consumes ap.was_executed_with_args, which walks the ExecsByPath projection surface and delegates argv comparison to dynamicpathdetector.MatchExecArgs (storage). Stays silent when the path is unknown (R0001 covers that case) and when the argv vector matches any recorded pattern (including the trailing zero-or-more form and the single-arg form); a '*' in a recorded arg is a literal character, not a wildcard.
           enabled: true
           expressions:
-            message: '''Execution from malicious source: '' + event.exepath + '' in directory '' + event.cwd'
+            message: '''Unexpected process arguments: '' + event.comm + '' with PID '' + string(event.pid) + '' argv='' + event.args.map(a, string(a)).join('' '')'
+            ruleExpression:
+              - eventType: exec
+                expression: ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm, event.exepath)) && !ap.was_executed_with_args(event.containerId, parse.get_exec_path(event.args, event.comm, event.exepath), event.args)
+            uniqueId: event.comm + '_' + event.exepath + '_' + event.args.map(a, string(a)).join(' ')
+          id: R0040
+          isTriggerAlert: true
+          mitreTactic: TA0002
+          mitreTechnique: T1059
+          name: Unexpected process arguments
+          profileDataRequired:
+            execs: all
+          profileDependency: 0
+          severity: 3
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - context:container
+            - anomaly
+            - process
+            - exec
+            - applicationprofile
+        - description: Detecting exec calls whose executable path or working directory is under /dev/shm, a world-writable memory-backed (tmpfs) directory.
+          enabled: true
+          expressions:
+            message: '''Process executed from /dev/shm: '' + event.exepath + '' in directory '' + event.cwd'
             ruleExpression:
               - eventType: exec
                 expression: |
-                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') || (parse.get_exec_path(event.args, event.comm).startsWith('/dev/shm/')))
+                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/')) || (event.args.size() > 0 && (event.args[0] == '/dev/shm' || event.args[0].startsWith('/dev/shm/')))
             uniqueId: event.comm + '_' + event.exepath + '_' + event.pcomm
           id: R1000
           isTriggerAlert: true
           mitreTactic: TA0002
           mitreTechnique: T1059
-          name: Process executed from malicious source
+          name: Process Executed from /dev/shm
           profileDependency: 2
           severity: 8
           supportPolicy: false
@@ -61304,7 +62140,7 @@ skipPersistence enabled:
                 expression: |
                   (event.upperlayer == true ||
                    event.pupperlayer == true) &&
-                  !ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))
+                  !ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)))
             uniqueId: event.comm + '_' + event.exepath + '_' + event.pcomm
           id: R1001
           isTriggerAlert: true
@@ -61318,6 +62154,7 @@ skipPersistence enabled:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - exec
             - malicious
             - binary
@@ -61346,10 +62183,10 @@ skipPersistence enabled:
             - kernel
             - module
             - load
-        - description: Detecting ssh connection to disallowed port
+        - description: Detecting an SSH connection to a non-standard port where the destination address is not in the container's learned egress baseline.
           enabled: false
           expressions:
-            message: '''Malicious SSH connection attempt to '' + event.dstIp + '':'' + string(dyn(event.dstPort))'
+            message: '''SSH connection to unexpected destination on non-standard port: '' + event.dstIp + '':'' + string(dyn(event.dstPort))'
             ruleExpression:
               - eventType: ssh
                 expression: dyn(event.srcPort) >= 32768 && dyn(event.srcPort) <= 60999 && !(dyn(event.dstPort) in [22, 2022]) && !nn.was_address_in_egress(event.containerId, event.dstIp)
@@ -61358,7 +62195,7 @@ skipPersistence enabled:
           isTriggerAlert: true
           mitreTactic: TA0008
           mitreTechnique: T1021.001
-          name: Disallowed ssh connection
+          name: SSH Connection to Unexpected Destination on Non-Standard Port
           profileDataRequired:
             egressAddresses: all
           profileDependency: 1
@@ -61366,6 +62203,7 @@ skipPersistence enabled:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - ssh
             - connection
             - port
@@ -61377,7 +62215,7 @@ skipPersistence enabled:
             message: '''Process ('' + event.comm + '') was executed from a mounted path'''
             ruleExpression:
               - eventType: exec
-                expression: '!ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm)) && k8s.get_container_mount_paths(event.namespace, event.podName, event.containerName).exists(mount, event.exepath.startsWith(mount) || parse.get_exec_path(event.args, event.comm).startsWith(mount))'
+                expression: '!ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm))) && k8s.get_container_mount_paths(event.namespace, event.podName, event.containerName).exists(mount, event.exepath.startsWith(mount) || (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)).startsWith(mount))'
             uniqueId: event.comm
           id: R1004
           isTriggerAlert: true
@@ -61391,13 +62229,14 @@ skipPersistence enabled:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - exec
             - mount
             - applicationprofile
         - description: Detecting Fileless Execution
           enabled: true
           expressions:
-            message: '''Fileless execution detected: exec call "'' + event.comm + ''" is from a malicious source'''
+            message: '''Fileless execution detected: exec call "'' + event.comm + ''" runs from a memory-backed source (memfd / /proc/self/fd)'''
             ruleExpression:
               - eventType: exec
                 expression: event.exepath.contains('memfd') || event.exepath.startsWith('/proc/self/fd') || event.exepath.matches('/proc/[0-9]+/fd/[0-9]+')
@@ -61416,7 +62255,7 @@ skipPersistence enabled:
             - fileless
             - execution
             - malicious
-        - description: Detecting Unshare System Call usage, which can be used to escape container.
+        - description: Detecting use of the unshare system call (a namespace-manipulation capability that can be used to escape a container) by a non-runc process, where it was not seen in the container's application-profile baseline.
           enabled: true
           expressions:
             message: '''Unshare system call (unshare) was called by process ('' + event.comm + '')'''
@@ -61428,7 +62267,7 @@ skipPersistence enabled:
           isTriggerAlert: true
           mitreTactic: TA0004
           mitreTechnique: T1611
-          name: Process tries to escape container
+          name: Unexpected unshare Syscall in Container
           profileDataRequired:
             syscalls:
               - exact: unshare
@@ -61437,6 +62276,7 @@ skipPersistence enabled:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - unshare
             - escape
             - unshare
@@ -61460,6 +62300,7 @@ skipPersistence enabled:
           supportPolicy: false
           tags:
             - context:kubernetes
+            - context:container
             - crypto
             - miners
             - malicious
@@ -61543,7 +62384,7 @@ skipPersistence enabled:
             - anomaly
             - symlink
             - applicationprofile
-        - description: Detecting ld_preload hook techniques.
+        - description: Detecting use of the LD_PRELOAD/LD_LIBRARY_PATH dynamic-linker hook mechanism, or an unexpected write to /etc/ld.so.preload relative to the container's application-profile baseline.
           enabled: false
           expressions:
             message: 'eventType == ''exec'' ? ''Process ('' + event.comm + '') is using a dynamic linker hook: '' + process.get_ld_hook_var(event.pid) : ''The dynamic linker configuration file ('' + event.path + '') was modified by process ('' + event.comm + '')'''
@@ -61557,7 +62398,7 @@ skipPersistence enabled:
           isTriggerAlert: true
           mitreTactic: TA0005
           mitreTechnique: T1574.006
-          name: ld_preload hooks technique detected
+          name: ld_preload Mechanism Use or ld.so.preload Modification
           profileDataRequired:
             opens:
               - exact: /etc/ld.so.preload
@@ -61594,10 +62435,10 @@ skipPersistence enabled:
             - files
             - malicious
             - applicationprofile
-        - description: Detecting potentially malicious ptrace usage.
+        - description: Detecting use of the ptrace syscall that was not seen in the container's application-profile baseline.
           enabled: true
           expressions:
-            message: '''Malicious ptrace usage detected from: '' + event.comm'
+            message: '''Unexpected ptrace syscall usage from: '' + event.comm'
             ruleExpression:
               - eventType: ptrace
                 expression: "true"
@@ -61606,7 +62447,7 @@ skipPersistence enabled:
           isTriggerAlert: true
           mitreTactic: TA0005
           mitreTechnique: T1622
-          name: Malicious Ptrace Usage
+          name: Unexpected Ptrace Syscall Usage
           profileDependency: 2
           severity: 5
           supportPolicy: false
@@ -61635,6 +62476,7 @@ skipPersistence enabled:
           supportPolicy: true
           tags:
             - context:kubernetes
+            - context:container
             - syscalls
             - io_uring
             - applicationprofile
@@ -61678,6 +62520,174 @@ skipPersistence enabled:
             - context:kubernetes
             - admission
             - network
+        - description: Detects pod creation with hostPID, hostIPC or hostNetwork enabled, via the Kubernetes admission webhook
+          enabled: true
+          expressions:
+            message: '''Pod shares host namespace ('' + ["hostPID", "hostIPC", "hostNetwork"].filter(f, f in object.spec && object.spec[f] == true).join('', '') + ''): '' + event.Namespace + ''/'' + (event.Name != '''' ? event.Name : (has(object.metadata.generateName) ? string(object.metadata.generateName) : ''unnamed'')) + '' by '' + event.UserInfo.Username'
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: event.Kind == "Pod" && event.Operation == "CREATE" && !(event.Namespace in ["kube-system", "kube-public", "kube-node-lease", "kubescape"]) && has(object.spec) && ["hostPID", "hostIPC", "hostNetwork"].exists(f, f in object.spec && object.spec[f] == true)
+            uniqueId: |-
+              event.Namespace + '/' + (has(object.metadata.ownerReferences) && object.metadata.ownerReferences.size() > 0
+                ? string(object.metadata.ownerReferences[0].kind) + '/' + string(object.metadata.ownerReferences[0].name)
+                : (event.Name != '' ? event.Name : (has(object.metadata.generateName) ? string(object.metadata.generateName) : 'unnamed')))
+          id: R2002
+          isTriggerAlert: true
+          mitreTactic: TA0004
+          mitreTechnique: T1611
+          name: Pod shares host namespace
+          profileDependency: 2
+          severity: 6
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - container-escape
+            - host-namespace
+        - description: Detects pod creation where a container runs privileged or adds a host-breaking Linux capability, via the Kubernetes admission webhook
+          enabled: true
+          expressions:
+            message: '''Privileged pod created: '' + event.Namespace + ''/'' + (event.Name != '''' ? event.Name : (has(object.metadata.generateName) ? string(object.metadata.generateName) : ''unnamed'')) + '' by '' + event.UserInfo.Username'
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: |-
+                  event.Kind == "Pod" && event.Operation == "CREATE" && !(event.Namespace in ["kube-system", "kube-public", "kube-node-lease", "kubescape"]) && has(object.spec) && has(object.spec.containers) && (object.spec.containers
+                    + (has(object.spec.initContainers) ? object.spec.initContainers : [])
+                    + (has(object.spec.ephemeralContainers) ? object.spec.ephemeralContainers : [])
+                  ).exists(c,
+                    has(c.securityContext) &&
+                    [
+                      has(c.securityContext.privileged) && c.securityContext.privileged == true,
+                      has(c.securityContext.capabilities) && has(c.securityContext.capabilities.add) &&
+                        c.securityContext.capabilities.add.exists(cap,
+                          cap in ["ALL", "SYS_ADMIN", "SYS_MODULE", "SYS_PTRACE", "SYS_RAWIO", "SYS_BOOT",
+                                  "NET_ADMIN", "DAC_READ_SEARCH", "BPF", "PERFMON", "SYS_TIME"])
+                    ].exists(b, b)
+                  )
+            uniqueId: |-
+              event.Namespace + '/' + (has(object.metadata.ownerReferences) && object.metadata.ownerReferences.size() > 0
+                ? string(object.metadata.ownerReferences[0].kind) + '/' + string(object.metadata.ownerReferences[0].name)
+                : (event.Name != '' ? event.Name : (has(object.metadata.generateName) ? string(object.metadata.generateName) : 'unnamed')))
+          id: R2003
+          isTriggerAlert: true
+          mitreTactic: TA0004
+          mitreTechnique: T1611
+          name: Privileged pod created
+          profileDependency: 2
+          severity: 8
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - container-escape
+            - privileged
+            - capabilities
+        - description: Detects pod creation with a hostPath volume on a sensitive host location such as /, /etc, /var/lib/kubelet or the container runtime socket directories, via the Kubernetes admission webhook
+          enabled: true
+          expressions:
+            message: '''Pod created with sensitive hostPath volume: '' + object.spec.volumes.filter(v, has(v.hostPath) && has(v.hostPath.path)).map(v, string(v.hostPath.path)).join('', '') + '' in '' + event.Namespace + ''/'' + (event.Name != '''' ? event.Name : (has(object.metadata.generateName) ? string(object.metadata.generateName) : ''unnamed'')) + '' by '' + event.UserInfo.Username'
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: |-
+                  event.Kind == "Pod" && event.Operation == "CREATE" && !(event.Namespace in ["kube-system", "kube-public", "kube-node-lease", "kubescape"]) && has(object.spec) && has(object.spec.volumes) && object.spec.volumes
+                    .filter(v, has(v.hostPath) && has(v.hostPath.path))
+                    .map(v, "/" + string(v.hostPath.path).split("/")
+                      .filter(c, c != "" && c != ".")
+                      .map(c, c + "/").join(""))
+                    .exists(p, [
+                      p == "/",
+                      ["/etc/", "/proc/", "/root/", "/home/", "/var/lib/kubelet/",
+                       "/var/lib/docker/overlay2/", "/var/run/", "/run/"].exists(d, p.startsWith(d))
+                    ].exists(b, b))
+            uniqueId: |-
+              event.Namespace + '/' + (has(object.metadata.ownerReferences) && object.metadata.ownerReferences.size() > 0
+                ? string(object.metadata.ownerReferences[0].kind) + '/' + string(object.metadata.ownerReferences[0].name)
+                : (event.Name != '' ? event.Name : (has(object.metadata.generateName) ? string(object.metadata.generateName) : 'unnamed')))
+          id: R2004
+          isTriggerAlert: true
+          mitreTactic: TA0004
+          mitreTechnique: T1611
+          name: Pod created with sensitive hostPath volume
+          profileDependency: 2
+          severity: 8
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - container-escape
+            - hostpath
+        - description: Detects a ClusterRoleBinding or RoleBinding that grants the cluster-admin ClusterRole, created or given new subjects, via the Kubernetes admission webhook
+          enabled: true
+          expressions:
+            message: |-
+              'cluster-admin granted via ' + event.Kind + ' ' + (event.Namespace != '' ? event.Namespace + '/' : '') + event.Name + ' to ' + (has(object.subjects)
+                ? object.subjects.map(s, string(s.kind) + ':' + (has(s.namespace) ? string(s.namespace) + '/' : '') + string(s.name)).join(', ')
+                : 'no subjects') +
+              ' by ' + event.UserInfo.Username
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: |-
+                  [event.Kind == "ClusterRoleBinding", event.Kind == "RoleBinding"].exists(k, k) && event.Operation in ["CREATE", "UPDATE"] && has(object.roleRef) && has(object.roleRef.kind) && has(object.roleRef.name) && object.roleRef.kind == "ClusterRole" && object.roleRef.name == "cluster-admin" && (event.Operation == "CREATE"
+                    ? true
+                    : (has(object.subjects) ? object.subjects : []) != (has(oldObject.subjects) ? oldObject.subjects : []))
+            uniqueId: 'event.Kind + ''/'' + (event.Namespace != '''' ? event.Namespace + ''/'' : '''') + event.Name'
+          id: R2005
+          isTriggerAlert: true
+          mitreTactic: TA0003
+          mitreTechnique: T1098.006
+          name: cluster-admin role bound
+          profileDependency: 2
+          severity: 8
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - rbac
+            - privilege-escalation
+        - description: Detects a ClusterRole or Role that grants wildcard verbs, escalate/bind/impersonate, write access to RBAC objects, pod exec, token or secret resources, or secret enumeration, created or widened via the Kubernetes admission webhook
+          enabled: true
+          expressions:
+            message: |-
+              'High privileges ' + event.Kind + ' ' + (event.Namespace != '' ? event.Namespace + '/' : '') + event.Name + (event.Operation == "CREATE" ? ' created' : ' updated') + ' by ' + event.UserInfo.Username + ' granting ' + ["*", "escalate", "bind", "impersonate", "create", "update", "patch", "list", "watch"]
+                .filter(v, object.rules.exists(r, has(r.verbs) && v in r.verbs)).join('/') +
+              ' on ' + ["*", "clusterroles", "clusterrolebindings", "roles", "rolebindings",
+               "pods/exec", "pods/attach", "serviceaccounts/token", "nodes/proxy", "secrets",
+               "*/exec", "*/attach", "*/token", "*/proxy"]
+                .filter(res, object.rules.exists(r, has(r.resources) && res in r.resources)).join(',')
+            ruleExpression:
+              - eventType: k8s-admission
+                expression: |-
+                  [event.Kind == "ClusterRole", event.Kind == "Role"].exists(k, k) && event.Operation in ["CREATE", "UPDATE"] && event.UserInfo.Username != "system:serviceaccount:kube-system:clusterrole-aggregation-controller" && has(object.rules) && (event.Operation == "CREATE"
+                    ? true
+                    : object.rules != (has(oldObject.rules) ? oldObject.rules : [])) &&
+                  object.rules.exists(r,
+                    has(r.verbs) && has(r.resources) && has(r.apiGroups) && [
+                      r.verbs.exists(v, v in ["*", "escalate", "bind", "impersonate"]),
+                      (r.apiGroups.exists(g, g in ["", "*"]) &&
+                        r.verbs.exists(v, v in ["create", "update", "patch"]) &&
+                        r.resources.exists(res, res in ["*", "pods/exec", "pods/attach", "serviceaccounts/token", "nodes/proxy", "secrets",
+                                                        "*/exec", "*/attach", "*/token", "*/proxy"])),
+                      (r.apiGroups.exists(g, g in ["rbac.authorization.k8s.io", "*"]) &&
+                        r.verbs.exists(v, v in ["create", "update", "patch"]) &&
+                        r.resources.exists(res, res in ["*", "clusterroles", "clusterrolebindings", "roles", "rolebindings"])),
+                      (r.apiGroups.exists(g, g in ["", "*"]) &&
+                        r.verbs.exists(v, v in ["list", "watch"]) &&
+                        r.resources.exists(res, res in ["*", "secrets"]))
+                    ].exists(b, b))
+            uniqueId: 'event.Kind + ''/'' + (event.Namespace != '''' ? event.Namespace + ''/'' : '''') + event.Name'
+          id: R2006
+          isTriggerAlert: true
+          mitreTactic: TA0004
+          mitreTechnique: T1098.006
+          name: High privileges role created
+          profileDependency: 2
+          severity: 8
+          supportPolicy: false
+          tags:
+            - context:kubernetes
+            - admission
+            - rbac
+            - privilege-escalation
   63: |
     apiVersion: rbac.authorization.k8s.io/v1
     kind: Role
