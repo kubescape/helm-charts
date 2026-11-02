@@ -3311,7 +3311,7 @@ all capabilities:
             message: '''Unexpected process launched: '' + event.comm + '' with PID '' + string(event.pid)'
             ruleExpression:
               - eventType: exec
-                expression: '!ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))'
+                expression: '!ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)))'
             uniqueId: event.comm + '_' + event.exepath
           id: R0001
           isTriggerAlert: true
@@ -3477,7 +3477,7 @@ all capabilities:
             message: 'eventType == ''exec'' ? ''Kubernetes client ('' + event.comm + '') was executed with PID '' + string(event.pid) : ''Network connection to Kubernetes API server from container '' + event.containerName'
             ruleExpression:
               - eventType: exec
-                expression: (event.comm == 'kubectl' || event.exepath.endsWith('/kubectl')) && !ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))
+                expression: '(event.comm == ''kubectl'' || event.exepath.endsWith(''/kubectl'')) && !ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)))'
               - eventType: network
                 expression: event.pktType == 'OUTGOING' && k8s.is_api_server_address(event.dstAddr) && !nn.was_address_in_egress(event.containerId, event.dstAddr)
             uniqueId: 'eventType == ''exec'' ? ''exec_'' + event.comm : ''network_'' + event.dstAddr'
@@ -3608,7 +3608,7 @@ all capabilities:
             ruleExpression:
               - eventType: exec
                 expression: |
-                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') || (parse.get_exec_path(event.args, event.comm).startsWith('/dev/shm/')))
+                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') || (event.args.size() > 0 && (event.args[0] == '/dev/shm' || event.args[0].startsWith('/dev/shm/'))))
             uniqueId: event.comm + '_' + event.exepath + '_' + event.pcomm
           id: R1000
           isTriggerAlert: true
@@ -3633,7 +3633,7 @@ all capabilities:
                 expression: |
                   (event.upperlayer == true ||
                    event.pupperlayer == true) &&
-                  !ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))
+                  !ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)))
             uniqueId: event.comm + '_' + event.exepath + '_' + event.pcomm
           id: R1001
           isTriggerAlert: true
@@ -3706,7 +3706,7 @@ all capabilities:
             message: '''Process ('' + event.comm + '') was executed from a mounted path'''
             ruleExpression:
               - eventType: exec
-                expression: '!ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm)) && k8s.get_container_mount_paths(event.namespace, event.podName, event.containerName).exists(mount, event.exepath.startsWith(mount) || parse.get_exec_path(event.args, event.comm).startsWith(mount))'
+                expression: '!ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm))) && k8s.get_container_mount_paths(event.namespace, event.podName, event.containerName).exists(mount, event.exepath.startsWith(mount) || (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)).startsWith(mount))'
             uniqueId: event.comm
           id: R1004
           isTriggerAlert: true
@@ -23221,7 +23221,7 @@ default capabilities:
             message: '''Unexpected process launched: '' + event.comm + '' with PID '' + string(event.pid)'
             ruleExpression:
               - eventType: exec
-                expression: '!ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))'
+                expression: '!ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)))'
             uniqueId: event.comm + '_' + event.exepath
           id: R0001
           isTriggerAlert: true
@@ -23387,7 +23387,7 @@ default capabilities:
             message: 'eventType == ''exec'' ? ''Kubernetes client ('' + event.comm + '') was executed with PID '' + string(event.pid) : ''Network connection to Kubernetes API server from container '' + event.containerName'
             ruleExpression:
               - eventType: exec
-                expression: (event.comm == 'kubectl' || event.exepath.endsWith('/kubectl')) && !ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))
+                expression: '(event.comm == ''kubectl'' || event.exepath.endsWith(''/kubectl'')) && !ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)))'
               - eventType: network
                 expression: event.pktType == 'OUTGOING' && k8s.is_api_server_address(event.dstAddr) && !nn.was_address_in_egress(event.containerId, event.dstAddr)
             uniqueId: 'eventType == ''exec'' ? ''exec_'' + event.comm : ''network_'' + event.dstAddr'
@@ -23518,7 +23518,7 @@ default capabilities:
             ruleExpression:
               - eventType: exec
                 expression: |
-                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') || (parse.get_exec_path(event.args, event.comm).startsWith('/dev/shm/')))
+                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') || (event.args.size() > 0 && (event.args[0] == '/dev/shm' || event.args[0].startsWith('/dev/shm/'))))
             uniqueId: event.comm + '_' + event.exepath + '_' + event.pcomm
           id: R1000
           isTriggerAlert: true
@@ -23543,7 +23543,7 @@ default capabilities:
                 expression: |
                   (event.upperlayer == true ||
                    event.pupperlayer == true) &&
-                  !ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))
+                  !ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)))
             uniqueId: event.comm + '_' + event.exepath + '_' + event.pcomm
           id: R1001
           isTriggerAlert: true
@@ -23616,7 +23616,7 @@ default capabilities:
             message: '''Process ('' + event.comm + '') was executed from a mounted path'''
             ruleExpression:
               - eventType: exec
-                expression: '!ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm)) && k8s.get_container_mount_paths(event.namespace, event.podName, event.containerName).exists(mount, event.exepath.startsWith(mount) || parse.get_exec_path(event.args, event.comm).startsWith(mount))'
+                expression: '!ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm))) && k8s.get_container_mount_paths(event.namespace, event.podName, event.containerName).exists(mount, event.exepath.startsWith(mount) || (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)).startsWith(mount))'
             uniqueId: event.comm
           id: R1004
           isTriggerAlert: true
@@ -33750,7 +33750,7 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
             message: '''Unexpected process launched: '' + event.comm + '' with PID '' + string(event.pid)'
             ruleExpression:
               - eventType: exec
-                expression: '!ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))'
+                expression: '!ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)))'
             uniqueId: event.comm + '_' + event.exepath
           id: R0001
           isTriggerAlert: true
@@ -33916,7 +33916,7 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
             message: 'eventType == ''exec'' ? ''Kubernetes client ('' + event.comm + '') was executed with PID '' + string(event.pid) : ''Network connection to Kubernetes API server from container '' + event.containerName'
             ruleExpression:
               - eventType: exec
-                expression: (event.comm == 'kubectl' || event.exepath.endsWith('/kubectl')) && !ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))
+                expression: '(event.comm == ''kubectl'' || event.exepath.endsWith(''/kubectl'')) && !ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)))'
               - eventType: network
                 expression: event.pktType == 'OUTGOING' && k8s.is_api_server_address(event.dstAddr) && !nn.was_address_in_egress(event.containerId, event.dstAddr)
             uniqueId: 'eventType == ''exec'' ? ''exec_'' + event.comm : ''network_'' + event.dstAddr'
@@ -34047,7 +34047,7 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
             ruleExpression:
               - eventType: exec
                 expression: |
-                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') || (parse.get_exec_path(event.args, event.comm).startsWith('/dev/shm/')))
+                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') || (event.args.size() > 0 && (event.args[0] == '/dev/shm' || event.args[0].startsWith('/dev/shm/'))))
             uniqueId: event.comm + '_' + event.exepath + '_' + event.pcomm
           id: R1000
           isTriggerAlert: true
@@ -34072,7 +34072,7 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
                 expression: |
                   (event.upperlayer == true ||
                    event.pupperlayer == true) &&
-                  !ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))
+                  !ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)))
             uniqueId: event.comm + '_' + event.exepath + '_' + event.pcomm
           id: R1001
           isTriggerAlert: true
@@ -34145,7 +34145,7 @@ extra.backendStorageEnabled passthrough allows scanning capabilities:
             message: '''Process ('' + event.comm + '') was executed from a mounted path'''
             ruleExpression:
               - eventType: exec
-                expression: '!ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm)) && k8s.get_container_mount_paths(event.namespace, event.podName, event.containerName).exists(mount, event.exepath.startsWith(mount) || parse.get_exec_path(event.args, event.comm).startsWith(mount))'
+                expression: '!ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm))) && k8s.get_container_mount_paths(event.namespace, event.podName, event.containerName).exists(mount, event.exepath.startsWith(mount) || (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)).startsWith(mount))'
             uniqueId: event.comm
           id: R1004
           isTriggerAlert: true
@@ -44739,7 +44739,7 @@ multiple node agents:
             message: '''Unexpected process launched: '' + event.comm + '' with PID '' + string(event.pid)'
             ruleExpression:
               - eventType: exec
-                expression: '!ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))'
+                expression: '!ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)))'
             uniqueId: event.comm + '_' + event.exepath
           id: R0001
           isTriggerAlert: true
@@ -44905,7 +44905,7 @@ multiple node agents:
             message: 'eventType == ''exec'' ? ''Kubernetes client ('' + event.comm + '') was executed with PID '' + string(event.pid) : ''Network connection to Kubernetes API server from container '' + event.containerName'
             ruleExpression:
               - eventType: exec
-                expression: (event.comm == 'kubectl' || event.exepath.endsWith('/kubectl')) && !ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))
+                expression: '(event.comm == ''kubectl'' || event.exepath.endsWith(''/kubectl'')) && !ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)))'
               - eventType: network
                 expression: event.pktType == 'OUTGOING' && k8s.is_api_server_address(event.dstAddr) && !nn.was_address_in_egress(event.containerId, event.dstAddr)
             uniqueId: 'eventType == ''exec'' ? ''exec_'' + event.comm : ''network_'' + event.dstAddr'
@@ -45036,7 +45036,7 @@ multiple node agents:
             ruleExpression:
               - eventType: exec
                 expression: |
-                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') || (parse.get_exec_path(event.args, event.comm).startsWith('/dev/shm/')))
+                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') || (event.args.size() > 0 && (event.args[0] == '/dev/shm' || event.args[0].startsWith('/dev/shm/'))))
             uniqueId: event.comm + '_' + event.exepath + '_' + event.pcomm
           id: R1000
           isTriggerAlert: true
@@ -45061,7 +45061,7 @@ multiple node agents:
                 expression: |
                   (event.upperlayer == true ||
                    event.pupperlayer == true) &&
-                  !ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))
+                  !ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)))
             uniqueId: event.comm + '_' + event.exepath + '_' + event.pcomm
           id: R1001
           isTriggerAlert: true
@@ -45134,7 +45134,7 @@ multiple node agents:
             message: '''Process ('' + event.comm + '') was executed from a mounted path'''
             ruleExpression:
               - eventType: exec
-                expression: '!ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm)) && k8s.get_container_mount_paths(event.namespace, event.podName, event.containerName).exists(mount, event.exepath.startsWith(mount) || parse.get_exec_path(event.args, event.comm).startsWith(mount))'
+                expression: '!ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm))) && k8s.get_container_mount_paths(event.namespace, event.podName, event.containerName).exists(mount, event.exepath.startsWith(mount) || (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)).startsWith(mount))'
             uniqueId: event.comm
           id: R1004
           isTriggerAlert: true
@@ -60971,7 +60971,7 @@ skipPersistence enabled:
             message: '''Unexpected process launched: '' + event.comm + '' with PID '' + string(event.pid)'
             ruleExpression:
               - eventType: exec
-                expression: '!ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))'
+                expression: '!ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)))'
             uniqueId: event.comm + '_' + event.exepath
           id: R0001
           isTriggerAlert: true
@@ -61137,7 +61137,7 @@ skipPersistence enabled:
             message: 'eventType == ''exec'' ? ''Kubernetes client ('' + event.comm + '') was executed with PID '' + string(event.pid) : ''Network connection to Kubernetes API server from container '' + event.containerName'
             ruleExpression:
               - eventType: exec
-                expression: (event.comm == 'kubectl' || event.exepath.endsWith('/kubectl')) && !ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))
+                expression: '(event.comm == ''kubectl'' || event.exepath.endsWith(''/kubectl'')) && !ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)))'
               - eventType: network
                 expression: event.pktType == 'OUTGOING' && k8s.is_api_server_address(event.dstAddr) && !nn.was_address_in_egress(event.containerId, event.dstAddr)
             uniqueId: 'eventType == ''exec'' ? ''exec_'' + event.comm : ''network_'' + event.dstAddr'
@@ -61268,7 +61268,7 @@ skipPersistence enabled:
             ruleExpression:
               - eventType: exec
                 expression: |
-                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') || (parse.get_exec_path(event.args, event.comm).startsWith('/dev/shm/')))
+                  (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) || (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') || (event.args.size() > 0 && (event.args[0] == '/dev/shm' || event.args[0].startsWith('/dev/shm/'))))
             uniqueId: event.comm + '_' + event.exepath + '_' + event.pcomm
           id: R1000
           isTriggerAlert: true
@@ -61293,7 +61293,7 @@ skipPersistence enabled:
                 expression: |
                   (event.upperlayer == true ||
                    event.pupperlayer == true) &&
-                  !ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))
+                  !ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)))
             uniqueId: event.comm + '_' + event.exepath + '_' + event.pcomm
           id: R1001
           isTriggerAlert: true
@@ -61366,7 +61366,7 @@ skipPersistence enabled:
             message: '''Process ('' + event.comm + '') was executed from a mounted path'''
             ruleExpression:
               - eventType: exec
-                expression: '!ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm)) && k8s.get_container_mount_paths(event.namespace, event.podName, event.containerName).exists(mount, event.exepath.startsWith(mount) || parse.get_exec_path(event.args, event.comm).startsWith(mount))'
+                expression: '!ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm))) && k8s.get_container_mount_paths(event.namespace, event.podName, event.containerName).exists(mount, event.exepath.startsWith(mount) || (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)).startsWith(mount))'
             uniqueId: event.comm
           id: R1004
           isTriggerAlert: true

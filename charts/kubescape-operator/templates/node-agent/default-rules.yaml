@@ -19,7 +19,7 @@ spec:
           uniqueId: "event.comm + '_' + event.exepath"
           ruleExpression:
             - eventType: "exec"
-              expression: "!ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))"
+              expression: "!ap.was_executed(event.containerId, (event.exepath != \"\" ? event.exepath : parse.get_exec_path(event.args, event.comm)))"
         profileDependency: 0
         profileDataRequired:
           execs: all
@@ -199,7 +199,7 @@ spec:
           uniqueId: "eventType == 'exec' ? 'exec_' + event.comm : 'network_' + event.dstAddr"
           ruleExpression:
             - eventType: "exec"
-              expression: "(event.comm == 'kubectl' || event.exepath.endsWith('/kubectl')) && !ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))"
+              expression: "(event.comm == 'kubectl' || event.exepath.endsWith('/kubectl')) && !ap.was_executed(event.containerId, (event.exepath != \"\" ? event.exepath : parse.get_exec_path(event.args, event.comm)))"
             - eventType: "network"
               expression: "event.pktType == 'OUTGOING' && k8s.is_api_server_address(event.dstAddr) && !nn.was_address_in_egress(event.containerId, event.dstAddr)"
         profileDependency: 0
@@ -334,7 +334,7 @@ spec:
               expression: >
                 (event.exepath == '/dev/shm' || event.exepath.startsWith('/dev/shm/')) ||
                 (event.cwd == '/dev/shm' || event.cwd.startsWith('/dev/shm/') ||
-                (parse.get_exec_path(event.args, event.comm).startsWith('/dev/shm/')))
+                (event.args.size() > 0 && (event.args[0] == '/dev/shm' || event.args[0].startsWith('/dev/shm/'))))
         profileDependency: 2
         severity: 8
         supportPolicy: false
@@ -359,7 +359,7 @@ spec:
               expression: >
                 (event.upperlayer == true ||
                  event.pupperlayer == true) &&
-                !ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm))
+                !ap.was_executed(event.containerId, (event.exepath != "" ? event.exepath : parse.get_exec_path(event.args, event.comm)))
         profileDependency: 1
         profileDataRequired:
           execs: all
@@ -432,7 +432,7 @@ spec:
           uniqueId: "event.comm"
           ruleExpression:
             - eventType: "exec"
-              expression: "!ap.was_executed(event.containerId, parse.get_exec_path(event.args, event.comm)) && k8s.get_container_mount_paths(event.namespace, event.podName, event.containerName).exists(mount, event.exepath.startsWith(mount) || parse.get_exec_path(event.args, event.comm).startsWith(mount))"
+              expression: "!ap.was_executed(event.containerId, (event.exepath != \"\" ? event.exepath : parse.get_exec_path(event.args, event.comm))) && k8s.get_container_mount_paths(event.namespace, event.podName, event.containerName).exists(mount, event.exepath.startsWith(mount) || (event.exepath != \"\" ? event.exepath : parse.get_exec_path(event.args, event.comm)).startsWith(mount))"
         profileDependency: 1
         profileDataRequired:
           execs: all
