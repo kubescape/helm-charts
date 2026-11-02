@@ -13,6 +13,7 @@ import (
 	"github.com/kubescape/helm-charts/images/kubescape-ops-tool/internal/certgen"
 	"github.com/kubescape/helm-charts/images/kubescape-ops-tool/internal/helmupgrade"
 	"github.com/kubescape/helm-charts/images/kubescape-ops-tool/internal/kube"
+	"github.com/kubescape/helm-charts/images/kubescape-ops-tool/internal/operatorcommand"
 	"github.com/kubescape/helm-charts/images/kubescape-ops-tool/internal/rollout"
 )
 
@@ -23,6 +24,8 @@ Subcommands:
   certgen-patch    Patch an APIService or ValidatingWebhookConfiguration caBundle
   rollout-restart  Restart a deployment the way "kubectl rollout restart" does
   helm-upgrade     Upgrade a Helm release from a chart repository
+  create-operator-command
+                   Create OperatorCommands from a scan request body
 `
 
 func main() {
@@ -44,6 +47,8 @@ func main() {
 		err = runRolloutRestart(args)
 	case "helm-upgrade":
 		err = runHelmUpgrade(args)
+	case "create-operator-command":
+		err = runCreateOperatorCommand(args)
 	case "-h", "--help", "help":
 		fmt.Fprint(os.Stdout, rootUsage)
 		return
@@ -127,4 +132,24 @@ func runHelmUpgrade(args []string) error {
 	}
 	_, err = helmupgrade.Upgrade(actionConfig, settings, o)
 	return err
+}
+
+func runCreateOperatorCommand(args []string) error {
+	o, err := operatorcommand.ParseFlags(args, os.Getenv, os.Stderr)
+	if err != nil {
+		os.Exit(2)
+	}
+	cfg, err := kube.Config()
+	if err != nil {
+		return err
+	}
+	kc, err := kube.Kubernetes(cfg)
+	if err != nil {
+		return err
+	}
+	dc, err := kube.Dynamic(cfg)
+	if err != nil {
+		return err
+	}
+	return operatorcommand.Create(context.Background(), kc, dc, o, operatorcommand.NewGUID)
 }
