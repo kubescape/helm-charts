@@ -26,10 +26,14 @@ spec:
 {{ tpl (.Files.Get "assets/common-egress-rules.yaml") . | indent 4 }}
   {{- end }}
   ingress:
+    # node-agent and the operator both post to the synchronizer through httpExporterConfig.
     - from:
         - podSelector:
             matchLabels:
               {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.nodeAgent.name) | nindent 14 }}
+        - podSelector:
+            matchLabels:
+              {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.operator.name) | nindent 14 }}
       ports:
         - port: {{ .Values.synchronizer.service.targetPort }}
           protocol: TCP

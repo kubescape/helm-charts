@@ -20,10 +20,10 @@ traffic as before.
 | Component | Rendered when | Ingress allowed |
 |---|---|---|
 | `kubescape` | `capabilities.configurationScan=enable` | from `operator` on `http` (8080); from anywhere on `http` when `kubescape.serviceMonitor.enabled` or `configurations.prometheusAnnotations=enable` (Prometheus scrape) |
-| `kubevuln` | `capabilities.vulnerabilityScan=enable` | from `operator` on `kubevuln.service.port` (8080) |
+| `kubevuln` | `capabilities.vulnerabilityScan=enable` | from `operator` on `kubevuln.service.targetPort` (8080) |
 | `operator` | `capabilities.operator=enable` | from anywhere on `admission-port` (8443) when `capabilities.admissionController=enable`, nothing otherwise |
 | `storage` | `storage.enabled` | from anywhere on `storage.serverPort` (8443), the aggregated API called by kube-apiserver |
-| `synchronizer` | a backend is configured (`server`) | from `node-agent` on `synchronizer.service.targetPort` (8089) |
+| `synchronizer` | a backend is configured (`server`) | from `node-agent` and `operator` on `synchronizer.service.targetPort` (8089), their alert exporters |
 | `prometheus-exporter` | `capabilities.prometheusExporter=enable` | from anywhere on `prometheusExporter.service.port` (8080) |
 | `grype-offline-db` | `grypeOfflineDB.enabled` | from `kubevuln` on 8080 |
 
@@ -43,8 +43,9 @@ no other pod-to-pod path is needed.
 egress-only policies for node-agent, the two scheduler CronJobs and the auto-updater. Each
 component may then reach:
 
-- DNS, UDP and TCP port 53, to any destination (NodeLocal DNSCache and OpenShift DNS do not run
-  as `kube-dns` pods in `kube-system`, so a selector would break name resolution there);
+- DNS, UDP and TCP ports 53 and 5353, to any destination (NodeLocal DNSCache and OpenShift DNS do
+  not run as `kube-dns` pods in `kube-system`, so a selector would break name resolution there, and
+  OpenShift's DNS pods listen on 5353 behind the Service);
 - kube-apiserver: port `apiServerPort` plus the ports of the `default/kubernetes` EndpointSlice
   (looked up at install time, for example 6443 on kubeadm and k3s), to `apiServerIP` when it is set
   and to any destination otherwise. Most CNIs check egress after the Service DNAT, so the endpoint
@@ -52,7 +53,7 @@ component may then reach:
 - the HTTPS proxy (`httpsProxyIP`/`httpsProxyPort`) when `global.httpsProxy` is set;
 - what the component needs on top: port 443 for the backend, registries and the Grype database
   (kubescape, kubevuln, operator, synchronizer), the cloud metadata service (kubescape, operator),
-  kubescape and kubevuln (operator), the synchronizer and the OTLP ports 4317/4318 (node-agent),
+  kubescape, kubevuln and the synchronizer (operator), the synchronizer and the OTLP ports 4317/4318 (node-agent),
   grype-offline-db (kubevuln).
 
 When `helm template` or a GitOps tool renders the chart without cluster access, the lookup returns

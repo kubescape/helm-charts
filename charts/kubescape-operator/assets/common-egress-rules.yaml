@@ -1,12 +1,17 @@
 {{- /*
 DNS. Port-only on purpose: the cluster resolver is not always a kube-dns pod in kube-system
 (NodeLocal DNSCache listens on a link-local host-network address, OpenShift runs it in
-openshift-dns), and selectors would silently break name resolution there.
+openshift-dns), and selectors would silently break name resolution there. 5353 is the pod
+port behind OpenShift's DNS Service, which egress policies see after the Service DNAT.
 */ -}}
 - ports:
     - port: 53
       protocol: UDP
     - port: 53
+      protocol: TCP
+    - port: 5353
+      protocol: UDP
+    - port: 5353
       protocol: TCP
 {{- if ne .Values.global.httpsProxy "" }}
 - ports:

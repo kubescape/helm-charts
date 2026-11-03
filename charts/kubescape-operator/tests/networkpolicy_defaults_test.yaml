@@ -160,7 +160,7 @@ tests:
               - port: 6443
                 protocol: TCP
 
-  - it: allows DNS over UDP and TCP
+  - it: allows DNS over UDP and TCP, including OpenShift's 5353
     template: kubevuln-scheduler/networkpolicy.yaml
     capabilities:
       apiVersions:
@@ -177,6 +177,10 @@ tests:
               - port: 53
                 protocol: UDP
               - port: 53
+                protocol: TCP
+              - port: 5353
+                protocol: UDP
+              - port: 5353
                 protocol: TCP
 
   - it: does not pin storage ingress to apiServerIP
@@ -207,3 +211,77 @@ tests:
           pattern: ^(synchronizer|node-agent)$
       - notMatchRegexRaw:
           pattern: 'port: 80\n'
+
+  - it: admits the operator on the kubevuln container port, not the Service port
+    template: kubevuln/networkpolicy.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubevuln.service.port: 80
+    asserts:
+      - equal:
+          path: spec.ingress[0].ports[0].port
+          value: 8080
+
+  - it: lets the operator egress reach the kubevuln container port, not the Service port
+    template: operator/networkpolicy.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.createEgressRules: true
+      kubevuln.service.port: 80
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            ports:
+              - protocol: TCP
+                port: 8080
+            to:
+              - podSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: kubescape-operator
+                    app.kubernetes.io/instance: RELEASE-NAME
+                    app.kubernetes.io/component: kubevuln
+
+  - it: lets the operator post to the synchronizer
+    template: synchronizer/networkpolicy.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      server: api.example
+      account: 11111111-1111-1111-1111-111111111111
+      accessKey: secret
+    asserts:
+      - equal:
+          path: spec.ingress[0].from[1].podSelector.matchLabels["app.kubernetes.io/component"]
+          value: operator
+
+  - it: gives the operator egress to the synchronizer when egress rules are on
+    template: operator/networkpolicy.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      server: api.example
+      account: 11111111-1111-1111-1111-111111111111
+      accessKey: secret
+      global.networkPolicy.createEgressRules: true
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            to:
+              - podSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: kubescape-operator
+                    app.kubernetes.io/instance: RELEASE-NAME
+                    app.kubernetes.io/component: synchronizer
+            ports:
+              - port: 8089
+                protocol: TCP
