@@ -39,8 +39,10 @@ no other pod-to-pod path is needed.
 
 ## Egress rules (opt-in)
 
-`global.networkPolicy.createEgressRules=true` adds `Egress` to every policy and creates
-egress-only policies for node-agent, the two scheduler CronJobs and the auto-updater. Each
+`global.networkPolicy.createEgressRules=true` adds `Egress` to every component policy except
+grype-offline-db (an nginx that only serves the Grype database baked into its image and makes no
+outbound connections), and creates egress-only policies for node-agent, the two scheduler
+CronJobs and the auto-updater. Each
 component may then reach:
 
 - DNS, UDP and TCP ports 53 and 5353, to any destination (NodeLocal DNSCache and OpenShift DNS do
