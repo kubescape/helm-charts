@@ -61,3 +61,18 @@ Please migrate any overrides to operator.admissionWebhooks.service.*:
   - operator.admissionService.annotations -> operator.admissionWebhooks.service.annotations
 {{- end }}
 
+
+{{- if and .Values.global.networkPolicy.enabled (not .Release.IsUpgrade) }}
+
+NetworkPolicies restrict ingress to the {{ .Values.ksNamespace }} components (global.networkPolicy.enabled).
+See https://github.com/kubescape/helm-charts/blob/main/docs/features/network-policies.md
+{{- else if .Values.global.networkPolicy.enabled }}
+
+WARNING: NetworkPolicies are now created by default (global.networkPolicy.enabled=true).
+They restrict ingress to the {{ .Values.ksNamespace }} components to the traffic Kubescape needs
+(between its own components, from the API server and from Prometheus), and do not restrict egress
+unless global.networkPolicy.createEgressRules=true. If something outside this chart talks to a
+Kubescape pod directly, allow it with your own NetworkPolicy, or opt out with:
+  --set global.networkPolicy.enabled=false
+See https://github.com/kubescape/helm-charts/blob/main/docs/features/network-policies.md
+{{- end }}
