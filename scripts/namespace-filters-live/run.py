@@ -187,12 +187,18 @@ class Acceptance:
         return port
 
     def api_token(self):
-        # The kubescape and kubevuln APIs require a service-account token with audience kubescape.io.
+        # The kubescape API requires a service-account token with audience kubescape.io.
         if os.environ.get("KS_API_AUTH_DISABLED", "").lower() == "true":
             return None
         if getattr(self, "_api_token", None) is None:
-            self._api_token = self.kubectl("create", "token", "operator", "-n", NS,
-                                           "--audience", "kubescape.io").strip()
+            # Run directly: command() would write the token (stdout) to the run log.
+            result = subprocess.run(["kubectl", "--kubeconfig", str(self.kubeconfig), "create", "token",
+                                     "operator", "-n", NS, "--audience", "kubescape.io"],
+                                    text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                    env=self.env, timeout=60)
+            if result.returncode:
+                raise RuntimeError(f"kubectl create token failed: {result.stderr[-2000:]}")
+            self._api_token = result.stdout.strip()
         return self._api_token
 
     def request(self, port, path, body=None, tls=False, auth=False):
