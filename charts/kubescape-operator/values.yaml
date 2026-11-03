@@ -363,6 +363,13 @@ global:
   openshift: # Openshift Security Context Constraint support
     scc:
       enabled: false
+  # In-cluster API authentication: kubescape, kubevuln, synchronizer and the
+  # operator accept only callers presenting a service-account token for this
+  # audience (TokenReview) and authorize them with RBAC (SubjectAccessReview).
+  # Set enabled: false to turn the check off on every server.
+  apiAuth:
+    enabled: true
+    audience: kubescape.io
 
 # Image scanning configurations
 imageScanning:
@@ -767,6 +774,8 @@ nodeAgent:
     prometheusExporter: disable
     httpExporterConfig:
       url: http://synchronizer:8089/apis/v1/kubescape.io
+      # projected service-account token sent as a bearer token to the synchronizer (see global.apiAuth)
+      tokenFile: /var/run/secrets/kubescape.io/api-token/token
       maxAlertsPerMinute: 1000
       method: POST
     alertManagerExporterUrls: []

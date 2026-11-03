@@ -1,0 +1,974 @@
+5193e21 feat: service-account auth for the in-cluster APIs (apiAuth)
+commit 5193e21d3e819ddfdb197e5c1044d95ea7c7637a
+Author: Ben <ben@armosec.io>
+Date:   Tue Nov 3 15:16:04 2026 +0200
+
+    feat: service-account auth for the in-cluster APIs (apiAuth)
+    
+    Docs-exempt: chart README and NOTES.txt updated in this commit
+    Signed-off-by: Ben <ben@armosec.io>
+
+ charts/kubescape-operator/README.md                |     3 +
+ charts/kubescape-operator/templates/NOTES.txt      |     4 +
+ charts/kubescape-operator/templates/_apiauth.tpl   |    57 +
+ .../templates/configs/api-auth-rbac.yaml           |   108 +
+ .../templates/kubescape/deployment.yaml            |     1 +
+ .../templates/kubescape/networkpolicy.yaml         |     8 +-
+ .../templates/kubevuln/deployment.yaml             |     1 +
+ .../templates/node-agent/_node-agent.tpl           |     2 +
+ .../templates/operator/deployment.yaml             |     5 +
+ .../templates/synchronizer/deployment.yaml         |     1 +
+ .../templates/synchronizer/networkpolicy.yaml      |     3 +
+ .../tests/__snapshot__/snapshot_test.yaml.snap     | 11105 ++++++++++++-------
+ charts/kubescape-operator/tests/api_auth_test.yaml |   372 +
+ charts/kubescape-operator/values.yaml              |     9 +
+ 14 files changed, 7789 insertions(+), 3890 deletions(-)
+commit 5193e21d3e819ddfdb197e5c1044d95ea7c7637a
+Author: Ben <ben@armosec.io>
+Date:   Tue Nov 3 15:16:04 2026 +0200
+
+    feat: service-account auth for the in-cluster APIs (apiAuth)
+    
+    Docs-exempt: chart README and NOTES.txt updated in this commit
+    Signed-off-by: Ben <ben@armosec.io>
+
+diff --git a/charts/kubescape-operator/README.md b/charts/kubescape-operator/README.md
+index 4a47c48..fdd95fd 100644
+--- a/charts/kubescape-operator/README.md
++++ b/charts/kubescape-operator/README.md
+@@ -188,20 +188,22 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
+ | global.overrideDefaultCaCertificates.enabled | bool | `false` | Use to enable custom CA Certificates |
+ | global.overrideDefaultCaCertificates.caCertificates | string | `""` | Set the custom CA Certificates file in all container |
+ | global.extraCaCertificates.enabled | bool | `false` | Use to enable mapping extra CA Certificate files |
+ | global.extraCaCertificates.secretName | bool | `""` | Name of the secret that contents will be mapped to `/etc/ssl/certs` in each workload |
+ | certificates.strategy | string | `"template"` | Certificate management mode for the admission webhook and storage mTLS endpoints. Use `template` for standard Helm installs and `initContainer` for ArgoCD/GitOps-safe runtime certificate generation. |
+ | operator.admissionService | object | `{}` | **DEPRECATED** — use `operator.admissionWebhooks.service.*` instead. If set, takes precedence over the new path for backward compatibility. Will be removed in a future release. |
+ | customScheduling.affinity | yaml |  | Use the `affinity` sub-section to define affinity rules that will apply to all of the workloads managed by the kubescape-operator |
+ | customScheduling.nodeSelector | yaml | | Configure `nodeSelector` rules under the nodeSelector sub-section that will apply to all of the workloads managed by the kubescape-operator |
+ | customScheduling.tolerations | yaml | | Define `tolerations` in the tolerations sub-section that will apply to all of the workloads managed by the kubescape-operator |
+ | global.overrideRuntimePath | string | `""` | Override the runtime path for node-agent |
++| global.apiAuth.enabled | bool | `true` | Require a service-account token (TokenReview) and an RBAC grant (SubjectAccessReview) on the in-cluster HTTP APIs of kubescape, kubevuln, synchronizer and the operator. Set to `false` to turn the check off |
++| global.apiAuth.audience | string | `"kubescape.io"` | Audience of the projected service-account tokens the callers send and the servers accept |
+ | credentials.cloudSecret | string | `""` | Leave it blank for the default secret. If you have an existing secret, override with the existing secret name to avoid Helm creating a default one |
+ | kubescape.affinity | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the deployment |
+ | kubescape.podLabels| object | `{}` | Optional labels to add to the pods |
+ | kubescape.podAnnotations| object | `{}` | optional map of annotations to be applied to the Pods |
+ | kubescape.downloadArtifacts | bool | `true` | download policies every scan, we recommend it should remain true, you should change to 'false' when running in an air-gapped environment or when scanning with high frequency (when running with Prometheus). When 'false', the policy library baked into the image is used, so the controls are those of the image tag and do not change until the image does |
+ | kubescape.image.repository | string | `"quay.io/kubescape/kubescape"` | [source code](https://github.com/kubescape/kubescape/tree/master/httphandler) (public repo) |
+ | kubescape.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
+ | kubescape.serviceMonitor.enabled | bool | `false` | enable/disable service monitor for prometheus (operator) integration |
+ | kubescape.skipUpdateCheck | bool | `false` | skip check for a newer version |
+ | kubescape.volumes | object | `[]` | Additional volumes for Kubescape |
+@@ -235,20 +237,21 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
+ | operator.podLabels| object | `{}` | Optional labels to add to the pods |
+ | operator.podAnnotations| object | `{}` | optional map of annotations to be applied to the Pods |
+ | operator.image.repository | string | `"quay.io/kubescape/operator"` | [source code](https://github.com/kubescape/operator) |
+ | operator.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
+ | operator.volumes | object | `[]` | Additional volumes for the web socket |
+ | operator.volumeMounts | object | `[]` | Additional volumeMounts for the web socket |
+ | storage.hostNetwork | bool | `false` | Bind the storage APIServer to the host network. Required when using a custom CNI where the control plane cannot reach pod IPs |
+ | storage.mcp.enabled | bool | `false` | Serve the read-only [MCP endpoint for AI agents](#mcp-endpoint-for-ai-agents) |
+ | storage.mcp.readerClusterRoles | bool | `true` | With `storage.mcp.enabled`, create the `kubescape-mcp-reader` and `kubescape-mcp-runtime-reader` ClusterRoles |
+ | nodeAgent.autoscaler.bottlerocketAutoDetect | bool | `true` | When the autoscaler is enabled, auto-detect AWS Bottlerocket nodes and set `seLinuxType: super_t` on the node-agent DaemonSet rendered for that node group, so you don't need to `--set nodeAgent.seLinuxType=super_t` manually |
++| nodeAgent.config.httpExporterConfig.tokenFile | string | `"/var/run/secrets/kubescape.io/api-token/token"` | Projected service-account token that node-agent and the operator send to the synchronizer HTTP endpoint (see `global.apiAuth`) |
+ | nodeAgent.config.hostSensor.enabled | bool | `true` | Defines `KS_ENABLE_HOST_SCANNER` in kubescape to enable [host scanner feature](https://kubescape.io/docs/components/host-sensor/)
+ | nodeAgent.config.tracers.capSys | string | `enable` | Allow capSys tracing when required by enabled node-agent features. Set to disable to force-disable the capSys tracer |
+ | nodeAgent.config.tracers.dns | string | `enable` | Allow dns tracing when required by enabled node-agent features. Set to disable to force-disable the dns tracer |
+ | nodeAgent.config.tracers.exec | string | `enable` | Allow exec tracing when required by enabled node-agent features. Set to disable to force-disable the exec tracer |
+ | nodeAgent.config.tracers.exit | string | `enable` | Allow exit tracing when required by enabled node-agent features. Set to disable to force-disable the exit tracer |
+ | nodeAgent.config.tracers.fork | string | `enable` | Allow fork tracing when required by enabled node-agent features. Set to disable to force-disable the fork tracer |
+ | nodeAgent.config.tracers.hardlink | string | `enable` | Allow hardlink tracing when required by enabled node-agent features. Set to disable to force-disable the hardlink tracer |
+ | nodeAgent.config.tracers.http | string | `enable` | Allow HTTP tracing when required by enabled node-agent features. Set to disable to force-disable the HTTP tracer |
+ | nodeAgent.config.tracers.iouring | string | `enable` | Allow io_uring tracing when required by enabled node-agent features. Set to disable to force-disable the io_uring tracer |
+ | nodeAgent.config.tracers.network | string | `enable` | Allow network tracing when required by enabled node-agent features. Set to disable to force-disable the network tracer |
+diff --git a/charts/kubescape-operator/templates/NOTES.txt b/charts/kubescape-operator/templates/NOTES.txt
+index 6958750..e34c525 100644
+--- a/charts/kubescape-operator/templates/NOTES.txt
++++ b/charts/kubescape-operator/templates/NOTES.txt
+@@ -14,20 +14,24 @@ To change the schedule, set `.spec.schedule`:
+ {{ if $components.kubevulnScheduler.enabled -}}
+ 
+ View your cluster's image scanning schedule:
+ > kubectl -n {{ .Values.ksNamespace }} get cj {{ .Values.kubevulnScheduler.name }} -o=jsonpath='{.metadata.name}{"\t"}{.spec.schedule}{"\n"}'
+ 
+ To change the schedule, edit `.spec.schedule`:
+ > kubectl -n {{ .Values.ksNamespace }} edit cj {{ .Values.kubevulnScheduler.name }}
+ 
+ {{- end }}
+ 
++{{ if .Values.global.apiAuth.enabled -}}
++The in-cluster Kubescape APIs require a service-account token (audience {{ .Values.global.apiAuth.audience }}); set global.apiAuth.enabled=false to turn this off.
++{{- end }}
++
+ {{ if eq .Values.capabilities.vulnerabilityScan "enable" -}}
+ 
+ View your image vulnerabilities scan summaries:
+ > kubectl get vulnerabilitymanifestsummaries -A
+ 
+ Detailed reports are also available:
+ > kubectl get vulnerabilitymanifests -A
+ {{- end }}
+ 
+ {{ if eq .Values.capabilities.networkPolicyService "enable" -}}
+diff --git a/charts/kubescape-operator/templates/_apiauth.tpl b/charts/kubescape-operator/templates/_apiauth.tpl
+new file mode 100644
+index 0000000..662d14d
+--- /dev/null
++++ b/charts/kubescape-operator/templates/_apiauth.tpl
+@@ -0,0 +1,57 @@
++{{/*
++In-cluster API authentication (global.apiAuth).
++Servers (kubescape, kubevuln, synchronizer, operator) validate the caller's
++service-account token with a TokenReview for the configured audience and
++authorize it with a SubjectAccessReview in POD_NAMESPACE.
++Callers (operator, node-agent) send a projected token mounted from
++apiauth.callerVolume.
++*/}}
++
++{{- define "apiauth.tokenDir" -}}
++/var/run/secrets/kubescape.io/api-token
++{{- end -}}
++
++{{- define "apiauth.tokenFile" -}}
++{{ include "apiauth.tokenDir" . }}/token
++{{- end -}}
++
++{{/*
++Server env. Always rendered so that global.apiAuth.enabled=false reaches the
++servers as KS_API_AUTH_DISABLED.
++Usage: {{- include "apiauth.serverEnv" . | nindent 12 }}
++*/}}
++{{- define "apiauth.serverEnv" -}}
++- name: KS_API_AUDIENCE
++  value: {{ .Values.global.apiAuth.audience | quote }}
++- name: POD_NAMESPACE
++  valueFrom:
++    fieldRef:
++      fieldPath: metadata.namespace
++{{- if not .Values.global.apiAuth.enabled }}
++- name: KS_API_AUTH_DISABLED
++  value: "true"
++{{- end }}
++{{- end -}}
++
++{{/*
++Projected service-account token volume for callers; empty when apiAuth is disabled.
++*/}}
++{{- define "apiauth.callerVolume" -}}
++{{- if .Values.global.apiAuth.enabled -}}
++- name: kubescape-api-token
++  projected:
++    sources:
++      - serviceAccountToken:
++          audience: {{ .Values.global.apiAuth.audience | quote }}
++          expirationSeconds: 3600
++          path: token
++{{- end }}
++{{- end -}}
++
++{{- define "apiauth.callerVolumeMount" -}}
++{{- if .Values.global.apiAuth.enabled -}}
++- name: kubescape-api-token
++  mountPath: {{ include "apiauth.tokenDir" . }}
++  readOnly: true
++{{- end }}
++{{- end -}}
+diff --git a/charts/kubescape-operator/templates/configs/api-auth-rbac.yaml b/charts/kubescape-operator/templates/configs/api-auth-rbac.yaml
+new file mode 100644
+index 0000000..5a0af47
+--- /dev/null
++++ b/charts/kubescape-operator/templates/configs/api-auth-rbac.yaml
+@@ -0,0 +1,108 @@
++{{- /*
++RBAC for in-cluster API authentication (global.apiAuth).
++Each server gets system:auth-delegator so it can create TokenReviews and
++SubjectAccessReviews; each caller gets a Role in ksNamespace granting the
++kubescape.io verbs the servers check.
++*/}}
++{{- $components := fromYaml (include "components" .) }}
++{{- if .Values.global.apiAuth.enabled }}
++{{- $servers := list }}
++{{- if $components.kubescape.enabled }}{{- $servers = append $servers .Values.kubescape.name }}{{- end }}
++{{- if $components.kubevuln.enabled }}{{- $servers = append $servers .Values.kubevuln.name }}{{- end }}
++{{- if $components.synchronizer.enabled }}{{- $servers = append $servers .Values.synchronizer.name }}{{- end }}
++{{- if $components.operator.enabled }}{{- $servers = append $servers .Values.operator.name }}{{- end }}
++{{- range $name := $servers }}
++---
++apiVersion: rbac.authorization.k8s.io/v1
++kind: ClusterRoleBinding
++metadata:
++  name: {{ printf "%s:system:auth-delegator" $name | quote }}
++  annotations:
++    {{- include "kubescape-operator.annotations" (dict "Values" $.Values) | nindent 4 }}
++  labels:
++    {{- include "kubescape-operator.labels" (dict "Chart" $.Chart "Release" $.Release "Values" $.Values "app" $name "tier" $.Values.global.namespaceTier) | nindent 4 }}
++roleRef:
++  apiGroup: rbac.authorization.k8s.io
++  kind: ClusterRole
++  name: system:auth-delegator
++subjects:
++- kind: ServiceAccount
++  name: {{ $name }}
++  namespace: {{ $.Values.ksNamespace }}
++{{- end }}
++{{- if $components.operator.enabled }}
++---
++apiVersion: rbac.authorization.k8s.io/v1
++kind: Role
++metadata:
++  name: operator-api-caller
++  namespace: {{ .Values.ksNamespace }}
++  annotations:
++    {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
++  labels:
++    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.operator.name "tier" .Values.global.namespaceTier) | nindent 4 }}
++rules:
++  - apiGroups: ["kubescape.io"]
++    resources: ["scans", "scanresults"]
++    verbs: ["create", "get", "delete"]
++  - apiGroups: ["kubescape.io"]
++    resources: ["vulnerabilityscans"]
++    verbs: ["create", "get"]
++  - apiGroups: ["kubescape.io"]
++    resources: ["runtimealerts", "registrystatuses"]
++    verbs: ["create"]
++---
++apiVersion: rbac.authorization.k8s.io/v1
++kind: RoleBinding
++metadata:
++  name: operator-api-caller
++  namespace: {{ .Values.ksNamespace }}
++  annotations:
++    {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
++  labels:
++    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.operator.name "tier" .Values.global.namespaceTier) | nindent 4 }}
++roleRef:
++  apiGroup: rbac.authorization.k8s.io
++  kind: Role
++  name: operator-api-caller
++subjects:
++- kind: ServiceAccount
++  name: {{ .Values.operator.name }}
++  namespace: {{ .Values.ksNamespace }}
++{{- end }}
++{{- if $components.nodeAgent.enabled }}
++---
++apiVersion: rbac.authorization.k8s.io/v1
++kind: Role
++metadata:
++  name: node-agent-api-caller
++  namespace: {{ .Values.ksNamespace }}
++  annotations:
++    {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
++  labels:
++    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.nodeAgent.name "tier" .Values.global.namespaceTier) | nindent 4 }}
++rules:
++  # Keep in sync with httpEndpoint.resources in templates/synchronizer/configmap.yaml.
++  - apiGroups: ["kubescape.io"]
++    resources: ["networkstreams", "nodeprofiles", "runtimealerts", "registrystatuses", "aisandboxheartbeats"]
++    verbs: ["create"]
++---
++apiVersion: rbac.authorization.k8s.io/v1
++kind: RoleBinding
++metadata:
++  name: node-agent-api-caller
++  namespace: {{ .Values.ksNamespace }}
++  annotations:
++    {{- include "kubescape-operator.annotations" (dict "Values" .Values) | nindent 4 }}
++  labels:
++    {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.nodeAgent.name "tier" .Values.global.namespaceTier) | nindent 4 }}
++roleRef:
++  apiGroup: rbac.authorization.k8s.io
++  kind: Role
++  name: node-agent-api-caller
++subjects:
++- kind: ServiceAccount
++  name: {{ .Values.nodeAgent.name }}
++  namespace: {{ .Values.ksNamespace }}
++{{- end }}
++{{- end }}
+diff --git a/charts/kubescape-operator/templates/kubescape/deployment.yaml b/charts/kubescape-operator/templates/kubescape/deployment.yaml
+index 962f474..84a31b7 100644
+--- a/charts/kubescape-operator/templates/kubescape/deployment.yaml
++++ b/charts/kubescape-operator/templates/kubescape/deployment.yaml
+@@ -82,20 +82,21 @@ spec:
+             port: 8080
+           initialDelaySeconds: 3
+           periodSeconds: 3
+         readinessProbe:
+           httpGet:
+             path: /readyz
+             port: 8080
+           initialDelaySeconds: 3
+           periodSeconds: 3
+         env:
++        {{- include "apiauth.serverEnv" . | nindent 8 }}
+         {{- if .Values.kubescape.resources.limits.memory }}
+         - name: GOMEMLIMIT
+           value: {{ include "kubescape-operator.gomemlimit" (dict "memory" .Values.kubescape.resources.limits.memory "percentage" .Values.kubescape.gomemlimitPercentage) | quote }}
+         {{- end }}
+         - name: KS_LOGGER_LEVEL
+           value: "{{ .Values.logger.level }}"
+         - name: KS_LOGGER_NAME
+           value: "{{ .Values.logger.name }}"
+         - name: KS_DOWNLOAD_ARTIFACTS  # When set to true the artifacts will be downloaded every scan execution
+           value: "{{ .Values.kubescape.downloadArtifacts }}"
+diff --git a/charts/kubescape-operator/templates/kubescape/networkpolicy.yaml b/charts/kubescape-operator/templates/kubescape/networkpolicy.yaml
+index 70f5305..5bb83b2 100644
+--- a/charts/kubescape-operator/templates/kubescape/networkpolicy.yaml
++++ b/charts/kubescape-operator/templates/kubescape/networkpolicy.yaml
+@@ -35,16 +35,20 @@ spec:
+   {{- end }}
+   ingress:
+     - from:
+         - podSelector:
+             matchLabels:
+               {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.operator.name) | nindent 14 }}
+       ports:
+         - port: http
+           protocol: TCP
+     {{- if .Values.kubescape.serviceMonitor.enabled }}
+-    # Allow Prometheus to scrape metrics
+-    - ports:
++    # Allow Prometheus to scrape metrics from the ServiceMonitor's namespace
++    - from:
++        - namespaceSelector:
++            matchLabels:
++              kubernetes.io/metadata.name: {{ .Values.kubescape.serviceMonitor.namespace | default .Values.ksNamespace }}
++      ports:
+         - port: http
+           protocol: TCP
+     {{- end }}
+ {{ end }}
+diff --git a/charts/kubescape-operator/templates/kubevuln/deployment.yaml b/charts/kubescape-operator/templates/kubevuln/deployment.yaml
+index 8610dc2..e33ee19 100644
+--- a/charts/kubescape-operator/templates/kubevuln/deployment.yaml
++++ b/charts/kubescape-operator/templates/kubevuln/deployment.yaml
+@@ -74,20 +74,21 @@ spec:
+               port: {{ .Values.kubevuln.service.port }}
+             initialDelaySeconds: 3
+             periodSeconds: 3
+           readinessProbe:
+             httpGet:
+               path: /v1/readiness
+               port: {{ .Values.kubevuln.service.port }}
+           resources:
+ {{ toYaml .Values.kubevuln.resources | indent 12 }}
+           env:
++            {{- include "apiauth.serverEnv" . | nindent 12 }}
+             {{- if .Values.kubevuln.resources.limits.memory }}
+             - name: GOMEMLIMIT
+               value: {{ include "kubescape-operator.gomemlimit" (dict "memory" .Values.kubevuln.resources.limits.memory "percentage" .Values.kubevuln.gomemlimitPercentage) | quote }}
+             {{- end }}
+             - name: KS_LOGGER_LEVEL
+               value: "{{ .Values.logger.level }}"
+             - name: KS_LOGGER_NAME
+               value: "{{ .Values.logger.name }}"
+             - name: PRINT_POST_JSON
+               value: "{{ .Values.kubevuln.verbose }}"
+diff --git a/charts/kubescape-operator/templates/node-agent/_node-agent.tpl b/charts/kubescape-operator/templates/node-agent/_node-agent.tpl
+index 842051a..36d5a42 100644
+--- a/charts/kubescape-operator/templates/node-agent/_node-agent.tpl
++++ b/charts/kubescape-operator/templates/node-agent/_node-agent.tpl
+@@ -128,20 +128,21 @@ Parameters:
+ {{- end }}
+ {{- end -}}
+ 
+ {{/*
+ Node Agent Volume Mounts
+ Parameters:
+   - Values: .Values
+   - components: $components
+ */}}
+ {{- define "node-agent.volumeMounts" -}}
++{{- include "apiauth.callerVolumeMount" . }}
+ {{- if .Values.namespaceFilters.enabled }}
+ - name: namespace-filters
+   mountPath: /etc/namespace-filters
+   readOnly: true
+ {{- end }}
+ {{- if .Values.volumeMounts }}
+ {{ toYaml .Values.volumeMounts | trim }}
+ {{- end }}
+ {{- if .Values.nodeAgent.volumeMounts }}
+ {{ toYaml .Values.nodeAgent.volumeMounts | trim }}
+@@ -348,20 +349,21 @@ Parameters:
+ {{- end -}}
+ 
+ {{/*
+ Node Agent Volumes
+ Parameters:
+   - Values: .Values
+   - components: $components
+ */}}
+ {{- define "node-agent.volumes" -}}
+ {{- $filters := fromYaml (include "namespaceFilters.config" .) -}}
++{{- include "apiauth.callerVolume" . }}
+ {{- if $filters.enabled }}
+ - name: namespace-filters
+   configMap:
+     name: {{ $filters.name | quote }}
+     optional: false
+     items:
+     - key: namespaceFilters.json
+       path: namespaceFilters.json
+ {{- end }}
+ {{- if .Values.nodeAgent.volumes }}
+diff --git a/charts/kubescape-operator/templates/operator/deployment.yaml b/charts/kubescape-operator/templates/operator/deployment.yaml
+index 3223d0d..38fda42 100644
+--- a/charts/kubescape-operator/templates/operator/deployment.yaml
++++ b/charts/kubescape-operator/templates/operator/deployment.yaml
+@@ -157,20 +157,23 @@ spec:
+             periodSeconds: 3
+           readinessProbe:
+             httpGet:
+               path: /v1/readiness
+               port: readiness-port
+             initialDelaySeconds: 10
+             periodSeconds: 5
+           resources:
+ {{ toYaml .Values.operator.resources | indent 12 }}
+           env:
++            {{- include "apiauth.serverEnv" . | nindent 12 }}
++            - name: KS_API_TOKEN_FILE
++              value: {{ include "apiauth.tokenFile" . | quote }}
+             - name: NODE_NAME
+               valueFrom:
+                 fieldRef:
+                   fieldPath: spec.nodeName
+             - name: HELM_RELEASE
+               value: kubescape-operator-{{ .Chart.Version | replace "+" "_" }}
+             {{- if .Values.operator.resources.limits.memory }}
+             - name: GOMEMLIMIT
+               value: {{ include "kubescape-operator.gomemlimit" (dict "memory" .Values.operator.resources.limits.memory "percentage" .Values.operator.gomemlimitPercentage) | quote }}
+             {{- end }}
+@@ -188,20 +191,21 @@ spec:
+               value: "{{ .value }}"
+             {{- end }}
+             {{- end }}
+             {{- if ne .Values.global.httpsProxy "" }}
+             - name: HTTPS_PROXY
+               value: "{{ .Values.global.httpsProxy }}"
+             - name : no_proxy
+               value: "{{ $no_proxy_envar_list }}"
+             {{- end }}
+           volumeMounts:
++            {{- include "apiauth.callerVolumeMount" . | nindent 12 }}
+             - name: {{ $components.cloudSecret.name }}
+               mountPath: /etc/credentials
+               readOnly: true
+             - name: tmp-dir
+               mountPath: /tmp
+             - name: {{ .Values.global.cloudConfig }}
+               mountPath: /etc/config/clusterData.json
+               readOnly: true
+               subPath: "clusterData.json"
+             - name: ks-capabilities
+@@ -243,20 +247,21 @@ spec:
+ {{- end }}
+ {{- if .Values.operator.volumeMounts }}
+ {{ toYaml .Values.operator.volumeMounts | indent 12 }}
+ {{- end }}
+ {{- if ne .Values.global.proxySecretFile "" }}
+             - name: proxy-secret
+               mountPath: /etc/ssl/certs/proxy.crt
+               subPath: proxy.crt
+ {{- end }}
+       volumes:
++        {{- include "apiauth.callerVolume" . | nindent 8 }}
+         - name: {{ $components.cloudSecret.name }}
+           secret:
+             secretName: {{ $components.cloudSecret.name }}
+         {{- if ne .Values.global.proxySecretFile "" }}
+         - name: proxy-secret
+           secret:
+             secretName: {{ .Values.global.proxySecretName }}
+         {{- end }}
+         {{- if .Values.global.overrideDefaultCaCertificates.enabled }}
+         - name: custom-ca-certificates
+diff --git a/charts/kubescape-operator/templates/synchronizer/deployment.yaml b/charts/kubescape-operator/templates/synchronizer/deployment.yaml
+index 07fd2c0..c03441d 100644
+--- a/charts/kubescape-operator/templates/synchronizer/deployment.yaml
++++ b/charts/kubescape-operator/templates/synchronizer/deployment.yaml
+@@ -66,20 +66,21 @@ spec:
+           livenessProbe:
+             httpGet:
+               path: /healthz
+               port: 7888
+             initialDelaySeconds: 10
+             periodSeconds: 30
+             timeoutSeconds: 10
+           resources:
+ {{ toYaml .Values.synchronizer.resources | indent 12 }}
+           env:
++            {{- include "apiauth.serverEnv" . | nindent 12 }}
+             - name: HELM_RELEASE
+               value: kubescape-operator-{{ .Chart.Version | replace "+" "_" }}
+             {{- if .Values.synchronizer.resources.limits.memory }}
+             - name: GOMEMLIMIT
+               value: {{ include "kubescape-operator.gomemlimit" (dict "memory" .Values.synchronizer.resources.limits.memory "percentage" .Values.synchronizer.gomemlimitPercentage) | quote }}
+             {{- end }}
+             - name: KS_LOGGER_LEVEL
+               value: "{{ .Values.logger.level }}"
+             - name: KS_LOGGER_NAME
+               value: "{{ .Values.logger.name }}"
+diff --git a/charts/kubescape-operator/templates/synchronizer/networkpolicy.yaml b/charts/kubescape-operator/templates/synchronizer/networkpolicy.yaml
+index c6bcbb2..ce9eb33 100644
+--- a/charts/kubescape-operator/templates/synchronizer/networkpolicy.yaml
++++ b/charts/kubescape-operator/templates/synchronizer/networkpolicy.yaml
+@@ -23,14 +23,17 @@ spec:
+       - port: 443
+         protocol: TCP
+ {{ tpl (.Files.Get "assets/api-server-egress-rules.yaml") . | indent 4 }}
+ {{ tpl (.Files.Get "assets/common-egress-rules.yaml") . | indent 4 }}
+   {{- end }}
+   ingress:
+     - from:
+         - podSelector:
+             matchLabels:
+               {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.nodeAgent.name) | nindent 14 }}
++        - podSelector:
++            matchLabels:
++              {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.operator.name) | nindent 14 }}
+       ports:
+         - port: {{ .Values.synchronizer.service.port }}
+           protocol: TCP
+ {{- end }}
+diff --git a/charts/kubescape-operator/tests/api_auth_test.yaml b/charts/kubescape-operator/tests/api_auth_test.yaml
+new file mode 100644
+index 0000000..198d11c
+--- /dev/null
++++ b/charts/kubescape-operator/tests/api_auth_test.yaml
+@@ -0,0 +1,372 @@
++suite: In-cluster API auth (apiAuth)
++capabilities:
++  apiVersions:
++    - batch/v1
++release:
++  name: kubescape
++  namespace: kubescape
++tests:
++  - it: renders auth-delegator bindings for the four servers
++    template: configs/api-auth-rbac.yaml
++    set:
++      unittest: true
++      clusterName: kind-kind
++      server: api.example
++      account: 11111111-1111-1111-1111-111111111111
++      accessKey: secret
++    asserts:
++      - equal:
++          path: roleRef
++          value:
++            apiGroup: rbac.authorization.k8s.io
++            kind: ClusterRole
++            name: system:auth-delegator
++        documentSelector:
++          path: metadata.name
++          value: kubescape:system:auth-delegator
++      - equal:
++          path: subjects
++          value:
++            - kind: ServiceAccount
++              name: kubescape
++              namespace: kubescape
++        documentSelector:
++          path: metadata.name
++          value: kubescape:system:auth-delegator
++      - equal:
++          path: subjects
++          value:
++            - kind: ServiceAccount
++              name: kubevuln
++              namespace: kubescape
++        documentSelector:
++          path: metadata.name
++          value: kubevuln:system:auth-delegator
++      - equal:
++          path: subjects
++          value:
++            - kind: ServiceAccount
++              name: synchronizer
++              namespace: kubescape
++        documentSelector:
++          path: metadata.name
++          value: synchronizer:system:auth-delegator
++      - equal:
++          path: subjects
++          value:
++            - kind: ServiceAccount
++              name: operator
++              namespace: kubescape
++        documentSelector:
++          path: metadata.name
++          value: operator:system:auth-delegator
++      - equal:
++          path: roleRef.name
++          value: system:auth-delegator
++        documentSelector:
++          path: metadata.name
++          value: operator:system:auth-delegator
++
++  - it: operator role grants scans, scanresults, vulnerabilityscans, runtimealerts, registrystatuses
++    template: configs/api-auth-rbac.yaml
++    set:
++      unittest: true
++      clusterName: kind-kind
++    asserts:
++      - equal:
++          path: rules
++          value:
++            - apiGroups: ["kubescape.io"]
++              resources: ["scans", "scanresults"]
++              verbs: ["create", "get", "delete"]
++            - apiGroups: ["kubescape.io"]
++              resources: ["vulnerabilityscans"]
++              verbs: ["create", "get"]
++            - apiGroups: ["kubescape.io"]
++              resources: ["runtimealerts", "registrystatuses"]
++              verbs: ["create"]
++        documentSelector:
++          path: rules[0].resources[0]
++          value: scans
++      - isKind:
++          of: Role
++        documentSelector:
++          path: rules[0].resources[0]
++          value: scans
++      - equal:
++          path: metadata.namespace
++          value: kubescape
++        documentSelector:
++          path: rules[0].resources[0]
++          value: scans
++      - equal:
++          path: roleRef
++          value:
++            apiGroup: rbac.authorization.k8s.io
++            kind: Role
++            name: operator-api-caller
++        documentSelector:
++          path: roleRef.name
++          value: operator-api-caller
++      - equal:
++          path: subjects
++          value:
++            - kind: ServiceAccount
++              name: operator
++              namespace: kubescape
++        documentSelector:
++          path: roleRef.name
++          value: operator-api-caller
++
++  - it: node-agent role covers every synchronizer httpEndpoint resource
++    template: configs/api-auth-rbac.yaml
++    set:
++      unittest: true
++      clusterName: kind-kind
++      server: api.example
++      account: 11111111-1111-1111-1111-111111111111
++      accessKey: secret
++    asserts:
++      # Keep in sync with the httpEndpoint.resources list in
++      # templates/synchronizer/configmap.yaml: node-agent posts every one of
++      # them, so a resource added there must be added to this Role too.
++      - equal:
++          path: rules
++          value:
++            - apiGroups: ["kubescape.io"]
++              resources: ["networkstreams", "nodeprofiles", "runtimealerts", "registrystatuses", "aisandboxheartbeats"]
++              verbs: ["create"]
++        documentSelector:
++          path: rules[0].resources[0]
++          value: networkstreams
++      - isKind:
++          of: Role
++        documentSelector:
++          path: rules[0].resources[0]
++          value: networkstreams
++      - equal:
++          path: subjects
++          value:
++            - kind: ServiceAccount
++              name: node-agent
++              namespace: kubescape
++        documentSelector:
++          path: roleRef.name
++          value: node-agent-api-caller
++
++  - it: operator and node-agent mount the projected token with audience kubescape.io and expirationSeconds 3600
++    set:
++      unittest: true
++      clusterName: kind-kind
++      server: api.example
++      account: 11111111-1111-1111-1111-111111111111
++      accessKey: secret
++    asserts:
++      - contains:
++          path: spec.template.spec.volumes
++          content:
++            name: kubescape-api-token
++            projected:
++              sources:
++                - serviceAccountToken:
++                    audience: kubescape.io
++                    expirationSeconds: 3600
++                    path: token
++        template: operator/deployment.yaml
++      - contains:
++          path: spec.template.spec.containers[?(@.name == "operator")].volumeMounts
++          content:
++            name: kubescape-api-token
++            mountPath: /var/run/secrets/kubescape.io/api-token
++            readOnly: true
++        template: operator/deployment.yaml
++      - contains:
++          path: spec.template.spec.containers[?(@.name == "operator")].env
++          content:
++            name: KS_API_TOKEN_FILE
++            value: /var/run/secrets/kubescape.io/api-token/token
++        template: operator/deployment.yaml
++      - contains:
++          path: spec.template.spec.volumes
++          content:
++            name: kubescape-api-token
++            projected:
++              sources:
++                - serviceAccountToken:
++                    audience: kubescape.io
++                    expirationSeconds: 3600
++                    path: token
++        template: node-agent/daemonset.yaml
++      - contains:
++          path: spec.template.spec.containers[?(@.name == "node-agent")].volumeMounts
++          content:
++            name: kubescape-api-token
++            mountPath: /var/run/secrets/kubescape.io/api-token
++            readOnly: true
++        template: node-agent/daemonset.yaml
++
++  - it: servers get KS_API_AUDIENCE and POD_NAMESPACE
++    set:
++      unittest: true
++      clusterName: kind-kind
++      server: api.example
++      account: 11111111-1111-1111-1111-111111111111
++      accessKey: secret
++    asserts:
++      - contains:
++          path: spec.template.spec.containers[?(@.name == "kubescape")].env
++          content:
++            name: KS_API_AUDIENCE
++            value: kubescape.io
++        template: kubescape/deployment.yaml
++      - contains:
++          path: spec.template.spec.containers[?(@.name == "kubescape")].env
++          content:
++            name: POD_NAMESPACE
++            valueFrom:
++              fieldRef:
++                fieldPath: metadata.namespace
++        template: kubescape/deployment.yaml
++      - contains:
++          path: spec.template.spec.containers[?(@.name == "kubevuln")].env
++          content:
++            name: KS_API_AUDIENCE
++            value: kubescape.io
++        template: kubevuln/deployment.yaml
++      - contains:
++          path: spec.template.spec.containers[?(@.name == "kubevuln")].env
++          content:
++            name: POD_NAMESPACE
++            valueFrom:
++              fieldRef:
++                fieldPath: metadata.namespace
++        template: kubevuln/deployment.yaml
++      - contains:
++          path: spec.template.spec.containers[?(@.name == "synchronizer")].env
++          content:
++            name: KS_API_AUDIENCE
++            value: kubescape.io
++        template: synchronizer/deployment.yaml
++      - contains:
++          path: spec.template.spec.containers[?(@.name == "synchronizer")].env
++          content:
++            name: POD_NAMESPACE
++            valueFrom:
++              fieldRef:
++                fieldPath: metadata.namespace
++        template: synchronizer/deployment.yaml
++      - contains:
++          path: spec.template.spec.containers[?(@.name == "operator")].env
++          content:
++            name: KS_API_AUDIENCE
++            value: kubescape.io
++        template: operator/deployment.yaml
++      - contains:
++          path: spec.template.spec.containers[?(@.name == "operator")].env
++          content:
++            name: POD_NAMESPACE
++            valueFrom:
++              fieldRef:
++                fieldPath: metadata.namespace
++        template: operator/deployment.yaml
++      - notContains:
++          path: spec.template.spec.containers[?(@.name == "operator")].env
++          content:
++            name: KS_API_AUTH_DISABLED
++            value: "true"
++        template: operator/deployment.yaml
++
++  - it: apiAuth disabled sets KS_API_AUTH_DISABLED and renders no RBAC
++    set:
++      unittest: true
++      clusterName: kind-kind
++      server: api.example
++      account: 11111111-1111-1111-1111-111111111111
++      accessKey: secret
++      global.apiAuth.enabled: false
++    asserts:
++      - hasDocuments:
++          count: 0
++        template: configs/api-auth-rbac.yaml
++      - contains:
++          path: spec.template.spec.containers[?(@.name == "kubescape")].env
++          content:
++            name: KS_API_AUTH_DISABLED
++            value: "true"
++        template: kubescape/deployment.yaml
++      - contains:
++          path: spec.template.spec.containers[?(@.name == "kubevuln")].env
++          content:
++            name: KS_API_AUTH_DISABLED
++            value: "true"
++        template: kubevuln/deployment.yaml
++      - contains:
++          path: spec.template.spec.containers[?(@.name == "synchronizer")].env
++          content:
++            name: KS_API_AUTH_DISABLED
++            value: "true"
++        template: synchronizer/deployment.yaml
++      - contains:
++          path: spec.template.spec.containers[?(@.name == "operator")].env
++          content:
++            name: KS_API_AUTH_DISABLED
++            value: "true"
++        template: operator/deployment.yaml
++      - notContains:
++          path: spec.template.spec.volumes
++          content:
++            name: kubescape-api-token
++          any: true
++        template: operator/deployment.yaml
++      - notContains:
++          path: spec.template.spec.volumes
++          content:
++            name: kubescape-api-token
++          any: true
++        template: node-agent/daemonset.yaml
++
++  - it: serviceMonitor netpol rule has a from clause
++    template: kubescape/networkpolicy.yaml
++    set:
++      unittest: true
++      clusterName: kind-kind
++      global.networkPolicy.enabled: true
++      kubescape.serviceMonitor.enabled: true
++      kubescape.serviceMonitor.namespace: monitoring
++    asserts:
++      - lengthEqual:
++          path: spec.ingress
++          count: 2
++      - equal:
++          path: spec.ingress[1].from
++          value:
++            - namespaceSelector:
++                matchLabels:
++                  kubernetes.io/metadata.name: monitoring
++
++  - it: synchronizer netpol admits operator pods
++    template: synchronizer/networkpolicy.yaml
++    set:
++      unittest: true
++      clusterName: kind-kind
++      server: api.example
++      account: 11111111-1111-1111-1111-111111111111
++      accessKey: secret
++      global.networkPolicy.enabled: true
++    asserts:
++      - contains:
++          path: spec.ingress[0].from
++          content:
++            podSelector:
++              matchLabels:
++                app.kubernetes.io/name: kubescape-operator
++                app.kubernetes.io/instance: kubescape
++                app.kubernetes.io/component: operator
++      - contains:
++          path: spec.ingress[0].from
++          content:
++            podSelector:
++              matchLabels:
++                app.kubernetes.io/name: kubescape-operator
++                app.kubernetes.io/instance: kubescape
++                app.kubernetes.io/component: node-agent
+diff --git a/charts/kubescape-operator/values.yaml b/charts/kubescape-operator/values.yaml
+index 1badf7b..acdfcf5 100644
+--- a/charts/kubescape-operator/values.yaml
++++ b/charts/kubescape-operator/values.yaml
+@@ -343,20 +343,27 @@ global:
+   overrideRuntimePath: ""
+   overrideDefaultCaCertificates:
+     enabled: false
+     caCertificates: ""
+   extraCaCertificates:
+     enabled: false
+     secretName: ""
+   openshift: # Openshift Security Context Constraint support
+     scc:
+       enabled: false
++  # In-cluster API authentication: kubescape, kubevuln, synchronizer and the
++  # operator accept only callers presenting a service-account token for this
++  # audience (TokenReview) and authorize them with RBAC (SubjectAccessReview).
++  # Set enabled: false to turn the check off on every server.
++  apiAuth:
++    enabled: true
++    audience: kubescape.io
+ 
+ # Image scanning configurations
+ imageScanning:
+   # Provide credentials here when scanning images pulled from private container registries.
+   # Note: When using imagePullSecrets this configuration is not necessary.
+   #   ref: https://kubescape.io/docs/operator/vulnerabilities/#scanning-images-pulled-from-private-registries
+   privateRegistries:
+     credentials:
+       # - registry: "<registry.example.com>"
+       #   username: "<username/clientID>"
+@@ -747,20 +754,22 @@ nodeAgent:
+     nodeProfileInterval: 10m # duration string
+     networkStreamingInterval: 2m # duration string
+     # -- Enable the in-process OpenTelemetry Prometheus metrics exporter on node-agent port 8080 (/metrics).
+     # NOTE: Enabling this replaces any OTLP metric push configured by configurations.otelUrl with the
+     # Prometheus reader (OTLP traces and logs are unaffected).
+     # To scrape these metrics, also enable nodeAgent.serviceMonitor.enabled or configure Prometheus scraping.
+     # Note: This is distinct from capabilities.prometheusExporter, which deploys a separate Prometheus exporter.
+     prometheusExporter: disable
+     httpExporterConfig:
+       url: http://synchronizer:8089/apis/v1/kubescape.io
++      # projected service-account token sent as a bearer token to the synchronizer (see global.apiAuth)
++      tokenFile: /var/run/secrets/kubescape.io/api-token/token
+       maxAlertsPerMinute: 1000
+       method: POST
+     alertManagerExporterUrls: []
+     stdoutExporter: true
+     syslogExporterURL: ""
+     skipKernelVersionCheck: false
+     malwareScanAllFiles: false
+     ruleCooldown:
+       ruleCooldownDuration: 1h # duration string
+       ruleCooldownAfterCount: 1
+
+=== snapshot diff stat only ===
+
+ .../tests/__snapshot__/snapshot_test.yaml.snap     | 11105 ++++++++++++-------
+ 1 file changed, 7217 insertions(+), 3888 deletions(-)
