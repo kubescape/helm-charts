@@ -285,3 +285,28 @@ tests:
             ports:
               - port: 8089
                 protocol: TCP
+
+  - it: lets the auto-updater reach the chart repository and kube-apiserver
+    template: autoupdater/networkpolicy.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.autoUpgrading: enable
+      global.networkPolicy.createEgressRules: true
+      global.networkPolicy.apiServerPort: 6443
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            ports:
+              - port: 443
+                protocol: TCP
+      - contains:
+          path: spec.egress
+          content:
+            ports:
+              - port: 6443
+                protocol: TCP

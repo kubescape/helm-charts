@@ -51,8 +51,8 @@ component may then reach:
   and to any destination otherwise. Most CNIs check egress after the Service DNAT, so the endpoint
   port is what must be allowed;
 - the HTTPS proxy (`httpsProxyIP`/`httpsProxyPort`) when `global.httpsProxy` is set;
-- what the component needs on top: port 443 for the backend, registries and the Grype database
-  (kubescape, kubevuln, operator, synchronizer), the cloud metadata service (kubescape, operator),
+- what the component needs on top: port 443 for the backend, registries, the Grype database and
+  the chart repository (kubescape, kubevuln, operator, synchronizer, auto-updater), the cloud metadata service (kubescape, operator),
   kubescape, kubevuln and the synchronizer (operator), the synchronizer and the OTLP ports 4317/4318 (node-agent),
   grype-offline-db (kubevuln).
 
