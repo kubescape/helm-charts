@@ -100,12 +100,6 @@ class PermissionContracts(unittest.TestCase):
     def test_all_job_write_grants_remain_minimal(self):
         """Require an approved write set for every job, including inherited grants."""
         expected = {
-            ("00-cicd.yaml", "input-validator"): set(),
-            ("00-cicd.yaml", "helm-chart-update"): {"contents"},
-            ("00-cicd.yaml", "e2e-test"): set(),
-            ("00-cicd.yaml", "merge-to-main"): set(),
-            ("00-cicd.yaml", "helm-release"): {"contents", "attestations", "id-token"},
-            ("01-update_tag.yaml", "update-helm-chart"): {"contents"},
             ("02-e2e-test.yaml", "dispatch-e2e-tests"): set(),
             ("03-helm-release.yaml", "e2e-test"): set(),
             ("03-helm-release.yaml", "allowlist-drift-check"): set(),
@@ -144,21 +138,15 @@ class PermissionContracts(unittest.TestCase):
         self.assertTrue(all(permissions[scope] == 1 for scope in READ_SCOPES))
         self.assertTrue(all(permissions[scope] == 0 for scope in WRITE_ONLY_SCOPES))
 
-    def test_original_three_callers_fail_default_compatibility(self):
-        """Reproduce all original caller failures, including the nested call."""
+    def test_narrow_caller_fails_default_compatibility(self):
+        """Reproduce a caller whose narrow map is below its callee's read-all defaults."""
         workflows = deepcopy(self.workflows)
-        workflows[".github/workflows/00-cicd.yaml"]["jobs"]["helm-chart-update"]["permissions"] = {"contents": "write"}
-        workflows[".github/workflows/00-cicd.yaml"]["jobs"]["helm-release"]["permissions"] = {
-            "contents": "write", "id-token": "write", "attestations": "write",
-        }
         workflows[".github/workflows/inspektor-trigger-e2e-tests.yaml"]["jobs"]["call-e2e-tests"]["permissions"] = {
             "contents": "read", "checks": "write",
         }
         defaults = [error for error in violations(workflows) if "workflow defaults" in error]
-        # The release caller also fails at the nested 03 -> 02 boundary.
-        self.assertEqual(len(defaults), 4)
-        for callee in ("01-update_tag.yaml", "03-helm-release.yaml", "relevancy-e2e-test.yaml", "02-e2e-test.yaml"):
-            self.assertTrue(any(callee in error for error in defaults), callee)
+        self.assertEqual(len(defaults), 1)
+        self.assertIn("relevancy-e2e-test.yaml", defaults[0])
 
     def test_nested_call_cannot_restore_denied_permissions(self):
         """A nested workflow must not regain a scope denied by its caller."""

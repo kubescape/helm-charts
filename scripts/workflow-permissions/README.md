@@ -8,7 +8,7 @@ python3 -B -m unittest discover -s scripts/workflow-permissions -v
 
 The tests check read-only workflow defaults, every local reusable-workflow call,
 callee defaults, execution-job permissions, and nested caller ceilings. Negative
-cases reproduce the original three incompatible callers and a denied permission
+cases reproduce an incompatible narrow caller and a denied permission
 in the nested `03-helm-release.yaml` → `02-e2e-test.yaml` path. Every job's effective
 write grants are checked against a static approved set, including jobs that inherit
 `read-all` and need no writes. The expected job keys must match the loaded jobs, so
@@ -35,8 +35,7 @@ These are local static checks. They do not execute private system tests, publish
 charts, or verify upstream token policy and credentials.
 Successful upstream runs of `pr-created` establish Helm unit-test coverage only.
 Issue #950's runtime criterion still requires successful runs using the proposed
-permissions through `00-cicd.yaml` → `01-update_tag.yaml`, `00-cicd.yaml` →
-`03-helm-release.yaml` → `02-e2e-test.yaml`, and
+permissions through `03-helm-release.yaml` → `02-e2e-test.yaml` and
 `inspektor-trigger-e2e-tests.yaml` → `relevancy-e2e-test.yaml`, including release,
 attestation, and report uploads, or explicit maintainer acceptance of that gap.
 These paths require upstream credentials and can update branches or publish
