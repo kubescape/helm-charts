@@ -69,7 +69,7 @@ The call goes through kube-apiserver with the agent's own token, and storage che
 - `kubescape-mcp-reader`: call the endpoint, read vulnerability manifests and configuration scans
 - `kubescape-mcp-runtime-reader`: read container profiles and SBOMs (what containers run and every package in an image)
 
-The tools depend on the storage version. The chart's default (v0.0.378) serves the vulnerability tools: `list_vulnerability_manifests`, `list_vulnerabilities_in_manifest` and `list_vulnerability_matches_for_cve`. `list_sboms` and `list_sbom_packages` come with v0.0.380, and the configuration-scan and container-profile tools with later releases. The two roles already cover them, so the RoleBindings stay the same when storage is upgraded.
+The tools depend on the storage version. The chart's default (v0.0.382) serves the vulnerability tools (`list_vulnerability_manifests`, `list_vulnerabilities_in_manifest` and `list_vulnerability_matches_for_cve`) and the SBOM tools (`list_sboms` and `list_sbom_packages`). The configuration-scan and container-profile tools come with later releases. The two roles already cover them, so the RoleBindings stay the same when storage is upgraded.
 
 Image-level vulnerability manifests and SBOMs are stored in the Kubescape namespace, workload scans in the workload's namespace. For an agent with the ServiceAccount `kagent/agent`:
 
@@ -722,7 +722,7 @@ To configure Kubevuln to scan private Azure Container Registries (ACR) using Azu
 
 1. **Enable Azure Workload Identity on AKS**: Ensure the Azure Workload Identity mutating webhook and OIDC issuer are enabled on your AKS cluster.
 2. **Federate the ServiceAccount**: Establish federated identity credentials linking your Azure Managed Identity (or App Registration) with the `kubevuln` ServiceAccount in the release namespace (e.g. `system:serviceaccount:kubescape:kubevuln`). Ensure the identity has the `AcrPull` role on the target ACR.
-3. **Compatible Kubevuln image prerequisite**: Ambient ACR authentication requires the ACR provider introduced in [kubescape/kubevuln#1163](https://github.com/kubescape/kubevuln/pull/1163). The chart defaults to `kubevuln.image.tag: v0.3.571`, which includes ambient ACR authentication.
+3. **Compatible Kubevuln image prerequisite**: Ambient ACR authentication requires the ACR provider introduced in [kubescape/kubevuln#1163](https://github.com/kubescape/kubevuln/pull/1163). The chart defaults to `kubevuln.image.tag: v0.3.575`, which includes ambient ACR authentication.
 
 #### Example `values.yaml`
 
