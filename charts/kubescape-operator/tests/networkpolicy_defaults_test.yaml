@@ -1,0 +1,209 @@
+suite: network policies on by default
+templates:
+  - kubescape/networkpolicy.yaml
+  - kubevuln/networkpolicy.yaml
+  - operator/networkpolicy.yaml
+  - storage/networkpolicy.yaml
+  - synchronizer/networkpolicy.yaml
+  - prometheus-exporter/networkpolicy.yaml
+  - grype-offline-db/networkpolicy.yaml
+  - node-agent/networkpolicy.yaml
+  - kubescape-scheduler/networkpolicy.yaml
+  - kubevuln-scheduler/networkpolicy.yaml
+  - autoupdater/networkpolicy.yaml
+tests:
+  - it: creates ingress-only policies for the core components with default values
+    templates:
+      - kubescape/networkpolicy.yaml
+      - kubevuln/networkpolicy.yaml
+      - operator/networkpolicy.yaml
+      - storage/networkpolicy.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - isKind:
+          of: NetworkPolicy
+      - equal:
+          path: spec.policyTypes
+          value:
+            - Ingress
+      - notExists:
+          path: spec.egress
+
+  - it: creates no egress-only policies with default values
+    templates:
+      - node-agent/networkpolicy.yaml
+      - kubescape-scheduler/networkpolicy.yaml
+      - kubevuln-scheduler/networkpolicy.yaml
+      - autoupdater/networkpolicy.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders no policy at all when network policies are disabled
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.enabled: false
+      global.networkPolicy.createEgressRules: true
+      grypeOfflineDB.enabled: true
+      server: api.example
+      account: 11111111-1111-1111-1111-111111111111
+      accessKey: secret
+      capabilities.prometheusExporter: enable
+      capabilities.autoUpgrading: enable
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: lets only kubevuln reach grype-offline-db
+    template: grype-offline-db/networkpolicy.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      grypeOfflineDB.enabled: true
+    asserts:
+      - equal:
+          path: spec.ingress[0].from[0].podSelector.matchLabels["app.kubernetes.io/component"]
+          value: kubevuln
+      - equal:
+          path: spec.ingress[0].ports[0].port
+          value: 8080
+
+  - it: lets node-agent reach the synchronizer
+    template: synchronizer/networkpolicy.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      server: api.example
+      account: 11111111-1111-1111-1111-111111111111
+      accessKey: secret
+    asserts:
+      - equal:
+          path: spec.podSelector.matchLabels["app.kubernetes.io/component"]
+          value: synchronizer
+      - equal:
+          path: spec.ingress[0].from[0].podSelector.matchLabels["app.kubernetes.io/component"]
+          value: node-agent
+      - equal:
+          path: spec.ingress[0].ports[0].port
+          value: 8089
+
+  - it: lets Prometheus scrape kubescape when prometheus annotations are enabled
+    template: kubescape/networkpolicy.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      configurations.prometheusAnnotations: enable
+    asserts:
+      - contains:
+          path: spec.ingress
+          content:
+            ports:
+              - port: http
+                protocol: TCP
+
+  - it: keeps kubescape ingress to the operator when Prometheus is not used
+    template: kubescape/networkpolicy.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - lengthEqual:
+          path: spec.ingress
+          count: 1
+      - equal:
+          path: spec.ingress[0].from[0].podSelector.matchLabels["app.kubernetes.io/component"]
+          value: operator
+
+  - it: admits the API server on the storage port from anywhere by default
+    template: storage/networkpolicy.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - equal:
+          path: spec.ingress
+          value:
+            - ports:
+                - port: 8443
+                  protocol: TCP
+
+  - it: allows the API server port to any destination when no apiServerIP is pinned
+    template: kubevuln-scheduler/networkpolicy.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.createEgressRules: true
+      global.networkPolicy.apiServerPort: 6443
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            ports:
+              - port: 6443
+                protocol: TCP
+
+  - it: allows DNS over UDP and TCP
+    template: kubevuln-scheduler/networkpolicy.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.createEgressRules: true
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            ports:
+              - port: 53
+                protocol: UDP
+              - port: 53
+                protocol: TCP
+
+  - it: does not pin storage ingress to apiServerIP
+    template: storage/networkpolicy.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.apiServerIP: 10.0.0.1
+    asserts:
+      - notExists:
+          path: spec.ingress[0].from
+
+  - it: matches the synchronizer container port, not the Service port
+    templates:
+      - synchronizer/networkpolicy.yaml
+      - node-agent/networkpolicy.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      server: api.example
+      account: 11111111-1111-1111-1111-111111111111
+      accessKey: secret
+      global.networkPolicy.createEgressRules: true
+      synchronizer.service.port: 80
+    asserts:
+      - matchRegex:
+          path: metadata.name
+          pattern: ^(synchronizer|node-agent)$
+      - notMatchRegexRaw:
+          pattern: 'port: 80\n'

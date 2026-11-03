@@ -338,10 +338,18 @@ global:
   kubescapePsp:
     name: ks-allow-privileged
     enabled: false
+  # NetworkPolicies for the kubescape components.
+  # NOTE: enabled by default. They only restrict INGRESS between our own components
+  # (see docs/features/network-policies.md); traffic leaving the namespace is untouched unless
+  # createEgressRules is set. On clusters whose CNI does not enforce NetworkPolicies they are no-ops.
   networkPolicy:
-    enabled: false
+    # -- create ingress NetworkPolicies for the kubescape components
+    enabled: true
+    # -- also restrict egress (opt-in, see docs/features/network-policies.md for what each component may reach)
     createEgressRules: false
+    # -- pin the kube-apiserver egress rule to this endpoint IP; empty allows the API server port(s) to any destination
     apiServerIP: ""
+    # -- kube-apiserver port allowed by the egress rules; the ports of the `default/kubernetes` EndpointSlice are added when it can be looked up
     apiServerPort: 443
     httpsProxyIP: ""
     httpsProxyPort: ""

@@ -1,13 +1,13 @@
+{{- /*
+DNS. Port-only on purpose: the cluster resolver is not always a kube-dns pod in kube-system
+(NodeLocal DNSCache listens on a link-local host-network address, OpenShift runs it in
+openshift-dns), and selectors would silently break name resolution there.
+*/ -}}
 - ports:
     - port: 53
       protocol: UDP
-  to:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: kube-system
-      podSelector:
-        matchLabels:
-          k8s-app: kube-dns
+    - port: 53
+      protocol: TCP
 {{- if ne .Values.global.httpsProxy "" }}
 - ports:
     - port: {{ .Values.global.networkPolicy.httpsProxyPort }}
