@@ -68,8 +68,24 @@ spec:
                     - deny
                     minLength: 1
                     type: string
+                  defaultMode:
+                    enum:
+                    - audit
+                    - enforce
+                    minLength: 1
+                    type: string
+                  defaultOrigin:
+                    type: string
                   rules:
                     items:
+                      anyOf:
+                      - properties:
+                          action:
+                            enum:
+                            - deny
+                      - not:
+                          required:
+                          - except
                       properties:
                         action:
                           enum:
@@ -127,6 +143,152 @@ spec:
                           type: object
                         description:
                           type: string
+                        except:
+                          items:
+                            anyOf:
+                            - properties:
+                                actor:
+                                  anyOf:
+                                  - required:
+                                    - ancestor
+                                  - required:
+                                    - container
+                                  - required:
+                                    - fromImage
+                                  - required:
+                                    - path
+                                  - required:
+                                    - role
+                                  - required:
+                                    - uid
+                              required:
+                              - actor
+                            - properties:
+                                target:
+                                  anyOf:
+                                  - properties:
+                                      argv:
+                                        anyOf:
+                                        - required:
+                                          - contains
+                                        - required:
+                                          - prefix
+                                        - required:
+                                          - stdinIsPipe
+                                    required:
+                                    - argv
+                                  - required:
+                                    - fromImage
+                                  - required:
+                                    - fsType
+                                  - required:
+                                    - path
+                                  - required:
+                                    - pathClass
+                              required:
+                              - target
+                            properties:
+                              actor:
+                                properties:
+                                  ancestor:
+                                    properties:
+                                      depth:
+                                        format: int32
+                                        maximum: 16
+                                        minimum: 1
+                                        type: integer
+                                      path:
+                                        items:
+                                          minLength: 1
+                                          type: string
+                                        minItems: 1
+                                        type: array
+                                    required:
+                                    - path
+                                    - depth
+                                    type: object
+                                  container:
+                                    items:
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                  fromImage:
+                                    type: boolean
+                                  path:
+                                    items:
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                  role:
+                                    items:
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                  uid:
+                                    items:
+                                      format: int64
+                                      maximum: 4294967295
+                                      minimum: 0
+                                      type: integer
+                                    minItems: 1
+                                    type: array
+                                type: object
+                              target:
+                                properties:
+                                  argv:
+                                    properties:
+                                      contains:
+                                        items:
+                                          minLength: 1
+                                          type: string
+                                        minItems: 1
+                                        type: array
+                                      prefix:
+                                        items:
+                                          minLength: 1
+                                          type: string
+                                        minItems: 1
+                                        type: array
+                                      stdinIsPipe:
+                                        type: boolean
+                                    type: object
+                                  fromImage:
+                                    type: boolean
+                                  fsType:
+                                    items:
+                                      enum:
+                                      - tmpfs
+                                      - overlay
+                                      - memfd
+                                      - deleted
+                                      - procfs
+                                      - sysfs
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                  path:
+                                    items:
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                  pathClass:
+                                    items:
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                  setRole:
+                                    minLength: 1
+                                    not: {}
+                                    type: string
+                                type: object
+                            type: object
+                          type: array
                         mode:
                           enum:
                           - audit
@@ -138,7 +300,6 @@ spec:
                           minLength: 1
                           type: string
                         origin:
-                          minLength: 1
                           type: string
                         target:
                           properties:
@@ -263,8 +424,86 @@ spec:
                     - chmod
                     - execMap
                     type: object
+                  defaultMode:
+                    enum:
+                    - audit
+                    - enforce
+                    minLength: 1
+                    type: string
+                  defaultModeByAccess:
+                    properties:
+                      chmod:
+                        enum:
+                        - audit
+                        - enforce
+                        minLength: 1
+                        type: string
+                      create:
+                        enum:
+                        - audit
+                        - enforce
+                        minLength: 1
+                        type: string
+                      delete:
+                        enum:
+                        - audit
+                        - enforce
+                        minLength: 1
+                        type: string
+                      execMap:
+                        enum:
+                        - audit
+                        - enforce
+                        minLength: 1
+                        type: string
+                      read:
+                        enum:
+                        - audit
+                        - enforce
+                        minLength: 1
+                        type: string
+                      rename:
+                        enum:
+                        - audit
+                        - enforce
+                        minLength: 1
+                        type: string
+                      write:
+                        enum:
+                        - audit
+                        - enforce
+                        minLength: 1
+                        type: string
+                    type: object
+                  defaultOrigin:
+                    type: string
+                  defaultOriginByAccess:
+                    properties:
+                      chmod:
+                        type: string
+                      create:
+                        type: string
+                      delete:
+                        type: string
+                      execMap:
+                        type: string
+                      read:
+                        type: string
+                      rename:
+                        type: string
+                      write:
+                        type: string
+                    type: object
                   rules:
                     items:
+                      anyOf:
+                      - properties:
+                          action:
+                            enum:
+                            - deny
+                      - not:
+                          required:
+                          - except
                       properties:
                         action:
                           enum:
@@ -322,6 +561,136 @@ spec:
                           type: object
                         description:
                           type: string
+                        except:
+                          items:
+                            anyOf:
+                            - properties:
+                                actor:
+                                  anyOf:
+                                  - required:
+                                    - ancestor
+                                  - required:
+                                    - container
+                                  - required:
+                                    - fromImage
+                                  - required:
+                                    - path
+                                  - required:
+                                    - role
+                                  - required:
+                                    - uid
+                              required:
+                              - actor
+                            - properties:
+                                target:
+                                  anyOf:
+                                  - required:
+                                    - access
+                                  - required:
+                                    - fromImage
+                                  - required:
+                                    - fsType
+                                  - required:
+                                    - path
+                                  - required:
+                                    - pathClass
+                              required:
+                              - target
+                            properties:
+                              actor:
+                                properties:
+                                  ancestor:
+                                    properties:
+                                      depth:
+                                        format: int32
+                                        maximum: 16
+                                        minimum: 1
+                                        type: integer
+                                      path:
+                                        items:
+                                          minLength: 1
+                                          type: string
+                                        minItems: 1
+                                        type: array
+                                    required:
+                                    - path
+                                    - depth
+                                    type: object
+                                  container:
+                                    items:
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                  fromImage:
+                                    type: boolean
+                                  path:
+                                    items:
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                  role:
+                                    items:
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                  uid:
+                                    items:
+                                      format: int64
+                                      maximum: 4294967295
+                                      minimum: 0
+                                      type: integer
+                                    minItems: 1
+                                    type: array
+                                type: object
+                              target:
+                                properties:
+                                  access:
+                                    items:
+                                      enum:
+                                      - read
+                                      - write
+                                      - create
+                                      - delete
+                                      - rename
+                                      - chmod
+                                      - execMap
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                  fromImage:
+                                    type: boolean
+                                  fsType:
+                                    items:
+                                      enum:
+                                      - tmpfs
+                                      - overlay
+                                      - memfd
+                                      - deleted
+                                      - procfs
+                                      - sysfs
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                  path:
+                                    items:
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                  pathClass:
+                                    items:
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                type: object
+                            type: object
+                          type: array
                         mode:
                           enum:
                           - audit
@@ -333,7 +702,6 @@ spec:
                           minLength: 1
                           type: string
                         origin:
-                          minLength: 1
                           type: string
                         target:
                           properties:
@@ -392,6 +760,11 @@ spec:
                 x-kubernetes-validations:
                 - message: exactly one of default and defaultByAccess is required
                   rule: has(self.default) != has(self.defaultByAccess)
+                - message: scalar metadata requires scalar default
+                  rule: has(self.default) || (!has(self.defaultMode) && !has(self.defaultOrigin))
+                - message: per-access metadata requires defaultByAccess
+                  rule: has(self.defaultByAccess) || (!has(self.defaultModeByAccess)
+                    && !has(self.defaultOriginByAccess))
               identity:
                 properties:
                   default:
@@ -400,8 +773,24 @@ spec:
                     - deny
                     minLength: 1
                     type: string
+                  defaultMode:
+                    enum:
+                    - audit
+                    - enforce
+                    minLength: 1
+                    type: string
+                  defaultOrigin:
+                    type: string
                   rules:
                     items:
+                      anyOf:
+                      - properties:
+                          action:
+                            enum:
+                            - deny
+                      - not:
+                          required:
+                          - except
                       properties:
                         action:
                           enum:
@@ -459,6 +848,129 @@ spec:
                           type: object
                         description:
                           type: string
+                        except:
+                          items:
+                            anyOf:
+                            - properties:
+                                actor:
+                                  anyOf:
+                                  - required:
+                                    - ancestor
+                                  - required:
+                                    - container
+                                  - required:
+                                    - fromImage
+                                  - required:
+                                    - path
+                                  - required:
+                                    - role
+                                  - required:
+                                    - uid
+                              required:
+                              - actor
+                            - properties:
+                                target:
+                                  anyOf:
+                                  - required:
+                                    - envRead
+                                  - required:
+                                    - imds
+                                  - required:
+                                    - path
+                                  - required:
+                                    - pathClass
+                              required:
+                              - target
+                            properties:
+                              actor:
+                                properties:
+                                  ancestor:
+                                    properties:
+                                      depth:
+                                        format: int32
+                                        maximum: 16
+                                        minimum: 1
+                                        type: integer
+                                      path:
+                                        items:
+                                          minLength: 1
+                                          type: string
+                                        minItems: 1
+                                        type: array
+                                    required:
+                                    - path
+                                    - depth
+                                    type: object
+                                  container:
+                                    items:
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                  fromImage:
+                                    type: boolean
+                                  path:
+                                    items:
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                  role:
+                                    items:
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                  uid:
+                                    items:
+                                      format: int64
+                                      maximum: 4294967295
+                                      minimum: 0
+                                      type: integer
+                                    minItems: 1
+                                    type: array
+                                type: object
+                              target:
+                                oneOf:
+                                - anyOf:
+                                  - required:
+                                    - path
+                                  - required:
+                                    - pathClass
+                                - required:
+                                  - imds
+                                - required:
+                                  - envRead
+                                properties:
+                                  envRead:
+                                    type: boolean
+                                  fromImage:
+                                    not: {}
+                                    type: boolean
+                                  fsType:
+                                    items:
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    not: {}
+                                    type: array
+                                  imds:
+                                    type: boolean
+                                  path:
+                                    items:
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                  pathClass:
+                                    items:
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                type: object
+                            type: object
+                          type: array
                         mode:
                           enum:
                           - audit
@@ -470,7 +982,6 @@ spec:
                           minLength: 1
                           type: string
                         origin:
-                          minLength: 1
                           type: string
                         target:
                           oneOf:
@@ -550,8 +1061,38 @@ spec:
                     - egress
                     - listen
                     type: object
+                  defaultMode:
+                    properties:
+                      egress:
+                        enum:
+                        - audit
+                        - enforce
+                        minLength: 1
+                        type: string
+                      listen:
+                        enum:
+                        - audit
+                        - enforce
+                        minLength: 1
+                        type: string
+                    type: object
+                  defaultOrigin:
+                    properties:
+                      egress:
+                        type: string
+                      listen:
+                        type: string
+                    type: object
                   rules:
                     items:
+                      anyOf:
+                      - properties:
+                          action:
+                            enum:
+                            - deny
+                      - not:
+                          required:
+                          - except
                       properties:
                         action:
                           enum:
@@ -609,6 +1150,145 @@ spec:
                           type: object
                         description:
                           type: string
+                        except:
+                          items:
+                            anyOf:
+                            - properties:
+                                actor:
+                                  anyOf:
+                                  - required:
+                                    - ancestor
+                                  - required:
+                                    - container
+                                  - required:
+                                    - fromImage
+                                  - required:
+                                    - path
+                                  - required:
+                                    - role
+                                  - required:
+                                    - uid
+                              required:
+                              - actor
+                            - properties:
+                                target:
+                                  anyOf:
+                                  - required:
+                                    - cidr
+                                  - required:
+                                    - destClass
+                                  - required:
+                                    - direction
+                                  - required:
+                                    - dnsName
+                                  - required:
+                                    - ports
+                                  - required:
+                                    - proto
+                              required:
+                              - target
+                            properties:
+                              actor:
+                                properties:
+                                  ancestor:
+                                    properties:
+                                      depth:
+                                        format: int32
+                                        maximum: 16
+                                        minimum: 1
+                                        type: integer
+                                      path:
+                                        items:
+                                          minLength: 1
+                                          type: string
+                                        minItems: 1
+                                        type: array
+                                    required:
+                                    - path
+                                    - depth
+                                    type: object
+                                  container:
+                                    items:
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                  fromImage:
+                                    type: boolean
+                                  path:
+                                    items:
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                  role:
+                                    items:
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                  uid:
+                                    items:
+                                      format: int64
+                                      maximum: 4294967295
+                                      minimum: 0
+                                      type: integer
+                                    minItems: 1
+                                    type: array
+                                type: object
+                              target:
+                                properties:
+                                  cidr:
+                                    items:
+                                      format: cidr
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                  destClass:
+                                    items:
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                  direction:
+                                    enum:
+                                    - egress
+                                    - listen
+                                    minLength: 1
+                                    type: string
+                                  dnsName:
+                                    items:
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                  ports:
+                                    items:
+                                      anyOf:
+                                      - type: integer
+                                      - type: string
+                                      maxLength: 11
+                                      maximum: 65535
+                                      minimum: 1
+                                      pattern: ^[0-9]{1,5}-[0-9]{1,5}$
+                                      x-kubernetes-int-or-string: true
+                                    minItems: 1
+                                    type: array
+                                  proto:
+                                    items:
+                                      enum:
+                                      - tcp
+                                      - udp
+                                      - icmp
+                                      - unix
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                type: object
+                            type: object
+                          type: array
                         mode:
                           enum:
                           - audit
@@ -620,7 +1300,6 @@ spec:
                           minLength: 1
                           type: string
                         origin:
-                          minLength: 1
                           type: string
                         target:
                           properties:
@@ -693,8 +1372,24 @@ spec:
                     - deny
                     minLength: 1
                     type: string
+                  defaultMode:
+                    enum:
+                    - audit
+                    - enforce
+                    minLength: 1
+                    type: string
+                  defaultOrigin:
+                    type: string
                   rules:
                     items:
+                      anyOf:
+                      - properties:
+                          action:
+                            enum:
+                            - deny
+                      - not:
+                          required:
+                          - except
                       properties:
                         action:
                           enum:
@@ -752,6 +1447,191 @@ spec:
                           type: object
                         description:
                           type: string
+                        except:
+                          items:
+                            anyOf:
+                            - properties:
+                                actor:
+                                  anyOf:
+                                  - required:
+                                    - ancestor
+                                  - required:
+                                    - container
+                                  - required:
+                                    - fromImage
+                                  - required:
+                                    - path
+                                  - required:
+                                    - role
+                                  - required:
+                                    - uid
+                              required:
+                              - actor
+                            - properties:
+                                target:
+                                  anyOf:
+                                  - required:
+                                    - capability
+                                  - required:
+                                    - flags
+                                  - required:
+                                    - mountFsType
+                                  - required:
+                                    - pathClass
+                                  - required:
+                                    - syscall
+                              required:
+                              - target
+                            properties:
+                              actor:
+                                properties:
+                                  ancestor:
+                                    properties:
+                                      depth:
+                                        format: int32
+                                        maximum: 16
+                                        minimum: 1
+                                        type: integer
+                                      path:
+                                        items:
+                                          minLength: 1
+                                          type: string
+                                        minItems: 1
+                                        type: array
+                                    required:
+                                    - path
+                                    - depth
+                                    type: object
+                                  container:
+                                    items:
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                  fromImage:
+                                    type: boolean
+                                  path:
+                                    items:
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                  role:
+                                    items:
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                  uid:
+                                    items:
+                                      format: int64
+                                      maximum: 4294967295
+                                      minimum: 0
+                                      type: integer
+                                    minItems: 1
+                                    type: array
+                                type: object
+                              target:
+                                anyOf:
+                                - not:
+                                    required:
+                                    - flags
+                                - required:
+                                  - syscall
+                                oneOf:
+                                - required:
+                                  - syscall
+                                - required:
+                                  - capability
+                                - required:
+                                  - mountFsType
+                                - required:
+                                  - pathClass
+                                properties:
+                                  capability:
+                                    items:
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                  flags:
+                                    items:
+                                      enum:
+                                      - CLONE_NEWUSER
+                                      - CLONE_NEWNS
+                                      - CLONE_NEWPID
+                                      - CLONE_NEWNET
+                                      - CLONE_NEWUTS
+                                      - CLONE_NEWIPC
+                                      - CLONE_NEWCGROUP
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                  fromImage:
+                                    not: {}
+                                    type: boolean
+                                  fsType:
+                                    items:
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    not: {}
+                                    type: array
+                                  mountFsType:
+                                    items:
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                  path:
+                                    items:
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    not: {}
+                                    type: array
+                                  pathClass:
+                                    items:
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                  syscall:
+                                    items:
+                                      enum:
+                                      - unshare
+                                      - setns
+                                      - clone
+                                      - clone3
+                                      - mount
+                                      - umount2
+                                      - pivot_root
+                                      - chroot
+                                      - open_tree
+                                      - move_mount
+                                      - ptrace
+                                      - process_vm_readv
+                                      - process_vm_writev
+                                      - init_module
+                                      - finit_module
+                                      - bpf
+                                      - perf_event_open
+                                      - kexec_load
+                                      - keyctl
+                                      - userfaultfd
+                                      - io_uring_setup
+                                      - mknod
+                                      - setuid
+                                      - setgid
+                                      - capset
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                type: object
+                            type: object
+                          type: array
                         mode:
                           enum:
                           - audit
@@ -763,9 +1643,14 @@ spec:
                           minLength: 1
                           type: string
                         origin:
-                          minLength: 1
                           type: string
                         target:
+                          anyOf:
+                          - not:
+                              required:
+                              - flags
+                          - required:
+                            - syscall
                           oneOf:
                           - required:
                             - syscall
@@ -858,9 +1743,6 @@ spec:
                               minItems: 1
                               type: array
                           type: object
-                          x-kubernetes-validations:
-                          - message: flags require syscall
-                            rule: '!has(self.flags) || has(self.syscall)'
                       required:
                       - name
                       - target
