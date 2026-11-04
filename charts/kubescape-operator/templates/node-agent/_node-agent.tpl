@@ -135,6 +135,7 @@ Parameters:
   - components: $components
 */}}
 {{- define "node-agent.volumeMounts" -}}
+{{- include "apiauth.callerVolumeMount" . }}
 {{- if .Values.namespaceFilters.enabled }}
 - name: namespace-filters
   mountPath: /etc/namespace-filters
@@ -355,6 +356,7 @@ Parameters:
 */}}
 {{- define "node-agent.volumes" -}}
 {{- $filters := fromYaml (include "namespaceFilters.config" .) -}}
+{{- include "apiauth.callerVolume" . }}
 {{- if $filters.enabled }}
 - name: namespace-filters
   configMap:
