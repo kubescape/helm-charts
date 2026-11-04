@@ -7,7 +7,6 @@ templates:
   - kubescape/role.yaml
   - kubevuln/role.yaml
   - kubevuln/rolebinding.yaml
-  - operator/command-scripts-configmap.yaml
   - operator/registry-scan-recurring-cronjob-configmap.yaml
   - operator/ks-recurring-cronjob-configmap.yaml
   - operator/kv-recurring-cronjob-configmap.yaml
@@ -23,7 +22,7 @@ tests:
     asserts:
       - equal:
           path: spec.jobTemplate.spec.template.spec.containers[0].command
-          value: ["/scripts/create-operator-command.sh"]
+          value: ["/usr/bin/kubescape-ops-tool", "create-operator-command"]
       - equal:
           path: spec.jobTemplate.spec.template.spec.containers[0].args
           value:
@@ -46,19 +45,22 @@ tests:
       - equal:
           path: spec.jobTemplate.spec.template.spec.automountServiceAccountToken
           value: true
-      - contains:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].image
+          value: quay.io/kubescape/kubescape-ops-tool:0.2.0-r1
+      - equal:
           path: spec.jobTemplate.spec.template.spec.volumes
-          content:
-            name: command-scripts
-            configMap:
-              name: operator-command-scripts
-              defaultMode: 0755
-      - contains:
+          value:
+            - name: kubescape-scheduler
+              configMap:
+                name: kubescape-scheduler
+      - equal:
           path: spec.jobTemplate.spec.template.spec.containers[0].volumeMounts
-          content:
-            name: command-scripts
-            mountPath: /scripts
-            readOnly: true
+          value:
+            - name: kubescape-scheduler
+              mountPath: /home/ks/request-body.json
+              subPath: request-body.json
+              readOnly: true
       - equal:
           path: spec.jobTemplate.spec.template.spec.containers[0].securityContext.runAsUser
           value: 65532
@@ -73,7 +75,7 @@ tests:
     asserts:
       - equal:
           path: spec.jobTemplate.spec.template.spec.containers[0].command
-          value: ["/scripts/create-operator-command.sh"]
+          value: ["/usr/bin/kubescape-ops-tool", "create-operator-command"]
       - contains:
           path: spec.jobTemplate.spec.template.spec.containers[0].args
           content: kubevuln-scheduler-
@@ -177,22 +179,7 @@ tests:
     asserts:
       - hasDocuments:
           count: 0
-  - it: ships the script in a ConfigMap with a stable name
-    template: operator/command-scripts-configmap.yaml
-    set:
-      unittest: true
-      clusterName: kind-kind
-    asserts:
-      - equal:
-          path: metadata.name
-          value: operator-command-scripts
-      - matchRegex:
-          path: data["create-operator-command.sh"]
-          pattern: 'kind: "OperatorCommand"'
-      - matchRegex:
-          path: data["create-operator-command.sh"]
-          pattern: 'commandType: "OperatorAPI"'
-  - it: renders the registry scan CronJob template the operator uses with the same script
+  - it: renders the registry scan CronJob template the operator uses with the ops-tool subcommand
     template: operator/registry-scan-recurring-cronjob-configmap.yaml
     set:
       unittest: true
@@ -200,14 +187,14 @@ tests:
     asserts:
       - matchRegex:
           path: data.cronjobTemplate
-          pattern: 'command: \["/scripts/create-operator-command.sh"\]'
+          pattern: 'command: \["/usr/bin/kubescape-ops-tool", "create-operator-command"\]'
       - matchRegex:
           path: data.cronjobTemplate
           pattern: 'automountServiceAccountToken: true'
       - notMatchRegex:
           path: data.cronjobTemplate
           pattern: triggerAction
-  - it: renders the backend-driven scan CronJob templates with the same script
+  - it: renders the backend-driven scan CronJob templates with the ops-tool subcommand
     templates:
       - operator/ks-recurring-cronjob-configmap.yaml
       - operator/kv-recurring-cronjob-configmap.yaml
@@ -217,13 +204,13 @@ tests:
     asserts:
       - matchRegex:
           path: data.cronjobTemplate
-          pattern: 'image: "quay.io/kubescape/kubectl:1.36.1"'
+          pattern: 'image: "quay.io/kubescape/kubescape-ops-tool:0.2.0-r1"'
       - matchRegex:
           path: data.cronjobTemplate
-          pattern: 'command: \["/scripts/create-operator-command.sh"\]'
-      - matchRegex:
+          pattern: 'command: \["/usr/bin/kubescape-ops-tool", "create-operator-command"\]'
+      - notMatchRegex:
           path: data.cronjobTemplate
-          pattern: 'name: operator-command-scripts'
+          pattern: 'command-scripts|tmp-dir|/scripts/'
       - matchRegex:
           path: data.cronjobTemplate
           pattern: 'automountServiceAccountToken: true'

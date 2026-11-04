@@ -87,8 +87,8 @@ Reads a scan request body (`{"commands": [...]}`) and creates one `OperatorComma
 (`kubescape.io/v1alpha1`, `commandType: OperatorAPI`) per command, with the command as its
 base64 `body`. The `guid` is the command's `jobTracking.jobID`, or a fresh UUID when it has
 none. When an owner Job is known, the objects carry it as an owner reference, so they are
-garbage-collected with the Job history. Replaces
-`charts/kubescape-operator/scripts/create-operator-command.sh` with the same flags.
+garbage-collected with the Job history. Replaces the chart's former
+`scripts/create-operator-command.sh` with the same flags.
 
 | Flag | Default | Meaning |
 |---|---|---|

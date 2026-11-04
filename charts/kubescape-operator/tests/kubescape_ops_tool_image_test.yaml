@@ -13,13 +13,13 @@ tests:
     asserts:
       - equal:
           path: spec.template.spec.initContainers[0].image
-          value: quay.io/kubescape/kubescape-ops-tool:0.1.0-r1
+          value: quay.io/kubescape/kubescape-ops-tool:0.2.0-r1
       - equal:
           path: spec.template.spec.initContainers[0].command
           value: ["/usr/bin/kubescape-ops-tool", "certgen-create"]
       - equal:
           path: spec.template.spec.initContainers[1].image
-          value: quay.io/kubescape/kubescape-ops-tool:0.1.0-r1
+          value: quay.io/kubescape/kubescape-ops-tool:0.2.0-r1
       - equal:
           path: spec.template.spec.initContainers[1].command
           value: ["/usr/bin/kubescape-ops-tool", "certgen-patch"]
@@ -62,13 +62,13 @@ tests:
     asserts:
       - equal:
           path: spec.template.spec.initContainers[0].image
-          value: quay.io/kubescape/kubescape-ops-tool:0.1.0-r1
+          value: quay.io/kubescape/kubescape-ops-tool:0.2.0-r1
       - equal:
           path: spec.template.spec.initContainers[0].command
           value: ["/usr/bin/kubescape-ops-tool", "certgen-create"]
       - equal:
           path: spec.template.spec.initContainers[1].image
-          value: quay.io/kubescape/kubescape-ops-tool:0.1.0-r1
+          value: quay.io/kubescape/kubescape-ops-tool:0.2.0-r1
       - equal:
           path: spec.template.spec.initContainers[1].command
           value: ["/usr/bin/kubescape-ops-tool", "certgen-patch"]
@@ -105,7 +105,7 @@ tests:
     asserts:
       - equal:
           path: spec.jobTemplate.spec.template.spec.containers[0].image
-          value: quay.io/kubescape/kubescape-ops-tool:0.1.0-r1
+          value: quay.io/kubescape/kubescape-ops-tool:0.2.0-r1
       - equal:
           path: spec.jobTemplate.spec.template.spec.containers[0].command
           value: ["/usr/bin/kubescape-ops-tool", "rollout-restart"]
@@ -141,7 +141,7 @@ tests:
     asserts:
       - equal:
           path: spec.jobTemplate.spec.template.spec.containers[0].image
-          value: quay.io/kubescape/kubescape-ops-tool:0.1.0-r1
+          value: quay.io/kubescape/kubescape-ops-tool:0.2.0-r1
       - equal:
           path: spec.jobTemplate.spec.template.spec.containers[0].command
           value: ["/usr/bin/kubescape-ops-tool", "helm-upgrade"]
@@ -179,3 +179,75 @@ tests:
       - equal:
           path: spec.jobTemplate.spec.template.spec.containers[0].image
           value: quay.io/kubescape/kubescape-ops-tool:9.9.9-test
+
+  - it: propagates a kubescapeOpsTool tag override to the scan scheduler CronJobs
+    templates:
+      - kubescape-scheduler/cronjob.yaml
+      - kubevuln-scheduler/cronjob.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubescapeOpsTool.image.tag: 9.9.9-test
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].image
+          value: quay.io/kubescape/kubescape-ops-tool:9.9.9-test
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].command
+          value: ["/usr/bin/kubescape-ops-tool", "create-operator-command"]
+
+  - it: propagates a kubescapeOpsTool tag override to the operator's schedule templates
+    templates:
+      - operator/ks-recurring-cronjob-configmap.yaml
+      - operator/kv-recurring-cronjob-configmap.yaml
+      - operator/registry-scan-recurring-cronjob-configmap.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubescapeOpsTool.image.tag: 9.9.9-test
+    asserts:
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: 'image: "quay.io/kubescape/kubescape-ops-tool:9.9.9-test"'
+
+  - it: fails when a removed scheduler image override points at another repository
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubevulnScheduler.image.repository: registry.example.com/kubectl
+    asserts:
+      - failedTemplate:
+          errorMessage: 'kubevulnScheduler.image has been removed. The scan schedulers now run on kubescapeOpsTool.image; move the override there.'
+
+  - it: tolerates the previous chart's scheduler image default, as --reset-then-reuse-values leaves it
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubescapeScheduler.image.repository: quay.io/kubescape/kubectl
+      kubescapeScheduler.image.tag: "1.36.1"
+    asserts:
+      - notFailedTemplate: {}
+
+  - it: fails on kubescapeOpsTool 0.1.0-r1, which lacks create-operator-command
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubescapeOpsTool.image.tag: 0.1.0-r1
+    asserts:
+      - failedTemplate:
+          errorMessage: 'kubescapeOpsTool.image.tag 0.1.0-r1 lacks the create-operator-command subcommand the scan schedulers need; use 0.2.0-r1 or later. Upgrades with --reuse-values keep the previous chart''s default, so use --reset-then-reuse-values instead.'
