@@ -7,6 +7,22 @@ Callers (operator, node-agent) send a projected token mounted from
 apiauth.callerVolume.
 */}}
 
+{{/*
+Effective switch. global.apiAuth.enabled, unless the node-agent is pinned to a
+GKE Autopilot allowlist that does not include the token volume: then the mount
+would get the node-agent rejected by GKE Warden, so the chart renders the
+caller without a token and the servers with the check off.
+Usage: {{- if eq (include "apiauth.enabled" .) "true" }}
+*/}}
+{{- define "apiauth.enabled" -}}
+{{- $allowlist := .Values.nodeAgent.gke.allowlist -}}
+{{- if and .Values.global.apiAuth.enabled (not (and $allowlist.enabled (not $allowlist.supportsApiToken))) -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end -}}
+
 {{- define "apiauth.tokenDir" -}}
 /var/run/secrets/kubescape.io/api-token
 {{- end -}}
@@ -16,8 +32,8 @@ apiauth.callerVolume.
 {{- end -}}
 
 {{/*
-Server env. Always rendered so that global.apiAuth.enabled=false reaches the
-servers as KS_API_AUTH_DISABLED.
+Server env. Always rendered so that a disabled check (apiauth.enabled false)
+reaches the servers as KS_API_AUTH_DISABLED.
 Usage: {{- include "apiauth.serverEnv" . | nindent 12 }}
 */}}
 {{- define "apiauth.serverEnv" -}}
@@ -27,7 +43,7 @@ Usage: {{- include "apiauth.serverEnv" . | nindent 12 }}
   valueFrom:
     fieldRef:
       fieldPath: metadata.namespace
-{{- if not .Values.global.apiAuth.enabled }}
+{{- if ne (include "apiauth.enabled" .) "true" }}
 - name: KS_API_AUTH_DISABLED
   value: "true"
 {{- end }}
@@ -37,7 +53,7 @@ Usage: {{- include "apiauth.serverEnv" . | nindent 12 }}
 Projected service-account token volume for callers; empty when apiAuth is disabled.
 */}}
 {{- define "apiauth.callerVolume" -}}
-{{- if .Values.global.apiAuth.enabled -}}
+{{- if eq (include "apiauth.enabled" .) "true" -}}
 - name: kubescape-api-token
   projected:
     sources:
@@ -49,7 +65,7 @@ Projected service-account token volume for callers; empty when apiAuth is disabl
 {{- end -}}
 
 {{- define "apiauth.callerVolumeMount" -}}
-{{- if .Values.global.apiAuth.enabled -}}
+{{- if eq (include "apiauth.enabled" .) "true" -}}
 - name: kubescape-api-token
   mountPath: {{ include "apiauth.tokenDir" . }}
   readOnly: true

@@ -370,7 +370,9 @@ global:
   # (SubjectAccessReview). Only images that implement the check enforce it;
   # the images pinned in this chart version do not yet, so the APIs stay
   # unauthenticated until the next image bump. Set enabled: false to turn the
-  # check off on every compatible server.
+  # check off on every compatible server. The chart also turns it off on its
+  # own when nodeAgent.gke.allowlist is enabled with an allowlist that lacks
+  # the token mount (nodeAgent.gke.allowlist.supportsApiToken: false).
   apiAuth:
     enabled: true
     audience: kubescape.io
@@ -836,11 +838,14 @@ nodeAgent:
     allowlist:
       # When enabled, the node-agent is labeled to match `name`, AND the chart installs an
       # AllowlistSynchronizer that pulls that allowlist from Google's managed repo into the cluster.
-      # The 1.40-v2 allowlist predates the projected API token mount that global.apiAuth adds to
-      # the node-agent, so until the 1.43 allowlist is rolled out, set global.apiAuth.enabled=false
-      # on Autopilot clusters that enable this; otherwise GKE Warden rejects the node-agent pods.
       enabled: false
       name: armo-kubescape-node-agent-1.40-v2
+      # Whether `name` includes the node-agent's projected API token volume (global.apiAuth).
+      # Allowlists before 1.43 do not. While this is false and the allowlist is enabled, the chart
+      # renders the node-agent without the token mount and sets KS_API_AUTH_DISABLED on the
+      # servers, so upgrades keep their node-agent instead of being rejected by GKE Warden.
+      # Flip to true together with `name` once the 1.43 allowlist is rolled out.
+      supportsApiToken: false
       # AllowlistSynchronizer path. Leave empty to derive it from `name`
       # (ARMO/<name-without-version-suffix>/*); set explicitly to override.
       path: ""
