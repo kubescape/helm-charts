@@ -105,3 +105,104 @@ tests:
           path: spec.egress
       - notMatchRegexRaw:
           pattern: grype-offline-db
+  - it: derives proxy egress port from global.httpsProxy without invalid CIDR when IP is unset
+    template: kubevuln/networkpolicy.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.enabled: true
+      global.networkPolicy.createEgressRules: true
+      global.httpsProxy: "http://proxy.corp.internal:3128"
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            ports:
+              - port: 3128
+                protocol: TCP
+      - notMatchRegexRaw:
+          pattern: "cidr: /32"
+  - it: restricts proxy egress to pinned IP when global.networkPolicy.httpsProxyIP is set
+    template: kubevuln/networkpolicy.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.enabled: true
+      global.networkPolicy.createEgressRules: true
+      global.httpsProxy: "http://10.0.0.1:8080"
+      global.networkPolicy.httpsProxyIP: "10.0.0.1"
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            ports:
+              - port: 8080
+                protocol: TCP
+            to:
+              - ipBlock:
+                  cidr: 10.0.0.1/32
+  - it: defaults proxy egress port to 443 for https URLs without explicit port
+    template: node-agent/networkpolicy.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.enabled: true
+      global.networkPolicy.createEgressRules: true
+      global.networkPolicy.apiServerIP: 10.96.0.1
+      global.httpsProxy: "https://secure-proxy.corp.internal"
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            ports:
+              - port: 443
+                protocol: TCP
+      - notMatchRegexRaw:
+          pattern: "cidr: /32"
+  - it: handles IPv6 bracketed hosts with and without explicit ports
+    template: kubevuln/networkpolicy.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.enabled: true
+      global.networkPolicy.createEgressRules: true
+      global.httpsProxy: "http://[2001:db8::1]:8080"
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            ports:
+              - port: 8080
+                protocol: TCP
+  - it: defaults port to 80 for IPv6 bracketed hosts without explicit port in http scheme
+    template: kubevuln/networkpolicy.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.enabled: true
+      global.networkPolicy.createEgressRules: true
+      global.httpsProxy: "http://[2001:db8::1]"
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            ports:
+              - port: 80
+                protocol: TCP
+  - it: allows explicit httpsProxyPort override
+    template: node-agent/networkpolicy.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.enabled: true
+      global.networkPolicy.createEgressRules: true
+      global.httpsProxy: "http://proxy.corp.internal:8080"
+      global.networkPolicy.httpsProxyPort: 8888
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            ports:
+              - port: 8888
+                protocol: TCP
+

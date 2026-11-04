@@ -75,7 +75,8 @@ block egress to the API server.
 | `global.networkPolicy.createEgressRules` | `false` | Also restrict egress |
 | `global.networkPolicy.apiServerIP` | `""` | Pin the kube-apiserver egress rule to this IP (it no longer restricts storage ingress) |
 | `global.networkPolicy.apiServerPort` | `443` | kube-apiserver port for the egress rules, merged with the looked-up endpoint ports |
-| `global.networkPolicy.httpsProxyIP` / `httpsProxyPort` | `""` | Proxy address for the egress rules when `global.httpsProxy` is set |
+| `global.networkPolicy.httpsProxyIP` | `""` | Pin the proxy egress rule to this IP (optional; destination left open if empty) |
+| `global.networkPolicy.httpsProxyPort` | `""` | Proxy port for egress rules; derived from `global.httpsProxy` when unset |
 
 ## Troubleshooting
 
