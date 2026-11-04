@@ -1,0 +1,462 @@
+suite: Sandbox policy additive metadata and deny exception schemas
+templates:
+- sandbox-policy-crds/sandboxpolicy.crd.yaml
+- sandbox-policy-crds/clustersandboxpolicy.crd.yaml
+tests:
+- it: renders typed optional per-default mode and origin metadata
+  set:
+    unittest: true
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.exec.properties.defaultMode
+      value:
+        enum:
+        - audit
+        - enforce
+        minLength: 1
+        type: string
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.exec.properties.defaultOrigin
+      value:
+        type: string
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.file.properties.defaultMode
+      value:
+        enum:
+        - audit
+        - enforce
+        minLength: 1
+        type: string
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.file.properties.defaultModeByAccess
+      value:
+        properties:
+          chmod:
+            enum:
+            - audit
+            - enforce
+            minLength: 1
+            type: string
+          create:
+            enum:
+            - audit
+            - enforce
+            minLength: 1
+            type: string
+          delete:
+            enum:
+            - audit
+            - enforce
+            minLength: 1
+            type: string
+          execMap:
+            enum:
+            - audit
+            - enforce
+            minLength: 1
+            type: string
+          read:
+            enum:
+            - audit
+            - enforce
+            minLength: 1
+            type: string
+          rename:
+            enum:
+            - audit
+            - enforce
+            minLength: 1
+            type: string
+          write:
+            enum:
+            - audit
+            - enforce
+            minLength: 1
+            type: string
+        type: object
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.file.properties.defaultOrigin
+      value:
+        type: string
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.file.properties.defaultOriginByAccess
+      value:
+        properties:
+          chmod:
+            type: string
+          create:
+            type: string
+          delete:
+            type: string
+          execMap:
+            type: string
+          read:
+            type: string
+          rename:
+            type: string
+          write:
+            type: string
+        type: object
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.network.properties.defaultMode
+      value:
+        properties:
+          egress:
+            enum:
+            - audit
+            - enforce
+            minLength: 1
+            type: string
+          listen:
+            enum:
+            - audit
+            - enforce
+            minLength: 1
+            type: string
+        type: object
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.network.properties.defaultOrigin
+      value:
+        properties:
+          egress:
+            type: string
+          listen:
+            type: string
+        type: object
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.privilege.properties.defaultMode
+      value:
+        enum:
+        - audit
+        - enforce
+        minLength: 1
+        type: string
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.privilege.properties.defaultOrigin
+      value:
+        type: string
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.identity.properties.defaultMode
+      value:
+        enum:
+        - audit
+        - enforce
+        minLength: 1
+        type: string
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.identity.properties.defaultOrigin
+      value:
+        type: string
+- it: renders deny-only nonempty exceptions without an arbitrary count limit
+  set:
+    unittest: true
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.exec.properties.rules.items.anyOf
+      value:
+      - properties:
+          action:
+            enum:
+            - deny
+      - not:
+          required:
+          - except
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.exec.properties.rules.items.properties.except.type
+      value: array
+  - notExists:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.exec.properties.rules.items.properties.except.maxItems
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.exec.properties.rules.items.properties.except.items.type
+      value: object
+  - notExists:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.exec.properties.rules.items.properties.except.items.required
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.exec.properties.rules.items.properties.except.items.anyOf
+      value:
+      - properties:
+          actor:
+            anyOf:
+            - required:
+              - ancestor
+            - required:
+              - container
+            - required:
+              - fromImage
+            - required:
+              - path
+            - required:
+              - role
+            - required:
+              - uid
+        required:
+        - actor
+      - properties:
+          target:
+            anyOf:
+            - properties:
+                argv:
+                  anyOf:
+                  - required:
+                    - contains
+                  - required:
+                    - prefix
+                  - required:
+                    - stdinIsPipe
+              required:
+              - argv
+            - required:
+              - fromImage
+            - required:
+              - fsType
+            - required:
+              - path
+            - required:
+              - pathClass
+        required:
+        - target
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.file.properties.rules.items.anyOf
+      value:
+      - properties:
+          action:
+            enum:
+            - deny
+      - not:
+          required:
+          - except
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.file.properties.rules.items.properties.except.type
+      value: array
+  - notExists:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.file.properties.rules.items.properties.except.maxItems
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.file.properties.rules.items.properties.except.items.type
+      value: object
+  - notExists:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.file.properties.rules.items.properties.except.items.required
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.file.properties.rules.items.properties.except.items.anyOf
+      value:
+      - properties:
+          actor:
+            anyOf:
+            - required:
+              - ancestor
+            - required:
+              - container
+            - required:
+              - fromImage
+            - required:
+              - path
+            - required:
+              - role
+            - required:
+              - uid
+        required:
+        - actor
+      - properties:
+          target:
+            anyOf:
+            - required:
+              - access
+            - required:
+              - fromImage
+            - required:
+              - fsType
+            - required:
+              - path
+            - required:
+              - pathClass
+        required:
+        - target
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.network.properties.rules.items.anyOf
+      value:
+      - properties:
+          action:
+            enum:
+            - deny
+      - not:
+          required:
+          - except
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.network.properties.rules.items.properties.except.type
+      value: array
+  - notExists:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.network.properties.rules.items.properties.except.maxItems
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.network.properties.rules.items.properties.except.items.type
+      value: object
+  - notExists:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.network.properties.rules.items.properties.except.items.required
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.network.properties.rules.items.properties.except.items.anyOf
+      value:
+      - properties:
+          actor:
+            anyOf:
+            - required:
+              - ancestor
+            - required:
+              - container
+            - required:
+              - fromImage
+            - required:
+              - path
+            - required:
+              - role
+            - required:
+              - uid
+        required:
+        - actor
+      - properties:
+          target:
+            anyOf:
+            - required:
+              - cidr
+            - required:
+              - destClass
+            - required:
+              - direction
+            - required:
+              - dnsName
+            - required:
+              - ports
+            - required:
+              - proto
+        required:
+        - target
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.privilege.properties.rules.items.anyOf
+      value:
+      - properties:
+          action:
+            enum:
+            - deny
+      - not:
+          required:
+          - except
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.privilege.properties.rules.items.properties.except.type
+      value: array
+  - notExists:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.privilege.properties.rules.items.properties.except.maxItems
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.privilege.properties.rules.items.properties.except.items.type
+      value: object
+  - notExists:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.privilege.properties.rules.items.properties.except.items.required
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.privilege.properties.rules.items.properties.except.items.anyOf
+      value:
+      - properties:
+          actor:
+            anyOf:
+            - required:
+              - ancestor
+            - required:
+              - container
+            - required:
+              - fromImage
+            - required:
+              - path
+            - required:
+              - role
+            - required:
+              - uid
+        required:
+        - actor
+      - properties:
+          target:
+            anyOf:
+            - required:
+              - capability
+            - required:
+              - flags
+            - required:
+              - mountFsType
+            - required:
+              - pathClass
+            - required:
+              - syscall
+        required:
+        - target
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.identity.properties.rules.items.anyOf
+      value:
+      - properties:
+          action:
+            enum:
+            - deny
+      - not:
+          required:
+          - except
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.identity.properties.rules.items.properties.except.type
+      value: array
+  - notExists:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.identity.properties.rules.items.properties.except.maxItems
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.identity.properties.rules.items.properties.except.items.type
+      value: object
+  - notExists:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.identity.properties.rules.items.properties.except.items.required
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.identity.properties.rules.items.properties.except.items.anyOf
+      value:
+      - properties:
+          actor:
+            anyOf:
+            - required:
+              - ancestor
+            - required:
+              - container
+            - required:
+              - fromImage
+            - required:
+              - path
+            - required:
+              - role
+            - required:
+              - uid
+        required:
+        - actor
+      - properties:
+          target:
+            anyOf:
+            - required:
+              - envRead
+            - required:
+              - imds
+            - required:
+              - path
+            - required:
+              - pathClass
+        required:
+        - target
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.exec.properties.rules.items.properties.except.items.properties.target.properties.setRole.not
+      value: {}
+- it: keeps file metadata aligned with its default representation
+  set:
+    unittest: true
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  - equal:
+      path: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.file.x-kubernetes-validations
+      value:
+      - message: exactly one of default and defaultByAccess is required
+        rule: has(self.default) != has(self.defaultByAccess)
+      - message: scalar metadata requires scalar default
+        rule: has(self.default) || (!has(self.defaultMode) && !has(self.defaultOrigin))
+      - message: per-access metadata requires defaultByAccess
+        rule: has(self.defaultByAccess) || (!has(self.defaultModeByAccess) && !has(self.defaultOriginByAccess))
