@@ -148,6 +148,7 @@ tests:
       clusterName: kind-kind
       global.networkPolicy.enabled: true
       global.networkPolicy.createEgressRules: true
+      global.networkPolicy.apiServerIP: 10.96.0.1
       global.httpsProxy: "https://secure-proxy.corp.internal"
     asserts:
       - contains:
@@ -158,6 +159,36 @@ tests:
                 protocol: TCP
       - notMatchRegexRaw:
           pattern: "cidr: /32"
+  - it: handles IPv6 bracketed hosts with and without explicit ports
+    template: kubevuln/networkpolicy.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.enabled: true
+      global.networkPolicy.createEgressRules: true
+      global.httpsProxy: "http://[2001:db8::1]:8080"
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            ports:
+              - port: 8080
+                protocol: TCP
+  - it: defaults port to 80 for IPv6 bracketed hosts without explicit port in http scheme
+    template: kubevuln/networkpolicy.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.enabled: true
+      global.networkPolicy.createEgressRules: true
+      global.httpsProxy: "http://[2001:db8::1]"
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            ports:
+              - port: 80
+                protocol: TCP
   - it: allows explicit httpsProxyPort override
     template: node-agent/networkpolicy.yaml
     set:
