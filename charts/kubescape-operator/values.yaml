@@ -363,10 +363,14 @@ global:
   openshift: # Openshift Security Context Constraint support
     scc:
       enabled: false
-  # In-cluster API authentication: kubescape, kubevuln, synchronizer and the
-  # operator accept only callers presenting a service-account token for this
-  # audience (TokenReview) and authorize them with RBAC (SubjectAccessReview).
-  # Set enabled: false to turn the check off on every server.
+  # In-cluster API authentication: installs the RBAC, the projected caller
+  # tokens for this audience and the server env so that kubescape, kubevuln,
+  # synchronizer and the operator accept only callers presenting a
+  # service-account token (TokenReview) authorized by RBAC
+  # (SubjectAccessReview). Only images that implement the check enforce it;
+  # the images pinned in this chart version do not yet, so the APIs stay
+  # unauthenticated until the next image bump. Set enabled: false to turn the
+  # check off on every compatible server.
   apiAuth:
     enabled: true
     audience: kubescape.io
