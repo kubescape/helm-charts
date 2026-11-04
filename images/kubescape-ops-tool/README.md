@@ -81,6 +81,22 @@ so a CronJob left after uninstall does not retry an absent release.
 `--chart-repo-url`. `HELM_CACHE_HOME` / `HELM_CONFIG_HOME` / `HELM_DATA_HOME` are
 honoured and must be writable.
 
+### `create-operator-command`
+
+Reads a scan request body (`{"commands": [...]}`) and creates one `OperatorCommand`
+(`kubescape.io/v1alpha1`, `commandType: OperatorAPI`) per command, with the command as its
+base64 `body`. The `guid` is the command's `jobTracking.jobID`, or a fresh UUID when it has
+none. When an owner Job is known, the objects carry it as an owner reference, so they are
+garbage-collected with the Job history. Replaces
+`charts/kubescape-operator/scripts/create-operator-command.sh` with the same flags.
+
+| Flag | Default | Meaning |
+|---|---|---|
+| `-n`, `--namespace` | — | Namespace to create the objects in (required) |
+| `-f`, `--request-body` | — | Path to the request body JSON (required) |
+| `-g`, `--generate-name` | — | `metadata.generateName` prefix (required) |
+| `--owner-job` | `$JOB_NAME` | Job that owns the created objects |
+
 ## Development
 
 ```bash
