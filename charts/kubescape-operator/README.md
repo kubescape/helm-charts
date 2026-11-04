@@ -207,7 +207,7 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | customScheduling.nodeSelector | yaml | | Configure `nodeSelector` rules under the nodeSelector sub-section that will apply to all of the workloads managed by the kubescape-operator |
 | customScheduling.tolerations | yaml | | Define `tolerations` in the tolerations sub-section that will apply to all of the workloads managed by the kubescape-operator |
 | global.overrideRuntimePath | string | `""` | Override the runtime path for node-agent |
-| global.apiAuth.enabled | bool | `true` | Wire up service-account auth for the in-cluster HTTP APIs of kubescape, kubevuln, synchronizer and the operator: RBAC, projected tokens for the callers and the env the servers read. The check itself is enforced only by images that implement it (TokenReview + SubjectAccessReview); the images pinned in this chart version do not yet, so these APIs stay unauthenticated until the next image bump. Set to `false` to turn the check off on compatible images. On GKE Autopilot clusters that set `nodeAgent.gke.allowlist.enabled=true` with an allowlist that lacks the node-agent's projected token mount (`nodeAgent.gke.allowlist.supportsApiToken=false`, the case for the pinned `armo-kubescape-node-agent-1.40-v2`), the chart turns the check off by itself: the node-agent is rendered without the token mount, so GKE Warden keeps admitting it, and the servers get `KS_API_AUTH_DISABLED=true` |
+| global.apiAuth.enabled | bool | `true` | Require a service-account token (TokenReview) and an RBAC grant (SubjectAccessReview) on the in-cluster HTTP APIs of kubescape, kubevuln, synchronizer and the operator. The chart installs the RBAC, projected tokens for the callers and the env the servers read; the pinned images enforce the check. Set to `false` to turn the check off. On GKE Autopilot clusters that set `nodeAgent.gke.allowlist.enabled=true` with an allowlist that lacks the node-agent's projected token mount (`nodeAgent.gke.allowlist.supportsApiToken=false`, the case for the pinned `armo-kubescape-node-agent-1.40-v2`), the chart turns the check off by itself: the node-agent is rendered without the token mount, so GKE Warden keeps admitting it, and the servers get `KS_API_AUTH_DISABLED=true` |
 | nodeAgent.gke.allowlist.supportsApiToken | bool | `false` | Whether `nodeAgent.gke.allowlist.name` includes the node-agent's projected API token volume (allowlists from 1.43 on). Set to `true` together with a 1.43 `name` to keep `global.apiAuth` effective on GKE Autopilot |
 | global.apiAuth.audience | string | `"kubescape.io"` | Audience of the projected service-account tokens the callers send and the servers accept |
 | credentials.cloudSecret | string | `""` | Leave it blank for the default secret. If you have an existing secret, override with the existing secret name to avoid Helm creating a default one |
@@ -727,8 +727,8 @@ empty request list does not clear the installation list. Controls are omitted
 before evaluation and compliance scoring, using the CLI's `--exclude-controls`
 behavior. Exclusions narrow the assessment scope; they do not make checks pass.
 The default empty list changes nothing. Non-list, non-string, and blank values
-are rejected. The chart defaults select operator `v0.2.186` and Kubescape scanner
-`v4.0.17`, which include support for this setting. Keep a compatible pair if
+are rejected. The chart defaults select operator `v0.2.208` and Kubescape scanner
+`v4.0.18`, which include support for this setting. Keep a compatible pair if
 overriding the image versions.
 
 ### Azure Workload Identity for ambient ACR authentication
@@ -737,7 +737,7 @@ To configure Kubevuln to scan private Azure Container Registries (ACR) using Azu
 
 1. **Enable Azure Workload Identity on AKS**: Ensure the Azure Workload Identity mutating webhook and OIDC issuer are enabled on your AKS cluster.
 2. **Federate the ServiceAccount**: Establish federated identity credentials linking your Azure Managed Identity (or App Registration) with the `kubevuln` ServiceAccount in the release namespace (e.g. `system:serviceaccount:kubescape:kubevuln`). Ensure the identity has the `AcrPull` role on the target ACR.
-3. **Compatible Kubevuln image prerequisite**: Ambient ACR authentication requires the ACR provider introduced in [kubescape/kubevuln#1163](https://github.com/kubescape/kubevuln/pull/1163). The chart defaults to `kubevuln.image.tag: v0.3.575`, which includes ambient ACR authentication.
+3. **Compatible Kubevuln image prerequisite**: Ambient ACR authentication requires the ACR provider introduced in [kubescape/kubevuln#1163](https://github.com/kubescape/kubevuln/pull/1163). The chart defaults to `kubevuln.image.tag: v0.3.578`, which includes ambient ACR authentication.
 
 #### Example `values.yaml`
 
