@@ -171,10 +171,6 @@ warnings:
 {{- end }}
 {{- end -}}
 
-{{- define "kubescape.commandScripts.name" -}}
-{{- printf "%s-command-scripts" .Values.operator.name -}}
-{{- end }}
-
 {{- define "kubescape.certificates.strategy" -}}
 {{- $strategy := default "template" .Values.certificates.strategy -}}
 {{- if not (has $strategy (list "template" "initContainer")) -}}

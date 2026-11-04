@@ -13,13 +13,13 @@ tests:
     asserts:
       - equal:
           path: spec.template.spec.initContainers[0].image
-          value: quay.io/kubescape/kubescape-ops-tool:0.1.0-r1
+          value: quay.io/kubescape/kubescape-ops-tool:0.2.0-r1
       - equal:
           path: spec.template.spec.initContainers[0].command
           value: ["/usr/bin/kubescape-ops-tool", "certgen-create"]
       - equal:
           path: spec.template.spec.initContainers[1].image
-          value: quay.io/kubescape/kubescape-ops-tool:0.1.0-r1
+          value: quay.io/kubescape/kubescape-ops-tool:0.2.0-r1
       - equal:
           path: spec.template.spec.initContainers[1].command
           value: ["/usr/bin/kubescape-ops-tool", "certgen-patch"]
@@ -62,13 +62,13 @@ tests:
     asserts:
       - equal:
           path: spec.template.spec.initContainers[0].image
-          value: quay.io/kubescape/kubescape-ops-tool:0.1.0-r1
+          value: quay.io/kubescape/kubescape-ops-tool:0.2.0-r1
       - equal:
           path: spec.template.spec.initContainers[0].command
           value: ["/usr/bin/kubescape-ops-tool", "certgen-create"]
       - equal:
           path: spec.template.spec.initContainers[1].image
-          value: quay.io/kubescape/kubescape-ops-tool:0.1.0-r1
+          value: quay.io/kubescape/kubescape-ops-tool:0.2.0-r1
       - equal:
           path: spec.template.spec.initContainers[1].command
           value: ["/usr/bin/kubescape-ops-tool", "certgen-patch"]
@@ -105,7 +105,7 @@ tests:
     asserts:
       - equal:
           path: spec.jobTemplate.spec.template.spec.containers[0].image
-          value: quay.io/kubescape/kubescape-ops-tool:0.1.0-r1
+          value: quay.io/kubescape/kubescape-ops-tool:0.2.0-r1
       - equal:
           path: spec.jobTemplate.spec.template.spec.containers[0].command
           value: ["/usr/bin/kubescape-ops-tool", "rollout-restart"]
@@ -141,7 +141,7 @@ tests:
     asserts:
       - equal:
           path: spec.jobTemplate.spec.template.spec.containers[0].image
-          value: quay.io/kubescape/kubescape-ops-tool:0.1.0-r1
+          value: quay.io/kubescape/kubescape-ops-tool:0.2.0-r1
       - equal:
           path: spec.jobTemplate.spec.template.spec.containers[0].command
           value: ["/usr/bin/kubescape-ops-tool", "helm-upgrade"]
@@ -179,3 +179,39 @@ tests:
       - equal:
           path: spec.jobTemplate.spec.template.spec.containers[0].image
           value: quay.io/kubescape/kubescape-ops-tool:9.9.9-test
+
+  - it: propagates a kubescapeOpsTool tag override to the scan scheduler CronJobs
+    templates:
+      - kubescape-scheduler/cronjob.yaml
+      - kubevuln-scheduler/cronjob.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubescapeOpsTool.image.tag: 9.9.9-test
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].image
+          value: quay.io/kubescape/kubescape-ops-tool:9.9.9-test
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].command
+          value: ["/usr/bin/kubescape-ops-tool", "create-operator-command"]
+
+  - it: propagates a kubescapeOpsTool tag override to the operator's schedule templates
+    templates:
+      - operator/ks-recurring-cronjob-configmap.yaml
+      - operator/kv-recurring-cronjob-configmap.yaml
+      - operator/registry-scan-recurring-cronjob-configmap.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubescapeOpsTool.image.tag: 9.9.9-test
+    asserts:
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: 'image: "quay.io/kubescape/kubescape-ops-tool:9.9.9-test"'

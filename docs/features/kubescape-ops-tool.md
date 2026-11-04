@@ -9,13 +9,16 @@ The `kubescape-operator` chart previously used two separate images for operation
 - `quay.io/kubescape/helm-release-upgrader` — a bash entrypoint that shells out to the `helm`
   CLI to auto-upgrade the `kubescape` Helm release.
 
+The scan schedulers followed later: they ran `scripts/create-operator-command.sh` (bash,
+`kubectl` and `jq`) on `quay.io/kubescape/kubectl` to create `OperatorCommand` objects.
+
 Both are replaced by a single new image, `quay.io/kubescape/kubescape-ops-tool`, built as a
 statically-linked Go binary on `gcr.io/distroless/static-debian13:nonroot` (no shell, no package
 manager, no bundled `kubectl`/`helm`/`jq`/`openssl`). All of the behavior those tools previously
 provided via shell scripts and CLI calls is reimplemented natively in Go using `client-go`, the
 Helm Go SDK, and `crypto/x509`.
 
-The image exposes four subcommands, each mapped to one of the chart's existing usage sites:
+The image exposes five subcommands, each mapped to one of the chart's existing usage sites:
 
 | Subcommand | Replaces | Used by |
 |---|---|---|
@@ -23,6 +26,7 @@ The image exposes four subcommands, each mapped to one of the chart's existing u
 | `certgen-patch` | `scripts/certgen-patch.sh` | same as above |
 | `rollout-restart` | `kubectl rollout restart` via `sh -c` | `templates/grype-offline-db/cronjob.yaml` |
 | `helm-upgrade` | the `helm-release-upgrader` image's bash entrypoint | `templates/autoupdater/cronjob.yaml` |
+| `create-operator-command` | `scripts/create-operator-command.sh` | `templates/kubescape-scheduler/cronjob.yaml`, `templates/kubevuln-scheduler/cronjob.yaml`, and the operator's schedule templates `assets/{kubescape,kubevuln,registry-scan}-cronjob-full.yaml` |
 
 Source and build instructions live in `images/kubescape-ops-tool/`.
 
@@ -41,7 +45,7 @@ They are replaced by a single shared block:
 kubescapeOpsTool:
   image:
     repository: quay.io/kubescape/kubescape-ops-tool
-    tag: 0.1.0-r1
+    tag: 0.2.0-r1
     pullPolicy: IfNotPresent
 ```
 
@@ -53,6 +57,27 @@ its defaults reproduce the prior hardcoded behavior exactly, so a default instal
 
 The autoupdater cronjob's `securityContext` (`runAsUser`/`runAsGroup`/`fsGroup`) changed from
 `1000` to `65532` to match the new distroless nonroot image's UID.
+
+### Scan schedulers
+
+The scan schedulers moved to the same image later, with no deprecation shim either. These keys
+are removed:
+
+- `kubescapeScheduler.image`
+- `kubevulnScheduler.image`
+- `registryScanScheduler.image`
+
+The schedulers now use `kubescapeOpsTool.image` (`0.2.0-r1` or later, which has the
+`create-operator-command` subcommand). The `operator-command-scripts` ConfigMap and the
+`command-scripts` and `tmp-dir` volumes of the scheduler pods are gone.
+
+Helm updates the chart's own `kubescape-scheduler` and `kubevuln-scheduler` CronJobs. The
+operator renders the schedules it creates (`kubescape-cronjob-template`,
+`kubevuln-cronjob-template` and `registry-scan-cronjob-template`) only when it creates them.
+At startup, an operator with kubescape/operator#476 re-renders each of its schedules whose
+containers differ from the current template. The chart pins such an operator, so the operator
+restarts in the same upgrade and moves those schedules off the script. Pinning an older
+operator leaves them pointing at the removed ConfigMap, and their pods do not start.
 
 ## Autoupdater behavior
 
