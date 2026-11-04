@@ -60,8 +60,7 @@ The autoupdater cronjob's `securityContext` (`runAsUser`/`runAsGroup`/`fsGroup`)
 
 ### Scan schedulers
 
-The scan schedulers moved to the same image later, with no deprecation shim either. These keys
-are removed:
+The scan schedulers moved to the same image later. These keys are removed:
 
 - `kubescapeScheduler.image`
 - `kubevulnScheduler.image`
@@ -70,6 +69,14 @@ are removed:
 The schedulers now use `kubescapeOpsTool.image` (`0.2.0-r1` or later, which has the
 `create-operator-command` subcommand). The `operator-command-scripts` ConfigMap and the
 `command-scripts` and `tmp-dir` volumes of the scheduler pods are gone.
+
+Rendering fails, so a broken scheduler can't install silently, when:
+
+- one of the removed keys sets a `repository` other than the old default
+  `quay.io/kubescape/kubectl`. Move such an override (for example a private mirror) to
+  `kubescapeOpsTool.image`. The old default itself, which upgrades can carry over, is ignored.
+- `kubescapeOpsTool.image.tag` is `0.1.0-r1`, which has no `create-operator-command`. An upgrade
+  from 1.41.0 with `--reuse-values` keeps that old default; use `--reset-then-reuse-values`.
 
 Helm updates the chart's own `kubescape-scheduler` and `kubevuln-scheduler` CronJobs. The
 operator renders the schedules it creates (`kubescape-cronjob-template`,
