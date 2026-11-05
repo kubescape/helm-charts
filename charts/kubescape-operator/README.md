@@ -223,7 +223,6 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | kubescape.volumeMounts | object | `[]` | Additional volumeMounts for Kubescape |
 | kubescapeScheduler.podLabels| object | `{}` | Optional labels to add to the pods |
 | kubescapeScheduler.podAnnotations| object | `{}` | optional map of annotations to be applied to the Pods |
-| kubescapeScheduler.image.repository | string | `"quay.io/kubescape/kubectl"` | image that creates the `OperatorCommand` for the scheduled scan; it needs `kubectl`, `bash` and `jq` |
 | kubescapeScheduler.scanSchedule | string | `"0 0 * * *"` | scan schedule frequency. The scheduled scan CronJob is created when `capabilities.configurationScan` is `enable` |
 | kubescapeScheduler.volumes | object | `[]` | Additional volumes for scan scheduler |
 | kubescapeScheduler.volumeMounts | object | `[]` | Additional volumeMounts for scan scheduler |
@@ -242,7 +241,6 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | kubevuln.config.trustedVendors | list | `[]` | Distro identifiers treated as trusted vendors in adaptive mode. Empty uses kubevuln's built-in default set (echo, chainguard, wolfi, minimos). |
 | kubevulnScheduler.podLabels| object | `{}` | Optional labels to add to the pods |
 | kubevulnScheduler.podAnnotations| object | `{}` | optional map of annotations to be applied to the Pods |
-| kubevulnScheduler.image.repository | string | `"quay.io/kubescape/kubectl"` | image that creates the `OperatorCommand` for the scheduled scan; it needs `kubectl`, `bash` and `jq` |
 | kubevulnScheduler.scanSchedule | string | `"0 0 * * *"` | scan schedule frequency. The scheduled scan CronJob is created when `capabilities.vulnerabilityScan` is `enable` |
 | kubevulnScheduler.volumes | object | `[]` | Additional volumes for scan scheduler |
 | kubevulnScheduler.volumeMounts | object | `[]` | Additional volumeMounts for scan scheduler |
@@ -254,10 +252,18 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | operator.volumes | object | `[]` | Additional volumes for the web socket |
 | operator.volumeMounts | object | `[]` | Additional volumeMounts for the web socket |
 | storage.hostNetwork | bool | `false` | Bind the storage APIServer to the host network. Required when using a custom CNI where the control plane cannot reach pod IPs |
+| storage.containerProfileSqliteBackend | bool | `false` | Serve ContainerProfiles from storage's SQLite-native backend (payload and metadata in one transaction). Requires `storage.singleWriterEnabled`. Every storage start migrates existing profiles before serving; run `storage.containerProfileMigrationDryRun` once first. See [the storage doc](https://github.com/kubescape/storage/blob/main/docs/features/containerprofile-sqlite-backend.md) |
+| storage.containerProfileMigrationDryRun | bool | `false` | At storage start, log what the ContainerProfile migration to the SQLite backend would do, without writing anything. Cannot be combined with `storage.containerProfileSqliteBackend` |
+| storage.containerProfileMigrationStartupProbe.periodSeconds | int | `10` | With `storage.containerProfileSqliteBackend` or `storage.containerProfileMigrationDryRun` on, storage runs the migration before it serves `/livez`. A startup probe gives it up to `periodSeconds` x `failureThreshold` seconds (10 minutes by default) before the liveness probe can restart it |
+| storage.containerProfileMigrationStartupProbe.failureThreshold | int | `60` | See `storage.containerProfileMigrationStartupProbe.periodSeconds` |
 | storage.mcp.enabled | bool | `false` | Serve the read-only [MCP endpoint for AI agents](#mcp-endpoint-for-ai-agents) |
 | storage.mcp.readerClusterRoles | bool | `true` | With `storage.mcp.enabled`, create the `kubescape-mcp-reader` and `kubescape-mcp-runtime-reader` ClusterRoles |
 | nodeAgent.autoscaler.bottlerocketAutoDetect | bool | `true` | When the autoscaler is enabled, auto-detect AWS Bottlerocket nodes and set `seLinuxType: super_t` on the node-agent DaemonSet rendered for that node group, so you don't need to `--set nodeAgent.seLinuxType=super_t` manually |
 | nodeAgent.config.httpExporterConfig.tokenFile | string | `"/var/run/secrets/kubescape.io/api-token/token"` | Projected service-account token that node-agent and the operator send to the synchronizer HTTP endpoint (see `global.apiAuth`) |
+| nodeAgent.gVisorStart.enabled | bool | `false` | Experimental start collection on prepared self-managed Linux nodes. Requires an image containing node-agent #1069. See [setup and validation](../../docs/features/gvisor-start-source.md). |
+| nodeAgent.gVisorStart.socketDirectory | string | `/run/kubescape/gvisor` | Pre-created root-owned 0700 host directory. Mounted as `Directory`; the receiver uses `events.sock` inside it. |
+| nodeAgent.gVisorStart.runtimeEndpoint | string | `""` | Absolute local CRI socket path, or empty to reuse node-agent's detected runtime endpoint and existing mounts. |
+| nodeAgent.gVisorStart.runtimeHandler | string | `runsc` | Expected CRI runtime handler. |
 | nodeAgent.config.hostSensor.enabled | bool | `true` | Defines `KS_ENABLE_HOST_SCANNER` in kubescape to enable [host scanner feature](https://kubescape.io/docs/components/host-sensor/)
 | nodeAgent.config.tracers.capSys | string | `enable` | Allow capSys tracing when required by enabled node-agent features. Set to disable to force-disable the capSys tracer |
 | nodeAgent.config.tracers.dns | string | `enable` | Allow dns tracing when required by enabled node-agent features. Set to disable to force-disable the dns tracer |
@@ -727,7 +733,7 @@ empty request list does not clear the installation list. Controls are omitted
 before evaluation and compliance scoring, using the CLI's `--exclude-controls`
 behavior. Exclusions narrow the assessment scope; they do not make checks pass.
 The default empty list changes nothing. Non-list, non-string, and blank values
-are rejected. The chart defaults select operator `v0.2.208` and Kubescape scanner
+are rejected. The chart defaults select operator `v0.2.209` and Kubescape scanner
 `v4.0.19`, which include support for this setting. Keep a compatible pair if
 overriding the image versions.
 

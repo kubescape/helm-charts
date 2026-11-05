@@ -1,0 +1,230 @@
+suite: gVisor start prerequisites
+templates:
+- node-agent/configmap.yaml
+tests:
+- it: rejects absent OTLP export
+  set:
+    unittest: true
+    clusterName: gvisor-trial
+    capabilities.runtimeObservability: enable
+    nodeAgent.gVisorStart.enabled: true
+    nodeAgent.nodeSelector:
+      kubernetes.io/os: linux
+      kubescape.io/gvisor-start-ready: 'true'
+    configurations.otelUrl: ''
+  asserts:
+  - failedTemplate:
+      errorMessage: nodeAgent.gVisorStart requires configurations.otelUrl for OTLP
+        log export
+- it: rejects all-node selectors
+  set:
+    unittest: true
+    clusterName: gvisor-trial
+    capabilities.runtimeObservability: enable
+    nodeAgent.gVisorStart.enabled: true
+    nodeAgent.nodeSelector:
+      kubernetes.io/os: linux
+    configurations.otelUrl: http://otel-collector.monitoring.svc:4317
+  asserts:
+  - failedTemplate:
+      errorMessage: nodeAgent.gVisorStart requires a nodeAgent.nodeSelector label
+        for prepared nodes in addition to kubernetes.io/os
+- it: rejects Windows selectors
+  set:
+    unittest: true
+    clusterName: gvisor-trial
+    capabilities.runtimeObservability: enable
+    nodeAgent.gVisorStart.enabled: true
+    nodeAgent.nodeSelector:
+      kubernetes.io/os: windows
+      prepared: 'true'
+    configurations.otelUrl: http://otel-collector.monitoring.svc:4317
+  asserts:
+  - failedTemplate:
+      errorMessage: nodeAgent.gVisorStart requires nodeAgent.nodeSelector kubernetes.io/os=linux
+- it: rejects relative socket directories
+  set:
+    unittest: true
+    clusterName: gvisor-trial
+    capabilities.runtimeObservability: enable
+    nodeAgent.gVisorStart.enabled: true
+    nodeAgent.nodeSelector:
+      kubernetes.io/os: linux
+      kubescape.io/gvisor-start-ready: 'true'
+    configurations.otelUrl: http://otel-collector.monitoring.svc:4317
+    nodeAgent.gVisorStart.socketDirectory: relative
+  asserts:
+  - failedTemplate:
+      errorMessage: nodeAgent.gVisorStart.socketDirectory must be a clean absolute
+        dedicated host directory
+- it: rejects the host root directory
+  set:
+    unittest: true
+    clusterName: gvisor-trial
+    capabilities.runtimeObservability: enable
+    nodeAgent.gVisorStart.enabled: true
+    nodeAgent.nodeSelector:
+      kubernetes.io/os: linux
+      kubescape.io/gvisor-start-ready: 'true'
+    configurations.otelUrl: http://otel-collector.monitoring.svc:4317
+    nodeAgent.gVisorStart.socketDirectory: /
+  asserts:
+  - failedTemplate:
+      errorMessage: nodeAgent.gVisorStart.socketDirectory must be a clean absolute
+        dedicated host directory
+- it: rejects path traversal
+  set:
+    unittest: true
+    clusterName: gvisor-trial
+    capabilities.runtimeObservability: enable
+    nodeAgent.gVisorStart.enabled: true
+    nodeAgent.nodeSelector:
+      kubernetes.io/os: linux
+      kubescape.io/gvisor-start-ready: 'true'
+    configurations.otelUrl: http://otel-collector.monitoring.svc:4317
+    nodeAgent.gVisorStart.socketDirectory: /run/../run/gvisor
+  asserts:
+  - failedTemplate:
+      errorMessage: nodeAgent.gVisorStart.socketDirectory must be a clean absolute
+        dedicated host directory
+- it: rejects remote runtime endpoints
+  set:
+    unittest: true
+    clusterName: gvisor-trial
+    capabilities.runtimeObservability: enable
+    nodeAgent.gVisorStart.enabled: true
+    nodeAgent.nodeSelector:
+      kubernetes.io/os: linux
+      kubescape.io/gvisor-start-ready: 'true'
+    configurations.otelUrl: http://otel-collector.monitoring.svc:4317
+    nodeAgent.gVisorStart.runtimeEndpoint: tcp://runtime:1234
+  asserts:
+  - failedTemplate:
+      errorMessage: nodeAgent.gVisorStart.runtimeEndpoint must be empty or an absolute
+        local CRI socket path
+- it: rejects an empty runtime handler
+  set:
+    unittest: true
+    clusterName: gvisor-trial
+    capabilities.runtimeObservability: enable
+    nodeAgent.gVisorStart.enabled: true
+    nodeAgent.nodeSelector:
+      kubernetes.io/os: linux
+      kubescape.io/gvisor-start-ready: 'true'
+    configurations.otelUrl: http://otel-collector.monitoring.svc:4317
+    nodeAgent.gVisorStart.runtimeHandler: ''
+  asserts:
+  - failedTemplate:
+      errorMessage: nodeAgent.gVisorStart.runtimeHandler must be a nonempty runtime
+        handler name without whitespace
+- it: rejects autoscaler mode
+  set:
+    unittest: true
+    clusterName: gvisor-trial
+    capabilities.runtimeObservability: enable
+    nodeAgent.gVisorStart.enabled: true
+    nodeAgent.nodeSelector:
+      kubernetes.io/os: linux
+      kubescape.io/gvisor-start-ready: 'true'
+    configurations.otelUrl: http://otel-collector.monitoring.svc:4317
+    nodeAgent.autoscaler.enabled: true
+  asserts:
+  - failedTemplate:
+      errorMessage: nodeAgent.gVisorStart currently supports only the single DaemonSet
+        deployment
+- it: rejects multiple DaemonSets
+  set:
+    unittest: true
+    clusterName: gvisor-trial
+    capabilities.runtimeObservability: enable
+    nodeAgent.gVisorStart.enabled: true
+    nodeAgent.nodeSelector:
+      kubernetes.io/os: linux
+      kubescape.io/gvisor-start-ready: 'true'
+    configurations.otelUrl: http://otel-collector.monitoring.svc:4317
+    nodeAgent.multipleDaemonSets.enabled: true
+  asserts:
+  - failedTemplate:
+      errorMessage: nodeAgent.gVisorStart currently supports only the single DaemonSet
+        deployment
+- it: rejects conflicting extra config
+  set:
+    unittest: true
+    clusterName: gvisor-trial
+    capabilities.runtimeObservability: enable
+    nodeAgent.gVisorStart.enabled: true
+    nodeAgent.nodeSelector:
+      kubernetes.io/os: linux
+      kubescape.io/gvisor-start-ready: 'true'
+    configurations.otelUrl: http://otel-collector.monitoring.svc:4317
+    nodeAgent.config.extra.gVisorStart:
+      enabled: false
+  asserts:
+  - failedTemplate:
+      errorMessage: configure gVisorStart through nodeAgent.gVisorStart, not nodeAgent.config.extra.gVisorStart
+- it: rejects a duplicate generated volume
+  set:
+    unittest: true
+    clusterName: gvisor-trial
+    capabilities.runtimeObservability: enable
+    nodeAgent.gVisorStart.enabled: true
+    nodeAgent.nodeSelector:
+      kubernetes.io/os: linux
+      kubescape.io/gvisor-start-ready: 'true'
+    configurations.otelUrl: http://otel-collector.monitoring.svc:4317
+    nodeAgent.volumes:
+    - name: gvisor-start
+      emptyDir: {}
+  asserts:
+  - failedTemplate:
+      errorMessage: gvisor-start volume name and socketDirectory mountPath are reserved
+        while nodeAgent.gVisorStart is enabled
+- it: rejects a missing prepared-node selector
+  set:
+    unittest: true
+    clusterName: gvisor-trial
+    capabilities.runtimeObservability: enable
+    nodeAgent.gVisorStart.enabled: true
+    nodeAgent.nodeSelector: null
+    configurations.otelUrl: http://otel-collector.monitoring.svc:4317
+  asserts:
+  - failedTemplate:
+      errorMessage: nodeAgent.gVisorStart requires nodeAgent.nodeSelector to select
+        prepared Linux nodes
+- it: rejects a duplicate generated mount path
+  set:
+    unittest: true
+    clusterName: gvisor-trial
+    capabilities.runtimeObservability: enable
+    nodeAgent.gVisorStart.enabled: true
+    nodeAgent.nodeSelector:
+      kubernetes.io/os: linux
+      kubescape.io/gvisor-start-ready: 'true'
+    configurations.otelUrl: http://otel-collector.monitoring.svc:4317
+    nodeAgent.volumeMounts:
+    - name: custom
+      mountPath: /run/kubescape/gvisor
+  asserts:
+  - failedTemplate:
+      errorMessage: gvisor-start volume name and socketDirectory mountPath are reserved
+        while nodeAgent.gVisorStart is enabled
+- it: rejects enabling without node-agent
+  set:
+    unittest: true
+    clusterName: gvisor-trial
+    capabilities.runtimeObservability: disable
+    nodeAgent.gVisorStart.enabled: true
+    nodeAgent.nodeSelector:
+      kubernetes.io/os: linux
+      kubescape.io/gvisor-start-ready: 'true'
+    configurations.otelUrl: http://otel-collector.monitoring.svc:4317
+    capabilities.relevancy: disable
+    capabilities.networkPolicyService: disable
+    capabilities.runtimeDetection: disable
+    capabilities.malwareDetection: disable
+    capabilities.nodeProfileService: disable
+    capabilities.seccompProfileService: disable
+    capabilities.sandboxSeccomp: disable
+  asserts:
+  - failedTemplate:
+      errorMessage: nodeAgent.gVisorStart requires a capability that enables node-agent

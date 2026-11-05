@@ -2,6 +2,7 @@
 {{- $components := fromYaml (include "components" .) }}
 {{- $configurations := fromYaml (include "configurations" .) }}
 {{- $gates := (fromYaml (include "capabilities.gates" .)).effective }}
+{{- include "gvisorStart.validate" . }}
 {{- if $components.nodeAgent.enabled }}
 {{/* validate that either alertCRD.scopeClustered or alertCRD.scopeNamespaced defined when the capability enabled */}}
 {{- if eq .Values.capabilities.runtimeDetection "enable" }}
@@ -25,6 +26,14 @@ data:
         {{- $extra := default dict .Values.nodeAgent.config.extra }}
         {{- if $configurations.backendStorageEnabled }}
         "backendStorageEnabled": true,
+        {{- end }}
+        {{- if .Values.nodeAgent.gVisorStart.enabled }}
+        "gVisorStart": {
+          "enabled": true,
+          "socketPath": {{ printf "%s/events.sock" .Values.nodeAgent.gVisorStart.socketDirectory | toJson }},
+          "runtimeEndpoint": {{ .Values.nodeAgent.gVisorStart.runtimeEndpoint | toJson }},
+          "runtimeHandler": {{ .Values.nodeAgent.gVisorStart.runtimeHandler | toJson }}
+        },
         {{- end }}
         "applicationProfileServiceEnabled": {{ or $configurations.runtimeObservability (eq .Values.capabilities.relevancy "enable") }},
         "prometheusExporterEnabled": {{ eq .Values.nodeAgent.config.prometheusExporter "enable" }},

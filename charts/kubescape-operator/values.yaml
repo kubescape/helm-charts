@@ -47,7 +47,7 @@ certificates:
 kubescapeOpsTool:
   image:
     repository: quay.io/kubescape/kubescape-ops-tool
-    tag: "0.1.0-r1"
+    tag: "0.2.0-r1"
     pullPolicy: IfNotPresent
 
 # global logger name and level
@@ -351,7 +351,9 @@ global:
     apiServerIP: ""
     # -- kube-apiserver port allowed by the egress rules; the ports of the `default/kubernetes` EndpointSlice are added when it can be looked up
     apiServerPort: 443
+    # -- pin the HTTPS proxy egress rule to this IP (optional; destination left open if empty)
     httpsProxyIP: ""
+    # -- HTTPS proxy port allowed by the egress rules (defaults to the port parsed from global.httpsProxy)
     httpsProxyPort: ""
   overrideRuntimePath: ""
   overrideDefaultCaCertificates:
@@ -368,7 +370,7 @@ global:
   # synchronizer and the operator accept only callers presenting a
   # service-account token (TokenReview) authorized by RBAC
   # (SubjectAccessReview). Enforced by the images this chart pins (operator
-  # v0.2.208, kubescape v4.0.19, kubevuln v0.3.578, synchronizer v0.0.175,
+  # v0.2.209, kubescape v4.0.19, kubevuln v0.3.578, synchronizer v0.0.175,
   # node-agent v0.3.310 and later). Set enabled: false to turn the check off
   # on every server. The chart also turns it off on its
   # own when nodeAgent.gke.allowlist is enabled with an allowlist that lacks
@@ -474,7 +476,7 @@ operator:
   image:
     # -- source code: https://github.com/kubescape/operator
     repository: quay.io/kubescape/operator
-    tag: v0.2.208
+    tag: v0.2.209
     pullPolicy: IfNotPresent
 
   nodeSelector:
@@ -709,6 +711,14 @@ storage:
   singleWriterEnabled: true
   poolTimeout: "15s"
   sqliteBusyTimeout: "60s"
+  # -- Serve ContainerProfiles from storage's SQLite-native backend (payload and metadata in one transaction). Requires `singleWriterEnabled`. Every storage start migrates existing profiles before serving; run `containerProfileMigrationDryRun` once first. See [the storage doc](https://github.com/kubescape/storage/blob/main/docs/features/containerprofile-sqlite-backend.md)
+  containerProfileSqliteBackend: false
+  # -- At storage start, log what the ContainerProfile migration to the SQLite backend would do, without writing anything. Cannot be combined with `containerProfileSqliteBackend`
+  containerProfileMigrationDryRun: false
+  # -- With `containerProfileSqliteBackend` or `containerProfileMigrationDryRun` on, storage runs the migration before it serves `/livez`. This startup probe gives it up to `periodSeconds` x `failureThreshold` seconds (10 minutes by default) before the liveness probe can restart it
+  containerProfileMigrationStartupProbe:
+    periodSeconds: 10
+    failureThreshold: 60
 
   # -- queue manager configuration
   queueManagerEnabled: true # set to false to disable the queue manager, this will disable the queue manager for all kinds
@@ -764,6 +774,17 @@ nodeAgent:
     repository: quay.io/kubescape/node-agent
     tag: v0.3.310
     pullPolicy: IfNotPresent
+
+  # -- Experimental SecCheck container/start observations on prepared self-managed Linux nodes.
+  # Requires a node-agent image containing node-agent#1069; v0.3.308 predates it.
+  # See docs/features/gvisor-start-source.md before enabling.
+  gVisorStart:
+    enabled: false
+    # Pre-created root-owned 0700 host directory. Never created by the chart.
+    socketDirectory: /run/kubescape/gvisor
+    # Empty reuses node-agent's detected CRI endpoint and existing runtime mounts.
+    runtimeEndpoint: ""
+    runtimeHandler: runsc
 
   config:
     maxLearningPeriod: 24h # duration string
@@ -1260,12 +1281,6 @@ kubescapeScheduler:
   #     * * * * *
   # -- scan schedule frequency
   scanSchedule: "0 8 * * *"
-  image:
-    # -- runs scripts/create-operator-command.sh, which needs kubectl, bash and jq
-    repository: quay.io/kubescape/kubectl
-    tag: "1.36.1"
-    pullPolicy: IfNotPresent
-
   nodeSelector:
     kubernetes.io/os: linux
   priorityClassName: ""
@@ -1305,12 +1320,6 @@ kubevulnScheduler:
     #     │ │ │ │ │
   #     * * * * *
   scanSchedule: "0 0 * * *"
-  image:
-    # -- runs scripts/create-operator-command.sh, which needs kubectl, bash and jq
-    repository: quay.io/kubescape/kubectl
-    tag: "1.36.1"
-    pullPolicy: IfNotPresent
-
   nodeSelector:
     kubernetes.io/os: linux
   priorityClassName: ""
@@ -1352,12 +1361,6 @@ registryScanScheduler:
   #     * * * * *
   # -- scan schedule frequency
   scanSchedule: "0 0 * * *"
-  image:
-    # -- runs scripts/create-operator-command.sh, which needs kubectl, bash and jq
-    repository: quay.io/kubescape/kubectl
-    tag: "1.36.1"
-    pullPolicy: IfNotPresent
-
   nodeSelector:
     kubernetes.io/os: linux
 

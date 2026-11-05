@@ -14,10 +14,38 @@ port behind OpenShift's DNS Service, which egress policies see after the Service
     - port: 5353
       protocol: TCP
 {{- if ne .Values.global.httpsProxy "" }}
+{{- $proxyPort := .Values.global.networkPolicy.httpsProxyPort -}}
+{{- if not $proxyPort -}}
+  {{- $rawProxy := .Values.global.httpsProxy -}}
+  {{- if not (or (hasPrefix "http://" $rawProxy) (hasPrefix "https://" $rawProxy)) -}}
+    {{- $rawProxy = printf "http://%s" $rawProxy -}}
+  {{- end -}}
+  {{- $parsed := urlParse $rawProxy -}}
+  {{- if and $parsed.host (hasPrefix "[" $parsed.host) -}}
+    {{- if contains "]:" $parsed.host -}}
+      {{- $proxyPort = int (last (splitList "]:" $parsed.host)) -}}
+    {{- else if eq $parsed.scheme "https" -}}
+      {{- $proxyPort = 443 -}}
+    {{- else if eq $parsed.scheme "http" -}}
+      {{- $proxyPort = 80 -}}
+    {{- end -}}
+  {{- else if and $parsed.host (contains ":" $parsed.host) -}}
+    {{- $proxyPort = int (last (splitList ":" $parsed.host)) -}}
+  {{- else if eq $parsed.scheme "https" -}}
+    {{- $proxyPort = 443 -}}
+  {{- else if eq $parsed.scheme "http" -}}
+    {{- $proxyPort = 80 -}}
+  {{- end -}}
+{{- end -}}
+{{- if $proxyPort }}
 - ports:
-    - port: {{ .Values.global.networkPolicy.httpsProxyPort }}
+    - port: {{ $proxyPort }}
       protocol: TCP
+{{- if .Values.global.networkPolicy.httpsProxyIP }}
   to:
     - ipBlock:
         cidr: {{ .Values.global.networkPolicy.httpsProxyIP }}/32
 {{- end }}
+{{- end }}
+{{- end }}
+

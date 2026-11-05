@@ -1,0 +1,181 @@
+suite: experimental gVisor start deployment
+templates:
+- configs/components-configmap.yaml
+- configs/cloudapi-configmap.yaml
+- configs/cloud-secret.yaml
+- configs/matchingRules-configmap.yaml
+- node-agent/configmap.yaml
+- node-agent/daemonset.yaml
+- node-agent/template-configmap.yaml
+- operator/configmap.yaml
+- proxy-support/proxy-secret.yaml
+- storage/configmap.yaml
+- synchronizer/configmap.yaml
+tests:
+- it: omits gVisor config by default
+  template: node-agent/configmap.yaml
+  set:
+    unittest: true
+    clusterName: gvisor-trial
+    capabilities.runtimeObservability: enable
+  asserts:
+  - notMatchRegex:
+      path: data["config.json"]
+      pattern: '"gVisorStart"'
+- it: adds no socket directory mount by default
+  template: node-agent/daemonset.yaml
+  set:
+    unittest: true
+    clusterName: gvisor-trial
+    capabilities.runtimeObservability: enable
+  asserts:
+  - notContains:
+      path: spec.template.spec.volumes
+      content:
+        name: gvisor-start
+  - notContains:
+      path: spec.template.spec.containers[0].volumeMounts
+      content:
+        name: gvisor-start
+- it: renders the enabled runtime config
+  template: node-agent/configmap.yaml
+  set:
+    unittest: true
+    clusterName: gvisor-trial
+    capabilities.runtimeObservability: enable
+    nodeAgent.gVisorStart.enabled: true
+    nodeAgent.nodeSelector:
+      kubernetes.io/os: linux
+      kubescape.io/gvisor-start-ready: 'true'
+    configurations.otelUrl: http://otel-collector.monitoring.svc:4317
+  asserts:
+  - matchRegex:
+      path: data["config.json"]
+      pattern: '"gVisorStart": \{'
+  - matchRegex:
+      path: data["config.json"]
+      pattern: '"enabled": true'
+  - matchRegex:
+      path: data["config.json"]
+      pattern: '"socketPath": "/run/kubescape/gvisor/events.sock"'
+  - matchRegex:
+      path: data["config.json"]
+      pattern: '"runtimeEndpoint": ""'
+  - matchRegex:
+      path: data["config.json"]
+      pattern: '"runtimeHandler": "runsc"'
+- it: mounts a pre-existing host directory on selected Linux nodes
+  template: node-agent/daemonset.yaml
+  set:
+    unittest: true
+    clusterName: gvisor-trial
+    capabilities.runtimeObservability: enable
+    nodeAgent.gVisorStart.enabled: true
+    nodeAgent.nodeSelector:
+      kubernetes.io/os: linux
+      kubescape.io/gvisor-start-ready: 'true'
+    configurations.otelUrl: http://otel-collector.monitoring.svc:4317
+  asserts:
+  - contains:
+      path: spec.template.spec.volumes
+      content:
+        name: gvisor-start
+        hostPath:
+          path: /run/kubescape/gvisor
+          type: Directory
+  - contains:
+      path: spec.template.spec.containers[0].volumeMounts
+      content:
+        name: gvisor-start
+        mountPath: /run/kubescape/gvisor
+        readOnly: false
+  - equal:
+      path: spec.template.spec.nodeSelector
+      value:
+        kubernetes.io/os: linux
+        kubescape.io/gvisor-start-ready: 'true'
+  - contains:
+      path: spec.template.spec.containers[0].env
+      content:
+        name: OTEL_COLLECTOR_SVC
+        value: http://otel-collector.monitoring.svc:4317
+  - contains:
+      path: spec.template.spec.volumes
+      content:
+        name: kubescape-api-token
+        projected:
+          sources:
+          - serviceAccountToken:
+              audience: kubescape.io
+              expirationSeconds: 3600
+              path: token
+  - contains:
+      path: spec.template.spec.containers[0].volumeMounts
+      content:
+        name: kubescape-api-token
+        mountPath: /var/run/secrets/kubescape.io/api-token
+        readOnly: true
+- it: forwards custom socket directory and K3s endpoint
+  template: node-agent/configmap.yaml
+  set:
+    unittest: true
+    clusterName: gvisor-trial
+    capabilities.runtimeObservability: enable
+    nodeAgent.gVisorStart.enabled: true
+    nodeAgent.nodeSelector:
+      kubernetes.io/os: linux
+      kubescape.io/gvisor-start-ready: 'true'
+    configurations.otelUrl: http://otel-collector.monitoring.svc:4317
+    nodeAgent.gVisorStart.socketDirectory: /opt/gvisor-private
+    nodeAgent.gVisorStart.runtimeEndpoint: /run/k3s/containerd/containerd.sock
+    nodeAgent.gVisorStart.runtimeHandler: runsc-trial
+  asserts:
+  - matchRegex:
+      path: data["config.json"]
+      pattern: '"socketPath": "/opt/gvisor-private/events.sock"'
+  - matchRegex:
+      path: data["config.json"]
+      pattern: '"runtimeEndpoint": "/run/k3s/containerd/containerd.sock"'
+  - matchRegex:
+      path: data["config.json"]
+      pattern: '"runtimeHandler": "runsc-trial"'
+- it: uses the custom directory for the host mount too
+  template: node-agent/daemonset.yaml
+  set:
+    unittest: true
+    clusterName: gvisor-trial
+    capabilities.runtimeObservability: enable
+    nodeAgent.gVisorStart.enabled: true
+    nodeAgent.nodeSelector:
+      kubernetes.io/os: linux
+      kubescape.io/gvisor-start-ready: 'true'
+    configurations.otelUrl: http://otel-collector.monitoring.svc:4317
+    nodeAgent.gVisorStart.socketDirectory: /opt/gvisor-private
+    nodeAgent.gVisorStart.runtimeEndpoint: /run/k3s/containerd/containerd.sock
+    nodeAgent.gVisorStart.runtimeHandler: runsc-trial
+  asserts:
+  - contains:
+      path: spec.template.spec.volumes
+      content:
+        name: gvisor-start
+        hostPath:
+          path: /opt/gvisor-private
+          type: Directory
+  - contains:
+      path: spec.template.spec.containers[0].volumeMounts
+      content:
+        name: gvisor-start
+        mountPath: /opt/gvisor-private
+        readOnly: false
+- it: ignores incomplete experimental settings while disabled
+  template: node-agent/configmap.yaml
+  set:
+    unittest: true
+    clusterName: gvisor-trial
+    nodeAgent.gVisorStart.enabled: false
+    nodeAgent.gVisorStart.socketDirectory: invalid
+    nodeAgent.gVisorStart.runtimeHandler: ''
+  asserts:
+  - notMatchRegex:
+      path: data["config.json"]
+      pattern: '"gVisorStart"'

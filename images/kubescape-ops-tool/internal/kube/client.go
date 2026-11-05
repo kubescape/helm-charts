@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -29,4 +30,8 @@ func Kubernetes(cfg *rest.Config) (*kubernetes.Clientset, error) {
 
 func Aggregator(cfg *rest.Config) (*aggregator.Clientset, error) {
 	return aggregator.NewForConfig(cfg)
+}
+
+func Dynamic(cfg *rest.Config) (dynamic.Interface, error) {
+	return dynamic.NewForConfig(cfg)
 }
