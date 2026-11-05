@@ -1,10 +1,13 @@
 suite: Storage ContainerProfile SQLite backend
-templates:
-  - storage/configmap.yaml
 set:
+  unittest: true
   clusterName: test
+capabilities:
+  apiVersions:
+    - batch/v1
 tests:
   - it: renders neither key by default
+    template: storage/configmap.yaml
     asserts:
       - notMatchRegex:
           path: data["config.json"]
@@ -14,6 +17,7 @@ tests:
           pattern: containerProfileMigrationDryRun
 
   - it: renders the migration dry run
+    template: storage/configmap.yaml
     set:
       storage.containerProfileMigrationDryRun: true
     asserts:
@@ -25,6 +29,7 @@ tests:
           pattern: containerProfileSqliteBackend
 
   - it: renders the backend with the single writer
+    template: storage/configmap.yaml
     set:
       storage.containerProfileSqliteBackend: true
     asserts:
@@ -39,6 +44,7 @@ tests:
           pattern: containerProfileMigrationDryRun
 
   - it: renders valid JSON with the backend on
+    template: storage/configmap.yaml
     set:
       storage.containerProfileSqliteBackend: true
       storage.sqliteBusyTimeout: ""
@@ -54,7 +60,7 @@ tests:
       storage.singleWriterEnabled: false
     asserts:
       - failedTemplate:
-          errorMessage: "storage.containerProfileSqliteBackend requires storage.singleWriterEnabled"
+          errorPattern: "storage.containerProfileSqliteBackend requires storage.singleWriterEnabled$"
 
   - it: rejects the backend together with the dry run
     set:
@@ -62,4 +68,39 @@ tests:
       storage.containerProfileMigrationDryRun: true
     asserts:
       - failedTemplate:
-          errorMessage: "storage.containerProfileMigrationDryRun cannot be combined with storage.containerProfileSqliteBackend: the dry run is taken before the backend is turned on"
+          errorPattern: "storage.containerProfileMigrationDryRun cannot be combined with storage.containerProfileSqliteBackend: the dry run is taken before the backend is turned on$"
+
+  - it: adds no startup probe by default
+    template: storage/deployment.yaml
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].startupProbe
+
+  - it: adds a startup probe for the migration dry run
+    template: storage/deployment.yaml
+    set:
+      storage.containerProfileMigrationDryRun: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe
+          value:
+            httpGet:
+              path: /livez
+              port: 8443
+              scheme: HTTPS
+            periodSeconds: 10
+            failureThreshold: 60
+
+  - it: adds a configurable startup probe for the backend
+    template: storage/deployment.yaml
+    set:
+      storage.containerProfileSqliteBackend: true
+      storage.containerProfileMigrationStartupProbe.periodSeconds: 5
+      storage.containerProfileMigrationStartupProbe.failureThreshold: 240
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.periodSeconds
+          value: 5
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.failureThreshold
+          value: 240
