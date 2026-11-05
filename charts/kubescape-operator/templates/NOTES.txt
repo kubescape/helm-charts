@@ -22,7 +22,7 @@ To change the schedule, edit `.spec.schedule`:
 {{- end }}
 
 {{ if eq (include "apiauth.enabled" .) "true" -}}
-global.apiAuth is enabled: RBAC and projected service-account tokens (audience {{ .Values.global.apiAuth.audience }}) for the in-cluster Kubescape APIs are installed. Only images that implement the check enforce it; the images pinned in this chart version do not yet, so these APIs remain unauthenticated until the next image bump. Set global.apiAuth.enabled=false to turn the check off on compatible images.
+The in-cluster Kubescape APIs require a service-account token (audience {{ .Values.global.apiAuth.audience }}) authorized by RBAC; set global.apiAuth.enabled=false to turn this off. External callers should create OperatorCommand objects instead of calling the APIs (kubescape CLI v4.0.19 and later do).
 {{- else if .Values.global.apiAuth.enabled }}
 WARNING: in-cluster API auth (global.apiAuth) is turned off because nodeAgent.gke.allowlist is enabled with {{ .Values.nodeAgent.gke.allowlist.name }}, which does not include the node-agent's projected API token mount (nodeAgent.gke.allowlist.supportsApiToken=false). The node-agent is rendered without the token and the servers with KS_API_AUTH_DISABLED. Move to the 1.43 allowlist and set supportsApiToken=true to enable it.
 {{- end }}
