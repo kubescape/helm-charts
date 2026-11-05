@@ -1,0 +1,21 @@
+# Experimental self-managed Linux setup. Read docs/features/gvisor-start-source.md.
+clusterName: gvisor-trial
+capabilities:
+  runtimeObservability: enable
+configurations:
+  otelUrl: http://otel-collector.monitoring.svc:4317
+nodeAgent:
+  image:
+    # Replace with an image you built/verified to contain node-agent#1069.
+    # The chart's default v0.3.308 does not contain that integration.
+    repository: your-registry.example/node-agent
+    tag: your-tested-gvisor-tag
+  nodeSelector:
+    kubernetes.io/os: linux
+    kubescape.io/gvisor-start-ready: "true"
+  gVisorStart:
+    enabled: true
+    socketDirectory: /run/kubescape/gvisor
+    # K3s example. Use /run/containerd/containerd.sock for standard containerd.
+    runtimeEndpoint: /run/k3s/containerd/containerd.sock
+    runtimeHandler: runsc
