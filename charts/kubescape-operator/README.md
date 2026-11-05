@@ -728,7 +728,7 @@ before evaluation and compliance scoring, using the CLI's `--exclude-controls`
 behavior. Exclusions narrow the assessment scope; they do not make checks pass.
 The default empty list changes nothing. Non-list, non-string, and blank values
 are rejected. The chart defaults select operator `v0.2.208` and Kubescape scanner
-`v4.0.18`, which include support for this setting. Keep a compatible pair if
+`v4.0.19`, which include support for this setting. Keep a compatible pair if
 overriding the image versions.
 
 ### Azure Workload Identity for ambient ACR authentication
