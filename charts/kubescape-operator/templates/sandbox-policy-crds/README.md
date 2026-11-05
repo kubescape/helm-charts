@@ -8,10 +8,12 @@ schemas does not enable enforcement.
 They live in `templates/` so Helm upgrades can update their schemas. Unlike
 node-agent sensing CRDs, all four carry `helm.sh/resource-policy: keep`: deleting
 policy CRDs also deletes authored policies, classes and node status. The annotation
-asks Helm to retain them when an uninstall, upgrade or rollback would delete them;
-it does not protect against direct Kubernetes deletion. Retention can leave
-orphaned resources, so reinstalling or changing release ownership needs deliberate
-handling. See the chart README's upgrade guidance before migrating existing CRDs;
+asks Helm to retain them when an uninstall, upgrade or rollback would delete them.
+The `argocd.argoproj.io/sync-options: Prune=false` annotation separately prevents
+Argo CD from pruning them when a rollback removes these templates from the desired
+chart. It does not protect against direct Kubernetes deletion. Retention can leave
+orphaned resources and an Argo CD Application OutOfSync after rollback, so
+reinstalling or changing release ownership needs deliberate handling. See the chart README's upgrade guidance before migrating existing CRDs;
 rendered ownership metadata does not automatically adopt existing resources.
 
 ## Updating the schemas
