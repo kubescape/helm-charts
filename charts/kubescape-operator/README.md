@@ -86,8 +86,8 @@ controller simply to make an upgrade pass.
 For installations that previously obtained these definitions from `crds/`, the
 first upgrade to the templated version may require explicit metadata adoption:
 
-1. Inventory and back up the four definitions and their existing custom resources
-   with an unstructured tool such as `kubectl`. Inspect all four definitions'
+1. Inventory and back up the existing definitions and their custom resources
+   with an unstructured tool such as `kubectl`. Inspect each existing definition's
    `app.kubernetes.io/managed-by` label and `meta.helm.sh/release-name` /
    `meta.helm.sh/release-namespace` annotations, and confirm the intended release
    with `helm list --all-namespaces`. Stop if ownership belongs elsewhere.
@@ -110,6 +110,8 @@ first upgrade to the templated version may require explicit metadata adoption:
    RELEASE_NAMESPACE=kubescape
    for crd in sandboxpolicies.kubescape.io clustersandboxpolicies.kubescape.io \
      sandboxpolicyclasses.kubescape.io sandboxpolicynodestatuses.kubescape.io; do
+     existing=$(kubectl get crd "$crd" --ignore-not-found -o name)
+     [ -n "$existing" ] || continue # Helm creates definitions not yet installed.
      kubectl label crd "$crd" app.kubernetes.io/managed-by=Helm
      kubectl annotate crd "$crd" \
        meta.helm.sh/release-name="$RELEASE" \
