@@ -1,0 +1,65 @@
+suite: Storage ContainerProfile SQLite backend
+templates:
+  - storage/configmap.yaml
+set:
+  clusterName: test
+tests:
+  - it: renders neither key by default
+    asserts:
+      - notMatchRegex:
+          path: data["config.json"]
+          pattern: containerProfileSqliteBackend
+      - notMatchRegex:
+          path: data["config.json"]
+          pattern: containerProfileMigrationDryRun
+
+  - it: renders the migration dry run
+    set:
+      storage.containerProfileMigrationDryRun: true
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"containerProfileMigrationDryRun": true,'
+      - notMatchRegex:
+          path: data["config.json"]
+          pattern: containerProfileSqliteBackend
+
+  - it: renders the backend with the single writer
+    set:
+      storage.containerProfileSqliteBackend: true
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"singleWriterEnabled": true,'
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"containerProfileSqliteBackend": true,'
+      - notMatchRegex:
+          path: data["config.json"]
+          pattern: containerProfileMigrationDryRun
+
+  - it: renders valid JSON with the backend on
+    set:
+      storage.containerProfileSqliteBackend: true
+      storage.sqliteBusyTimeout: ""
+      storage.poolTimeout: ""
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"containerProfileSqliteBackend": true,\s+("tls|"serverBindPort)'
+
+  - it: rejects the backend without the single writer
+    set:
+      storage.containerProfileSqliteBackend: true
+      storage.singleWriterEnabled: false
+    asserts:
+      - failedTemplate:
+          errorMessage: "storage.containerProfileSqliteBackend requires storage.singleWriterEnabled"
+
+  - it: rejects the backend together with the dry run
+    set:
+      storage.containerProfileSqliteBackend: true
+      storage.containerProfileMigrationDryRun: true
+    asserts:
+      - failedTemplate:
+          errorMessage: "storage.containerProfileMigrationDryRun cannot be combined with storage.containerProfileSqliteBackend: the dry run is taken before the backend is turned on"
