@@ -38,6 +38,18 @@ data:
       {{- if .Values.storage.sqliteBusyTimeout }}
       "sqliteBusyTimeout": "{{ .Values.storage.sqliteBusyTimeout }}",
       {{- end }}
+      {{- if .Values.storage.containerProfileSqliteBackend }}
+      {{- if .Values.storage.containerProfileMigrationDryRun }}
+      {{- fail "storage.containerProfileMigrationDryRun cannot be combined with storage.containerProfileSqliteBackend: the dry run is taken before the backend is turned on" }}
+      {{- end }}
+      {{- if and (hasKey .Values.storage "singleWriterEnabled") (not .Values.storage.singleWriterEnabled) }}
+      {{- fail "storage.containerProfileSqliteBackend requires storage.singleWriterEnabled" }}
+      {{- end }}
+      "containerProfileSqliteBackend": true,
+      {{- end }}
+      {{- if .Values.storage.containerProfileMigrationDryRun }}
+      "containerProfileMigrationDryRun": true,
+      {{- end }}
       {{- if .Values.storage.mtls.enabled }}
       "tlsClientCaFile": "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
       "tlsServerCertFile": "/etc/storage-ca-certificates/tls.crt",
