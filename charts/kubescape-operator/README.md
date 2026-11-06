@@ -1,6 +1,6 @@
 # Kubescape Operator
 
-![Version: 1.42.0](https://img.shields.io/badge/Version-1.42.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 1.41.0](https://img.shields.io/badge/AppVersion-1.41.0-informational?style=flat-square)
+![Version: 1.42.0](https://img.shields.io/badge/Version-1.42.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 1.42.0](https://img.shields.io/badge/AppVersion-1.42.0-informational?style=flat-square)
 
 [Kubescape operator documentation](https://kubescape.io/docs/install-operator/)
 
@@ -734,7 +734,7 @@ before evaluation and compliance scoring, using the CLI's `--exclude-controls`
 behavior. Exclusions narrow the assessment scope; they do not make checks pass.
 The default empty list changes nothing. Non-list, non-string, and blank values
 are rejected. The chart defaults select operator `v0.2.209` and Kubescape scanner
-`v4.0.19`, which include support for this setting. Keep a compatible pair if
+`v4.0.20`, which include support for this setting. Keep a compatible pair if
 overriding the image versions.
 
 ### Azure Workload Identity for ambient ACR authentication
