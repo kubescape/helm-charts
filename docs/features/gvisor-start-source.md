@@ -123,7 +123,9 @@ existing node-agent on the same nodes. Do not duplicate the generated
    rejection/drop/retry counts. Neither submission nor a connected state proves
    delivery completeness. A disconnected socket is not a container stop.
 
-These live chart-installation checks remain pending. Helm render,
+The [6 November ARM64 trial](../experiments/gvisor-helm-20261106/README.md)
+records these checks for one self-managed K3s setup. Broader environment
+validation remains pending. Helm render,
 unit and lint checks do not establish successful runsc/CRI/OTLP collection.
 There is no actor/session attribution, behavioral enforcement or stop/egress
 collection added here. The earlier missing-start investigation remains unresolved.
