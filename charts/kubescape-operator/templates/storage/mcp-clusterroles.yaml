@@ -14,7 +14,11 @@ metadata:
 rules:
   - apiGroups: ["spdx.softwarecomposition.kubescape.io"]
     resources: ["mcpservers/mcp"]
-    verbs: ["create"]
+    # create: an MCP call is a POST. get: MCP clients built on the TypeScript
+    # SDK also open an optional GET stream after connecting. Storage answers it
+    # with 405, which those clients accept; without get, kube-apiserver answers
+    # 403 and the client drops the connection before it lists the tools.
+    verbs: ["create", "get"]
   - apiGroups: ["spdx.softwarecomposition.kubescape.io"]
     resources: ["vulnerabilitymanifests", "workloadconfigurationscans"]
     verbs: ["get", "list"]
