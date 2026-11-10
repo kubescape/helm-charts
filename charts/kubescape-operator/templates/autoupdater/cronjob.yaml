@@ -26,6 +26,16 @@ spec:
             {{- with .Values.helmReleaseUpgrader.podLabels }}{{- toYaml . | nindent 12 }}{{- end }}
         spec:
           serviceAccountName: {{ .Values.helmReleaseUpgrader.name }}
+          {{- if .Values.imagePullSecrets }}
+          imagePullSecrets:
+          {{- if kindIs "string" .Values.imagePullSecrets }}
+          - name: {{ .Values.imagePullSecrets }}
+          {{- else }}
+          {{- range .Values.imagePullSecrets }}
+          - name: {{ . }}
+          {{- end }}
+          {{- end }}
+          {{- end }}
           securityContext:
             runAsNonRoot: true
             # User and Group IDs of the distroless `nonroot` user in the kubescape-ops-tool image
