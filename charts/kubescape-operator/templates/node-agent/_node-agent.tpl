@@ -500,14 +500,7 @@ securityContext:
     type: Unconfined
   {{- end }}
 {{- if .Values.imagePullSecrets }}
-imagePullSecrets:
-{{- if kindIs "string" .Values.imagePullSecrets }}
-- name: {{ .Values.imagePullSecrets }}
-{{- else }}
-{{- range .Values.imagePullSecrets }}
-- name: {{ . }}
-{{- end }}
-{{- end }}
+{{ include "kubescape-operator.imagePullSecrets" . }}
 {{- end }}
 {{- if .Values.nodeAgent.priorityClassName }}
 priorityClassName: {{ .Values.nodeAgent.priorityClassName }}
