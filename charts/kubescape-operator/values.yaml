@@ -161,6 +161,9 @@ capabilities:
   sandboxSeccomp: disable
   manageWorkloads: disable
   syncSBOM: disable
+  # The operator sends the SBOMs from nodeSbomGeneration to Dependency-Track,
+  # without kubevuln or registry access. Configure it under sbomExport.
+  sbomExport: disable
 
   # ====== Agent runtime posture ======
   # Grants the scanner read-only access to the Sandbox, SandboxTemplate, and
@@ -231,6 +234,25 @@ alertCRD:
   installDefault: false # install the default CRD
   scopeClustered: true # it is better to have the CRDs in the cluster scope
   scopeNamespaced: false # enable scopeNamespaced when there are no permissions for creating cluster scoped CRDs
+
+# Export of the node SBOMs to Dependency-Track, used when capabilities.sbomExport is enable.
+# The operator creates one project per running image and namespace:
+# <rootProject>/<namespace>/<repository>:<tag>, under collection projects for the
+# cluster and each namespace (needs Dependency-Track 4.13 or later).
+sbomExport:
+  # -- how often every running image is compared with Dependency-Track
+  resyncInterval: 1h
+  dependencyTrack:
+    # -- base URL of the Dependency-Track API server, e.g. https://dtrack.example.com
+    url: ""
+    # -- existing Secret in ksNamespace that holds the API key; the chart never creates it.
+    # The key's team needs BOM_UPLOAD, PROJECT_CREATION_UPLOAD, VIEW_PORTFOLIO and
+    # PORTFOLIO_MANAGEMENT (on Dependency-Track 5: PORTFOLIO_MANAGEMENT_CREATE and _UPDATE)
+    apiKeySecret:
+      name: ""
+      key: apiKey
+    # -- root project of this cluster's tree; empty means clusterName
+    rootProject: ""
 
 # -----------------------------------------------------------------------------------------
 # ------------------------ Cloud Providers ------------------------------------------------

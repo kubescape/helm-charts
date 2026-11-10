@@ -140,6 +140,14 @@ that value can never drift apart. See issue #851.
 {{- if and (hasKey .Values.nodeAgent.config "hostMalwareSensorMaxFileSizeBytes") (ne (int (get .Values.nodeAgent.config "hostMalwareSensorMaxFileSizeBytes")) 0) }}
 {{- fail "nodeAgent.config.hostMalwareSensorMaxFileSizeBytes has been removed. Use nodeAgent.config.extra.hostMalwareSensorMaxFileSizeBytes for custom/private node-agent builds." }}
 {{- end }}
+{{- if eq (toString .Values.capabilities.sbomExport) "enable" }}
+{{- if not ((.Values.sbomExport).dependencyTrack).url }}
+{{- fail "capabilities.sbomExport=enable needs sbomExport.dependencyTrack.url, the base URL of the Dependency-Track API server." }}
+{{- end }}
+{{- if not (((.Values.sbomExport).dependencyTrack).apiKeySecret).name }}
+{{- fail "capabilities.sbomExport=enable needs sbomExport.dependencyTrack.apiKeySecret.name, an existing Secret in ksNamespace that holds the Dependency-Track API key." }}
+{{- end }}
+{{- end }}
 {{- $c := .Values.capabilities -}}
 {{- $configurations := fromYaml (include "configurations" .) -}}
 {{- $submit := $configurations.submit -}}
@@ -150,6 +158,7 @@ that value can never drift apart. See issue #851.
 {{- $networkStreaming := and $submit (eq $c.networkEventsStreaming "enable") -}}
 {{- $httpDetection := and (eq $c.httpDetection "enable") $runtimeDetection -}}
 {{- $malwareDetection := and (eq $c.malwareDetection "enable") $runtimeDetection -}}
+{{- $sbomExport := and (eq (toString $c.sbomExport) "enable") (eq $c.nodeSbomGeneration "enable") (eq $c.operator "enable") -}}
 # effective.* are the node-agent config.json flags, consumed by node-agent/configmap.yaml
 effective:
   nodeProfileServiceEnabled: {{ $nodeProfileService }}
@@ -162,6 +171,7 @@ effectiveCapabilities:
   networkEventsStreaming: {{ if $networkStreaming }}enable{{ else }}disable{{ end }}
   httpDetection: {{ if $httpDetection }}enable{{ else }}disable{{ end }}
   malwareDetection: {{ if $malwareDetection }}enable{{ else }}disable{{ end }}
+  sbomExport: {{ if $sbomExport }}enable{{ else }}disable{{ end }}
   nodeScan: {{ if and (eq $c.nodeScan "enable") $backendStorage }}backend{{ else }}{{ $c.nodeScan }}{{ end }}
   configurationScan: {{ if and (eq $c.configurationScan "enable") $backendStorage }}backend{{ else }}{{ $c.configurationScan }}{{ end }}
   vulnerabilityScan: {{ if and (eq $c.vulnerabilityScan "enable") $backendStorage }}backend{{ else }}{{ $c.vulnerabilityScan }}{{ end }}
@@ -177,6 +187,9 @@ warnings:
 {{- end }}
 {{- if and (eq $c.malwareDetection "enable") (not $runtimeDetection) }}
 - "capabilities.malwareDetection=enable but capabilities.runtimeDetection is not enabled. Malware detection runs on top of runtime detection. To use it, set capabilities.runtimeDetection=enable."
+{{- end }}
+{{- if and (eq (toString $c.sbomExport) "enable") (not $sbomExport) }}
+- "capabilities.sbomExport=enable but capabilities.nodeSbomGeneration or capabilities.operator is not enabled. The operator exports the SBOMs node-agent generates, so no SBOM is sent to Dependency-Track. To use it, set capabilities.nodeSbomGeneration=enable and capabilities.operator=enable."
 {{- end }}
 {{- end -}}
 

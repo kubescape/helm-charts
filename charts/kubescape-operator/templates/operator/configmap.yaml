@@ -70,6 +70,16 @@ data:
       {{- if $components.synchronizer.enabled }}
       "httpExporterConfig": {{- .Values.nodeAgent.config.httpExporterConfig | toJson }},
       {{- end }}
+      {{- if eq (toString .Values.capabilities.sbomExport) "enable" }}
+      "sbomExport": {
+        "resyncInterval": {{ .Values.sbomExport.resyncInterval | quote }},
+        "dependencyTrack": {
+          "url": {{ .Values.sbomExport.dependencyTrack.url | quote }},
+          "apiKeyFile": "/etc/sbom-export/api-key",
+          "rootProject": {{ .Values.sbomExport.dependencyTrack.rootProject | quote }}
+        }
+      },
+      {{- end }}
       "nodeAgentAutoscaler": {
         "enabled": {{ .Values.nodeAgent.autoscaler.enabled }},
         "nodeGroupLabel": "{{ .Values.nodeAgent.autoscaler.nodeGroupLabel }}",

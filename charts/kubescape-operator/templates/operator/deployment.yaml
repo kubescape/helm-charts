@@ -235,6 +235,12 @@ spec:
               mountPath: /etc/certs
               readOnly: true
             {{- end }}
+            {{- if eq (toString .Values.capabilities.sbomExport) "enable" }}
+            # a directory, not a subPath, so a rotated API key reaches the pod
+            - name: sbom-export-api-key
+              mountPath: /etc/sbom-export
+              readOnly: true
+            {{- end }}
 {{- if .Values.volumeMounts }}
 {{ toYaml .Values.volumeMounts | indent 12 }}
 {{- end }}
@@ -306,6 +312,14 @@ spec:
         - name: node-agent-template
           configMap:
             name: node-agent-daemonset-template
+        {{- end }}
+        {{- if eq (toString .Values.capabilities.sbomExport) "enable" }}
+        - name: sbom-export-api-key
+          secret:
+            secretName: {{ .Values.sbomExport.dependencyTrack.apiKeySecret.name }}
+            items:
+              - key: {{ .Values.sbomExport.dependencyTrack.apiKeySecret.key | quote }}
+                path: api-key
         {{- end }}
 {{- if .Values.volumes }}
 {{ toYaml .Values.volumes | indent 8 }}

@@ -45,6 +45,19 @@ spec:
               {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.kubevuln.name) | nindent 14 }}
 {{ tpl (.Files.Get "assets/api-server-egress-rules.yaml") . | indent 4 }}
 {{ tpl (.Files.Get "assets/common-egress-rules.yaml") . | indent 4 }}
+    {{- if eq (toString .Values.capabilities.sbomExport) "enable" }}
+    {{- $dtrack := urlParse .Values.sbomExport.dependencyTrack.url }}
+    {{- $dtrackPort := ternary 80 443 (eq $dtrack.scheme "http") }}
+    {{- if regexMatch ":[0-9]+$" $dtrack.host }}
+    {{- $dtrackPort = int (regexFind "[0-9]+$" $dtrack.host) }}
+    {{- end }}
+    {{- if ne (int $dtrackPort) 443 }}
+    # the SBOM export uploads to Dependency-Track; port 443 is already open above.
+    - ports:
+        - port: {{ $dtrackPort }}
+          protocol: TCP
+    {{- end }}
+    {{- end }}
     {{- if $components.synchronizer.enabled }}
     # the operator posts admission alerts and registry-scan statuses to the synchronizer (httpExporterConfig).
     - to:
