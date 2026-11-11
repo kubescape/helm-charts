@@ -245,14 +245,20 @@ alertCRD:
 sbomExport:
   # -- how often every running image is compared with Dependency-Track
   resyncInterval: 1h
-  # -- largest SBOM, in bytes, the operator converts; converting takes about nine times its size in memory
+  # -- largest SBOM, in bytes, the operator converts. Converting takes about nine times its size in
+  # memory, so operator.resources.limits.memory needs nine times this plus 64Mi; the chart warns in
+  # ks-capabilities when it is lower. node-agent keeps SBOMs up to kubevuln.config.maxSBOMSize (20 MiB):
+  # to export bigger ones, raise both and the operator's memory limit, e.g. 32 MiB and 512Mi.
   maxSBOMSize: 10485760
   dependencyTrack:
     # -- base URL of the Dependency-Track API server, e.g. https://dtrack.example.com
     url: ""
+    # -- more ports the network policy lets the operator reach, besides the port of url. When
+    # Dependency-Track runs behind a Service whose targetPort differs from its port, add the targetPort.
+    egressPorts: []
     # -- existing Secret in ksNamespace that holds the API key; the chart never creates it.
-    # The key's team needs BOM_UPLOAD, PROJECT_CREATION_UPLOAD, VIEW_PORTFOLIO and
-    # PORTFOLIO_MANAGEMENT (on Dependency-Track 5: PORTFOLIO_MANAGEMENT_CREATE and _UPDATE)
+    # The key's team needs VIEW_PORTFOLIO, BOM_UPLOAD and PORTFOLIO_MANAGEMENT
+    # (on Dependency-Track 5: PORTFOLIO_MANAGEMENT_CREATE and _UPDATE)
     apiKeySecret:
       name: ""
       key: apiKey

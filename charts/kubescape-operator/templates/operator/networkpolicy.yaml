@@ -52,11 +52,19 @@ spec:
     {{- if regexMatch ":[0-9]+$" $dtrack.host }}
     {{- $dtrackPort = int (regexFind "[0-9]+$" $dtrack.host) }}
     {{- end }}
-    {{- if ne (int $dtrackPort) 443 }}
+    {{- $dtrackPorts := list }}
+    {{- range prepend (.Values.sbomExport.dependencyTrack.egressPorts | default list) $dtrackPort }}
+    {{- if and (ne (int .) 443) (not (has (int .) $dtrackPorts)) }}
+    {{- $dtrackPorts = append $dtrackPorts (int .) }}
+    {{- end }}
+    {{- end }}
+    {{- with $dtrackPorts }}
     # the SBOM export uploads to Dependency-Track; port 443 is already open above.
     - ports:
-        - port: {{ $dtrackPort }}
+        {{- range . }}
+        - port: {{ . }}
           protocol: TCP
+        {{- end }}
     {{- end }}
     {{- end }}
     {{- if $components.synchronizer.enabled }}

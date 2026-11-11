@@ -85,8 +85,23 @@ metadata:
     kubescape.io/dtrack-project-name: "{{ .Repository }}"
 ```
 
-The layout rules, the size limit (`sbomExport.maxSBOMSize`), the resync and the permissions
-the API key needs are described in
+The export needs an Operator image with the `sbomExport` capability, added in
+[kubescape/operator#492](https://github.com/kubescape/operator/pull/492); an older Operator
+ignores these settings.
+
+Converting an SBOM takes the Operator about nine times the SBOM's size in memory, one image at a
+time. SBOMs above `sbomExport.maxSBOMSize` (10 MiB) are skipped, and node-agent keeps SBOMs only up
+to `kubevuln.config.maxSBOMSize` (20 MiB). To export bigger SBOMs, raise `sbomExport.maxSBOMSize`,
+above 20 MiB also `kubevuln.config.maxSBOMSize`, and keep `operator.resources.limits.memory` at
+nine times `sbomExport.maxSBOMSize` plus 64Mi or more: the default 300Mi covers 20 MiB, 32 MiB
+needs 352Mi, for example 512Mi. `GOMEMLIMIT` follows the limit. The chart warns in the
+`ks-capabilities` ConfigMap when the limit is lower.
+
+With network policies on, the Operator may reach the port of `sbomExport.dependencyTrack.url`. If
+Dependency-Track runs in the cluster behind a Service whose `targetPort` differs from its port, add
+the `targetPort` to `sbomExport.dependencyTrack.egressPorts`.
+
+The layout rules, the resync and the permissions the API key needs are described in
 [the Operator doc](https://github.com/kubescape/operator/blob/main/docs/features/sbom-export.md).
 
 ## MCP endpoint for AI agents
@@ -229,7 +244,8 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | sbomExport.dependencyTrack.url | string | `""` | Base URL of the Dependency-Track API server; required with `capabilities.sbomExport` |
 | sbomExport.dependencyTrack.apiKeySecret.name | string | `""` | Existing Secret in ksNamespace holding the API key; required with `capabilities.sbomExport` |
 | sbomExport.dependencyTrack.apiKeySecret.key | string | `"apiKey"` | Key of the API key in that Secret |
-| sbomExport.maxSBOMSize | int | `10485760` | Largest SBOM, in bytes, the operator converts; converting takes about nine times its size in memory |
+| sbomExport.maxSBOMSize | int | `10485760` | Largest SBOM, in bytes, the operator converts; `operator.resources.limits.memory` needs nine times this plus 64Mi, see [SBOM export to Dependency-Track](#sbom-export-to-dependency-track) |
+| sbomExport.dependencyTrack.egressPorts | list | `[]` | More ports the network policy lets the Operator reach, besides the port of the URL, e.g. a Service's `targetPort` |
 | sbomExport.dependencyTrack.rootProject | object | `{name: "{{ .Cluster }}", version: current, create: true}` | Root project, where the operator creates the parents it creates; with `create: false` it must exist and is never changed |
 | sbomExport.dependencyTrack.project | object | `{name: "{{ .Cluster }}/{{ .Namespace }}/{{ .Repository }}", version: "{{ .Tag }}", parent: {name: "{{ .Cluster }}/{{ .Namespace }}", version: current, create: true}}` | Where each image goes: Go templates over `.Cluster`, `.Namespace`, `.Repository`, `.Tag` and `.Labels`; namespaces can override them with `kubescape.io/dtrack-*` annotations |
 | capabilities.sandboxSeccomp | string | `"disable"` | Experimental. Enforce the syscall rules of SandboxPolicy `privilege` sections with seccomp. Profiles are injected through NRI (containerd >= 2.2 or CRI-O >= 1.34) and apply when a container starts. Requires the SandboxPolicy CRDs and a node-agent release that includes the seccomp layer; older images ignore it. |

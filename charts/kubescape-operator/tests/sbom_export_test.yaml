@@ -245,3 +245,103 @@ tests:
             ports:
               - port: 80
                 protocol: TCP
+  - it: does not warn about memory with the default size limit and memory limit
+    template: configs/components-configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.sbomExport: enable
+      sbomExport.dependencyTrack.url: https://dtrack.example.com
+      sbomExport.dependencyTrack.apiKeySecret.name: dependency-track
+    asserts:
+      - notMatchRegex:
+          path: data.capabilities
+          pattern: operator.resources.limits.memory
+  - it: warns when the operator's memory limit is below nine times the SBOM size limit plus 64 MiB
+    template: configs/components-configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.sbomExport: enable
+      sbomExport.dependencyTrack.url: https://dtrack.example.com
+      sbomExport.dependencyTrack.apiKeySecret.name: dependency-track
+      sbomExport.maxSBOMSize: 33554432
+    asserts:
+      - matchRegex:
+          path: data.capabilities
+          pattern: 'operator.resources.limits.memory is 300Mi, but converting an SBOM of sbomExport.maxSBOMSize \(33554432 bytes\) takes about 352 MiB'
+  - it: does not warn when the operator's memory limit fits a bigger SBOM size limit
+    template: configs/components-configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.sbomExport: enable
+      sbomExport.dependencyTrack.url: https://dtrack.example.com
+      sbomExport.dependencyTrack.apiKeySecret.name: dependency-track
+      sbomExport.maxSBOMSize: 33554432
+      operator.resources.limits.memory: 0.5Gi
+    asserts:
+      - notMatchRegex:
+          path: data.capabilities
+          pattern: operator.resources.limits.memory
+  - it: opens egress to the Service's target port next to the port of the URL
+    template: operator/networkpolicy.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.enabled: true
+      global.networkPolicy.createEgressRules: true
+      capabilities.sbomExport: enable
+      sbomExport.dependencyTrack.url: http://dtrack-apiserver.dtrack.svc
+      sbomExport.dependencyTrack.egressPorts: [8080, 80, 443]
+      sbomExport.dependencyTrack.apiKeySecret.name: dependency-track
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            ports:
+              - port: 80
+                protocol: TCP
+              - port: 8080
+                protocol: TCP
+  - it: opens egress to an extra port when the URL uses 443
+    template: operator/networkpolicy.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.enabled: true
+      global.networkPolicy.createEgressRules: true
+      capabilities.sbomExport: enable
+      sbomExport.dependencyTrack.url: https://dtrack.example.com
+      sbomExport.dependencyTrack.egressPorts: [8443]
+      sbomExport.dependencyTrack.apiKeySecret.name: dependency-track
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            ports:
+              - port: 8443
+                protocol: TCP
+  - it: refuses an extra egress port that is not a port number
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.sbomExport: enable
+      sbomExport.dependencyTrack.url: https://dtrack.example.com
+      sbomExport.dependencyTrack.egressPorts: [70000]
+      sbomExport.dependencyTrack.apiKeySecret.name: dependency-track
+    asserts:
+      - failedTemplate:
+          errorMessage: "sbomExport.dependencyTrack.egressPorts: 70000 is not between 1 and 65535."
