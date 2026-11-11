@@ -345,3 +345,39 @@ tests:
     asserts:
       - failedTemplate:
           errorMessage: "sbomExport.dependencyTrack.egressPorts: 70000 is not between 1 and 65535."
+  - it: limits the Dependency-Track egress rule to the peers in egressTo
+    template: operator/networkpolicy.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.enabled: true
+      global.networkPolicy.createEgressRules: true
+      capabilities.sbomExport: enable
+      sbomExport.dependencyTrack.url: http://dtrack-apiserver.dtrack.svc
+      sbomExport.dependencyTrack.egressPorts: [8080]
+      sbomExport.dependencyTrack.egressTo:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: dtrack
+          podSelector:
+            matchLabels:
+              app: dtrack-apiserver
+      sbomExport.dependencyTrack.apiKeySecret.name: dependency-track
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            ports:
+              - port: 80
+                protocol: TCP
+              - port: 8080
+                protocol: TCP
+            to:
+              - namespaceSelector:
+                  matchLabels:
+                    kubernetes.io/metadata.name: dtrack
+                podSelector:
+                  matchLabels:
+                    app: dtrack-apiserver

@@ -99,7 +99,23 @@ needs 352Mi, for example 512Mi. `GOMEMLIMIT` follows the limit. The chart warns 
 
 With network policies on, the Operator may reach the port of `sbomExport.dependencyTrack.url`. If
 Dependency-Track runs in the cluster behind a Service whose `targetPort` differs from its port, add
-the `targetPort` to `sbomExport.dependencyTrack.egressPorts`.
+the `targetPort` to `sbomExport.dependencyTrack.egressPorts`. The rule allows any destination on
+these ports, because a network policy cannot name Dependency-Track's host; to limit it, set
+`sbomExport.dependencyTrack.egressTo` to the policy peers of Dependency-Track, for example:
+
+```yaml
+sbomExport:
+  dependencyTrack:
+    url: http://dtrack-apiserver.dtrack.svc
+    egressPorts: [8080]
+    egressTo:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: dtrack
+        podSelector:
+          matchLabels:
+            app: dtrack-apiserver
+```
 
 The layout rules, the resync and the permissions the API key needs are described in
 [the Operator doc](https://github.com/kubescape/operator/blob/main/docs/features/sbom-export.md).
@@ -246,6 +262,7 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | sbomExport.dependencyTrack.apiKeySecret.key | string | `"apiKey"` | Key of the API key in that Secret |
 | sbomExport.maxSBOMSize | int | `10485760` | Largest SBOM, in bytes, the operator converts; `operator.resources.limits.memory` needs nine times this plus 64Mi, see [SBOM export to Dependency-Track](#sbom-export-to-dependency-track) |
 | sbomExport.dependencyTrack.egressPorts | list | `[]` | More ports the network policy lets the Operator reach, besides the port of the URL, e.g. a Service's `targetPort` |
+| sbomExport.dependencyTrack.egressTo | list | `[]` | NetworkPolicy peers the Dependency-Track egress rule allows; empty allows any destination |
 | sbomExport.dependencyTrack.rootProject | object | `{name: "{{ .Cluster }}", version: current, create: true}` | Root project, where the operator creates the parents it creates; with `create: false` it must exist and is never changed |
 | sbomExport.dependencyTrack.project | object | `{name: "{{ .Cluster }}/{{ .Namespace }}/{{ .Repository }}", version: "{{ .Tag }}", parent: {name: "{{ .Cluster }}/{{ .Namespace }}", version: current, create: true}}` | Where each image goes: Go templates over `.Cluster`, `.Namespace`, `.Repository`, `.Tag` and `.Labels`; namespaces can override them with `kubescape.io/dtrack-*` annotations |
 | capabilities.sandboxSeccomp | string | `"disable"` | Experimental. Enforce the syscall rules of SandboxPolicy `privilege` sections with seccomp. Profiles are injected through NRI (containerd >= 2.2 or CRI-O >= 1.34) and apply when a container starts. Requires the SandboxPolicy CRDs and a node-agent release that includes the seccomp layer; older images ignore it. |
