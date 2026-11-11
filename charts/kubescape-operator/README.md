@@ -78,6 +78,8 @@ kubectl -n kagent create rolebinding kubescape-mcp --clusterrole=kubescape-mcp-r
 kubectl -n kubescape create rolebinding kubescape-mcp --clusterrole=kubescape-mcp-reader --serviceaccount=kagent:agent
 ```
 
+From storage v0.0.395, each tool call runs for at most `storage.mcp.callTimeout` (default 20s) and returns at most `storage.mcp.maxResponseBytes` (default 256 KiB); above that the agent gets a `TIMEOUT` or `RESPONSE_TOO_LARGE` tool error telling it to page or filter. How to call the endpoint, the tools and their arguments, the errors and the audit log: [MCP endpoint](https://github.com/kubescape/storage/blob/main/docs/features/mcp-endpoint.md) in the storage repository.
+
 ## Network policies
 
 > **Warning:** NetworkPolicies are now created by default (`global.networkPolicy.enabled: true`). They
@@ -256,7 +258,9 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | storage.containerProfileMigrationDryRun | bool | `false` | At storage start, log what the ContainerProfile migration to the SQLite backend would do, without writing anything. Cannot be combined with `storage.containerProfileSqliteBackend` |
 | storage.containerProfileMigrationStartupProbe.periodSeconds | int | `10` | With `storage.containerProfileSqliteBackend` or `storage.containerProfileMigrationDryRun` on, storage runs the migration before it serves `/livez`. A startup probe gives it up to `periodSeconds` x `failureThreshold` seconds (10 minutes by default) before the liveness probe can restart it |
 | storage.containerProfileMigrationStartupProbe.failureThreshold | int | `60` | See `storage.containerProfileMigrationStartupProbe.periodSeconds` |
+| storage.mcp.callTimeout | string | `""` | Longest one MCP tool call may run, as a duration such as `30s`; empty keeps storage's default (20s) |
 | storage.mcp.enabled | bool | `false` | Serve the read-only [MCP endpoint for AI agents](#mcp-endpoint-for-ai-agents) |
+| storage.mcp.maxResponseBytes | int | `0` | Largest MCP tool result in bytes; 0 keeps storage's default (262144, 256 KiB) |
 | storage.mcp.readerClusterRoles | bool | `true` | With `storage.mcp.enabled`, create the `kubescape-mcp-reader` and `kubescape-mcp-runtime-reader` ClusterRoles |
 | nodeAgent.autoscaler.bottlerocketAutoDetect | bool | `true` | When the autoscaler is enabled, auto-detect AWS Bottlerocket nodes and set `seLinuxType: super_t` on the node-agent DaemonSet rendered for that node group, so you don't need to `--set nodeAgent.seLinuxType=super_t` manually |
 | nodeAgent.config.httpExporterConfig.tokenFile | string | `"/var/run/secrets/kubescape.io/api-token/token"` | Projected service-account token that node-agent and the operator send to the synchronizer HTTP endpoint (see `global.apiAuth`) |

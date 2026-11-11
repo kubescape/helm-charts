@@ -1,0 +1,68 @@
+suite: Storage MCP endpoint config
+set:
+  unittest: true
+  clusterName: test
+capabilities:
+  apiVersions:
+    - batch/v1
+tests:
+  - it: leaves the MCP endpoint out by default
+    template: storage/configmap.yaml
+    asserts:
+      - notMatchRegex:
+          path: data["config.json"]
+          pattern: '"mcp"'
+
+  - it: enables the endpoint with storage's default limits
+    template: storage/configmap.yaml
+    set:
+      storage.mcp.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"mcp": \{"enabled":true\},'
+
+  - it: passes the call timeout and response cap to storage
+    template: storage/configmap.yaml
+    set:
+      storage.mcp.enabled: true
+      storage.mcp.callTimeout: 45s
+      storage.mcp.maxResponseBytes: 524288
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"mcp": \{"callTimeout":"45s","enabled":true,"maxResponseBytes":524288\},'
+
+  - it: ignores the limits while the endpoint is off
+    template: storage/configmap.yaml
+    set:
+      storage.mcp.callTimeout: 45s
+      storage.mcp.maxResponseBytes: 524288
+    asserts:
+      - notMatchRegex:
+          path: data["config.json"]
+          pattern: '"mcp"'
+
+  - it: refuses a call timeout without a unit
+    set:
+      storage.mcp.enabled: true
+      storage.mcp.callTimeout: 30
+    asserts:
+      - failedTemplate:
+          errorPattern: "storage.mcp.callTimeout must be a positive duration such as 30s, got 30$"
+
+  - it: refuses a zero call timeout
+    set:
+      storage.mcp.enabled: true
+      storage.mcp.callTimeout: 0s
+    asserts:
+      - failedTemplate:
+          errorPattern: "storage.mcp.callTimeout must be a positive duration"
+
+  - it: refuses a negative response cap
+    set:
+      storage.mcp.enabled: true
+      storage.mcp.maxResponseBytes: -1
+    asserts:
+      - failedTemplate:
+          errorPattern: "storage.mcp.maxResponseBytes must be a positive number of bytes, got -1$"
