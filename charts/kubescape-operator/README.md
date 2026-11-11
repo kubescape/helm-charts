@@ -73,7 +73,20 @@ helm upgrade --install kubescape kubescape/kubescape-operator -n kubescape \
   --set sbomExport.dependencyTrack.apiKeySecret.name=dependency-track
 ```
 
-The project tree, the resync and the permissions the API key needs are described in
+By default each image goes to `<cluster>/<namespace>/<repository>:<tag>`. The layout is
+configurable in `sbomExport.dependencyTrack`, and a namespace can send its images under
+projects that already exist with annotations, for example:
+
+```yaml
+metadata:
+  annotations:
+    kubescape.io/dtrack-parent: "Payments Team:current"   # name:version or a project UUID
+    kubescape.io/dtrack-parent-create: "false"            # it exists; never create or change it
+    kubescape.io/dtrack-project-name: "{{ .Repository }}"
+```
+
+The layout rules, the size limit (`sbomExport.maxSBOMSize`), the resync and the permissions
+the API key needs are described in
 [the Operator doc](https://github.com/kubescape/operator/blob/main/docs/features/sbom-export.md).
 
 ## MCP endpoint for AI agents
@@ -216,7 +229,9 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | sbomExport.dependencyTrack.url | string | `""` | Base URL of the Dependency-Track API server; required with `capabilities.sbomExport` |
 | sbomExport.dependencyTrack.apiKeySecret.name | string | `""` | Existing Secret in ksNamespace holding the API key; required with `capabilities.sbomExport` |
 | sbomExport.dependencyTrack.apiKeySecret.key | string | `"apiKey"` | Key of the API key in that Secret |
-| sbomExport.dependencyTrack.rootProject | string | `""` | Root project of the cluster's tree; empty means `clusterName` |
+| sbomExport.maxSBOMSize | int | `10485760` | Largest SBOM, in bytes, the operator converts; converting takes about nine times its size in memory |
+| sbomExport.dependencyTrack.rootProject | object | `{name: "{{ .Cluster }}", version: current, create: true}` | Root project, where the operator creates the parents it creates; with `create: false` it must exist and is never changed |
+| sbomExport.dependencyTrack.project | object | `{name: "{{ .Cluster }}/{{ .Namespace }}/{{ .Repository }}", version: "{{ .Tag }}", parent: {name: "{{ .Cluster }}/{{ .Namespace }}", version: current, create: true}}` | Where each image goes: Go templates over `.Cluster`, `.Namespace`, `.Repository`, `.Tag` and `.Labels`; namespaces can override them with `kubescape.io/dtrack-*` annotations |
 | capabilities.sandboxSeccomp | string | `"disable"` | Experimental. Enforce the syscall rules of SandboxPolicy `privilege` sections with seccomp. Profiles are injected through NRI (containerd >= 2.2 or CRI-O >= 1.34) and apply when a container starts. Requires the SandboxPolicy CRDs and a node-agent release that includes the seccomp layer; older images ignore it. |
 | global.networkPolicy.enabled | bool | `true` | Create ingress NetworkPolicies for all components. **On by default**, see [Network policies](https://github.com/kubescape/helm-charts/blob/main/docs/features/network-policies.md) |
 | global.networkPolicy.createEgressRules | bool | `false` | Also restrict egress (DNS, kube-apiserver, proxy and the destinations each component needs) |

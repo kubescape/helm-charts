@@ -1,5 +1,6 @@
 {{- $checksums := fromYaml (include "checksums" .) }}
 {{- $components := fromYaml (include "components" .) }}
+{{- $gates := fromYaml (include "capabilities.gates" .) }}
 {{- if $components.operator.enabled }}
 {{- $no_proxy_envar_list := (include "no_proxy_envar_list" .) -}}
 {{- $offline := eq .Values.capabilities.kubescapeOffline "enable" -}}
@@ -235,7 +236,7 @@ spec:
               mountPath: /etc/certs
               readOnly: true
             {{- end }}
-            {{- if eq (toString .Values.capabilities.sbomExport) "enable" }}
+            {{- if eq $gates.effectiveCapabilities.sbomExport "enable" }}
             # a directory, not a subPath, so a rotated API key reaches the pod
             - name: sbom-export-api-key
               mountPath: /etc/sbom-export
@@ -313,7 +314,7 @@ spec:
           configMap:
             name: node-agent-daemonset-template
         {{- end }}
-        {{- if eq (toString .Values.capabilities.sbomExport) "enable" }}
+        {{- if eq $gates.effectiveCapabilities.sbomExport "enable" }}
         - name: sbom-export-api-key
           secret:
             secretName: {{ .Values.sbomExport.dependencyTrack.apiKeySecret.name }}

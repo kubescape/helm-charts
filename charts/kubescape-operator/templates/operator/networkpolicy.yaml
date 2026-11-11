@@ -1,4 +1,5 @@
 {{- $components := fromYaml (include "components" .) }}
+{{- $gates := fromYaml (include "capabilities.gates" .) }}
 {{- if and .Values.global.networkPolicy.enabled $components.operator.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -45,7 +46,7 @@ spec:
               {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.kubevuln.name) | nindent 14 }}
 {{ tpl (.Files.Get "assets/api-server-egress-rules.yaml") . | indent 4 }}
 {{ tpl (.Files.Get "assets/common-egress-rules.yaml") . | indent 4 }}
-    {{- if eq (toString .Values.capabilities.sbomExport) "enable" }}
+    {{- if eq $gates.effectiveCapabilities.sbomExport "enable" }}
     {{- $dtrack := urlParse .Values.sbomExport.dependencyTrack.url }}
     {{- $dtrackPort := ternary 80 443 (eq $dtrack.scheme "http") }}
     {{- if regexMatch ":[0-9]+$" $dtrack.host }}

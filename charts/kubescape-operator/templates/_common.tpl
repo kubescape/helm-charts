@@ -141,8 +141,13 @@ that value can never drift apart. See issue #851.
 {{- fail "nodeAgent.config.hostMalwareSensorMaxFileSizeBytes has been removed. Use nodeAgent.config.extra.hostMalwareSensorMaxFileSizeBytes for custom/private node-agent builds." }}
 {{- end }}
 {{- if eq (toString .Values.capabilities.sbomExport) "enable" }}
-{{- if not ((.Values.sbomExport).dependencyTrack).url }}
+{{- $dtrackURL := ((.Values.sbomExport).dependencyTrack).url | default "" }}
+{{- if not $dtrackURL }}
 {{- fail "capabilities.sbomExport=enable needs sbomExport.dependencyTrack.url, the base URL of the Dependency-Track API server." }}
+{{- end }}
+{{- $dtrack := urlParse $dtrackURL }}
+{{- if not (and (has $dtrack.scheme (list "http" "https")) $dtrack.host) }}
+{{- fail (printf "sbomExport.dependencyTrack.url %q must be an http or https URL with a host, e.g. https://dtrack.example.com." $dtrackURL) }}
 {{- end }}
 {{- if not (((.Values.sbomExport).dependencyTrack).apiKeySecret).name }}
 {{- fail "capabilities.sbomExport=enable needs sbomExport.dependencyTrack.apiKeySecret.name, an existing Secret in ksNamespace that holds the Dependency-Track API key." }}
@@ -158,7 +163,8 @@ that value can never drift apart. See issue #851.
 {{- $networkStreaming := and $submit (eq $c.networkEventsStreaming "enable") -}}
 {{- $httpDetection := and (eq $c.httpDetection "enable") $runtimeDetection -}}
 {{- $malwareDetection := and (eq $c.malwareDetection "enable") $runtimeDetection -}}
-{{- $sbomExport := and (eq (toString $c.sbomExport) "enable") (eq $c.nodeSbomGeneration "enable") (eq $c.operator "enable") -}}
+{{- $nodeAgentEnabled := (fromYaml (include "components" .)).nodeAgent.enabled -}}
+{{- $sbomExport := and (eq (toString $c.sbomExport) "enable") (eq $c.nodeSbomGeneration "enable") (eq $c.operator "enable") $nodeAgentEnabled -}}
 # effective.* are the node-agent config.json flags, consumed by node-agent/configmap.yaml
 effective:
   nodeProfileServiceEnabled: {{ $nodeProfileService }}
@@ -188,8 +194,10 @@ warnings:
 {{- if and (eq $c.malwareDetection "enable") (not $runtimeDetection) }}
 - "capabilities.malwareDetection=enable but capabilities.runtimeDetection is not enabled. Malware detection runs on top of runtime detection. To use it, set capabilities.runtimeDetection=enable."
 {{- end }}
-{{- if and (eq (toString $c.sbomExport) "enable") (not $sbomExport) }}
+{{- if and (eq (toString $c.sbomExport) "enable") (not (and (eq $c.nodeSbomGeneration "enable") (eq $c.operator "enable"))) }}
 - "capabilities.sbomExport=enable but capabilities.nodeSbomGeneration or capabilities.operator is not enabled. The operator exports the SBOMs node-agent generates, so no SBOM is sent to Dependency-Track. To use it, set capabilities.nodeSbomGeneration=enable and capabilities.operator=enable."
+{{- else if and (eq (toString $c.sbomExport) "enable") (not $nodeAgentEnabled) }}
+- "capabilities.sbomExport=enable but node-agent is not deployed, so no SBOM is generated or sent to Dependency-Track. The chart deploys node-agent with one of its runtime capabilities; to use the export, enable one, for example capabilities.runtimeObservability=enable."
 {{- end }}
 {{- end -}}
 

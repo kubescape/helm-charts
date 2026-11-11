@@ -236,12 +236,17 @@ alertCRD:
   scopeNamespaced: false # enable scopeNamespaced when there are no permissions for creating cluster scoped CRDs
 
 # Export of the node SBOMs to Dependency-Track, used when capabilities.sbomExport is enable.
-# The operator creates one project per running image and namespace:
-# <rootProject>/<namespace>/<repository>:<tag>, under collection projects for the
-# cluster and each namespace (needs Dependency-Track 4.13 or later).
+# By default the operator creates one project per running image and namespace,
+# <cluster>/<namespace>/<repository>:<tag>, under collection projects for the cluster and
+# each namespace (needs Dependency-Track 4.13 or later). Names and versions are Go templates
+# over .Cluster, .Namespace, .Repository, .Tag and .Labels (the namespace's labels), and a
+# namespace can override them with kubescape.io/dtrack-* annotations, see
+# https://github.com/kubescape/operator/blob/main/docs/features/sbom-export.md
 sbomExport:
   # -- how often every running image is compared with Dependency-Track
   resyncInterval: 1h
+  # -- largest SBOM, in bytes, the operator converts; converting takes about nine times its size in memory
+  maxSBOMSize: 10485760
   dependencyTrack:
     # -- base URL of the Dependency-Track API server, e.g. https://dtrack.example.com
     url: ""
@@ -251,8 +256,20 @@ sbomExport:
     apiKeySecret:
       name: ""
       key: apiKey
-    # -- root project of this cluster's tree; empty means clusterName
-    rootProject: ""
+    # -- the root project, where the operator creates the parents it creates; with create
+    # false it must exist, and the operator never changes it
+    rootProject:
+      name: "{{ .Cluster }}"
+      version: current
+      create: true
+    # -- the project each image goes to, and its parent collection
+    project:
+      name: "{{ .Cluster }}/{{ .Namespace }}/{{ .Repository }}"
+      version: "{{ .Tag }}"
+      parent:
+        name: "{{ .Cluster }}/{{ .Namespace }}"
+        version: current
+        create: true
 
 # -----------------------------------------------------------------------------------------
 # ------------------------ Cloud Providers ------------------------------------------------

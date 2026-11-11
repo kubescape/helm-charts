@@ -22,11 +22,17 @@ tests:
       sbomExport.resyncInterval: 30m
       sbomExport.dependencyTrack.url: https://dtrack.example.com
       sbomExport.dependencyTrack.apiKeySecret.name: dependency-track
-      sbomExport.dependencyTrack.rootProject: prod
+      sbomExport.maxSBOMSize: 5242880
+      sbomExport.dependencyTrack.rootProject.name: Finance
+      sbomExport.dependencyTrack.rootProject.create: false
+      sbomExport.dependencyTrack.project.name: "{{ .Repository }}"
     asserts:
       - matchRegex:
           path: data["config.json"]
           pattern: '"resyncInterval": "30m"'
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"maxSBOMSize": 5242880,'
       - matchRegex:
           path: data["config.json"]
           pattern: '"url": "https://dtrack.example.com"'
@@ -35,7 +41,10 @@ tests:
           pattern: '"apiKeyFile": "/etc/sbom-export/api-key"'
       - matchRegex:
           path: data["config.json"]
-          pattern: '"rootProject": "prod"'
+          pattern: '"rootProject": \{"create":false,"name":"Finance","version":"current"\}'
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"project": \{"name":"\{\{ \.Repository \}\}","parent":\{"create":true,"name":"\{\{ \.Cluster \}\}/\{\{ \.Namespace \}\}","version":"current"\},"version":"\{\{ \.Tag \}\}"\}'
   - it: mounts the API key Secret as a directory, so a rotated key reaches the pod
     template: operator/deployment.yaml
     capabilities:
@@ -147,3 +156,92 @@ tests:
     asserts:
       - notMatchRegexRaw:
           pattern: Dependency-Track
+  - it: refuses a Dependency-Track URL without a scheme
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.sbomExport: enable
+      sbomExport.dependencyTrack.url: dtrack.example.com
+      sbomExport.dependencyTrack.apiKeySecret.name: dependency-track
+    asserts:
+      - failedTemplate:
+          errorMessage: sbomExport.dependencyTrack.url "dtrack.example.com" must be an http or https URL with a host, e.g. https://dtrack.example.com.
+  - it: renders no export settings or mount when the export is not effective
+    template: operator/deployment.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.sbomExport: enable
+      capabilities.nodeSbomGeneration: disable
+      sbomExport.dependencyTrack.url: https://dtrack.example.com
+      sbomExport.dependencyTrack.apiKeySecret.name: dependency-track
+    asserts:
+      - notMatchRegexRaw:
+          pattern: sbom-export
+  - it: reports the export disabled, with a warning, when node-agent is not deployed
+    template: configs/components-configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.sbomExport: enable
+      capabilities.relevancy: disable
+      capabilities.runtimeObservability: disable
+      capabilities.networkPolicyService: disable
+      capabilities.runtimeDetection: disable
+      capabilities.malwareDetection: disable
+      capabilities.nodeProfileService: disable
+      capabilities.seccompProfileService: disable
+      capabilities.sandboxSeccomp: disable
+      sbomExport.dependencyTrack.url: https://dtrack.example.com
+      sbomExport.dependencyTrack.apiKeySecret.name: dependency-track
+    asserts:
+      - matchRegex:
+          path: data.capabilities
+          pattern: '"effectiveCapabilities":\{[^}]*"sbomExport":"disable"'
+      - matchRegex:
+          path: data.capabilities
+          pattern: 'capabilities.sbomExport=enable but node-agent is not deployed'
+  - it: opens egress to the port of an IPv6 Dependency-Track URL, not to digits of its address
+    template: operator/networkpolicy.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.enabled: true
+      global.networkPolicy.createEgressRules: true
+      capabilities.sbomExport: enable
+      sbomExport.dependencyTrack.url: https://user@[fd00::8080]:8443
+      sbomExport.dependencyTrack.apiKeySecret.name: dependency-track
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            ports:
+              - port: 8443
+                protocol: TCP
+  - it: uses port 80 for an IPv6 http URL without a port
+    template: operator/networkpolicy.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.enabled: true
+      global.networkPolicy.createEgressRules: true
+      capabilities.sbomExport: enable
+      sbomExport.dependencyTrack.url: http://[fd00::8080]
+      sbomExport.dependencyTrack.apiKeySecret.name: dependency-track
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            ports:
+              - port: 80
+                protocol: TCP

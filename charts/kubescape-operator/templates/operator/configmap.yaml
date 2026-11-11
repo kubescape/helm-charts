@@ -1,5 +1,6 @@
 {{- $filters := fromYaml (include "namespaceFilters.config" .) }}
 {{- $components := fromYaml (include "components" .) }}
+{{- $gates := fromYaml (include "capabilities.gates" .) }}
 {{- /* node-agent autoscaler floor. Only the chart defaults are raised; any other value is used as is. */}}
 {{- $naMinCPU := .Values.nodeAgent.autoscaler.minResources.cpu }}
 {{- $naMinMemory := .Values.nodeAgent.autoscaler.minResources.memory }}
@@ -70,13 +71,15 @@ data:
       {{- if $components.synchronizer.enabled }}
       "httpExporterConfig": {{- .Values.nodeAgent.config.httpExporterConfig | toJson }},
       {{- end }}
-      {{- if eq (toString .Values.capabilities.sbomExport) "enable" }}
+      {{- if eq $gates.effectiveCapabilities.sbomExport "enable" }}
       "sbomExport": {
         "resyncInterval": {{ .Values.sbomExport.resyncInterval | quote }},
+        "maxSBOMSize": {{ .Values.sbomExport.maxSBOMSize | int64 }},
         "dependencyTrack": {
           "url": {{ .Values.sbomExport.dependencyTrack.url | quote }},
           "apiKeyFile": "/etc/sbom-export/api-key",
-          "rootProject": {{ .Values.sbomExport.dependencyTrack.rootProject | quote }}
+          "rootProject": {{ .Values.sbomExport.dependencyTrack.rootProject | toJson }},
+          "project": {{ .Values.sbomExport.dependencyTrack.project | toJson }}
         }
       },
       {{- end }}
