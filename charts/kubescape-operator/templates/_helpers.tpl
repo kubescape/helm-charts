@@ -80,6 +80,23 @@ priorityClassName: {{ .global.priorityClassName }}
 {{- end }}
 
 {{/*
+Render imagePullSecrets for a pod spec from .Values.imagePullSecrets, which may be a
+single name or a list of names. Names are quoted so a numeric-looking name such as
+"123" stays a string.
+Usage: {{- if .Values.imagePullSecrets }}{{- include "kubescape-operator.imagePullSecrets" . | nindent <n> }}{{- end }}
+*/}}
+{{- define "kubescape-operator.imagePullSecrets" -}}
+imagePullSecrets:
+{{- if kindIs "slice" .Values.imagePullSecrets }}
+{{- range .Values.imagePullSecrets }}
+- name: {{ . | quote }}
+{{- end }}
+{{- else }}
+- name: {{ .Values.imagePullSecrets | quote }}
+{{- end }}
+{{- end }}
+
+{{/*
 Convert a Kubernetes memory string (e.g. "1Gi", "512Mi", "2147483648") to bytes
 as a float. Adapted from traefik.convertMemToBytes — supports SI (k/M/G/T/P/E)
 and IEC (Ki/Mi/Gi/Ti/Pi/Ei) prefixes plus the milli (m) suffix and bare numbers.
