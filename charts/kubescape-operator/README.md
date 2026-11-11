@@ -258,9 +258,9 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | storage.containerProfileMigrationDryRun | bool | `false` | At storage start, log what the ContainerProfile migration to the SQLite backend would do, without writing anything. Cannot be combined with `storage.containerProfileSqliteBackend` |
 | storage.containerProfileMigrationStartupProbe.periodSeconds | int | `10` | With `storage.containerProfileSqliteBackend` or `storage.containerProfileMigrationDryRun` on, storage runs the migration before it serves `/livez`. A startup probe gives it up to `periodSeconds` x `failureThreshold` seconds (10 minutes by default) before the liveness probe can restart it |
 | storage.containerProfileMigrationStartupProbe.failureThreshold | int | `60` | See `storage.containerProfileMigrationStartupProbe.periodSeconds` |
-| storage.mcp.callTimeout | string | `""` | Longest one MCP tool call may run, as a duration such as `30s`; empty keeps storage's default (20s) |
+| storage.mcp.callTimeout | string | `""` | Longest one MCP tool call may run, as a duration such as `30s`; empty keeps storage's default (20s); needs storage v0.0.395 or later |
 | storage.mcp.enabled | bool | `false` | Serve the read-only [MCP endpoint for AI agents](#mcp-endpoint-for-ai-agents) |
-| storage.mcp.maxResponseBytes | int | `0` | Largest MCP tool result in bytes; 0 keeps storage's default (262144, 256 KiB) |
+| storage.mcp.maxResponseBytes | int | `0` | Largest MCP tool result in bytes; 0 keeps storage's default (262144, 256 KiB); needs storage v0.0.395 or later |
 | storage.mcp.readerClusterRoles | bool | `true` | With `storage.mcp.enabled`, create the `kubescape-mcp-reader` and `kubescape-mcp-runtime-reader` ClusterRoles |
 | nodeAgent.autoscaler.bottlerocketAutoDetect | bool | `true` | When the autoscaler is enabled, auto-detect AWS Bottlerocket nodes and set `seLinuxType: super_t` on the node-agent DaemonSet rendered for that node group, so you don't need to `--set nodeAgent.seLinuxType=super_t` manually |
 | nodeAgent.config.httpExporterConfig.tokenFile | string | `"/var/run/secrets/kubescape.io/api-token/token"` | Projected service-account token that node-agent and the operator send to the synchronizer HTTP endpoint (see `global.apiAuth`) |
