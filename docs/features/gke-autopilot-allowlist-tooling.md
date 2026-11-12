@@ -23,10 +23,10 @@ release time instead of in the field.
 
 - **`scripts/gke-allowlist/allowlist-drift.py`** — renders the node-agent and classifies it against an
   allowlist as `no-op`, `digest-only`, or `spec-drift` (exit code 2 on spec-drift).
-- **`scripts/gke-allowlist/check-drift.sh`** — the wrapper the release workflow calls. It renders the
-  node-agent with the full set of optional features enabled (backend server/`API_URL`, HTTP proxy,
-  custom runtime path, kernel-check skip, full malware scan, SBOM scanner, OTEL) so the check
-  exercises the maximal privileged surface, then verifies it is a subset of the allowlist.
+- **`scripts/gke-allowlist/check-drift.sh`** — the wrapper the release workflow calls. It renders in
+  Autopilot allowlist mode, checking two supported profiles: proxy with in-process scanning, and
+  the SBOM sidecar without proxy. Backend server/`API_URL`, custom runtime path, kernel-check skip,
+  full malware scan and OTEL are enabled in both. Both must be subsets of the allowlist.
 - **`scripts/gke-allowlist/build-allowlists.py`, `refresh-digests.py`** — allowlist-repo-side helpers
   (assemble allowlist files; append new node-agent image digests to the mutable `containerImageDigests`
   field). Documented in `scripts/gke-allowlist/README.md`.
@@ -84,3 +84,21 @@ The check covers subset-matched fields (env names, containers, capabilities, mou
 image repo). It does not see runtime-only fields such as the per-node-group
 `node.kubernetes.io/instance-type` nodeSelector the autoscaler adds (which needs the
 `autogke-node-affinity-selector-limitation` exemption) — validate those on a live Autopilot cluster.
+
+## Legacy allowlist compatibility
+
+The bundled `1.40-v2` allowlist lacks the node-agent API-token mount and the SBOM sidecar's proxy
+environment variables. In allowlist mode the chart's existing `supportsApiToken=false` fallback
+omits the token and disables API authentication on the servers. The drift gate now tests that
+actual configuration instead of reporting the generic workload's token as drift.
+
+The chart rejects sidecar-plus-proxy settings while
+`nodeAgent.gke.allowlist.supportsSbomScannerProxy=false`. Keep the sidecar disabled for proxy
+installations to use in-process scanning. Enable the capability only with a verified approved
+allowlist that admits both scanner environment variables; then check that combined profile as
+part of the allowlist update. A local YAML change or a capability flag does not publish approval.
+See the [configuration matrix and tests](../../scripts/gke-allowlist/README.md#supported-configurations-and-regression-tests).
+
+Local render checks do not prove live Warden admission. On an Autopilot cluster, verify the
+AllowlistSynchronizer is Ready and the exact WorkloadAllowlist is installed, then validate the
+supported workloads and capture any admission diagnostics before rolling out.
