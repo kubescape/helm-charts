@@ -165,16 +165,23 @@ and every point must carry the context fields node-agent matches on:
 }
 ```
 
-Without these fields, starts are still exported, but the health report counts
-them in `stop_key_missing` and no stop can be matched. Exported stops are
+If `container/start` lacks these fields, starts are still exported, but the
+health report counts them in `stop_key_missing` and no stop can be matched for
+them. If only the exit points lack them, starts look normal and
+`stop_key_missing` stays zero, but no exit matches its start: those exits are
+counted in `nonterminal_exits` and no stop is reported. Configure all three
+points the same way. Exported stops are
 `RuntimeObservation` records with `kind=container_stopped`, `exit_code`,
 `signal` and `termination`. The matching rule and loss behavior are in
 [node-agent's feature doc](https://github.com/kubescape/node-agent/blob/main/docs/features/gvisor-start-source.md#stop-observations-opt-in).
 
 This source does not cover every termination. When the Sentry process dies, or
-node-agent restarts, existing sandboxes do not reconnect, and their stops are
-counted as `unobserved_terminations` instead of being reported. Use CRI for an
-authoritative container state. When validating, compare exported stops with CRI
+node-agent restarts, existing sandboxes do not reconnect and their stops are not
+reported. When a trace connection closes while node-agent keeps running, the
+containers it was tracking are counted in `unobserved_terminations`. That count
+lives in memory: after an abrupt node-agent restart it may never reach a health
+report, and the new process starts again from zero, so the counter does not
+account for every missed stop. Use CRI for an authoritative container state. When validating, compare exported stops with CRI
 exit codes, and check that `kubectl exec` and child-process exits produce no
 stop. The stop path has unit and socket tests in node-agent and the live mapping
 evidence in [node-agent #1091](https://github.com/kubescape/node-agent/pull/1091);
