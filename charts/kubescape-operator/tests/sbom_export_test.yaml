@@ -1,0 +1,383 @@
+suite: SBOM export to Dependency-Track
+tests:
+  - it: leaves the SBOM export out of the operator config by default
+    template: operator/configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - notMatchRegex:
+          path: data["config.json"]
+          pattern: '"sbomExport"'
+  - it: gives the operator the Dependency-Track settings
+    template: operator/configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.sbomExport: enable
+      sbomExport.resyncInterval: 30m
+      sbomExport.dependencyTrack.url: https://dtrack.example.com
+      sbomExport.dependencyTrack.apiKeySecret.name: dependency-track
+      sbomExport.maxSBOMSize: 5242880
+      sbomExport.dependencyTrack.rootProject.name: Finance
+      sbomExport.dependencyTrack.rootProject.create: false
+      sbomExport.dependencyTrack.project.name: "{{ .Repository }}"
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"resyncInterval": "30m"'
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"maxSBOMSize": 5242880,'
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"url": "https://dtrack.example.com"'
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"apiKeyFile": "/etc/sbom-export/api-key"'
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"rootProject": \{"create":false,"name":"Finance","version":"current"\}'
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"project": \{"name":"\{\{ \.Repository \}\}","parent":\{"create":true,"name":"\{\{ \.Cluster \}\}/\{\{ \.Namespace \}\}","version":"current"\},"version":"\{\{ \.Tag \}\}"\}'
+  - it: mounts the API key Secret as a directory, so a rotated key reaches the pod
+    template: operator/deployment.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.sbomExport: enable
+      sbomExport.dependencyTrack.url: https://dtrack.example.com
+      sbomExport.dependencyTrack.apiKeySecret.name: dependency-track
+      sbomExport.dependencyTrack.apiKeySecret.key: token
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: sbom-export-api-key
+            mountPath: /etc/sbom-export
+            readOnly: true
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: sbom-export-api-key
+            secret:
+              secretName: dependency-track
+              items:
+                - key: token
+                  path: api-key
+  - it: mounts nothing by default
+    template: operator/deployment.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - notMatchRegexRaw:
+          pattern: sbom-export
+  - it: refuses the export without a Dependency-Track URL
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.sbomExport: enable
+      sbomExport.dependencyTrack.apiKeySecret.name: dependency-track
+    asserts:
+      - failedTemplate:
+          errorMessage: capabilities.sbomExport=enable needs sbomExport.dependencyTrack.url, the base URL of the Dependency-Track API server.
+  - it: refuses the export without an API key Secret
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.sbomExport: enable
+      sbomExport.dependencyTrack.url: https://dtrack.example.com
+    asserts:
+      - failedTemplate:
+          errorMessage: capabilities.sbomExport=enable needs sbomExport.dependencyTrack.apiKeySecret.name, an existing Secret in ksNamespace that holds the Dependency-Track API key.
+  - it: warns that the export does nothing without nodeSbomGeneration
+    template: configs/components-configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.sbomExport: enable
+      capabilities.nodeSbomGeneration: disable
+      sbomExport.dependencyTrack.url: https://dtrack.example.com
+      sbomExport.dependencyTrack.apiKeySecret.name: dependency-track
+    asserts:
+      - matchRegex:
+          path: data.capabilities
+          pattern: '"effectiveCapabilities":\{[^}]*"sbomExport":"disable"'
+      - matchRegex:
+          path: data.capabilities
+          pattern: 'capabilities.sbomExport=enable but capabilities.nodeSbomGeneration or capabilities.operator is not enabled'
+  - it: opens egress to a Dependency-Track port other than 443
+    template: operator/networkpolicy.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.enabled: true
+      global.networkPolicy.createEgressRules: true
+      capabilities.sbomExport: enable
+      sbomExport.dependencyTrack.url: http://dtrack-apiserver.dtrack.svc:8080
+      sbomExport.dependencyTrack.apiKeySecret.name: dependency-track
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            ports:
+              - port: 8080
+                protocol: TCP
+  - it: adds no egress rule for Dependency-Track on 443, which is open already
+    template: operator/networkpolicy.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.enabled: true
+      global.networkPolicy.createEgressRules: true
+      capabilities.sbomExport: enable
+      sbomExport.dependencyTrack.url: https://dtrack.example.com
+      sbomExport.dependencyTrack.apiKeySecret.name: dependency-track
+    asserts:
+      - notMatchRegexRaw:
+          pattern: Dependency-Track
+  - it: refuses a Dependency-Track URL without a scheme
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.sbomExport: enable
+      sbomExport.dependencyTrack.url: dtrack.example.com
+      sbomExport.dependencyTrack.apiKeySecret.name: dependency-track
+    asserts:
+      - failedTemplate:
+          errorMessage: sbomExport.dependencyTrack.url "dtrack.example.com" must be an http or https URL with a host, e.g. https://dtrack.example.com.
+  - it: renders no export settings or mount when the export is not effective
+    template: operator/deployment.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.sbomExport: enable
+      capabilities.nodeSbomGeneration: disable
+      sbomExport.dependencyTrack.url: https://dtrack.example.com
+      sbomExport.dependencyTrack.apiKeySecret.name: dependency-track
+    asserts:
+      - notMatchRegexRaw:
+          pattern: sbom-export
+  - it: reports the export disabled, with a warning, when node-agent is not deployed
+    template: configs/components-configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.sbomExport: enable
+      capabilities.relevancy: disable
+      capabilities.runtimeObservability: disable
+      capabilities.networkPolicyService: disable
+      capabilities.runtimeDetection: disable
+      capabilities.malwareDetection: disable
+      capabilities.nodeProfileService: disable
+      capabilities.seccompProfileService: disable
+      capabilities.sandboxSeccomp: disable
+      sbomExport.dependencyTrack.url: https://dtrack.example.com
+      sbomExport.dependencyTrack.apiKeySecret.name: dependency-track
+    asserts:
+      - matchRegex:
+          path: data.capabilities
+          pattern: '"effectiveCapabilities":\{[^}]*"sbomExport":"disable"'
+      - matchRegex:
+          path: data.capabilities
+          pattern: 'capabilities.sbomExport=enable but node-agent is not deployed'
+  - it: opens egress to the port of an IPv6 Dependency-Track URL, not to digits of its address
+    template: operator/networkpolicy.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.enabled: true
+      global.networkPolicy.createEgressRules: true
+      capabilities.sbomExport: enable
+      sbomExport.dependencyTrack.url: https://user@[fd00::8080]:8443
+      sbomExport.dependencyTrack.apiKeySecret.name: dependency-track
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            ports:
+              - port: 8443
+                protocol: TCP
+  - it: uses port 80 for an IPv6 http URL without a port
+    template: operator/networkpolicy.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.enabled: true
+      global.networkPolicy.createEgressRules: true
+      capabilities.sbomExport: enable
+      sbomExport.dependencyTrack.url: http://[fd00::8080]
+      sbomExport.dependencyTrack.apiKeySecret.name: dependency-track
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            ports:
+              - port: 80
+                protocol: TCP
+  - it: does not warn about memory with the default size limit and memory limit
+    template: configs/components-configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.sbomExport: enable
+      sbomExport.dependencyTrack.url: https://dtrack.example.com
+      sbomExport.dependencyTrack.apiKeySecret.name: dependency-track
+    asserts:
+      - notMatchRegex:
+          path: data.capabilities
+          pattern: operator.resources.limits.memory
+  - it: warns when the operator's memory limit is below nine times the SBOM size limit plus 64 MiB
+    template: configs/components-configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.sbomExport: enable
+      sbomExport.dependencyTrack.url: https://dtrack.example.com
+      sbomExport.dependencyTrack.apiKeySecret.name: dependency-track
+      sbomExport.maxSBOMSize: 33554432
+    asserts:
+      - matchRegex:
+          path: data.capabilities
+          pattern: 'operator.resources.limits.memory is 300Mi, but converting an SBOM of sbomExport.maxSBOMSize \(33554432 bytes\) takes about 352 MiB'
+  - it: does not warn when the operator's memory limit fits a bigger SBOM size limit
+    template: configs/components-configmap.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.sbomExport: enable
+      sbomExport.dependencyTrack.url: https://dtrack.example.com
+      sbomExport.dependencyTrack.apiKeySecret.name: dependency-track
+      sbomExport.maxSBOMSize: 33554432
+      operator.resources.limits.memory: 0.5Gi
+    asserts:
+      - notMatchRegex:
+          path: data.capabilities
+          pattern: operator.resources.limits.memory
+  - it: opens egress to the Service's target port next to the port of the URL
+    template: operator/networkpolicy.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.enabled: true
+      global.networkPolicy.createEgressRules: true
+      capabilities.sbomExport: enable
+      sbomExport.dependencyTrack.url: http://dtrack-apiserver.dtrack.svc
+      sbomExport.dependencyTrack.egressPorts: [8080, 80, 443]
+      sbomExport.dependencyTrack.apiKeySecret.name: dependency-track
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            ports:
+              - port: 80
+                protocol: TCP
+              - port: 8080
+                protocol: TCP
+  - it: opens egress to an extra port when the URL uses 443
+    template: operator/networkpolicy.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.enabled: true
+      global.networkPolicy.createEgressRules: true
+      capabilities.sbomExport: enable
+      sbomExport.dependencyTrack.url: https://dtrack.example.com
+      sbomExport.dependencyTrack.egressPorts: [8443]
+      sbomExport.dependencyTrack.apiKeySecret.name: dependency-track
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            ports:
+              - port: 8443
+                protocol: TCP
+  - it: refuses an extra egress port that is not a port number
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.sbomExport: enable
+      sbomExport.dependencyTrack.url: https://dtrack.example.com
+      sbomExport.dependencyTrack.egressPorts: [70000]
+      sbomExport.dependencyTrack.apiKeySecret.name: dependency-track
+    asserts:
+      - failedTemplate:
+          errorMessage: "sbomExport.dependencyTrack.egressPorts: 70000 is not between 1 and 65535."
+  - it: limits the Dependency-Track egress rule to the peers in egressTo
+    template: operator/networkpolicy.yaml
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: kind-kind
+      global.networkPolicy.enabled: true
+      global.networkPolicy.createEgressRules: true
+      capabilities.sbomExport: enable
+      sbomExport.dependencyTrack.url: http://dtrack-apiserver.dtrack.svc
+      sbomExport.dependencyTrack.egressPorts: [8080]
+      sbomExport.dependencyTrack.egressTo:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: dtrack
+          podSelector:
+            matchLabels:
+              app: dtrack-apiserver
+      sbomExport.dependencyTrack.apiKeySecret.name: dependency-track
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            ports:
+              - port: 80
+                protocol: TCP
+              - port: 8080
+                protocol: TCP
+            to:
+              - namespaceSelector:
+                  matchLabels:
+                    kubernetes.io/metadata.name: dtrack
+                podSelector:
+                  matchLabels:
+                    app: dtrack-apiserver

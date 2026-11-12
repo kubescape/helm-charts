@@ -56,6 +56,70 @@ explicitly online, set `KS_SKIP_UPDATE_CHECK=true` through `operator.env`.
 See the [published-image validation](../../docs/features/operator-daily-reports-validation.md)
 for a reproducible check of offline suppression and online reporting.
 
+## SBOM export to Dependency-Track
+
+With `capabilities.sbomExport: enable`, the Operator sends the SBOM of every
+running image, as node-agent generated it (`capabilities.nodeSbomGeneration`),
+to [Dependency-Track](https://dependencytrack.org): one project per image and
+namespace, under collection projects for the cluster and each namespace. It
+needs neither kubevuln nor registry access. Create a Secret with the API key in
+`ksNamespace` first; the chart only mounts it:
+
+```sh
+kubectl -n kubescape create secret generic dependency-track --from-literal=apiKey=<API key>
+helm upgrade --install kubescape kubescape/kubescape-operator -n kubescape \
+  --set capabilities.sbomExport=enable \
+  --set sbomExport.dependencyTrack.url=https://dtrack.example.com \
+  --set sbomExport.dependencyTrack.apiKeySecret.name=dependency-track
+```
+
+By default each image goes to `<cluster>/<namespace>/<repository>:<tag>`. The layout is
+configurable in `sbomExport.dependencyTrack`, and a namespace can send its images under
+projects that already exist with annotations, for example:
+
+```yaml
+metadata:
+  annotations:
+    kubescape.io/dtrack-parent: "Payments Team:current"   # name:version or a project UUID
+    kubescape.io/dtrack-parent-create: "false"            # it exists; never create or change it
+    kubescape.io/dtrack-project-name: "{{ .Repository }}"
+```
+
+The export needs an Operator image with the `sbomExport` capability, added in
+[kubescape/operator#492](https://github.com/kubescape/operator/pull/492); an older Operator
+ignores these settings.
+
+Converting an SBOM takes the Operator about nine times the SBOM's size in memory, one image at a
+time. SBOMs above `sbomExport.maxSBOMSize` (10 MiB) are skipped, and node-agent keeps SBOMs only up
+to `kubevuln.config.maxSBOMSize` (20 MiB). To export bigger SBOMs, raise `sbomExport.maxSBOMSize`,
+above 20 MiB also `kubevuln.config.maxSBOMSize`, and keep `operator.resources.limits.memory` at
+nine times `sbomExport.maxSBOMSize` plus 64Mi or more: the default 300Mi covers 20 MiB, 32 MiB
+needs 352Mi, for example 512Mi. `GOMEMLIMIT` follows the limit. The chart warns in the
+`ks-capabilities` ConfigMap when the limit is lower.
+
+With network policies on, the Operator may reach the port of `sbomExport.dependencyTrack.url`. If
+Dependency-Track runs in the cluster behind a Service whose `targetPort` differs from its port, add
+the `targetPort` to `sbomExport.dependencyTrack.egressPorts`. The rule allows any destination on
+these ports, because a network policy cannot name Dependency-Track's host; to limit it, set
+`sbomExport.dependencyTrack.egressTo` to the policy peers of Dependency-Track, for example:
+
+```yaml
+sbomExport:
+  dependencyTrack:
+    url: http://dtrack-apiserver.dtrack.svc
+    egressPorts: [8080]
+    egressTo:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: dtrack
+        podSelector:
+          matchLabels:
+            app: dtrack-apiserver
+```
+
+The layout rules, the resync and the permissions the API key needs are described in
+[the Operator doc](https://github.com/kubescape/operator/blob/main/docs/features/sbom-export.md).
+
 ## MCP endpoint for AI agents
 
 Set `storage.mcp.enabled: true` to let AI agents in the cluster (for example [Kagent](https://kagent.dev)) read Kubescape's results over [MCP](https://modelcontextprotocol.io). Storage serves read-only tools at
@@ -191,6 +255,16 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | excludeControls | list | `[]` | Control IDs or legacy CIS section numbers omitted from every operator-triggered posture scan. Request exclusions are added to this list. |
 | defaultFrameworks | list | `[]` | Install-time posture frameworks when a scan omits `targetNames`. Empty = operator legacy fallbacks. Clear with `--set defaultFrameworks=null`. |
 | capabilities.agentRuntimePosture | string | `"disable"` | Grant the Kubescape scanner read-only access to the supported Agent Runtime resources: Sandbox, SandboxTemplate, and WorkerPool. |
+| capabilities.sbomExport | string | `"disable"` | Send the SBOMs of running images to Dependency-Track from the Operator. Needs `capabilities.nodeSbomGeneration`; see [SBOM export to Dependency-Track](#sbom-export-to-dependency-track) |
+| sbomExport.resyncInterval | string | `"1h"` | How often every running image is compared with Dependency-Track |
+| sbomExport.dependencyTrack.url | string | `""` | Base URL of the Dependency-Track API server; required with `capabilities.sbomExport` |
+| sbomExport.dependencyTrack.apiKeySecret.name | string | `""` | Existing Secret in ksNamespace holding the API key; required with `capabilities.sbomExport` |
+| sbomExport.dependencyTrack.apiKeySecret.key | string | `"apiKey"` | Key of the API key in that Secret |
+| sbomExport.maxSBOMSize | int | `10485760` | Largest SBOM, in bytes, the operator converts; `operator.resources.limits.memory` needs nine times this plus 64Mi, see [SBOM export to Dependency-Track](#sbom-export-to-dependency-track) |
+| sbomExport.dependencyTrack.egressPorts | list | `[]` | More ports the network policy lets the Operator reach, besides the port of the URL, e.g. a Service's `targetPort` |
+| sbomExport.dependencyTrack.egressTo | list | `[]` | NetworkPolicy peers the Dependency-Track egress rule allows; empty allows any destination |
+| sbomExport.dependencyTrack.rootProject | object | `{name: "{{ .Cluster }}", version: current, create: true}` | Root project, where the operator creates the parents it creates; with `create: false` it must exist and is never changed |
+| sbomExport.dependencyTrack.project | object | `{name: "{{ .Cluster }}/{{ .Namespace }}/{{ .Repository }}", version: "{{ .Tag }}", parent: {name: "{{ .Cluster }}/{{ .Namespace }}", version: current, create: true}}` | Where each image goes: Go templates over `.Cluster`, `.Namespace`, `.Repository`, `.Tag` and `.Labels`; namespaces can override them with `kubescape.io/dtrack-*` annotations |
 | capabilities.sandboxSeccomp | string | `"disable"` | Experimental. Enforce the syscall rules of SandboxPolicy `privilege` sections with seccomp. Profiles are injected through NRI (containerd >= 2.2 or CRI-O >= 1.34) and apply when a container starts. Requires the SandboxPolicy CRDs and a node-agent release that includes the seccomp layer; older images ignore it. |
 | global.networkPolicy.enabled | bool | `true` | Create ingress NetworkPolicies for all components. **On by default**, see [Network policies](https://github.com/kubescape/helm-charts/blob/main/docs/features/network-policies.md) |
 | global.networkPolicy.createEgressRules | bool | `false` | Also restrict egress (DNS, kube-apiserver, proxy and the destinations each component needs) |

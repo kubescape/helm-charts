@@ -162,6 +162,9 @@ capabilities:
   sandboxSeccomp: disable
   manageWorkloads: disable
   syncSBOM: disable
+  # The operator sends the SBOMs from nodeSbomGeneration to Dependency-Track,
+  # without kubevuln or registry access. Configure it under sbomExport.
+  sbomExport: disable
 
   # ====== Agent runtime posture ======
   # Grants the scanner read-only access to the Sandbox, SandboxTemplate, and
@@ -232,6 +235,51 @@ alertCRD:
   installDefault: false # install the default CRD
   scopeClustered: true # it is better to have the CRDs in the cluster scope
   scopeNamespaced: false # enable scopeNamespaced when there are no permissions for creating cluster scoped CRDs
+
+# Export of the node SBOMs to Dependency-Track, used when capabilities.sbomExport is enable.
+# By default the operator creates one project per running image and namespace,
+# <cluster>/<namespace>/<repository>:<tag>, under collection projects for the cluster and
+# each namespace (needs Dependency-Track 4.13 or later). Names and versions are Go templates
+# over .Cluster, .Namespace, .Repository, .Tag and .Labels (the namespace's labels), and a
+# namespace can override them with kubescape.io/dtrack-* annotations, see
+# https://github.com/kubescape/operator/blob/main/docs/features/sbom-export.md
+sbomExport:
+  # -- how often every running image is compared with Dependency-Track
+  resyncInterval: 1h
+  # -- largest SBOM, in bytes, the operator converts. Converting takes about nine times its size in
+  # memory, so operator.resources.limits.memory needs nine times this plus 64Mi; the chart warns in
+  # ks-capabilities when it is lower. node-agent keeps SBOMs up to kubevuln.config.maxSBOMSize (20 MiB):
+  # to export bigger ones, raise both and the operator's memory limit, e.g. 32 MiB and 512Mi.
+  maxSBOMSize: 10485760
+  dependencyTrack:
+    # -- base URL of the Dependency-Track API server, e.g. https://dtrack.example.com
+    url: ""
+    # -- more ports the network policy lets the operator reach, besides the port of url. When
+    # Dependency-Track runs behind a Service whose targetPort differs from its port, add the targetPort.
+    egressPorts: []
+    # -- NetworkPolicy peers (podSelector, namespaceSelector, ipBlock) the rule for those ports
+    # allows; empty allows any destination, since a policy cannot name Dependency-Track's host
+    egressTo: []
+    # -- existing Secret in ksNamespace that holds the API key; the chart never creates it.
+    # The key's team needs VIEW_PORTFOLIO, BOM_UPLOAD and PORTFOLIO_MANAGEMENT
+    # (on Dependency-Track 5: PORTFOLIO_MANAGEMENT_CREATE and _UPDATE)
+    apiKeySecret:
+      name: ""
+      key: apiKey
+    # -- the root project, where the operator creates the parents it creates; with create
+    # false it must exist, and the operator never changes it
+    rootProject:
+      name: "{{ .Cluster }}"
+      version: current
+      create: true
+    # -- the project each image goes to, and its parent collection
+    project:
+      name: "{{ .Cluster }}/{{ .Namespace }}/{{ .Repository }}"
+      version: "{{ .Tag }}"
+      parent:
+        name: "{{ .Cluster }}/{{ .Namespace }}"
+        version: current
+        create: true
 
 # -----------------------------------------------------------------------------------------
 # ------------------------ Cloud Providers ------------------------------------------------
