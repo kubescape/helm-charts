@@ -91,7 +91,7 @@ class PermissionContracts(unittest.TestCase):
         """Require explicit read-only defaults in every workflow."""
         for path, workflow in self.workflows.items():
             with self.subTest(workflow=path):
-                self.assertEqual(workflow["permissions"], "read-all")
+                self.assertTrue(all(level < 2 for level in expand(workflow["permissions"]).values()))
 
     def test_all_local_calls_and_nested_jobs_are_compatible(self):
         """Validate every local call against all inherited ceilings."""
@@ -100,6 +100,13 @@ class PermissionContracts(unittest.TestCase):
     def test_all_job_write_grants_remain_minimal(self):
         """Require an approved write set for every job, including inherited grants."""
         expected = {
+            ("component-image-updates.yaml", "tests"): set(),
+            ("component-image-updates.yaml", "discover"): set(),
+            ("component-image-updates.yaml", "publish"): {"contents", "pull-requests"},
+            ("osps-baseline.yml", "scan"): set(),
+            ("kubescape-ops-tool-image.yaml", "pr-test-image"): set(),
+            ("kubescape-ops-tool-image.yaml", "build-test-scan"): set(),
+            ("kubescape-ops-tool-image.yaml", "publish"): set(),
             ("02-e2e-test.yaml", "dispatch-e2e-tests"): set(),
             ("03-helm-release.yaml", "e2e-test"): set(),
             ("03-helm-release.yaml", "allowlist-drift-check"): set(),

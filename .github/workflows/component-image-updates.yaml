@@ -1,0 +1,117 @@
+name: Component image update candidates
+on:
+  schedule:
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Discover and validate without creating a PR
+        type: boolean
+        default: true
+  pull_request:
+    paths:
+      - 'scripts/component-updates/**'
+      - 'scripts/workflow-permissions/**'
+      - '.github/workflows/component-image-updates.yaml'
+
+concurrency:
+  group: component-image-updates-${{ github.event.pull_request.number || 'scheduled' }}
+  cancel-in-progress: false
+permissions: read-all
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - run: pip install PyYAML==6.0.2
+      - run: python3 -B -m unittest discover -s scripts/component-updates -v
+      - run: python3 -B -m unittest discover -s scripts/workflow-permissions -v
+
+  discover:
+    if: github.event_name != 'pull_request' && github.repository == 'kubescape/helm-charts' && github.ref == 'refs/heads/main'
+    needs: tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      base: ${{ steps.base.outputs.sha }}
+      has_updates: ${{ steps.plan.outputs.has_updates }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - uses: azure/setup-helm@5119fcb9089d432beecbf79bb2c7915207344b78 # v3.5
+        with:
+          version: v3.19.0
+      - run: pip install PyYAML==6.0.2
+      - id: base
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Verify base snapshots
+        run: docker run --rm --user "$(id -u):$(id -g)" --volume "$PWD:/apps" helmunittest/helm-unittest@sha256:28ea86c3e0b07f501f0c2e9c08b9f41e240f4a4b571cb5106b36cf0f0607e989 charts/kubescape-operator/
+      - name: Discover and prepare candidates
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 scripts/component-updates/discover.py > /tmp/component-plan.json
+          cat /tmp/component-plan.json >> "$GITHUB_STEP_SUMMARY"
+          python3 scripts/component-updates/prepare.py /tmp/component-plan.json
+          python3 -c 'import json, os; p=json.load(open("/tmp/component-plan.json")); open(os.environ["GITHUB_OUTPUT"],"a").write("has_updates=" + str(bool(p["updates"])).lower() + "\n")'
+      - name: Validate candidate chart
+        if: steps.plan.outputs.has_updates == 'true'
+        run: |
+          helm lint charts/kubescape-operator
+          docker run --rm --user "$(id -u):$(id -g)" --volume "$PWD:/apps" helmunittest/helm-unittest@sha256:28ea86c3e0b07f501f0c2e9c08b9f41e240f4a4b571cb5106b36cf0f0607e989 -u charts/kubescape-operator/
+          docker run --rm --user "$(id -u):$(id -g)" --volume "$PWD:/apps" helmunittest/helm-unittest@sha256:28ea86c3e0b07f501f0c2e9c08b9f41e240f4a4b571cb5106b36cf0f0607e989 charts/kubescape-operator/
+      - name: Package validated candidate
+        if: steps.plan.outputs.has_updates == 'true'
+        run: |
+          mkdir -p /tmp/component-candidate/charts/kubescape-operator/tests/__snapshot__
+          cp /tmp/component-plan.json /tmp/component-candidate/plan.json
+          cp charts/kubescape-operator/values.yaml /tmp/component-candidate/charts/kubescape-operator/
+          cp charts/kubescape-operator/tests/operator_image_tag_test.yaml /tmp/component-candidate/charts/kubescape-operator/tests/
+          cp charts/kubescape-operator/tests/__snapshot__/snapshot_test.yaml.snap /tmp/component-candidate/charts/kubescape-operator/tests/__snapshot__/
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: steps.plan.outputs.has_updates == 'true'
+        with:
+          name: component-candidate
+          path: /tmp/component-candidate/
+          retention-days: 1
+
+  publish:
+    if: needs.discover.outputs.has_updates == 'true' && (github.event_name == 'schedule' || inputs.dry_run == false)
+    needs: discover
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.discover.outputs.base }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: component-candidate
+          path: /tmp/component-candidate
+      - name: Apply validated files and publish draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE_BASE: ${{ needs.discover.outputs.base }}
+        run: |
+          cp /tmp/component-candidate/charts/kubescape-operator/values.yaml charts/kubescape-operator/values.yaml
+          cp /tmp/component-candidate/charts/kubescape-operator/tests/operator_image_tag_test.yaml charts/kubescape-operator/tests/operator_image_tag_test.yaml
+          cp /tmp/component-candidate/charts/kubescape-operator/tests/__snapshot__/snapshot_test.yaml.snap charts/kubescape-operator/tests/__snapshot__/snapshot_test.yaml.snap
+          python3 scripts/component-updates/publish.py /tmp/component-candidate/plan.json "$CANDIDATE_BASE"
