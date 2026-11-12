@@ -97,7 +97,7 @@ class PublicationTests(unittest.TestCase):
         import hashlib
         head = 'a' * 40
         marker = f'\n<!-- component-updates:v1 head={head} body={hashlib.sha256(body.encode()).hexdigest()} -->'
-        pr = {'user': {'login': publish.BOT}, 'draft': True, 'head': {'sha': head}, 'body': body + marker, 'number': 1}
+        pr = {'user': {'login': publish.BOT}, 'draft': True, 'base': {'ref': 'main', 'repo': {'full_name': publish.REPO}}, 'head': {'sha': head}, 'body': body + marker, 'number': 1}
         with patch.object(publish, 'pages', return_value=[{'user': {'login': 'human', 'type': 'User'}}]):
             with self.assertRaisesRegex(ValueError, 'human review'):
                 publish.ensure_unadopted(pr, head)
@@ -106,7 +106,7 @@ class PublicationTests(unittest.TestCase):
         import hashlib
         head = 'a' * 40
         body = 'original'
-        pr = {'user': {'login': publish.BOT}, 'draft': True, 'head': {'sha': head},
+        pr = {'user': {'login': publish.BOT}, 'draft': True, 'base': {'ref': 'main', 'repo': {'full_name': publish.REPO}}, 'head': {'sha': head},
               'body': body + f"\n<!-- component-updates:v1 head={head} body={hashlib.sha256(body.encode()).hexdigest()} -->", 'number': 4}
         with patch.object(publish, 'pages', side_effect=[[], [], [{'author': {'login': 'alice'}}]]):
             with self.assertRaisesRegex(ValueError, 'human or unknown commit'):
@@ -133,6 +133,18 @@ class PublicationTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'main changed'):
                     publish.publish(str(path), 'expected')
 
+    def test_retargeted_draft_is_rejected_before_activity_queries(self):
+        head = 'a' * 40
+        for base in ({'ref': 'release', 'repo': {'full_name': publish.REPO}},
+                     {'ref': 'main', 'repo': {'full_name': 'other/repo'}}, None):
+            with self.subTest(base=base), patch.object(publish, 'pages', return_value=[]) as pages:
+                pr = {'user': {'login': publish.BOT}, 'draft': True,
+                      'head': {'sha': head}, 'base': base, 'number': 1,
+                      'body': '\n<!-- component-updates:v1 head=' + head + ' body=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 -->'}
+                with self.assertRaisesRegex(ValueError, 'base'):
+                    publish.ensure_unadopted(pr, head)
+                pages.assert_not_called()
+
     def test_wrong_repository_cannot_publish(self):
         with patch.dict('os.environ', {'GITHUB_REPOSITORY': 'other/repo', 'GITHUB_REF': 'refs/heads/main'}):
             with self.assertRaisesRegex(ValueError, 'restricted'):
@@ -140,7 +152,7 @@ class PublicationTests(unittest.TestCase):
 
     def test_description_edits_freeze(self):
         head = 'a' * 40
-        pr = {'user': {'login': publish.BOT}, 'draft': True, 'head': {'sha': head}, 'body': 'edited\n<!-- component-updates:v1 head=' + head + ' body=' + '0' * 64 + ' -->'}
+        pr = {'user': {'login': publish.BOT}, 'draft': True, 'base': {'ref': 'main', 'repo': {'full_name': publish.REPO}}, 'head': {'sha': head}, 'body': 'edited\n<!-- component-updates:v1 head=' + head + ' body=' + '0' * 64 + ' -->'}
         with self.assertRaisesRegex(ValueError, 'edited'):
             publish.ensure_unadopted(pr, head)
 

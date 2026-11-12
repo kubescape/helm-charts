@@ -49,6 +49,9 @@ def human(item):
 
 
 def ensure_unadopted(pr, head):
+    base = pr.get('base') or {}
+    if base.get('ref') != 'main' or (base.get('repo') or {}).get('full_name') != REPO:
+        raise ValueError('draft base changed; refusing update')
     if pr['user']['login'] != BOT or not pr['draft'] or pr['head']['sha'] != head:
         raise ValueError('draft ownership or head changed; refusing update')
     match = re.search(r'\n<!-- component-updates:v1 head=([0-9a-f]{40}) body=([0-9a-f]{64}) -->\s*$', pr.get('body') or '')
