@@ -18,6 +18,10 @@ chart path is a single node-agent DaemonSet, without the autoscaler, multiple
 DaemonSets or test multiplication. Existing node-agent capabilities determine
 whether node-agent is deployed; this switch alone does not enable it.
 
+[Node-agent #1094](https://github.com/kubescape/node-agent/pull/1094) adds
+optional stop observations. They are off by default; see
+[Stop observations](#stop-observations) before enabling them.
+
 ## Prepare the selected nodes
 
 Use an isolated test node with a working Linux/containerd/runsc installation
@@ -127,8 +131,54 @@ The [6 November ARM64 trial](../experiments/gvisor-helm-20261106/README.md)
 records these checks for one self-managed K3s setup. Broader environment
 validation remains pending. Helm render,
 unit and lint checks do not establish successful runsc/CRI/OTLP collection.
-There is no actor/session attribution, behavioral enforcement or stop/egress
+There is no actor/session attribution, behavioral enforcement or egress
 collection added here. The earlier missing-start investigation remains unresolved.
+
+## Stop observations
+
+Set `nodeAgent.gVisorStart.stopObservations: true` to also export container
+stops. It requires `enabled: true` and an image containing node-agent #1094; an
+older image ignores the setting. The chart only adds `"stopObservations": true`
+to the generated `gVisorStart` config. It adds no volume, mount, RBAC or trace
+configuration.
+
+The node's runsc trace session must then select the two exit points as well,
+and every point must carry the context fields node-agent matches on:
+
+```json
+{
+  "trace_session": {
+    "name": "Default",
+    "points": [
+      {"name": "container/start",
+       "context_fields": ["time", "thread_id", "group_id", "thread_group_start_time", "container_id"]},
+      {"name": "sentry/task_exit",
+       "context_fields": ["time", "thread_id", "group_id", "thread_group_start_time", "container_id"]},
+      {"name": "sentry/exit_notify_parent",
+       "context_fields": ["time", "thread_id", "group_id", "thread_group_start_time", "container_id"]}
+    ],
+    "sinks": [{
+      "name": "remote",
+      "config": {"endpoint": "/run/kubescape/gvisor/events.sock"}
+    }]
+  }
+}
+```
+
+Without these fields, starts are still exported, but the health report counts
+them in `stop_key_missing` and no stop can be matched. Exported stops are
+`RuntimeObservation` records with `kind=container_stopped`, `exit_code`,
+`signal` and `termination`. The matching rule and loss behavior are in
+[node-agent's feature doc](https://github.com/kubescape/node-agent/blob/main/docs/features/gvisor-start-source.md#stop-observations-opt-in).
+
+This source does not cover every termination. When the Sentry process dies, or
+node-agent restarts, existing sandboxes do not reconnect, and their stops are
+counted as `unobserved_terminations` instead of being reported. Use CRI for an
+authoritative container state. When validating, compare exported stops with CRI
+exit codes, and check that `kubectl exec` and child-process exits produce no
+stop. The stop path has unit and socket tests in node-agent and the live mapping
+evidence in [node-agent #1091](https://github.com/kubescape/node-agent/pull/1091);
+it has not yet been validated through a live Helm installation.
 
 ## Disable and clean up
 
