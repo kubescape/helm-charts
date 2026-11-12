@@ -19,6 +19,9 @@ tests:
       - matchRegex:
           path: data["config.json"]
           pattern: '"Namespace": "kubescape"'
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"ExcludeClusterObjects": false'
 
   - it: enables the rules updater with a custom interval
     template: operator/configmap.yaml
@@ -40,3 +43,24 @@ tests:
       - matchRegex:
           path: data["config.json"]
           pattern: '"Interval": "30m"'
+
+  - it: excludes cluster-scoped objects when asked
+    template: operator/configmap.yaml
+    documentIndex: 0
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      operator:
+        rulesUpdateConfig:
+          enabled: true
+          excludeClusterObjects: true
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"ExcludeClusterObjects": true'
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"Interval": "5m"'
