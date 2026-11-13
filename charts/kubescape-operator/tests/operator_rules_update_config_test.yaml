@@ -1,0 +1,28 @@
+suite: operator rules update config
+templates:
+  - operator/configmap.yaml
+tests:
+  - it: keeps cluster-scoped objects in by default
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: rules-check
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"ExcludeClusterObjects":\s*false'
+  - it: renders the opt-out when set
+    capabilities:
+      apiVersions: [batch/v1]
+    set:
+      unittest: true
+      clusterName: rules-check
+      operator.rulesUpdateConfig.excludeClusterObjects: true
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"ExcludeClusterObjects":\s*true'
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"Enabled":\s*false'
