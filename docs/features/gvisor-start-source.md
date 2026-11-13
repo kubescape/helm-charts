@@ -3,9 +3,11 @@
 This chart path deploys the experimental node-agent SecCheck `container/start`
 receiver on explicitly selected, prepared self-managed Linux nodes. It requires
 an image containing [node-agent #1069](https://github.com/kubescape/node-agent/pull/1069).
-The chart's current default image, `v0.3.308`, predates that integration. Override
-`nodeAgent.image.repository` and `nodeAgent.image.tag` with a compatible image
-you have built or verified. Enabling this with an older image does not establish
+Node-agent `v0.3.310` and later contain it, but only `v0.3.325` and later also
+contain the health reports (#1072) and stop observations (#1094) described
+below. If the chart's default image is older than the features you enable,
+override `nodeAgent.image.repository` and `nodeAgent.image.tag` with a compatible
+image you have verified. Enabling this with an older image does not establish
 collection.
 
 [Node-agent #1072](https://github.com/kubescape/node-agent/pull/1072) adds health
@@ -128,8 +130,10 @@ existing node-agent on the same nodes. Do not duplicate the generated
    delivery completeness. A disconnected socket is not a container stop.
 
 The [6 November ARM64 trial](../experiments/gvisor-helm-20261106/README.md)
-records these checks for one self-managed K3s setup. Broader environment
-validation remains pending. Helm render,
+records these checks for one self-managed K3s setup. The
+[13 November trial](../experiments/gvisor-helm-stop-20261113/README.md) repeats
+the install with `v0.3.325` and checks health reports and stop observations.
+Broader environment validation remains pending. Helm render,
 unit and lint checks do not establish successful runsc/CRI/OTLP collection.
 There is no actor/session attribution, behavioral enforcement or egress
 collection added here. The earlier missing-start investigation remains unresolved.
@@ -184,8 +188,10 @@ report, and the new process starts again from zero, so the counter does not
 account for every missed stop. Use CRI for an authoritative container state. When validating, compare exported stops with CRI
 exit codes, and check that `kubectl exec` and child-process exits produce no
 stop. The stop path has unit and socket tests in node-agent and the live mapping
-evidence in [node-agent #1091](https://github.com/kubescape/node-agent/pull/1091);
-it has not yet been validated through a live Helm installation.
+evidence in [node-agent #1091](https://github.com/kubescape/node-agent/pull/1091).
+The [13 November Helm trial](../experiments/gvisor-helm-stop-20261113/README.md)
+installed it through this chart on one self-managed ARM64 K3s node and matched
+every exported stop to its CRI exit code.
 
 ## Disable and clean up
 
