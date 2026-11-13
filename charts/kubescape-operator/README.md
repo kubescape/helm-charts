@@ -342,6 +342,7 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | nodeAgent.gVisorStart.socketDirectory | string | `/run/kubescape/gvisor` | Pre-created root-owned 0700 host directory. Mounted as `Directory`; the receiver uses `events.sock` inside it. |
 | nodeAgent.gVisorStart.runtimeEndpoint | string | `""` | Absolute local CRI socket path, or empty to reuse node-agent's detected runtime endpoint and existing mounts. |
 | nodeAgent.gVisorStart.runtimeHandler | string | `runsc` | Expected CRI runtime handler. |
+| nodeAgent.gVisorStart.stopObservations | bool | `false` | Also export container stops matched to verified starts. Requires `nodeAgent.gVisorStart.enabled`, an image containing node-agent #1094 and the extra trace points described in [setup and validation](../../docs/features/gvisor-start-source.md#stop-observations). |
 | nodeAgent.config.hostSensor.enabled | bool | `true` | Defines `KS_ENABLE_HOST_SCANNER` in kubescape to enable [host scanner feature](https://kubescape.io/docs/components/host-sensor/)
 | nodeAgent.config.tracers.capSys | string | `enable` | Allow capSys tracing when required by enabled node-agent features. Set to disable to force-disable the capSys tracer |
 | nodeAgent.config.tracers.dns | string | `enable` | Allow dns tracing when required by enabled node-agent features. Set to disable to force-disable the dns tracer |

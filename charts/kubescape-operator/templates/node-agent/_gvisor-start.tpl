@@ -1,6 +1,12 @@
 {{/* Supported experimental path: a single DaemonSet on explicitly selected nodes. */}}
 {{- define "gvisorStart.validate" -}}
 {{- $cfg := .Values.nodeAgent.gVisorStart -}}
+{{- if and $cfg.stopObservations (not $cfg.enabled) -}}
+{{- fail "nodeAgent.gVisorStart.stopObservations requires nodeAgent.gVisorStart.enabled" -}}
+{{- end -}}
+{{- if and (hasKey $cfg "stopObservations") (not (kindIs "bool" $cfg.stopObservations)) -}}
+{{- fail "nodeAgent.gVisorStart.stopObservations must be a boolean" -}}
+{{- end -}}
 {{- if $cfg.enabled -}}
 {{- $components := fromYaml (include "components" .) -}}
 {{- if not $components.nodeAgent.enabled -}}
