@@ -10,6 +10,20 @@
 {{- fail "Runtime detection is enabled, but the Runtime rule alert binding CRD is not configured to be created neither in the cluster scope nor namespace scope (set alertCRD.scopeClustered or alertCRD.scopeNamepaced)" }}
 {{- end }}
 {{- end }}
+{{- $hostSensorExcludedSensors := default (list) .Values.nodeAgent.config.hostSensor.excludedSensors }}
+{{- if not (kindIs "slice" $hostSensorExcludedSensors) }}
+{{- fail "nodeAgent.config.hostSensor.excludedSensors must be a list" }}
+{{- end }}
+{{- /* node-agent refuses to start with an unknown name, so reject it here; these are the kinds of the host-data CRDs in templates/node-agent-crds */}}
+{{- $hostSensorKinds := list "OsReleaseFile" "KernelVersion" "LinuxSecurityHardeningStatus" "OpenPortsList" "LinuxKernelVariables" "KubeletInfo" "KubeProxyInfo" "ControlPlaneInfo" "CloudProviderInfo" "CNIInfo" }}
+{{- range $hostSensorExcludedSensors }}
+{{- if not (has . $hostSensorKinds) }}
+{{- fail (printf "nodeAgent.config.hostSensor.excludedSensors: unknown host sensor %q; valid sensors: %s" (toString .) (join ", " $hostSensorKinds)) }}
+{{- end }}
+{{- end }}
+{{- if and $hostSensorExcludedSensors (hasKey (default dict .Values.nodeAgent.config.extra) "hostSensorExcludedSensors") }}
+{{- fail "configure hostSensorExcludedSensors through nodeAgent.config.hostSensor.excludedSensors, not nodeAgent.config.extra.hostSensorExcludedSensors" }}
+{{- end }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -46,6 +60,9 @@ data:
         "malwareDetectionEnabled": {{ $gates.malwareDetectionEnabled }},
         "hostSensorEnabled": {{ .Values.nodeAgent.config.hostSensor.enabled }},
         "hostSensorInterval": "{{ .Values.nodeAgent.config.hostSensor.interval }}",
+        {{- with $hostSensorExcludedSensors }}
+        "hostSensorExcludedSensors": {{ . | toJson }},
+        {{- end }}
         "nodeProfileServiceEnabled": {{ $gates.nodeProfileServiceEnabled }},
         "networkStreamingEnabled": {{ $gates.networkStreamingEnabled }},
         "maxImageSize": {{ .Values.kubevuln.config.maxImageSize }},
