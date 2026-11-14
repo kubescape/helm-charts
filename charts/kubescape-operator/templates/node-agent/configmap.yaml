@@ -10,6 +10,27 @@
 {{- fail "Runtime detection is enabled, but the Runtime rule alert binding CRD is not configured to be created neither in the cluster scope nor namespace scope (set alertCRD.scopeClustered or alertCRD.scopeNamepaced)" }}
 {{- end }}
 {{- end }}
+{{- $dnsRuleForwarding := default dict .Values.nodeAgent.config.dnsRuleForwarding }}
+{{- $dnsRuleForwardingEnabled := default false $dnsRuleForwarding.enabled }}
+{{- $dnsExcludedSuffixes := default (list) $dnsRuleForwarding.excludedSuffixes }}
+{{- if not (kindIs "bool" $dnsRuleForwardingEnabled) }}
+{{- fail "nodeAgent.config.dnsRuleForwarding.enabled must be a boolean" }}
+{{- end }}
+{{- if $dnsRuleForwardingEnabled }}
+{{- /* forwarded DNS queries reach the rule manager only, so they need runtime detection and the DNS tracer */}}
+{{- if ne .Values.capabilities.runtimeDetection "enable" }}
+{{- fail "nodeAgent.config.dnsRuleForwarding.enabled requires capabilities.runtimeDetection=enable" }}
+{{- end }}
+{{- if eq .Values.nodeAgent.config.tracers.dns "disable" }}
+{{- fail "nodeAgent.config.dnsRuleForwarding.enabled requires the DNS tracer (nodeAgent.config.tracers.dns=enable)" }}
+{{- end }}
+{{- if not (kindIs "slice" $dnsExcludedSuffixes) }}
+{{- fail "nodeAgent.config.dnsRuleForwarding.excludedSuffixes must be a list" }}
+{{- end }}
+{{- if hasKey (default dict .Values.nodeAgent.config.extra) "dnsRuleForwarding" }}
+{{- fail "configure dnsRuleForwarding through nodeAgent.config.dnsRuleForwarding, not nodeAgent.config.extra.dnsRuleForwarding" }}
+{{- end }}
+{{- end }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -87,6 +108,12 @@ data:
         "alertDeduplication": {
             "bypass": {{ .Values.nodeAgent.config.alertDeduplication.bypass }}
         },
+        {{- if $dnsRuleForwardingEnabled }}
+        "dnsRuleForwarding": {
+            "enabled": true,
+            "excludedSuffixes": {{ $dnsExcludedSuffixes | toJson }}
+        },
+        {{- end }}
         "dCapSys": {{ eq .Values.nodeAgent.config.tracers.capSys "disable" }},
         "dDns": {{ eq .Values.nodeAgent.config.tracers.dns "disable" }},
         "dExec": {{ eq .Values.nodeAgent.config.tracers.exec "disable" }},

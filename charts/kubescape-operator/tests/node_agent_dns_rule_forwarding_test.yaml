@@ -1,0 +1,182 @@
+suite: node-agent DNS rule forwarding
+templates:
+  - node-agent/configmap.yaml
+tests:
+  - it: leaves dnsRuleForwarding out of the config by default
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities:
+        runtimeDetection: enable
+      alertCRD:
+        scopeClustered: true
+    asserts:
+      - notMatchRegex:
+          path: data["config.json"]
+          pattern: '"dnsRuleForwarding"'
+
+  - it: renders dnsRuleForwarding when enabled
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities:
+        runtimeDetection: enable
+      alertCRD:
+        scopeClustered: true
+      nodeAgent:
+        config:
+          dnsRuleForwarding:
+            enabled: true
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"dnsRuleForwarding": \{\s*"enabled": true,\s*"excludedSuffixes": \[\]\s*\},'
+
+  - it: renders the excluded suffixes as a JSON list
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities:
+        runtimeDetection: enable
+      alertCRD:
+        scopeClustered: true
+      nodeAgent:
+        config:
+          dnsRuleForwarding:
+            enabled: true
+            excludedSuffixes:
+              - ec2.internal
+              - corp.example.com
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"excludedSuffixes": \["ec2.internal","corp.example.com"\]'
+
+  - it: renders an empty list when excludedSuffixes is unset
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities:
+        runtimeDetection: enable
+      alertCRD:
+        scopeClustered: true
+      nodeAgent:
+        config:
+          dnsRuleForwarding:
+            enabled: true
+            excludedSuffixes: null
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"excludedSuffixes": \[\]'
+
+  - it: renders without dnsRuleForwarding values from an older release
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent:
+        config:
+          dnsRuleForwarding: null
+    asserts:
+      - notMatchRegex:
+          path: data["config.json"]
+          pattern: '"dnsRuleForwarding"'
+
+  - it: keeps an existing extra.dnsRuleForwarding passthrough working while the chart value is off
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities:
+        runtimeDetection: enable
+      alertCRD:
+        scopeClustered: true
+      nodeAgent:
+        config:
+          extra:
+            dnsRuleForwarding:
+              enabled: true
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"dnsRuleForwarding": \{"enabled":true\}'
+
+  - it: rejects forwarding without runtime detection
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities:
+        runtimeDetection: disable
+        relevancy: enable
+      nodeAgent:
+        config:
+          dnsRuleForwarding:
+            enabled: true
+    asserts:
+      - failedTemplate:
+          errorMessage: nodeAgent.config.dnsRuleForwarding.enabled requires capabilities.runtimeDetection=enable
+
+  - it: rejects forwarding with the DNS tracer disabled
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities:
+        runtimeDetection: enable
+      alertCRD:
+        scopeClustered: true
+      nodeAgent:
+        config:
+          tracers:
+            dns: disable
+          dnsRuleForwarding:
+            enabled: true
+    asserts:
+      - failedTemplate:
+          errorMessage: nodeAgent.config.dnsRuleForwarding.enabled requires the DNS tracer (nodeAgent.config.tracers.dns=enable)
+
+  - it: rejects a non-boolean enabled value
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent:
+        config:
+          dnsRuleForwarding:
+            enabled: "false"
+    asserts:
+      - failedTemplate:
+          errorMessage: nodeAgent.config.dnsRuleForwarding.enabled must be a boolean
+
+  - it: rejects excluded suffixes that are not a list
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities:
+        runtimeDetection: enable
+      alertCRD:
+        scopeClustered: true
+      nodeAgent:
+        config:
+          dnsRuleForwarding:
+            enabled: true
+            excludedSuffixes: ec2.internal
+    asserts:
+      - failedTemplate:
+          errorMessage: nodeAgent.config.dnsRuleForwarding.excludedSuffixes must be a list
+
+  - it: rejects setting dnsRuleForwarding in both places
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities:
+        runtimeDetection: enable
+      alertCRD:
+        scopeClustered: true
+      nodeAgent:
+        config:
+          dnsRuleForwarding:
+            enabled: true
+          extra:
+            dnsRuleForwarding:
+              enabled: false
+    asserts:
+      - failedTemplate:
+          errorMessage: configure dnsRuleForwarding through nodeAgent.config.dnsRuleForwarding, not nodeAgent.config.extra.dnsRuleForwarding
