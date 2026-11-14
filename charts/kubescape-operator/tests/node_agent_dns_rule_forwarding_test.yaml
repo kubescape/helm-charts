@@ -180,3 +180,58 @@ tests:
     asserts:
       - failedTemplate:
           errorMessage: configure dnsRuleForwarding through nodeAgent.config.dnsRuleForwarding, not nodeAgent.config.extra.dnsRuleForwarding
+
+  - it: rejects excluded suffixes that are not strings
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities:
+        runtimeDetection: enable
+      alertCRD:
+        scopeClustered: true
+      nodeAgent:
+        config:
+          dnsRuleForwarding:
+            enabled: true
+            excludedSuffixes:
+              - ec2.internal
+              - 5
+    asserts:
+      - failedTemplate:
+          errorMessage: nodeAgent.config.dnsRuleForwarding.excludedSuffixes must contain only strings
+
+  - it: rejects extra.runtimeDetectionEnabled while forwarding is enabled
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities:
+        runtimeDetection: enable
+      alertCRD:
+        scopeClustered: true
+      nodeAgent:
+        config:
+          dnsRuleForwarding:
+            enabled: true
+          extra:
+            runtimeDetectionEnabled: false
+    asserts:
+      - failedTemplate:
+          errorMessage: nodeAgent.config.extra.runtimeDetectionEnabled conflicts with nodeAgent.config.dnsRuleForwarding.enabled=true; set the chart value instead
+
+  - it: rejects extra.dDns while forwarding is enabled
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities:
+        runtimeDetection: enable
+      alertCRD:
+        scopeClustered: true
+      nodeAgent:
+        config:
+          dnsRuleForwarding:
+            enabled: true
+          extra:
+            dDns: true
+    asserts:
+      - failedTemplate:
+          errorMessage: nodeAgent.config.extra.dDns conflicts with nodeAgent.config.dnsRuleForwarding.enabled=true; set the chart value instead

@@ -27,8 +27,19 @@
 {{- if not (kindIs "slice" $dnsExcludedSuffixes) }}
 {{- fail "nodeAgent.config.dnsRuleForwarding.excludedSuffixes must be a list" }}
 {{- end }}
+{{- range $suffix := $dnsExcludedSuffixes }}
+{{- if not (kindIs "string" $suffix) }}
+{{- fail "nodeAgent.config.dnsRuleForwarding.excludedSuffixes must contain only strings" }}
+{{- end }}
+{{- end }}
 {{- if hasKey (default dict .Values.nodeAgent.config.extra) "dnsRuleForwarding" }}
 {{- fail "configure dnsRuleForwarding through nodeAgent.config.dnsRuleForwarding, not nodeAgent.config.extra.dnsRuleForwarding" }}
+{{- end }}
+{{- /* extra is emitted after the chart-managed keys, so it would silently override them */}}
+{{- range $key := list "runtimeDetectionEnabled" "dDns" }}
+{{- if hasKey (default dict $.Values.nodeAgent.config.extra) $key }}
+{{- fail (printf "nodeAgent.config.extra.%s conflicts with nodeAgent.config.dnsRuleForwarding.enabled=true; set the chart value instead" $key) }}
+{{- end }}
 {{- end }}
 {{- end }}
 apiVersion: v1
