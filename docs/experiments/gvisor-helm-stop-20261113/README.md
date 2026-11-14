@@ -56,13 +56,16 @@ The final phase A snapshot:
 | `accepted_connections`, `closed_connections`, `handshakes` | 9 | `unresolved_starts`, `ignored_frames` | 9 |
 | `received_frames` | 44 | errors, rejections, listener failures, sender drops | 0 |
 
-All four documented equations hold (`verified_starts` = drops + canceled +
+The verifier requires every report to carry all 31 numeric fields, and the
+final snapshot to show zero sender drops, read errors, cancellations and
+rejections. All four documented equations hold (`verified_starts` = drops + canceled +
 callbacks, callbacks = rejected + submitted, and the same two for stops).
 The nine connections are the readiness handshake plus eight gVisor sandboxes
 (seven traced and the excluded one). The nine unresolved starts are the eight
 pause containers plus the excluded workload. `duplicate_terminals` is 7
 because each stop's second exit point was counted, not exported again. The
-phase B report had its stop counters at zero. These numbers describe this run,
+phase B report, taken 28 seconds after that workload exited and counting its
+start, had its stop counters at zero. These numbers describe this run,
 not an end-to-end delivery guarantee.
 
 See [verification](evidence/verification.json), the
@@ -95,9 +98,13 @@ Every workload has `GVS_HELM_STOP_CANARY_2026` in argv and cwd, and the exec
 session has it in argv. The collector in
 [`scripts/gvisor-live/otlp-capture`](../../../scripts/gvisor-live/otlp-capture)
 extends node-agent's earlier experiment collector: it checks the whole incoming
-OTLP request for the canary before filtering, then keeps only fixed allowlists.
-These cover the start and stop observation fields, and the source, state and
-31 numeric fields of health reports. Every retained record has
+OTLP request for the canary before filtering. A request that contains it is
+recorded as a failure and rejected without writing any of its records;
+otherwise only fixed allowlists are kept. These cover the start and stop
+observation fields, and the source, state and 31 numeric fields of health
+reports. The trial ran before that rejection was added, when a matching
+request would still have had its allowlisted fields written; no request in
+this run contained the canary, so the retained output is the same. Every retained record has
 `wire_canary_found=false` and `unexpected_attribute_count=0`. Node-agent logs
 from both phases were scanned in memory and contained no literal marker. They
 were not retained. This does not detect every encoding of sensitive data.

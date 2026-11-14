@@ -14,8 +14,10 @@ collector checks its full incoming OTLP request for the canary before filtering.
 import argparse
 import collections
 import concurrent.futures
+import datetime
 import json
 import pathlib
+import re
 import socket
 import subprocess
 import time
@@ -47,6 +49,8 @@ COUNTERS = [
     'duplicate_terminals', 'nonterminal_exits', 'unobserved_terminations', 'stop_key_missing',
     'stop_tracking_overflow', 'stop_queue_drops', 'canceled_stops', 'stop_callbacks_completed',
     'stop_recheck_rejected', 'stop_export_submitted']
+# active_connections is a gauge, not an accounting counter, but every report carries it.
+HEALTH_FIELDS = COUNTERS + ['active_connections']
 
 
 def require(ok, message):
@@ -160,6 +164,15 @@ def health_ok(h):
             and h['stop_callbacks_completed'] == h['stop_recheck_rejected'] + h['stop_export_submitted'])
 
 
+def rfc3339_ns(value):
+    """CRI timestamps carry nanoseconds, which datetime cannot hold."""
+    match = re.fullmatch(r'(.+?)(?:\.(\d+))?(Z|[+-]\d\d:\d\d)', value)
+    require(match, 'unparseable CRI timestamp')
+    base, fraction, zone = match.groups()
+    seconds = datetime.datetime.fromisoformat(base + ('+00:00' if zone == 'Z' else zone)).timestamp()
+    return int(seconds) * 10**9 + int((fraction or '0').ljust(9, '0')[:9])
+
+
 def verify(rows_a, rows_b, records, logs, upgrade_ns, config_b):
     require(CANARY not in json.dumps(records) and CANARY not in logs, 'privacy marker retained')
     require(not any(r.get('body') == 'CapturePrivacyFailure' for r in records), 'canary reached the collector')
@@ -193,7 +206,7 @@ def verify(rows_a, rows_b, records, logs, upgrade_ns, config_b):
                 if s['container.id'] == e['container.id'] and s['kind'] == 'container_started'), 'stop before start')
     health = [r for r in records if r.get('body') == 'RuntimeSourceHealth']
     require(all(h.get('source') == 'gvisor_trace' for h in health), 'wrong health source')
-    require(all(set(COUNTERS) <= set(h) for h in health), 'health report missing counters')
+    require(all(set(HEALTH_FIELDS) <= set(h) for h in health), 'health report missing fields')
     final = [h for h in health if h['state'] == 'stopped' and h['observed_time_unix_nano'] >= upgrade_ns]
     require(final, 'phase A instance did not submit a final health report')
     a = final[0]
@@ -201,15 +214,22 @@ def verify(rows_a, rows_b, records, logs, upgrade_ns, config_b):
     expected = {'verified_starts': 7, 'export_submitted': 7, 'verified_stops': 7, 'stop_export_submitted': 7,
                 'duplicate_terminals': 7, 'unobserved_terminations': 0, 'stop_key_missing': 0,
                 'stop_tracking_overflow': 0, 'queue_drops': 0, 'stop_queue_drops': 0, 'listener_failures': 0,
-                'invalid_frames': 0, 'handshake_errors': 0, 'rejected_connections': 0}
+                'invalid_frames': 0, 'handshake_errors': 0, 'rejected_connections': 0,
+                'sender_drop_frames': 0, 'read_errors': 0, 'canceled_starts': 0, 'canceled_stops': 0,
+                'recheck_rejected': 0, 'stop_recheck_rejected': 0}
     for key, value in expected.items():
         require(a[key] == value, 'unexpected final health counter ' + key)
     require(a['nonterminal_exits'] > 0, 'no nonterminal exits were counted')
     periodic = [h for h in health if h['state'] in ('listening', 'connected') and h['observed_time_unix_nano'] < upgrade_ns]
     require(periodic, 'no periodic health report during phase A')
-    after = [h for h in health if h['observed_time_unix_nano'] > a['observed_time_unix_nano']
+    # Zero stop counters only mean something in a report taken after the phase B
+    # workload had exited, and that report must have seen its start.
+    phase_b_done = max(rfc3339_ns(r['finished_at']) for r in rows_b)
+    after = [h for h in health if h['observed_time_unix_nano'] > max(a['observed_time_unix_nano'], phase_b_done)
              and h['state'] in ('listening', 'connected')]
-    require(after and all(h['verified_stops'] == 0 and h['stop_export_submitted'] == 0 for h in after),
+    require(after, 'no phase B health report after the workload finished')
+    require(all(h['verified_starts'] == len(rows_b) for h in after), 'phase B report did not cover the workload')
+    require(all(h['verified_stops'] == 0 and h['stop_export_submitted'] == 0 for h in after),
             'stop counters moved with stops disabled')
     require('"stopObservations"' not in config_b and '"gVisorStart"' in config_b, 'phase B config not as expected')
     parallel = [r for r in rows_a if r['name'].startswith('stop-parallel-')]

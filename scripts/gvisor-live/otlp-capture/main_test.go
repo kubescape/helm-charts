@@ -22,7 +22,7 @@ func num(key string, value int64) *common.KeyValue {
 	return &common.KeyValue{Key: key, Value: &common.AnyValue{Value: &common.AnyValue_IntValue{IntValue: value}}}
 }
 
-func export(t *testing.T, records ...*logpb.LogRecord) []map[string]any {
+func export(t *testing.T, wantErr bool, records ...*logpb.LogRecord) []map[string]any {
 	t.Helper()
 	file, err := os.CreateTemp(t.TempDir(), "capture")
 	if err != nil {
@@ -30,8 +30,8 @@ func export(t *testing.T, records ...*logpb.LogRecord) []map[string]any {
 	}
 	defer file.Close()
 	request := &logs.ExportLogsServiceRequest{ResourceLogs: []*logpb.ResourceLogs{{ScopeLogs: []*logpb.ScopeLogs{{LogRecords: records}}}}}
-	if _, err := (&capture{file: file, canary: []byte(canary)}).Export(context.Background(), request); err != nil {
-		t.Fatal(err)
+	if _, err := (&capture{file: file, canary: []byte(canary)}).Export(context.Background(), request); (err != nil) != wantErr {
+		t.Fatalf("unexpected export error: %v", err)
 	}
 	raw, err := os.ReadFile(file.Name())
 	if err != nil {
@@ -56,7 +56,7 @@ func record(body string, attributes ...*common.KeyValue) *logpb.LogRecord {
 }
 
 func TestStopAndHealthFieldsAreKept(t *testing.T) {
-	rows := export(t,
+	rows := export(t, false,
 		record("RuntimeObservation", str("kind", "container_stopped"), str("termination", "signaled"), num("exit_code", 143), num("signal", 15)),
 		record("RuntimeSourceHealth", str("state", "connected"), num("verified_stops", 3), num("stop_export_submitted", 3)),
 		record("SomethingElse", str("args", "ignored")))
@@ -73,9 +73,17 @@ func TestStopAndHealthFieldsAreKept(t *testing.T) {
 }
 
 func TestWireCanaryIsDetectedBeforeFiltering(t *testing.T) {
-	rows := export(t, record("RuntimeSourceHealth", str("args", canary), num("handshakes", 1)))
-	if len(rows) != 2 || rows[0]["body"] != "CapturePrivacyFailure" || rows[1]["wire_canary_found"] != true ||
-		rows[1]["unexpected_attribute_count"] != float64(1) {
+	rows := export(t, true, record("RuntimeSourceHealth", str("args", canary), num("handshakes", 1)))
+	if len(rows) != 1 || rows[0]["body"] != "CapturePrivacyFailure" {
 		t.Fatalf("privacy failure hidden: %v", rows)
+	}
+}
+
+func TestCanaryInAllowlistedFieldIsNotRetained(t *testing.T) {
+	rows := export(t, true,
+		record("RuntimeObservation", str("kind", "container_started"), str("pod_name", canary)),
+		record("RuntimeSourceHealth", str("state", "connected"), num("handshakes", 1)))
+	if len(rows) != 1 || rows[0]["body"] != "CapturePrivacyFailure" {
+		t.Fatalf("records of a failed request were written: %v", rows)
 	}
 }

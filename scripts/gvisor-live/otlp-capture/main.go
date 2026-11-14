@@ -2,7 +2,9 @@
 //
 // It extends node-agent's docs/experiments/gvisor-start-integration-20261102
 // collector: the whole incoming OTLP request is still checked for the privacy
-// canary before anything is filtered, and only fixed allowlists are kept. It
+// canary before anything is filtered. A request that contains it is recorded
+// as a failure and rejected without writing any of its records; otherwise only
+// fixed allowlists are kept. It
 // now also keeps the stop fields of RuntimeObservation records and the numeric
 // counters of RuntimeSourceHealth records. General node-agent logs, unknown
 // attributes and attribute values outside the allowlists are never written.
@@ -25,6 +27,8 @@ import (
 	logs "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	common "go.opentelemetry.io/proto/otlp/common/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -84,9 +88,15 @@ func (c *capture) Export(_ context.Context, request *logs.ExportLogsServiceReque
 	canaryFound := bytes.Contains(wire, c.canary)
 	clear(wire)
 	if canaryFound {
+		// Record the failure and reject the whole request, so no attribute of
+		// it, allowlisted or not, can reach the output file.
 		if err := json.NewEncoder(c.file).Encode(map[string]any{"body": "CapturePrivacyFailure", "canary_received": true}); err != nil {
 			return nil, err
 		}
+		if err := c.file.Sync(); err != nil {
+			return nil, err
+		}
+		return nil, status.Error(codes.PermissionDenied, "privacy canary received")
 	}
 	for _, resource := range request.ResourceLogs {
 		for _, scope := range resource.ScopeLogs {
@@ -101,7 +111,7 @@ func (c *capture) Export(_ context.Context, request *logs.ExportLogsServiceReque
 				default:
 					continue
 				}
-				output := map[string]any{"body": body, "observed_time_unix_nano": record.ObservedTimeUnixNano, "wire_canary_found": canaryFound}
+				output := map[string]any{"body": body, "observed_time_unix_nano": record.ObservedTimeUnixNano, "wire_canary_found": false}
 				output["unexpected_attribute_count"] = keep(output, record.Attributes, strings, ints)
 				if err := json.NewEncoder(c.file).Encode(output); err != nil {
 					return nil, err
