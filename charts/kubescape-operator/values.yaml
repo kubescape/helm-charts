@@ -879,6 +879,18 @@ nodeAgent:
       ruleCooldownMaxSize: 20000
     alertDeduplication:
       bypass: false # DAST / security-testing only: disables ALL sensor-side dedup/cooldown
+    # -- Forward DNS queries and error responses (NXDOMAIN, SERVFAIL, REFUSED), which the
+    # DNS tracer otherwise drops, to rule evaluation so rules can catch DNS exfiltration
+    # and tunneling that never gets an answer. Forwarded events reach rule expressions
+    # written for eventType "dnsQuery" only (none of the default rules use it yet); existing
+    # "dns" rules keep seeing answered responses. Requires capabilities.runtimeDetection=enable
+    # and the DNS tracer.
+    # See https://github.com/kubescape/node-agent/blob/main/docs/features/dns-query-rule-forwarding.md
+    dnsRuleForwarding:
+      enabled: false
+      # -- extra name suffixes that are never forwarded, on top of the built-in
+      # cluster.local, in-addr.arpa and ip6.arpa zones (e.g. ec2.internal)
+      excludedSuffixes: []
     # -- Generic passthrough merged flat into config.json's top level. Intended
     # for downstream/private chart consumers that need node-agent config fields
     # this public chart intentionally does not expose by name. Note: a field set
