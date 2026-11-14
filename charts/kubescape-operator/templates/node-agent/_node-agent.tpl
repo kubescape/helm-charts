@@ -256,6 +256,9 @@ Parameters:
 */}}
 {{- define "node-agent.sbomScannerContainer" -}}
 {{- if .components.sbomScanner.enabled }}
+{{- if and .Values.nodeAgent.gke.allowlist.enabled (ne .Values.global.httpsProxy "") (not .Values.nodeAgent.gke.allowlist.supportsSbomScannerProxy) }}
+{{- fail "The selected GKE Autopilot allowlist does not support HTTPS_PROXY/no_proxy in sbom-scanner. Disable nodeAgent.sbomScanner.enabled to use the node-agent scanner with the proxy, or select an approved allowlist containing these sidecar env vars and set nodeAgent.gke.allowlist.supportsSbomScannerProxy=true." }}
+{{- end }}
 - name: {{ .Values.nodeAgent.sbomScanner.name }}
   image: "{{ .Values.nodeAgent.sbomScanner.image.repository }}:{{ .Values.nodeAgent.sbomScanner.image.tag | default .Values.nodeAgent.image.tag }}"
   imagePullPolicy: {{ .Values.nodeAgent.sbomScanner.image.pullPolicy }}
