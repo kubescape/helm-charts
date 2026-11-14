@@ -1,0 +1,124 @@
+suite: node-agent host sensor exclusions
+templates:
+  - node-agent/configmap.yaml
+tests:
+  - it: leaves hostSensorExcludedSensors out of the config by default
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - notMatchRegex:
+          path: data["config.json"]
+          pattern: '"hostSensorExcludedSensors"'
+
+  - it: renders without excludedSensors from an older release
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent:
+        config:
+          hostSensor:
+            excludedSensors: null
+    asserts:
+      - notMatchRegex:
+          path: data["config.json"]
+          pattern: '"hostSensorExcludedSensors"'
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"hostSensorInterval": "5m",'
+
+  - it: renders the excluded sensors as a JSON list
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent:
+        config:
+          hostSensor:
+            excludedSensors:
+              - KubeProxyInfo
+              - CNIInfo
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"hostSensorExcludedSensors": \["KubeProxyInfo","CNIInfo"\],'
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"hostSensorEnabled": true'
+
+  - it: accepts every supported host sensor kind
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent:
+        config:
+          hostSensor:
+            excludedSensors:
+              - OsReleaseFile
+              - KernelVersion
+              - LinuxSecurityHardeningStatus
+              - OpenPortsList
+              - LinuxKernelVariables
+              - KubeletInfo
+              - KubeProxyInfo
+              - ControlPlaneInfo
+              - CloudProviderInfo
+              - CNIInfo
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"hostSensorExcludedSensors": \["OsReleaseFile",.*"CNIInfo"\],'
+
+  - it: keeps an existing extra.hostSensorExcludedSensors passthrough working while the chart value is empty
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent:
+        config:
+          extra:
+            hostSensorExcludedSensors:
+              - KubeProxyInfo
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"hostSensorExcludedSensors": \["KubeProxyInfo"\]'
+
+  - it: rejects an unknown host sensor
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent:
+        config:
+          hostSensor:
+            excludedSensors:
+              - kubeproxyinfo
+    asserts:
+      - failedTemplate:
+          errorMessage: 'nodeAgent.config.hostSensor.excludedSensors: unknown host sensor "kubeproxyinfo"; valid sensors: OsReleaseFile, KernelVersion, LinuxSecurityHardeningStatus, OpenPortsList, LinuxKernelVariables, KubeletInfo, KubeProxyInfo, ControlPlaneInfo, CloudProviderInfo, CNIInfo'
+
+  - it: rejects excluded sensors that are not a list
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent:
+        config:
+          hostSensor:
+            excludedSensors: KubeProxyInfo
+    asserts:
+      - failedTemplate:
+          errorMessage: nodeAgent.config.hostSensor.excludedSensors must be a list
+
+  - it: rejects setting the exclusions in both places
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent:
+        config:
+          hostSensor:
+            excludedSensors:
+              - KubeProxyInfo
+          extra:
+            hostSensorExcludedSensors:
+              - CNIInfo
+    asserts:
+      - failedTemplate:
+          errorMessage: configure hostSensorExcludedSensors through nodeAgent.config.hostSensor.excludedSensors, not nodeAgent.config.extra.hostSensorExcludedSensors
