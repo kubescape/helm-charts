@@ -228,3 +228,26 @@ tests:
   asserts:
   - failedTemplate:
       errorMessage: nodeAgent.gVisorStart requires a capability that enables node-agent
+- it: rejects stop observations without the start source
+  set:
+    unittest: true
+    clusterName: gvisor-trial
+    capabilities.runtimeObservability: enable
+    nodeAgent.gVisorStart.stopObservations: true
+  asserts:
+  - failedTemplate:
+      errorMessage: nodeAgent.gVisorStart.stopObservations requires nodeAgent.gVisorStart.enabled
+- it: rejects a non-boolean stop observations value
+  set:
+    unittest: true
+    clusterName: gvisor-trial
+    capabilities.runtimeObservability: enable
+    nodeAgent.gVisorStart.enabled: true
+    nodeAgent.gVisorStart.stopObservations: "false"
+    nodeAgent.nodeSelector:
+      kubernetes.io/os: linux
+      kubescape.io/gvisor-start-ready: 'true'
+    configurations.otelUrl: http://otel-collector.monitoring.svc:4317
+  asserts:
+  - failedTemplate:
+      errorMessage: nodeAgent.gVisorStart.stopObservations must be a boolean

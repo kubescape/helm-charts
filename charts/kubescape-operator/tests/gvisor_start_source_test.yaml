@@ -64,6 +64,53 @@ tests:
   - matchRegex:
       path: data["config.json"]
       pattern: '"runtimeHandler": "runsc"'
+  - notMatchRegex:
+      path: data["config.json"]
+      pattern: '"stopObservations"'
+- it: renders stop observations only when requested
+  template: node-agent/configmap.yaml
+  set:
+    unittest: true
+    clusterName: gvisor-trial
+    capabilities.runtimeObservability: enable
+    nodeAgent.gVisorStart.enabled: true
+    nodeAgent.gVisorStart.stopObservations: true
+    nodeAgent.nodeSelector:
+      kubernetes.io/os: linux
+      kubescape.io/gvisor-start-ready: 'true'
+    configurations.otelUrl: http://otel-collector.monitoring.svc:4317
+  asserts:
+  - matchRegex:
+      path: data["config.json"]
+      pattern: '"gVisorStart": \{\s*"enabled": true,\s*"socketPath": "/run/kubescape/gvisor/events.sock",\s*"runtimeEndpoint": "",\s*"stopObservations": true,\s*"runtimeHandler": "runsc"\s*\},'
+- it: adds no extra mount for stop observations
+  template: node-agent/daemonset.yaml
+  set:
+    unittest: true
+    clusterName: gvisor-trial
+    capabilities.runtimeObservability: enable
+    nodeAgent.gVisorStart.enabled: true
+    nodeAgent.gVisorStart.stopObservations: true
+    nodeAgent.nodeSelector:
+      kubernetes.io/os: linux
+      kubescape.io/gvisor-start-ready: 'true'
+    configurations.otelUrl: http://otel-collector.monitoring.svc:4317
+  asserts:
+  - contains:
+      path: spec.template.spec.volumes
+      content:
+        name: gvisor-start
+        hostPath:
+          path: /run/kubescape/gvisor
+          type: Directory
+      count: 1
+  - contains:
+      path: spec.template.spec.containers[0].volumeMounts
+      content:
+        name: gvisor-start
+        mountPath: /run/kubescape/gvisor
+        readOnly: false
+      count: 1
 - it: mounts a pre-existing host directory on selected Linux nodes
   template: node-agent/daemonset.yaml
   set:
