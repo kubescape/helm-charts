@@ -21,7 +21,7 @@ traffic as before.
 |---|---|---|
 | `kubescape` | `capabilities.configurationScan=enable` | from `operator` on `http` (8080); from anywhere on `http` when `kubescape.serviceMonitor.enabled` or `configurations.prometheusAnnotations=enable` (Prometheus scrape) |
 | `kubevuln` | `capabilities.vulnerabilityScan=enable` | from `operator` on `kubevuln.service.targetPort` (8080) |
-| `operator` | `capabilities.operator=enable` | from anywhere on `admission-port` (8443) when `capabilities.admissionController=enable`, nothing otherwise |
+| `operator` | `capabilities.operator=enable` | from anywhere on `admission-port` (8443) when `capabilities.admissionController=enable` (narrow with `operator.admissionWebhooks.networkPolicy.ingressFrom`, see below), nothing otherwise |
 | `storage` | `storage.enabled` | from anywhere on `storage.serverPort` (8443), the aggregated API called by kube-apiserver |
 | `synchronizer` | a backend is configured (`server`) | from `node-agent` and `operator` on `synchronizer.service.targetPort` (8089), their alert exporters |
 | `prometheus-exporter` | `capabilities.prometheusExporter=enable` | from anywhere on `prometheusExporter.service.port` (8080) |
@@ -36,6 +36,55 @@ NetworkPolicies do not apply to traffic from the pod's own node.
 Kubescape components talk to each other through the Kubernetes API for everything else (scan
 results go to `storage` through kube-apiserver, scheduled scans are `OperatorCommand` objects), so
 no other pod-to-pod path is needed.
+
+### Restricting admission webhook ingress
+
+The `admission-port` ingress is unrestricted by default for the reason above: the kube-apiserver's
+source address is not reliably matchable by a Pod or namespace selector. If you **know** your
+control plane's source addresses, you can narrow this one rule with
+`operator.admissionWebhooks.networkPolicy.ingressFrom`, a list of standard
+[NetworkPolicyPeer](https://kubernetes.io/docs/reference/kubernetes-api/policy-resources/network-policy-v1/#NetworkPolicyPeer)
+entries. Leaving it empty (the default) keeps the current from-anywhere behaviour.
+
+```yaml
+operator:
+  admissionWebhooks:
+    networkPolicy:
+      ingressFrom:
+        - ipBlock:
+            cidr: 10.0.0.0/24          # control-plane subnet
+        - ipBlock:
+            cidr: 192.168.49.2/32      # a single API-server node
+        # - namespaceSelector:          # e.g. a konnectivity-agent namespace,
+        #     matchLabels:              #   only where the API server reaches
+        #       kubernetes.io/metadata.name: kube-system   # pods from in-cluster
+```
+
+The chart validates each `ipBlock.cidr` at render time and fails on an invalid value. **IPv4** is
+validated in full — every octet must be 0–255 and the prefix 0–32, so `999.0.0.0/24`,
+`256.1.1.1/24`, `10.0.0.0/33` and a missing prefix (`10.0.0.0`) are all rejected. **IPv6** (any
+value containing `:`) is validated for character set (hex and `:`) and prefix (0–128), so `::/999`
+is rejected and `2001:db8::/64` is accepted; a regex cannot reliably parse full IPv6 address
+structure, so the kube-apiserver remains the final authority on the IPv6 address itself. Selector
+peers (`namespaceSelector`/`podSelector`) are not CIDR-checked.
+
+**Identify your API server's source address** before restricting. From the operator pod's node,
+the apparent source of an incoming webhook call depends on the cluster:
+
+- **kubeadm / k3s / RKE2 (API server on cluster nodes):** usually the node IP or the pod-network
+  address of the node running the API server. `kubectl get endpointslice kubernetes -n default -o wide`
+  lists the control-plane endpoint IPs.
+- **konnectivity / egress-selector clusters:** traffic arrives from the konnectivity-agent pod;
+  match its namespace/pod, not an IP.
+- **Managed control planes (EKS/GKE/AKS):** the source is one of several control-plane ENIs or a
+  tunnel address that can change; these environments generally **require the unrestricted default**.
+
+**Test connectivity after restricting.** Apply the change, then create a Pod and confirm the
+webhook still sees it — the operator logs a rule evaluation / admission counter for each request.
+Because the `ValidatingWebhookConfiguration` uses `failurePolicy: Ignore`, an over-tight rule does
+**not** block your workloads; it silently drops the API server's webhook calls, so verify that
+admission telemetry still flows (operator logs, `telemetry` admission counters) rather than relying
+on admission being rejected. If telemetry stopped, widen or remove `ingressFrom`.
 
 ## Egress rules (opt-in)
 
@@ -74,6 +123,7 @@ block egress to the API server.
 | `global.networkPolicy.enabled` | `true` | Create the ingress NetworkPolicies above |
 | `global.networkPolicy.createEgressRules` | `false` | Also restrict egress |
 | `global.networkPolicy.apiServerIP` | `""` | Pin the kube-apiserver egress rule to this IP (it no longer restricts storage ingress) |
+| `operator.admissionWebhooks.networkPolicy.ingressFrom` | `[]` | NetworkPolicyPeer list that narrows the admission webhook ingress; empty keeps it unrestricted (from anywhere) |
 | `global.networkPolicy.apiServerPort` | `443` | kube-apiserver port for the egress rules, merged with the looked-up endpoint ports |
 | `global.networkPolicy.httpsProxyIP` | `""` | Pin the proxy egress rule to this IP (optional; destination left open if empty) |
 | `global.networkPolicy.httpsProxyPort` | `""` | Proxy port for egress rules; derived from `global.httpsProxy` when unset |

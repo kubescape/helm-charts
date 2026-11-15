@@ -83,9 +83,38 @@ spec:
     {{- end }}
   {{- end }}
   {{- if eq .Values.capabilities.admissionController "enable" }}
+  {{- $ingressFrom := .Values.operator.admissionWebhooks.networkPolicy.ingressFrom | default list }}
   ingress:
+    # The kube-apiserver source address is not reliably constrainable by a Pod or
+    # namespace selector, so by default this rule is unrestricted (no `from`).
+    # operator.admissionWebhooks.networkPolicy.ingressFrom, when set, narrows it.
     - ports:
       - port: admission-port
         protocol: TCP
+      {{- with $ingressFrom }}
+      from:
+        {{- /*
+          Validate ipBlock.cidr. IPv4 is validated in full: each octet 0-255 and
+          prefix 0-32. IPv6 (any value containing ":") is validated for charset
+          (hex/colon) and prefix 0-128 — a regex cannot reliably parse full IPv6
+          address structure, so the kube-apiserver remains the final authority on
+          the address itself. Selector-only peers (no ipBlock) are not checked.
+        */ -}}
+        {{- $oct := "(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])" -}}
+        {{- $v4pfx := "(3[0-2]|[12][0-9]|[0-9])" -}}
+        {{- $v6pfx := "(12[0-8]|1[01][0-9]|[1-9]?[0-9])" -}}
+        {{- $ipv4 := printf "^(%s[.]){3}%s/%s$" $oct $oct $v4pfx -}}
+        {{- $ipv6 := printf "^[0-9A-Fa-f:]+/%s$" $v6pfx -}}
+        {{- range $peer := . }}
+        {{- if hasKey $peer "ipBlock" }}
+        {{- $cidr := $peer.ipBlock.cidr | toString }}
+        {{- $ok := ternary (regexMatch $ipv6 $cidr) (regexMatch $ipv4 $cidr) (contains ":" $cidr) }}
+        {{- if not $ok }}
+        {{- fail (printf "operator.admissionWebhooks.networkPolicy.ingressFrom: invalid ipBlock.cidr %q (want valid CIDR, e.g. 10.0.0.0/24 or 2001:db8::/64)" $cidr) }}
+        {{- end }}
+        {{- end }}
+        {{- end }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
   {{- end }}
 {{- end }}
