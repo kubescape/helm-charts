@@ -598,7 +598,7 @@ operator:
     # control planes do not expose. Enabling this WITHOUT that server-side
     # configuration makes the API server unable to call the webhook (admission
     # still succeeds — failurePolicy is Ignore — but admission telemetry stops).
-    # See docs/admission-webhook-client-auth.md before enabling.
+    # See docs/features/admission-webhook-mtls.md before enabling.
     clientAuth:
       enabled: false
       # Secret (type kubernetes.io/tls or Opaque) holding ca.crt: the CA that
@@ -606,6 +606,21 @@ operator:
       secretName: ""
       # Key within that secret that holds the trusted client CA bundle.
       caKey: ca.crt
+      # Compatibility attestation. mTLS only works with an operator image that
+      # reads ADMISSION_CLIENT_CA_FILE and enforces client-certificate
+      # verification. No released image supports this yet (kubescape/operator#522
+      # is unmerged) and the default operator.image.tag above ignores the
+      # variable, so enabling mTLS with it would leave the webhook unauthenticated
+      # while appearing secure. Compatibility is ASSERTED by you, not verified by
+      # Helm. To enable mTLS you must satisfy BOTH conditions:
+      #   1. set this to true (an explicit, operator-provided compatibility
+      #      assertion — the chart cannot verify an unreleased feature), and
+      #   2. point operator.image.tag at a build from kubescape/operator#522 (or a
+      #      later release that includes it). Every released version up to and
+      #      including v0.2.224 is verified NOT to read the variable, so any such
+      #      released tag is rejected even when this flag is true; use a custom/dev
+      #      tag or a release newer than that boundary.
+      operatorSupportsClientCA: false
 
   podAnnotations: {}
   podLabels: {}

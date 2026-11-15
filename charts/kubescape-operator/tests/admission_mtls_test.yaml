@@ -1,0 +1,237 @@
+suite: admission webhook optional mTLS
+templates:
+  - templates/operator/deployment.yaml
+tests:
+  # 1. mTLS disabled + default image: succeeds, and the deployment is unchanged —
+  #    no CA env var and no CA volume.
+  - it: leaves the operator deployment unchanged when mTLS is disabled (default)
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - hasDocuments:
+          count: 1
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ADMISSION_CLIENT_CA_FILE
+          any: true
+      - notContains:
+          path: spec.template.spec.volumes
+          content:
+            name: admission-client-ca
+          any: true
+
+  # 2. mTLS enabled + default image + no attestation: fails (on the attestation).
+  - it: fails when mTLS is enabled on the default image without attestation
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.admissionWebhooks.clientAuth.enabled: true
+      operator.admissionWebhooks.clientAuth.secretName: apiserver-webhook-client-ca
+    asserts:
+      - failedTemplate:
+          errorMessage: "operator.admissionWebhooks.clientAuth.enabled=true requires an operator image that reads ADMISSION_CLIENT_CA_FILE and enforces client-certificate verification. No released operator image supports this yet (kubescape/operator#522 is not merged), and the chart's default operator.image.tag does not read the variable — enabling mTLS with it would leave the webhook unauthenticated while appearing secure. Build the operator from kubescape/operator#522 (or a later release that includes it), set operator.image.tag to that build, and set operator.admissionWebhooks.clientAuth.operatorSupportsClientCA=true to confirm the deployed image enforces client authentication. See docs/features/admission-webhook-mtls.md."
+
+  # 3. mTLS enabled + default image (v0.2.209) + attestation true: STILL fails
+  #    (a released version <= the known-incompatible boundary is rejected even when attested).
+  - it: fails when mTLS is enabled on the default image even with attestation
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.admissionWebhooks.clientAuth.enabled: true
+      operator.admissionWebhooks.clientAuth.secretName: apiserver-webhook-client-ca
+      operator.admissionWebhooks.clientAuth.operatorSupportsClientCA: true
+    asserts:
+      - failedTemplate:
+          errorPattern: 'operator\.image\.tag="v0\.2\.209".*every released operator version up to and including v0\.2\.224 is verified NOT to read ADMISSION_CLIENT_CA_FILE'
+
+  # 3b. Latest known-incompatible release v0.2.224 + attestation true: also fails
+  #     (demonstrates the gate is not limited to the stock default tag).
+  - it: fails on the latest known-incompatible release even with attestation
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.image.tag: v0.2.224
+      operator.admissionWebhooks.clientAuth.enabled: true
+      operator.admissionWebhooks.clientAuth.secretName: apiserver-webhook-client-ca
+      operator.admissionWebhooks.clientAuth.operatorSupportsClientCA: true
+    asserts:
+      - failedTemplate:
+          errorPattern: 'operator\.image\.tag="v0\.2\.224".*every released operator version up to and including v0\.2\.224 is verified NOT to read ADMISSION_CLIENT_CA_FILE'
+
+  # 3c. SemVer PRERELEASE of a known-incompatible release (v0.2.224-rc1): rejected.
+  #     Masterminds semverCompare excludes prereleases from a non-prerelease constraint,
+  #     so the gate compares the major.minor.patch core — a prerelease is checked at its base.
+  - it: rejects a SemVer prerelease of a known-incompatible release even with attestation
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.image.tag: v0.2.224-rc1
+      operator.admissionWebhooks.clientAuth.enabled: true
+      operator.admissionWebhooks.clientAuth.secretName: apiserver-webhook-client-ca
+      operator.admissionWebhooks.clientAuth.operatorSupportsClientCA: true
+    asserts:
+      - failedTemplate:
+          errorPattern: 'operator\.image\.tag="v0\.2\.224-rc1".*rejected too, at its 0\.2\.224 base version'
+
+  # 3d. A dotted prerelease identifier (v0.2.224-beta.1): also rejected.
+  - it: rejects a dotted-identifier prerelease of a known-incompatible release
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.image.tag: v0.2.224-beta.1
+      operator.admissionWebhooks.clientAuth.enabled: true
+      operator.admissionWebhooks.clientAuth.secretName: apiserver-webhook-client-ca
+      operator.admissionWebhooks.clientAuth.operatorSupportsClientCA: true
+    asserts:
+      - failedTemplate:
+          errorPattern: 'operator\.image\.tag="v0\.2\.224-beta\.1".*every released operator version up to and including v0\.2\.224'
+
+  # 3e. A prerelease that LOOKS custom but is valid SemVer (v0.2.223-custom): still
+  #     version-checked at its base (0.2.223 <= boundary) and rejected — not treated
+  #     as an arbitrary custom tag.
+  - it: treats a SemVer prerelease with a custom identifier as a version, not a custom tag
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.image.tag: v0.2.223-custom
+      operator.admissionWebhooks.clientAuth.enabled: true
+      operator.admissionWebhooks.clientAuth.secretName: apiserver-webhook-client-ca
+      operator.admissionWebhooks.clientAuth.operatorSupportsClientCA: true
+    asserts:
+      - failedTemplate:
+          errorPattern: 'operator\.image\.tag="v0\.2\.223-custom".*rejected too, at its 0\.2\.223 base version'
+
+  # 3f. A prerelease of a version ABOVE the boundary (v0.2.225-rc1): allowed under
+  #     attestation — the chart does not claim it is compatible, only stops asserting
+  #     it is incompatible (0.2.225 > 0.2.224).
+  - it: allows a SemVer prerelease above the known-incompatible boundary under attestation
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.image.tag: v0.2.225-rc1
+      operator.admissionWebhooks.clientAuth.enabled: true
+      operator.admissionWebhooks.clientAuth.secretName: apiserver-webhook-client-ca
+      operator.admissionWebhooks.clientAuth.operatorSupportsClientCA: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ADMISSION_CLIENT_CA_FILE
+            value: /etc/admission-client-ca/ca.crt
+
+  # 3g. A genuine non-SemVer custom/dev tag (git SHA style): governed by attestation
+  #     alone — not version-checked.
+  - it: allows a genuine non-SemVer custom build under attestation
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.image.tag: a1b2c3d9f0
+      operator.admissionWebhooks.clientAuth.enabled: true
+      operator.admissionWebhooks.clientAuth.secretName: apiserver-webhook-client-ca
+      operator.admissionWebhooks.clientAuth.operatorSupportsClientCA: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ADMISSION_CLIENT_CA_FILE
+            value: /etc/admission-client-ca/ca.crt
+
+  # 4. mTLS enabled + custom (non-default) image tag + no attestation: fails.
+  - it: fails when mTLS is enabled on a custom image without attestation
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.image.tag: mtls-build-from-pr-522
+      operator.admissionWebhooks.clientAuth.enabled: true
+      operator.admissionWebhooks.clientAuth.secretName: apiserver-webhook-client-ca
+    asserts:
+      - failedTemplate:
+          errorMessage: "operator.admissionWebhooks.clientAuth.enabled=true requires an operator image that reads ADMISSION_CLIENT_CA_FILE and enforces client-certificate verification. No released operator image supports this yet (kubescape/operator#522 is not merged), and the chart's default operator.image.tag does not read the variable — enabling mTLS with it would leave the webhook unauthenticated while appearing secure. Build the operator from kubescape/operator#522 (or a later release that includes it), set operator.image.tag to that build, and set operator.admissionWebhooks.clientAuth.operatorSupportsClientCA=true to confirm the deployed image enforces client authentication. See docs/features/admission-webhook-mtls.md."
+
+  # 5. mTLS enabled + custom image tag + attestation + CA Secret: succeeds and
+  #    wires the client CA.
+  - it: wires the client CA with a custom compatible image tag, attestation and a secret
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.image.tag: mtls-build-from-pr-522
+      operator.admissionWebhooks.clientAuth.enabled: true
+      operator.admissionWebhooks.clientAuth.secretName: apiserver-webhook-client-ca
+      operator.admissionWebhooks.clientAuth.operatorSupportsClientCA: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ADMISSION_CLIENT_CA_FILE
+            value: /etc/admission-client-ca/ca.crt
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: admission-client-ca
+            secret:
+              secretName: apiserver-webhook-client-ca
+          any: true
+
+  # 5b. A custom caKey is honored in the mounted path.
+  - it: honors a custom caKey in the CA file path
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.image.tag: mtls-build-from-pr-522
+      operator.admissionWebhooks.clientAuth.enabled: true
+      operator.admissionWebhooks.clientAuth.secretName: apiserver-webhook-client-ca
+      operator.admissionWebhooks.clientAuth.caKey: client-ca.pem
+      operator.admissionWebhooks.clientAuth.operatorSupportsClientCA: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ADMISSION_CLIENT_CA_FILE
+            value: /etc/admission-client-ca/client-ca.pem
+
+  # 6. mTLS enabled + custom registry + compatible custom tag + attestation: succeeds.
+  - it: supports a custom registry and compatible image under the attestation mechanism
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.image.repository: registry.example.com/mycorp/operator
+      operator.image.tag: internal-mtls-1
+      operator.admissionWebhooks.clientAuth.enabled: true
+      operator.admissionWebhooks.clientAuth.secretName: apiserver-webhook-client-ca
+      operator.admissionWebhooks.clientAuth.operatorSupportsClientCA: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "registry.example.com/mycorp/operator:internal-mtls-1"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ADMISSION_CLIENT_CA_FILE
+            value: /etc/admission-client-ca/ca.crt
+
+  # 7. Missing CA Secret: fails even with a compatible image and attestation.
+  - it: fails when mTLS is enabled without a secretName
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.image.tag: mtls-build-from-pr-522
+      operator.admissionWebhooks.clientAuth.enabled: true
+      operator.admissionWebhooks.clientAuth.operatorSupportsClientCA: true
+    asserts:
+      - failedTemplate:
+          errorMessage: "operator.admissionWebhooks.clientAuth.enabled=true requires operator.admissionWebhooks.clientAuth.secretName"
