@@ -265,6 +265,7 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | operator.volumeMounts | object | `[]` | Additional volumeMounts for the web socket |
 | storage.hostNetwork | bool | `false` | Bind the storage APIServer to the host network. Required when using a custom CNI where the control plane cannot reach pod IPs |
 | nodeAgent.autoscaler.bottlerocketAutoDetect | bool | `true` | When the autoscaler is enabled, auto-detect AWS Bottlerocket nodes and set `seLinuxType: super_t` on the node-agent DaemonSet rendered for that node group, so you don't need to `--set nodeAgent.seLinuxType=super_t` manually |
+| nodeAgent.sandboxPolicy.enabled | bool | `false` | Prepare node-agent for sandbox policy: sets `mountPropagation: HostToContainer` on the node-agent `/host` and `/run` volumeMounts, which node-agent sandbox policy requires (it fails closed without it). |
 | nodeAgent.config.hostSensor.enabled | bool | `true` | Defines `KS_ENABLE_HOST_SCANNER` in kubescape to enable [host scanner feature](https://kubescape.io/docs/components/host-sensor/)
 | nodeAgent.config.tracers.capSys | string | `enable` | Allow capSys tracing when required by enabled node-agent features. Set to disable to force-disable the capSys tracer |
 | nodeAgent.config.tracers.dns | string | `enable` | Allow dns tracing when required by enabled node-agent features. Set to disable to force-disable the dns tracer |
