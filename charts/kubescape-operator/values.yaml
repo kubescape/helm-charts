@@ -587,6 +587,25 @@ operator:
       # server remains the final authority on IPv6 address structure. Selector
       # peers are not CIDR-checked.
       ingressFrom: []
+    # Opt-in mutual TLS for the admission webhook. When enabled, the operator
+    # requires and verifies a client certificate (chaining to clientAuth.secretName's
+    # ca.crt) on every /validate call, so only the Kubernetes API server — configured
+    # with a matching client certificate via the control plane's
+    # --admission-control-config-file — can submit AdmissionReviews.
+    #
+    # Default off: the API server presents a client certificate only when that
+    # control-plane flag is set, which a chart cannot configure and some managed
+    # control planes do not expose. Enabling this WITHOUT that server-side
+    # configuration makes the API server unable to call the webhook (admission
+    # still succeeds — failurePolicy is Ignore — but admission telemetry stops).
+    # See docs/admission-webhook-client-auth.md before enabling.
+    clientAuth:
+      enabled: false
+      # Secret (type kubernetes.io/tls or Opaque) holding ca.crt: the CA that
+      # signs the API server's webhook client certificate. Admin-provisioned.
+      secretName: ""
+      # Key within that secret that holds the trusted client CA bundle.
+      caKey: ca.crt
 
   podAnnotations: {}
   podLabels: {}

@@ -191,6 +191,15 @@ spec:
             - name : no_proxy
               value: "{{ $no_proxy_envar_list }}"
             {{- end }}
+            {{- if and (eq .Values.capabilities.admissionController "enable") .Values.operator.admissionWebhooks.clientAuth.enabled }}
+            {{- if eq .Values.operator.admissionWebhooks.clientAuth.secretName "" }}
+            {{- fail "operator.admissionWebhooks.clientAuth.enabled=true requires operator.admissionWebhooks.clientAuth.secretName" }}
+            {{- end }}
+            # Opt-in mutual TLS: the webhook verifies the API server's client cert
+            # against this CA. Fail-closed — an unreadable CA stops the webhook.
+            - name: ADMISSION_CLIENT_CA_FILE
+              value: "/etc/admission-client-ca/{{ .Values.operator.admissionWebhooks.clientAuth.caKey }}"
+            {{- end }}
           volumeMounts:
             {{- include "apiauth.callerVolumeMount" . | nindent 12 }}
             - name: {{ $components.cloudSecret.name }}
@@ -235,6 +244,11 @@ spec:
             - name: tls-certs
               mountPath: /etc/certs
               readOnly: true
+            {{- if .Values.operator.admissionWebhooks.clientAuth.enabled }}
+            - name: admission-client-ca
+              mountPath: /etc/admission-client-ca
+              readOnly: true
+            {{- end }}
             {{- end }}
             {{- if eq $gates.effectiveCapabilities.sbomExport "enable" }}
             # a directory, not a subPath, so a rotated API key reaches the pod
@@ -281,6 +295,11 @@ spec:
         - name: tls-certs
           secret:
             secretName: {{ include "kubescape-admission.secretName" . }}
+        {{- end }}
+        {{- if .Values.operator.admissionWebhooks.clientAuth.enabled }}
+        - name: admission-client-ca
+          secret:
+            secretName: {{ .Values.operator.admissionWebhooks.clientAuth.secretName }}
         {{- end }}
         {{- end }}
         - name: tmp-dir
