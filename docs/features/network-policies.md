@@ -63,10 +63,14 @@ operator:
 The chart validates each `ipBlock.cidr` at render time and fails on an invalid value. **IPv4** is
 validated in full — every octet must be 0–255 and the prefix 0–32, so `999.0.0.0/24`,
 `256.1.1.1/24`, `10.0.0.0/33` and a missing prefix (`10.0.0.0`) are all rejected. **IPv6** (any
-value containing `:`) is validated for character set (hex and `:`) and prefix (0–128), so `::/999`
-is rejected and `2001:db8::/64` is accepted; a regex cannot reliably parse full IPv6 address
-structure, so the kube-apiserver remains the final authority on the IPv6 address itself. Selector
-peers (`namespaceSelector`/`podSelector`) are not CIDR-checked.
+value containing `:`) is validated for character set (hex and `:`), prefix (0–128), and — for
+IPv4-mapped/embedded forms such as `::ffff:192.0.2.1/128` or `2001:db8::192.0.2.1/128` — the
+trailing dotted-decimal tail is octet-validated (0–255) exactly like IPv4, so `::/999`,
+`::ffff:999.0.2.1/128` and the truncated `::ffff:192.0.2/128` are rejected while `2001:db8::/64`
+and `::ffff:192.0.2.0/120` are accepted. A regex cannot reliably parse the full IPv6 address
+structure (zero-compression, group count), so the kube-apiserver remains the final authority on the
+IPv6 address itself; this check rejects obvious typos rather than guaranteeing RFC-complete
+validity. Selector peers (`namespaceSelector`/`podSelector`) are not CIDR-checked.
 
 **Identify your API server's source address** before restricting. From the operator pod's node,
 the apparent source of an incoming webhook call depends on the cluster:

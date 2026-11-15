@@ -213,3 +213,79 @@ tests:
       - equal:
           path: spec.ingress[0].from[0].podSelector.matchLabels.app
           value: client
+
+  - it: accepts a valid IPv6 network prefix
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.admissionWebhooks.networkPolicy.ingressFrom:
+        - ipBlock:
+            cidr: "2001:db8::/64"
+    asserts:
+      - equal:
+          path: spec.ingress[0].from[0].ipBlock.cidr
+          value: "2001:db8::/64"
+
+  - it: accepts an IPv4-mapped IPv6 host address
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.admissionWebhooks.networkPolicy.ingressFrom:
+        - ipBlock:
+            cidr: "::ffff:192.0.2.1/128"
+    asserts:
+      - equal:
+          path: spec.ingress[0].from[0].ipBlock.cidr
+          value: "::ffff:192.0.2.1/128"
+
+  - it: accepts an IPv4-mapped IPv6 subnet
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.admissionWebhooks.networkPolicy.ingressFrom:
+        - ipBlock:
+            cidr: "::ffff:192.0.2.0/120"
+    asserts:
+      - equal:
+          path: spec.ingress[0].from[0].ipBlock.cidr
+          value: "::ffff:192.0.2.0/120"
+
+  - it: accepts an IPv4-embedded IPv6 address with a non-mapped prefix
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.admissionWebhooks.networkPolicy.ingressFrom:
+        - ipBlock:
+            cidr: "2001:db8::192.0.2.1/128"
+    asserts:
+      - equal:
+          path: spec.ingress[0].from[0].ipBlock.cidr
+          value: "2001:db8::192.0.2.1/128"
+
+  - it: rejects an IPv4-mapped IPv6 address with an out-of-range octet
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.admissionWebhooks.networkPolicy.ingressFrom:
+        - ipBlock:
+            cidr: "::ffff:999.0.2.1/128"
+    asserts:
+      - failedTemplate:
+          errorMessage: 'operator.admissionWebhooks.networkPolicy.ingressFrom: invalid ipBlock.cidr "::ffff:999.0.2.1/128" (want valid CIDR, e.g. 10.0.0.0/24 or 2001:db8::/64)'
+
+  - it: rejects an IPv4-mapped IPv6 address with an incomplete dotted tail
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.admissionWebhooks.networkPolicy.ingressFrom:
+        - ipBlock:
+            cidr: "::ffff:192.0.2/128"
+    asserts:
+      - failedTemplate:
+          errorMessage: 'operator.admissionWebhooks.networkPolicy.ingressFrom: invalid ipBlock.cidr "::ffff:192.0.2/128" (want valid CIDR, e.g. 10.0.0.0/24 or 2001:db8::/64)'
