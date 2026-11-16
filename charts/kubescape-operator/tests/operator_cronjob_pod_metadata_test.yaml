@@ -141,3 +141,26 @@ tests:
       - matchRegex:
           path: data.cronjobTemplate
           pattern: '\n {10}annotations:\n {12}example.com/retries: "3"\n {12}sidecar.istio.io/inject: "false"\n {10}labels:'
+
+  - it: keeps podAnnotations and podLabels keys that YAML would read as null or bool as strings in all three CronJob templates
+    templates:
+      - operator/ks-recurring-cronjob-configmap.yaml
+      - operator/kv-recurring-cronjob-configmap.yaml
+      - operator/registry-scan-recurring-cronjob-configmap.yaml
+    set:
+      kubescapeScheduler.podAnnotations:
+        "yes": "a"
+      kubescapeScheduler.podLabels:
+        "null": platform
+      kubevulnScheduler.podAnnotations:
+        "yes": "a"
+      kubevulnScheduler.podLabels:
+        "null": platform
+      registryScanScheduler.podAnnotations:
+        "yes": "a"
+      registryScanScheduler.podLabels:
+        "null": platform
+    asserts:
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: '\n {10}annotations:\n {12}"yes": "a"\n {10}labels:\n {12}armo.tier: "[a-z-]+"\n {12}kubescape.io/tier: "core"\n {12}"null": "platform"\n {8}spec:'
