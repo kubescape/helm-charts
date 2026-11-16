@@ -16,9 +16,17 @@ apiVersion: batch/v1
         spec:
           template:
             metadata:
+              {{- with .Values.kubevulnScheduler.podAnnotations }}
+              annotations:
+                {{- range $key, $value := . }}
+                {{ $key | toYaml }}: {{ $value | toString | quote }}
+                {{- end }}
+              {{- end }}
+              {{- /* armo.tier selects the template the operator re-renders this schedule from, so the fixed labels win over podLabels with the same key. */}}
               labels:
-                armo.tier: "vuln-scan"
-                kubescape.io/tier: "core"
+                {{- range $key, $value := merge (dict "armo.tier" "vuln-scan" "kubescape.io/tier" "core") (.Values.kubevulnScheduler.podLabels | default dict) }}
+                {{ $key | toYaml }}: {{ $value | toString | quote }}
+                {{- end }}
             spec:
               securityContext:
                 seccompProfile:

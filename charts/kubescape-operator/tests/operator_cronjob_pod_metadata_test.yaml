@@ -1,0 +1,166 @@
+suite: Operator CronJob templates pod annotations and labels
+templates:
+  - operator/ks-recurring-cronjob-configmap.yaml
+  - operator/kv-recurring-cronjob-configmap.yaml
+  - operator/registry-scan-recurring-cronjob-configmap.yaml
+capabilities:
+  apiVersions:
+    - batch/v1
+tests:
+  - it: adds kubescapeScheduler.podAnnotations and podLabels to the pod template in operator/ks-recurring-cronjob-configmap.yaml
+    template: operator/ks-recurring-cronjob-configmap.yaml
+    set:
+      kubescapeScheduler.podAnnotations:
+        sidecar.istio.io/inject: "false"
+      kubescapeScheduler.podLabels:
+        team: platform
+    asserts:
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: '\n {8}metadata:\n {10}annotations:\n {12}sidecar.istio.io/inject: "false"\n {10}labels:\n {12}armo.tier: "kubescape-scan"\n {12}kubescape.io/tier: "core"\n {12}team: "platform"\n {8}spec:'
+
+  - it: keeps the default pod template metadata in operator/ks-recurring-cronjob-configmap.yaml
+    template: operator/ks-recurring-cronjob-configmap.yaml
+    asserts:
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: '\n {8}metadata:\n {10}labels:\n {12}armo.tier: "kubescape-scan"\n {12}kubescape.io/tier: "core"\n {8}spec:'
+
+  - it: keeps the fixed tier labels when kubescapeScheduler.podLabels sets the same keys in operator/ks-recurring-cronjob-configmap.yaml
+    template: operator/ks-recurring-cronjob-configmap.yaml
+    set:
+      kubescapeScheduler.podLabels:
+        armo.tier: other
+        kubescape.io/tier: other
+        team: platform
+    asserts:
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: '\n {8}metadata:\n {10}labels:\n {12}armo.tier: "kubescape-scan"\n {12}kubescape.io/tier: "core"\n {12}team: "platform"\n {8}spec:'
+      - notMatchRegex:
+          path: data.cronjobTemplate
+          pattern: 'tier: "other"'
+
+  - it: adds kubevulnScheduler.podAnnotations and podLabels to the pod template in operator/kv-recurring-cronjob-configmap.yaml
+    template: operator/kv-recurring-cronjob-configmap.yaml
+    set:
+      kubevulnScheduler.podAnnotations:
+        sidecar.istio.io/inject: "false"
+      kubevulnScheduler.podLabels:
+        team: platform
+    asserts:
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: '\n {8}metadata:\n {10}annotations:\n {12}sidecar.istio.io/inject: "false"\n {10}labels:\n {12}armo.tier: "vuln-scan"\n {12}kubescape.io/tier: "core"\n {12}team: "platform"\n {8}spec:'
+
+  - it: keeps the default pod template metadata in operator/kv-recurring-cronjob-configmap.yaml
+    template: operator/kv-recurring-cronjob-configmap.yaml
+    asserts:
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: '\n {8}metadata:\n {10}labels:\n {12}armo.tier: "vuln-scan"\n {12}kubescape.io/tier: "core"\n {8}spec:'
+
+  - it: keeps the fixed tier labels when kubevulnScheduler.podLabels sets the same keys in operator/kv-recurring-cronjob-configmap.yaml
+    template: operator/kv-recurring-cronjob-configmap.yaml
+    set:
+      kubevulnScheduler.podLabels:
+        armo.tier: other
+        kubescape.io/tier: other
+        team: platform
+    asserts:
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: '\n {8}metadata:\n {10}labels:\n {12}armo.tier: "vuln-scan"\n {12}kubescape.io/tier: "core"\n {12}team: "platform"\n {8}spec:'
+      - notMatchRegex:
+          path: data.cronjobTemplate
+          pattern: 'tier: "other"'
+
+  - it: adds registryScanScheduler.podAnnotations and podLabels to the pod template in operator/registry-scan-recurring-cronjob-configmap.yaml
+    template: operator/registry-scan-recurring-cronjob-configmap.yaml
+    set:
+      registryScanScheduler.podAnnotations:
+        sidecar.istio.io/inject: "false"
+      registryScanScheduler.podLabels:
+        team: platform
+    asserts:
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: '\n {8}metadata:\n {10}annotations:\n {12}sidecar.istio.io/inject: "false"\n {10}labels:\n {12}armo.tier: "registry-scan"\n {12}kubescape.io/tier: "core"\n {12}team: "platform"\n {8}spec:'
+
+  - it: keeps the default pod template metadata in operator/registry-scan-recurring-cronjob-configmap.yaml
+    template: operator/registry-scan-recurring-cronjob-configmap.yaml
+    asserts:
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: '\n {8}metadata:\n {10}labels:\n {12}armo.tier: "registry-scan"\n {12}kubescape.io/tier: "core"\n {8}spec:'
+
+  - it: keeps the fixed tier labels when registryScanScheduler.podLabels sets the same keys in operator/registry-scan-recurring-cronjob-configmap.yaml
+    template: operator/registry-scan-recurring-cronjob-configmap.yaml
+    set:
+      registryScanScheduler.podLabels:
+        armo.tier: other
+        kubescape.io/tier: other
+        team: platform
+    asserts:
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: '\n {8}metadata:\n {10}labels:\n {12}armo.tier: "registry-scan"\n {12}kubescape.io/tier: "core"\n {12}team: "platform"\n {8}spec:'
+      - notMatchRegex:
+          path: data.cronjobTemplate
+          pattern: 'tier: "other"'
+
+  - it: renders non-string kubescapeScheduler.podAnnotations values as strings in operator/ks-recurring-cronjob-configmap.yaml
+    template: operator/ks-recurring-cronjob-configmap.yaml
+    set:
+      kubescapeScheduler.podAnnotations:
+        sidecar.istio.io/inject: false
+        example.com/retries: 3
+    asserts:
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: '\n {10}annotations:\n {12}example.com/retries: "3"\n {12}sidecar.istio.io/inject: "false"\n {10}labels:'
+
+  - it: renders non-string kubevulnScheduler.podAnnotations values as strings in operator/kv-recurring-cronjob-configmap.yaml
+    template: operator/kv-recurring-cronjob-configmap.yaml
+    set:
+      kubevulnScheduler.podAnnotations:
+        sidecar.istio.io/inject: false
+        example.com/retries: 3
+    asserts:
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: '\n {10}annotations:\n {12}example.com/retries: "3"\n {12}sidecar.istio.io/inject: "false"\n {10}labels:'
+
+  - it: renders non-string registryScanScheduler.podAnnotations values as strings in operator/registry-scan-recurring-cronjob-configmap.yaml
+    template: operator/registry-scan-recurring-cronjob-configmap.yaml
+    set:
+      registryScanScheduler.podAnnotations:
+        sidecar.istio.io/inject: false
+        example.com/retries: 3
+    asserts:
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: '\n {10}annotations:\n {12}example.com/retries: "3"\n {12}sidecar.istio.io/inject: "false"\n {10}labels:'
+
+  - it: keeps podAnnotations and podLabels keys that YAML would read as null or bool as strings in all three CronJob templates
+    templates:
+      - operator/ks-recurring-cronjob-configmap.yaml
+      - operator/kv-recurring-cronjob-configmap.yaml
+      - operator/registry-scan-recurring-cronjob-configmap.yaml
+    set:
+      kubescapeScheduler.podAnnotations:
+        "yes": "a"
+      kubescapeScheduler.podLabels:
+        "null": platform
+      kubevulnScheduler.podAnnotations:
+        "yes": "a"
+      kubevulnScheduler.podLabels:
+        "null": platform
+      registryScanScheduler.podAnnotations:
+        "yes": "a"
+      registryScanScheduler.podLabels:
+        "null": platform
+    asserts:
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: '\n {10}annotations:\n {12}"yes": "a"\n {10}labels:\n {12}armo.tier: "[a-z-]+"\n {12}kubescape.io/tier: "core"\n {12}"null": "platform"\n {8}spec:'
