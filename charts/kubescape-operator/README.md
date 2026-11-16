@@ -328,7 +328,7 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | operator.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | operator.volumes | object | `[]` | Additional volumes for the web socket |
 | operator.volumeMounts | object | `[]` | Additional volumeMounts for the web socket |
-| operator.rulesUpdateConfig.excludeClusterObjects | bool | `false` | While `operator.rulesUpdateConfig.enabled` is `true`, the admission controller ignores rule bindings and runs every rule. Set this to `true` to skip cluster-scoped objects (Nodes, ClusterRoles, ...) in that mode. It needs an operator release with kubescape/operator#494, which v0.2.220 and earlier (including the default `operator.image.tag`) don't have; until the default moves, set `operator.image.tag` to such a release |
+| operator.rulesUpdateConfig.excludeClusterObjects | bool | `false` | While `operator.rulesUpdateConfig.enabled` is `true`, the admission controller ignores rule bindings and runs every rule. Set this to `true` to skip cluster-scoped objects (Nodes, ClusterRoles, ...) in that mode. It needs an operator release with kubescape/operator#494: the default `operator.image.tag` has it, v0.2.220 and earlier don't |
 | storage.hostNetwork | bool | `false` | Bind the storage APIServer to the host network. Required when using a custom CNI where the control plane cannot reach pod IPs |
 | storage.containerProfileSqliteBackend | bool | `false` | Serve ContainerProfiles from storage's SQLite-native backend (payload and metadata in one transaction). Requires `storage.singleWriterEnabled`. Every storage start migrates existing profiles before serving; run `storage.containerProfileMigrationDryRun` once first. See [the storage doc](https://github.com/kubescape/storage/blob/main/docs/features/containerprofile-sqlite-backend.md) |
 | storage.containerProfileMigrationDryRun | bool | `false` | At storage start, log what the ContainerProfile migration to the SQLite backend would do, without writing anything. Cannot be combined with `storage.containerProfileSqliteBackend` |
@@ -815,7 +815,7 @@ empty request list does not clear the installation list. Controls are omitted
 before evaluation and compliance scoring, using the CLI's `--exclude-controls`
 behavior. Exclusions narrow the assessment scope; they do not make checks pass.
 The default empty list changes nothing. Non-list, non-string, and blank values
-are rejected. The chart defaults select operator `v0.2.209` and Kubescape scanner
+are rejected. The chart defaults select operator `v0.2.240` and Kubescape scanner
 `v4.0.20`, which include support for this setting. Keep a compatible pair if
 overriding the image versions.
 
