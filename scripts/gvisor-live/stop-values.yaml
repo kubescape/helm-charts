@@ -1,0 +1,66 @@
+# Values for the disposable ARM64 K3s stop and health trial. Replace the VM-local OTLP address.
+# Phase B of stop_trial.py upgrades with nodeAgent.gVisorStart.stopObservations=false.
+clusterName: gvisor-trial
+includeNamespaces: gvisor-helm-20261113
+capabilities:
+  operator: disable
+  configurationScan: disable
+  continuousScan: disable
+  nodeScan: disable
+  nodeSbomGeneration: disable
+  vulnerabilityScan: disable
+  relevancy: disable
+  runtimeObservability: enable
+  runtimeDetection: disable
+  networkPolicyService: disable
+  networkEventsStreaming: disable
+  nodeProfileService: disable
+  httpDetection: disable
+  seccompProfileService: disable
+  admissionController: disable
+global:
+  apiAuth:
+    enabled: false
+storage:
+  enabled: true
+configurations:
+  persistence: disable
+  otelUrl: http://192.168.252.3:4317
+nodeAgent:
+  image:
+    repository: quay.io/kubescape/node-agent
+    tag: v0.3.325
+    pullPolicy: IfNotPresent
+  nodeSelector:
+    kubernetes.io/os: linux
+    kubescape.io/gvisor-start-ready: 'true'
+  gVisorStart:
+    enabled: true
+    socketDirectory: /run/kubescape/gvisor
+    runtimeEndpoint: /run/k3s/containerd/containerd.sock
+    runtimeHandler: runsc
+    stopObservations: true
+  privileged: false
+  config:
+    hostSensor:
+      enabled: false
+    extra:
+      applicationProfileServiceEnabled: false
+      fimEnabled: false
+      hostMonitoringEnabled: false
+  env:
+  - name: OTEL_METRICS_EXPORTER
+    value: prometheus
+  - name: NodeName
+    valueFrom:
+      fieldRef:
+        fieldPath: spec.nodeName
+volumes:
+- name: trial-ig
+  configMap:
+    name: gvisor-helm-ig
+volumeMounts:
+- name: trial-ig
+  mountPath: /root/.ig/config.yaml
+  subPath: config.yaml
+  readOnly: true
