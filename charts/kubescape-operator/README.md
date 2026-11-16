@@ -179,6 +179,18 @@ fields are pruned or rejected.
 The CRDs under `templates/` (the node-agent sensing CRDs and `seccompprofiles`) are managed by Helm and
 do upgrade on their own.
 
+> **Operator `v0.2.240` (the default `operator.image.tag`):**
+> - The admission controller reads the `includeClusterObjects: "false"` opt-out from the
+>   `RuntimeRuleAlertBinding`, not from the admitted object (kubescape/operator#494). A cluster-scoped
+>   object that carried the label to skip its rules is evaluated again after the upgrade. To keep
+>   cluster-scoped objects out, put the label on the binding instead, or, while
+>   `operator.rulesUpdateConfig.enabled` is `true`, set `operator.rulesUpdateConfig.excludeClusterObjects: true`.
+> - On start, the operator applies the scheduler `podLabels` and `podAnnotations` to existing recurring
+>   scan CronJobs, but it keeps keys the template no longer sets, because it cannot tell them apart from
+>   keys it added per schedule. If you remove a key from `podLabels` or `podAnnotations` (for example
+>   `sidecar.istio.io/inject`), remove it from the existing schedule CronJobs yourself; new schedules
+>   follow the current values.
+
 ## View results
 
 The scanning results will be available gradually as the scans are completed.
