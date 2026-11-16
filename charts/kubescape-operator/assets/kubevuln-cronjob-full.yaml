@@ -24,36 +24,36 @@ apiVersion: batch/v1
                 seccompProfile:
                   type: RuntimeDefault
               {{- if .Values.imagePullSecrets }}
-              imagePullSecrets:
-              {{- if kindIs "string" .Values.imagePullSecrets }}
-              - name: {{ .Values.imagePullSecrets }}
-              {{- else }}
-              {{- range .Values.imagePullSecrets }}
-              - name: {{ . }}
-              {{- end }}
-              {{- end }}
+              {{- include "kubescape-operator.imagePullSecrets" . | nindent 14 }}
               {{- end }}
               containers:
               - name: {{ .Values.kubevulnScheduler.name }}
-                image: "{{ .Values.kubevulnScheduler.image.repository }}:{{ .Values.kubevulnScheduler.image.tag }}"
-                imagePullPolicy: {{ .Values.kubevulnScheduler.image.pullPolicy }}
+                image: "{{ .Values.kubescapeOpsTool.image.repository }}:{{ .Values.kubescapeOpsTool.image.tag }}"
+                imagePullPolicy: {{ .Values.kubescapeOpsTool.image.pullPolicy }}
                 securityContext:
                   allowPrivilegeEscalation: false
                   readOnlyRootFilesystem: true
                   runAsNonRoot: true
-                  runAsUser: 100
+                  runAsUser: 65532
+                  runAsGroup: 65532
+                  capabilities:
+                    drop:
+                      - ALL
                 resources:
 {{ toYaml .Values.kubevulnScheduler.resources | indent 18 }}
+                command: ["/usr/bin/kubescape-ops-tool", "create-operator-command"]
                 args:
-                  - -method=post
-                  - -scheme=http
-                  - -host={{ .Values.operator.name }}:{{ .Values.operator.service.port }}
-                  - -path=v1/triggerAction
-                  - -headers=Content-Type:application/json
-                  - -path-body=/home/ks/request-body.json
-                {{- if .Values.kubevulnScheduler.insecureSkipTLSVerify }}
-                  - -skip-ssl-verify=true
-                {{- end}}
+                  - --namespace
+                  - {{ .Values.ksNamespace }}
+                  - --request-body
+                  - /home/ks/request-body.json
+                  - --generate-name
+                  - {{ .Values.kubevulnScheduler.name }}-
+                env:
+                  - name: JOB_NAME
+                    valueFrom:
+                      fieldRef:
+                        fieldPath: metadata.labels['batch.kubernetes.io/job-name']
                 volumeMounts:
                   - name: "request-body-volume"
                     mountPath: /home/ks/request-body.json
@@ -67,7 +67,7 @@ apiVersion: batch/v1
 {{- end }}
               restartPolicy: Never
               serviceAccountName: {{ .Values.kubevuln.name }}
-              automountServiceAccountToken: false
+              automountServiceAccountToken: true
               nodeSelector:
               {{- if .Values.kubevulnScheduler.nodeSelector }}
               {{- toYaml .Values.kubevulnScheduler.nodeSelector | nindent 16 }}
@@ -85,6 +85,9 @@ apiVersion: batch/v1
               {{- toYaml .Values.kubevulnScheduler.tolerations | nindent 16 }}
               {{- else if .Values.customScheduling.tolerations }}
               {{- toYaml .Values.customScheduling.tolerations | nindent 16 }}
+              {{- end }}
+              {{- with include "kubescape-operator.priorityClassName" (dict "component" .Values.kubevulnScheduler "global" .Values.customScheduling) | trim }}
+              {{- . | nindent 14 }}
               {{- end }}
               volumes:
                 - name: "request-body-volume" # placeholder

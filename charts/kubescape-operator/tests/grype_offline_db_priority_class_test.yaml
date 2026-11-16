@@ -1,0 +1,29 @@
+suite: grype-offline-db Deployment priorityClassName
+templates:
+  - grype-offline-db/deployment.yaml
+tests:
+  - it: uses grypeOfflineDB.priorityClassName
+    set:
+      grypeOfflineDB.enabled: true
+      grypeOfflineDB.priorityClassName: grype-priority
+      customScheduling.priorityClassName: global-priority
+    asserts:
+      - equal:
+          path: spec.template.spec.priorityClassName
+          value: grype-priority
+
+  - it: falls back to customScheduling.priorityClassName
+    set:
+      grypeOfflineDB.enabled: true
+      customScheduling.priorityClassName: global-priority
+    asserts:
+      - equal:
+          path: spec.template.spec.priorityClassName
+          value: global-priority
+
+  - it: sets no priorityClassName by default
+    set:
+      grypeOfflineDB.enabled: true
+    asserts:
+      - notExists:
+          path: spec.template.spec.priorityClassName

@@ -1,0 +1,73 @@
+suite: SandboxPolicy seccomp layer
+templates:
+  - node-agent/clusterrole.yaml
+  - node-agent/configmap.yaml
+tests:
+  - it: is disabled by default without extra RBAC
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - template: node-agent/configmap.yaml
+        matchRegex:
+          path: data["config.json"]
+          pattern: '"sandboxSeccompEnabled": false'
+      - template: node-agent/clusterrole.yaml
+        notExists:
+          path: rules[?(@.resources[0] == "sandboxpolicies")]
+      - template: node-agent/clusterrole.yaml
+        notExists:
+          path: rules[?(@.resources[0] == "sandboxpolicynodestatuses")]
+      - template: node-agent/clusterrole.yaml
+        notExists:
+          path: rules[?(@.resources[0] == "sandboxpolicynodestatuses/status")]
+  - it: enables the layer and grants policy reads and node report writes
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities:
+        sandboxSeccomp: enable
+    asserts:
+      - template: node-agent/configmap.yaml
+        matchRegex:
+          path: data["config.json"]
+          pattern: '"sandboxSeccompEnabled": true'
+      - template: node-agent/clusterrole.yaml
+        contains:
+          path: rules
+          content:
+            apiGroups: ["kubescape.io"]
+            resources: ["sandboxpolicies", "clustersandboxpolicies"]
+            verbs: ["get", "watch", "list"]
+      - template: node-agent/clusterrole.yaml
+        contains:
+          path: rules
+          content:
+            apiGroups: ["kubescape.io"]
+            resources: ["sandboxpolicynodestatuses"]
+            verbs: ["get", "create"]
+      - template: node-agent/clusterrole.yaml
+        contains:
+          path: rules
+          content:
+            apiGroups: ["kubescape.io"]
+            resources: ["sandboxpolicynodestatuses/status"]
+            verbs: ["update"]
+  # node-agent templates render only when node-agent is enabled
+  - it: runs node-agent when it is the only node-agent capability
+    template: node-agent/configmap.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities:
+        relevancy: disable
+        runtimeObservability: disable
+        networkPolicyService: disable
+        runtimeDetection: disable
+        malwareDetection: disable
+        nodeProfileService: disable
+        seccompProfileService: disable
+        sandboxSeccomp: enable
+    asserts:
+      - hasDocuments:
+          count: 1

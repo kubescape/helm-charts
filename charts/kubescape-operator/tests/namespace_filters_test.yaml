@@ -1,0 +1,352 @@
+suite: Live namespace filter configuration
+kubernetesProvider:
+  scheme:
+    "v1/ConfigMap":
+      gvr:
+        version: v1
+        resource: configmaps
+      namespaced: true
+capabilities:
+  apiVersions:
+    - batch/v1
+set:
+  unittest: true
+  clusterName: namespace-filter-regression
+  namespaceFilters.enabled: true
+  alertCRD.installDefault: true
+tests:
+  - it: creates one managed exact-list document with normalized namespaces
+    template: configs/namespace-filters-configmap.yaml
+    set:
+      includeNamespaces: " alpha, ,beta, "
+      excludeNamespaces: "gamma"
+    asserts:
+      - isKind:
+          of: ConfigMap
+      - equal:
+          path: metadata.name
+          value: kubescape-namespace-filters
+      - equal:
+          path: metadata.namespace
+          value: kubescape
+      - equal:
+          path: data["namespaceFilters.json"]
+          value: |
+            {"excludeNamespaces":["gamma"],"includeNamespaces":["alpha","beta"]}
+
+  - it: emits empty arrays when both filters are cleared
+    template: configs/namespace-filters-configmap.yaml
+    set:
+      includeNamespaces: " , "
+      excludeNamespaces: ""
+    asserts:
+      - equal:
+          path: data["namespaceFilters.json"]
+          value: |
+            {"excludeNamespaces":[],"includeNamespaces":[]}
+
+  - it: does not create a shared ConfigMap when disabled
+    template: configs/namespace-filters-configmap.yaml
+    set:
+      namespaceFilters.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: references external ownership without creating a ConfigMap
+    template: configs/namespace-filters-configmap.yaml
+    set:
+      namespaceFilters.existingConfigMap: external-filters
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: places the managed ConfigMap in the configured installation namespace
+    template: configs/namespace-filters-configmap.yaml
+    set:
+      ksNamespace: security
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: security
+
+  - it: configures the Operator watcher and omits static filters
+    template: operator/configmap.yaml
+    set:
+      includeNamespaces: alpha
+      excludeNamespaces: beta
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"namespaceFilterConfigMapName":\s*"kubescape-namespace-filters"'
+      - notMatchRegex:
+          path: data["config.json"]
+          pattern: '"(includeNamespaces|excludeNamespaces)"'
+
+  - it: configures the Node-agent file and omits static filters
+    template: node-agent/configmap.yaml
+    set:
+      includeNamespaces: alpha
+      excludeNamespaces: beta
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"namespaceFilterFile":\s*"/etc/namespace-filters/namespaceFilters.json"'
+      - notMatchRegex:
+          path: data["config.json"]
+          pattern: '"(includeNamespaces|excludeNamespaces)"'
+
+  - it: configures the Synchronizer watcher in a custom namespace
+    template: synchronizer/configmap.yaml
+    set:
+      server: fixture.invalid
+      account: synthetic-account
+      accessKey: synthetic-access-key
+      ksNamespace: security
+      namespaceFilters.existingConfigMap: external-filters
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"namespaceFilterConfigMapName":\s*"external-filters"'
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"namespace":\s*"security"'
+      - notMatchRegex:
+          path: data["config.json"]
+          pattern: '"(includeNamespaces|excludeNamespaces)"'
+
+  - it: lets the live Node-agent filter select namespaces for the default runtime binding
+    template: node-agent/default-rule-binding.yaml
+    set:
+      includeNamespaces: alpha
+    asserts:
+      - equal:
+          path: spec.namespaceSelector
+          value: {}
+
+  - it: preserves static selection when live filtering is disabled
+    template: operator/configmap.yaml
+    set:
+      namespaceFilters.enabled: false
+      includeNamespaces: alpha
+      excludeNamespaces: beta
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"includeNamespaces":\s*"alpha"'
+      - notMatchRegex:
+          path: data["config.json"]
+          pattern: '"(namespaceFilterConfigMapName|excludeNamespaces)"'
+
+  - it: preserves owned live edits byte for byte including multiline without final newline
+    template: configs/namespace-filters-configmap.yaml
+    release:
+      name: filter-lookup
+      namespace: kubescape
+    set:
+      includeNamespaces: alpha
+      excludeNamespaces: ''
+    kubernetesProvider:
+      objects:
+      - apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: kubescape-namespace-filters
+          namespace: kubescape
+          labels:
+            app.kubernetes.io/managed-by: Helm
+          annotations:
+            meta.helm.sh/release-name: filter-lookup
+            meta.helm.sh/release-namespace: kubescape
+        data:
+          helm-values-checksum: d4862fb5c2b683f1202f186e2700734261662fa6956e86f7bd6394f2de777e79
+          namespaceFilters.json: |-
+            {
+              "includeNamespaces": ["manual-a"],
+              "excludeNamespaces": []
+            }
+    asserts:
+    - equal:
+        path: data["namespaceFilters.json"]
+        value: |-
+          {
+            "includeNamespaces": ["manual-a"],
+            "excludeNamespaces": []
+          }
+    - equal:
+        path: data["helm-values-checksum"]
+        value: d4862fb5c2b683f1202f186e2700734261662fa6956e86f7bd6394f2de777e79
+  - it: reinitializes from declared arrays when the Helm values checksum changes
+    template: configs/namespace-filters-configmap.yaml
+    release:
+      name: filter-lookup
+      namespace: kubescape
+    set:
+      includeNamespaces: alpha
+      excludeNamespaces: ''
+    kubernetesProvider:
+      objects:
+      - apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: kubescape-namespace-filters
+          namespace: kubescape
+          labels:
+            app.kubernetes.io/managed-by: Helm
+          annotations:
+            meta.helm.sh/release-name: filter-lookup
+            meta.helm.sh/release-namespace: kubescape
+        data:
+          helm-values-checksum: 6472b089a7a90923eac0642b07bb38240054ee19c8f5d3bedbf751e874a0d38a
+          namespaceFilters.json: |-
+            {
+              "includeNamespaces": ["manual-a"],
+              "excludeNamespaces": []
+            }
+    asserts:
+    - equal:
+        path: data["namespaceFilters.json"]
+        value: |
+          {"excludeNamespaces":[],"includeNamespaces":["alpha"]}
+    - equal:
+        path: data["helm-values-checksum"]
+        value: d4862fb5c2b683f1202f186e2700734261662fa6956e86f7bd6394f2de777e79
+  - it: does not preserve live data owned by another Helm release
+    template: configs/namespace-filters-configmap.yaml
+    release:
+      name: filter-lookup
+      namespace: kubescape
+    set:
+      includeNamespaces: alpha
+      excludeNamespaces: ''
+    kubernetesProvider:
+      objects:
+      - apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: kubescape-namespace-filters
+          namespace: kubescape
+          labels:
+            app.kubernetes.io/managed-by: Helm
+          annotations:
+            meta.helm.sh/release-name: another-release
+            meta.helm.sh/release-namespace: kubescape
+        data:
+          helm-values-checksum: d4862fb5c2b683f1202f186e2700734261662fa6956e86f7bd6394f2de777e79
+          namespaceFilters.json: |-
+            {
+              "includeNamespaces": ["manual-a"],
+              "excludeNamespaces": []
+            }
+    asserts:
+    - equal:
+        path: data["namespaceFilters.json"]
+        value: |
+          {"excludeNamespaces":[],"includeNamespaces":["alpha"]}
+    - equal:
+        path: data["helm-values-checksum"]
+        value: d4862fb5c2b683f1202f186e2700734261662fa6956e86f7bd6394f2de777e79
+  - it: does not preserve live data without Helm ownership
+    template: configs/namespace-filters-configmap.yaml
+    release:
+      name: filter-lookup
+      namespace: kubescape
+    set:
+      includeNamespaces: alpha
+      excludeNamespaces: ''
+    kubernetesProvider:
+      objects:
+      - apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: kubescape-namespace-filters
+          namespace: kubescape
+          labels:
+            app.kubernetes.io/managed-by: external-controller
+          annotations:
+            meta.helm.sh/release-name: filter-lookup
+            meta.helm.sh/release-namespace: kubescape
+        data:
+          helm-values-checksum: d4862fb5c2b683f1202f186e2700734261662fa6956e86f7bd6394f2de777e79
+          namespaceFilters.json: |-
+            {
+              "includeNamespaces": ["manual-a"],
+              "excludeNamespaces": []
+            }
+    asserts:
+    - equal:
+        path: data["namespaceFilters.json"]
+        value: |
+          {"excludeNamespaces":[],"includeNamespaces":["alpha"]}
+    - equal:
+        path: data["helm-values-checksum"]
+        value: d4862fb5c2b683f1202f186e2700734261662fa6956e86f7bd6394f2de777e79
+  - it: preserves edits when namespace whitespace and empty entries normalize to the
+      same checksum
+    template: configs/namespace-filters-configmap.yaml
+    release:
+      name: filter-lookup
+      namespace: kubescape
+    set:
+      includeNamespaces: ' alpha, , '
+      excludeNamespaces: ''
+    kubernetesProvider:
+      objects:
+      - apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: kubescape-namespace-filters
+          namespace: kubescape
+          labels:
+            app.kubernetes.io/managed-by: Helm
+          annotations:
+            meta.helm.sh/release-name: filter-lookup
+            meta.helm.sh/release-namespace: kubescape
+        data:
+          helm-values-checksum: d4862fb5c2b683f1202f186e2700734261662fa6956e86f7bd6394f2de777e79
+          namespaceFilters.json: |-
+            {
+              "includeNamespaces": ["manual-a"],
+              "excludeNamespaces": []
+            }
+    asserts:
+    - equal:
+        path: data["namespaceFilters.json"]
+        value: |-
+          {
+            "includeNamespaces": ["manual-a"],
+            "excludeNamespaces": []
+          }
+    - equal:
+        path: data["helm-values-checksum"]
+        value: d4862fb5c2b683f1202f186e2700734261662fa6956e86f7bd6394f2de777e79
+  - it: initializes declared filters when owned ConfigMap has no filter document
+    template: configs/namespace-filters-configmap.yaml
+    release:
+      name: filter-lookup
+      namespace: kubescape
+    set:
+      includeNamespaces: alpha
+      excludeNamespaces: ''
+    kubernetesProvider:
+      objects:
+      - apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: kubescape-namespace-filters
+          namespace: kubescape
+          labels:
+            app.kubernetes.io/managed-by: Helm
+          annotations:
+            meta.helm.sh/release-name: filter-lookup
+            meta.helm.sh/release-namespace: kubescape
+        data:
+          helm-values-checksum: d4862fb5c2b683f1202f186e2700734261662fa6956e86f7bd6394f2de777e79
+    asserts:
+    - equal:
+        path: data["namespaceFilters.json"]
+        value: |
+          {"excludeNamespaces":[],"includeNamespaces":["alpha"]}
+    - equal:
+        path: data["helm-values-checksum"]
+        value: d4862fb5c2b683f1202f186e2700734261662fa6956e86f7bd6394f2de777e79

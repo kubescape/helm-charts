@@ -135,6 +135,17 @@ Parameters:
   - components: $components
 */}}
 {{- define "node-agent.volumeMounts" -}}
+{{- include "apiauth.callerVolumeMount" . }}
+{{- if .Values.nodeAgent.gVisorStart.enabled }}
+- name: gvisor-start
+  mountPath: {{ .Values.nodeAgent.gVisorStart.socketDirectory | quote }}
+  readOnly: false
+{{- end }}
+{{- if .Values.namespaceFilters.enabled }}
+- name: namespace-filters
+  mountPath: /etc/namespace-filters
+  readOnly: true
+{{- end }}
 {{- $sandboxPolicy := dig "sandboxPolicy" "enabled" false .Values.nodeAgent }}
 {{- range $mounts := list (.Values.volumeMounts | default list) (.Values.nodeAgent.volumeMounts | default list) }}
 {{- range $mounts }}
@@ -246,6 +257,7 @@ SBOM Scanner Sidecar Container (optional)
 Parameters:
   - Values: .Values
   - components: $components
+  - no_proxy_envar_list: the no_proxy list
 */}}
 {{- define "node-agent.sbomScannerContainer" -}}
 {{- if .components.sbomScanner.enabled }}
@@ -291,6 +303,12 @@ Parameters:
           fieldPath: metadata.namespace
     - name: CLUSTER_NAME
       value: "{{ .Values.clusterName }}"
+    {{- if ne .Values.global.httpsProxy "" }}
+    - name: HTTPS_PROXY
+      value: "{{ .Values.global.httpsProxy }}"
+    - name: no_proxy
+      value: "{{ .no_proxy_envar_list }}"
+    {{- end }}
   volumeMounts:
   {{- if .Values.nodeAgent.sbomScanner.volumeMounts }}
     {{- toYaml .Values.nodeAgent.sbomScanner.volumeMounts | nindent 4 }}
@@ -347,6 +365,23 @@ Parameters:
   - components: $components
 */}}
 {{- define "node-agent.volumes" -}}
+{{- $filters := fromYaml (include "namespaceFilters.config" .) -}}
+{{- include "apiauth.callerVolume" . }}
+{{- if .Values.nodeAgent.gVisorStart.enabled }}
+- name: gvisor-start
+  hostPath:
+    path: {{ .Values.nodeAgent.gVisorStart.socketDirectory | quote }}
+    type: Directory
+{{- end }}
+{{- if $filters.enabled }}
+- name: namespace-filters
+  configMap:
+    name: {{ $filters.name | quote }}
+    optional: false
+    items:
+    - key: namespaceFilters.json
+      path: namespaceFilters.json
+{{- end }}
 {{- if .Values.nodeAgent.volumes }}
 {{ toYaml .Values.nodeAgent.volumes | trim }}
 {{- end }}
@@ -470,14 +505,7 @@ securityContext:
     type: Unconfined
   {{- end }}
 {{- if .Values.imagePullSecrets }}
-imagePullSecrets:
-{{- if kindIs "string" .Values.imagePullSecrets }}
-- name: {{ .Values.imagePullSecrets }}
-{{- else }}
-{{- range .Values.imagePullSecrets }}
-- name: {{ . }}
-{{- end }}
-{{- end }}
+{{ include "kubescape-operator.imagePullSecrets" . }}
 {{- end }}
 {{- if .Values.nodeAgent.priorityClassName }}
 priorityClassName: {{ .Values.nodeAgent.priorityClassName }}
@@ -498,7 +526,7 @@ volumes:
 {{ include "node-agent.volumes" (dict "Values" .Values "components" .components) | trim | nindent 0 }}
 containers:
 {{- if .includeSbomScanner }}
-{{ include "node-agent.sbomScannerContainer" (dict "Values" .Values "components" .components) | trim | nindent 0 }}
+{{ include "node-agent.sbomScannerContainer" (dict "Values" .Values "components" .components "no_proxy_envar_list" .no_proxy_envar_list) | trim | nindent 0 }}
 {{- end }}
 {{ include "node-agent.container" (dict "Values" .Values "components" .components "no_proxy_envar_list" .no_proxy_envar_list "autoscalerMode" .autoscalerMode "testingMode" .testingMode "resources" .resources) | trim | nindent 0 }}
 nodeSelector:

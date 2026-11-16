@@ -128,3 +128,95 @@ tests:
           content:
             name: AZURE_CLIENT_ID
             value: ""
+
+  - it: annotates the kubevuln ServiceAccount for Azure Workload Identity
+    template: kubevuln/serviceaccount.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      cloudProviderMetadata:
+        aksWorkloadIdentityClientID: 00000000-0000-0000-0000-000000000001
+        aksWorkloadIdentityTenantID: 00000000-0000-0000-0000-000000000002
+    asserts:
+      - equal:
+          path: metadata.annotations["azure.workload.identity/client-id"]
+          value: 00000000-0000-0000-0000-000000000001
+      - equal:
+          path: metadata.annotations["azure.workload.identity/tenant-id"]
+          value: 00000000-0000-0000-0000-000000000002
+      - notExists:
+          path: metadata.annotations["eks.amazonaws.com/role-arn"]
+
+  - it: omits the Azure tenant annotation when no tenant ID is set
+    template: kubevuln/serviceaccount.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      cloudProviderMetadata:
+        aksWorkloadIdentityClientID: 00000000-0000-0000-0000-000000000001
+    asserts:
+      - equal:
+          path: metadata.annotations["azure.workload.identity/client-id"]
+          value: 00000000-0000-0000-0000-000000000001
+      - notExists:
+          path: metadata.annotations["azure.workload.identity/tenant-id"]
+
+  - it: labels the kubevuln pod for the Azure Workload Identity webhook
+    template: kubevuln/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      cloudProviderMetadata:
+        aksWorkloadIdentityClientID: 00000000-0000-0000-0000-000000000001
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels["azure.workload.identity/use"]
+          value: "true"
+      - notExists:
+          path: metadata.labels["azure.workload.identity/use"]
+
+  - it: does not enable Azure Workload Identity by default
+    template: kubevuln/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - notExists:
+          path: spec.template.metadata.labels["azure.workload.identity/use"]
+
+  - it: keeps AWS IRSA precedence over Azure Workload Identity
+    templates:
+      - kubevuln/serviceaccount.yaml
+      - kubevuln/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      cloudProviderMetadata:
+        awsIamRoleArn: arn:aws:iam::123456789012:role/kubevuln
+        aksWorkloadIdentityClientID: 00000000-0000-0000-0000-000000000001
+    asserts:
+      - equal:
+          path: metadata.annotations["eks.amazonaws.com/role-arn"]
+          value: arn:aws:iam::123456789012:role/kubevuln
+        template: kubevuln/serviceaccount.yaml
+      - notExists:
+          path: metadata.annotations["azure.workload.identity/client-id"]
+        template: kubevuln/serviceaccount.yaml
+      - notExists:
+          path: spec.template.metadata.labels["azure.workload.identity/use"]
+        template: kubevuln/deployment.yaml

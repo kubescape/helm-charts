@@ -1,7 +1,7 @@
 {{- if not (.Capabilities.APIVersions.Has "batch/v1") }}
   {{- fail "`batch/v1 not supported`" }}
 {{- end }}
-{{- if and .Values.grypeOfflineDB.enabled (eq .Values.grypeOfflineDB.image.tag "latest") }}
+{{- if and .Values.grypeOfflineDB.enabled (eq .Values.grypeOfflineDB.image.tag "v6-latest") }}
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -34,19 +34,12 @@ spec:
             seccompProfile:
               type: RuntimeDefault
           {{- if .Values.imagePullSecrets }}
-          imagePullSecrets:
-          {{- if kindIs "string" .Values.imagePullSecrets }}
-          - name: {{ .Values.imagePullSecrets }}
-          {{- else }}
-          {{- range .Values.imagePullSecrets }}
-          - name: {{ . }}
-          {{- end }}
-          {{- end }}
+          {{- include "kubescape-operator.imagePullSecrets" . | nindent 10 }}
           {{- end }}
           containers:
           - name: {{ .Values.grypeOfflineDB.name }}
-            image: "{{ .Values.grypeOfflineDB.rollout.image.repository }}:{{ .Values.grypeOfflineDB.rollout.image.tag }}"
-            imagePullPolicy: {{ .Values.grypeOfflineDB.rollout.image.pullPolicy }}
+            image: "{{ .Values.kubescapeOpsTool.image.repository }}:{{ .Values.kubescapeOpsTool.image.tag }}"
+            imagePullPolicy: {{ .Values.kubescapeOpsTool.image.pullPolicy }}
             resources:
 {{ toYaml .Values.grypeOfflineDB.rollout.resources | indent 14 }}
             securityContext:
@@ -58,15 +51,20 @@ spec:
               capabilities:
                 drop:
                   - ALL
-            command: ["/bin/sh", "-c"]
+            command: ["/usr/bin/kubescape-ops-tool", "rollout-restart"]
             args:
-              - |
-                kubectl rollout restart deployment -n {{ .Values.ksNamespace }} {{ .Values.grypeOfflineDB.name }}
+              - --namespace
+              - {{ .Values.ksNamespace | quote }}
+              - --deployment
+              - {{ .Values.grypeOfflineDB.name | quote }}
+{{- if or .Values.volumeMounts .Values.grypeOfflineDB.volumeMounts }}
+            volumeMounts:
 {{- if .Values.volumeMounts }}
 {{ toYaml .Values.volumeMounts | indent 14 }}
 {{- end }}
 {{- if .Values.grypeOfflineDB.volumeMounts }}
 {{ toYaml .Values.grypeOfflineDB.volumeMounts | indent 14 }}
+{{- end }}
 {{- end }}
           restartPolicy: Never
           serviceAccountName: {{ .Values.grypeOfflineDB.name }}
@@ -92,10 +90,13 @@ spec:
           {{- toYaml .Values.customScheduling.tolerations | nindent 12 }}
           {{- end }}
           {{- include "kubescape-operator.priorityClassName" (dict "component" .Values.grypeOfflineDB "global" .Values.customScheduling) | nindent 10 }}
+{{- if or .Values.volumes .Values.grypeOfflineDB.volumes }}
+          volumes:
 {{- if .Values.volumes }}
-{{ toYaml .Values.volumes | indent 10 }}
+{{ toYaml .Values.volumes | indent 12 }}
 {{- end }}
 {{- if .Values.grypeOfflineDB.volumes }}
-{{ toYaml .Values.grypeOfflineDB.volumes | indent 10 }}
+{{ toYaml .Values.grypeOfflineDB.volumes | indent 12 }}
+{{- end }}
 {{- end }}
 {{- end }}

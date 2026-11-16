@@ -20,9 +20,11 @@ rules:
     resources: ["secrets"]
     verbs: ["get", "watch", "list"]
   {{- end }}
+  # Reads only: the admission rules look up a pod's owning Job in any namespace. The
+  # operator writes Jobs and CronJobs in its own namespace alone, through the Role.
   - apiGroups: ["batch"]
     resources: ["jobs", "cronjobs"]
-    verbs: ["get", "watch", "list", "create", "update", "delete" ,"patch"]
+    verbs: ["get", "watch", "list"]
   - apiGroups: ["apps"]
     resources: ["deployments", "daemonsets", "statefulsets", "replicasets"]
     verbs: ["get", "watch", "list"]
@@ -49,20 +51,19 @@ rules:
   {{- if eq .Values.capabilities.remediation "enable" }}
   # Post-scan remediation (opt-in). These mutating verbs are granted only when
   # capabilities.remediation is enabled; the default install stays read-only.
-  # Provisioned once for the whole action set so later phases need not reopen
-  # this ClusterRole:
-  #   - patch on apps workloads + pods backs annotate (active now);
-  #   - patch on nodes backs cordon (later phase) -- cluster-wide, as Kubernetes
-  #     has no field-level RBAC for spec.unschedulable;
-  #   - networkpolicies backs quarantine (later phase).
+  # They follow the actions the operator implements today:
+  #   - patch on apps workloads + pods backs annotate;
+  #   - networkpolicies backs quarantine; a second quarantine of the same
+  #     workload reconciles the policy in place, which is an update.
+  # cordon (patch on nodes, cluster-wide) is granted when it lands in the operator.
   - apiGroups: ["apps"]
     resources: ["deployments", "statefulsets", "daemonsets"]
     verbs: ["patch"]
   - apiGroups: [""]
-    resources: ["pods", "nodes"]
+    resources: ["pods"]
     verbs: ["patch"]
   - apiGroups: ["networking.k8s.io"]
     resources: ["networkpolicies"]
-    verbs: ["create", "delete", "get", "list"]
+    verbs: ["create", "delete", "get", "list", "update"]
   {{- end }}
 {{- end }}

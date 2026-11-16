@@ -1,0 +1,57 @@
+suite: Storage MCP reader ClusterRoles
+templates:
+  - storage/mcp-clusterroles.yaml
+tests:
+  - it: creates no roles while the MCP endpoint is off (the default)
+    set:
+      clusterName: kind-kind
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: lets the reader call the endpoint with POST and open the optional GET stream
+    set:
+      clusterName: kind-kind
+      storage.mcp.enabled: true
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: metadata.name
+          value: kubescape-mcp-reader
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["spdx.softwarecomposition.kubescape.io"]
+            resources: ["mcpservers/mcp"]
+            verbs: ["create", "get"]
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["spdx.softwarecomposition.kubescape.io"]
+            resources: ["vulnerabilitymanifests", "workloadconfigurationscans"]
+            verbs: ["get", "list"]
+
+  - it: keeps container profiles and SBOMs in the separate runtime reader
+    set:
+      clusterName: kind-kind
+      storage.mcp.enabled: true
+    documentIndex: 1
+    asserts:
+      - equal:
+          path: metadata.name
+          value: kubescape-mcp-runtime-reader
+      - equal:
+          path: rules
+          value:
+            - apiGroups: ["spdx.softwarecomposition.kubescape.io"]
+              resources: ["containerprofiles", "sbomsyfts"]
+              verbs: ["get", "list"]
+
+  - it: creates no roles when readerClusterRoles is off
+    set:
+      clusterName: kind-kind
+      storage.mcp.enabled: true
+      storage.mcp.readerClusterRoles: false
+    asserts:
+      - hasDocuments:
+          count: 0

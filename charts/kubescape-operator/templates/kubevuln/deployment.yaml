@@ -34,16 +34,12 @@ spec:
         {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.kubevuln.name "tier" .Values.global.namespaceTier) | nindent 8 }}
         {{- with .Values.kubevuln.podLabels }}{{- toYaml . | nindent 8 }}{{- end }}
         kubescape.io/tier: "core"
+        {{- if and .Values.cloudProviderMetadata.aksWorkloadIdentityClientID (not .Values.cloudProviderMetadata.awsIamRoleArn) (not .Values.cloudProviderMetadata.gkeServiceAccount) }}
+        azure.workload.identity/use: "true"
+        {{- end }}
     spec:
       {{- if .Values.imagePullSecrets }}
-      imagePullSecrets:
-      {{- if kindIs "string" .Values.imagePullSecrets }}
-      - name: {{ .Values.imagePullSecrets }}
-      {{- else }}
-      {{- range .Values.imagePullSecrets }}
-      - name: {{ . }}
-      {{- end }}
-      {{- end }}
+      {{- include "kubescape-operator.imagePullSecrets" . | nindent 6 }}
       {{- end }}
       securityContext:
         seccompProfile:
@@ -78,6 +74,7 @@ spec:
           resources:
 {{ toYaml .Values.kubevuln.resources | indent 12 }}
           env:
+            {{- include "apiauth.serverEnv" . | nindent 12 }}
             {{- if .Values.kubevuln.resources.limits.memory }}
             - name: GOMEMLIMIT
               value: {{ include "kubescape-operator.gomemlimit" (dict "memory" .Values.kubevuln.resources.limits.memory "percentage" .Values.kubevuln.gomemlimitPercentage) | quote }}
@@ -179,6 +176,12 @@ spec:
               value: "{{ .Values.logger.level }}"
             - name: KS_LOGGER_NAME
               value: "sbom-scanner"
+            {{- if ne .Values.global.httpsProxy "" }}
+            - name: HTTPS_PROXY
+              value: "{{ .Values.global.httpsProxy }}"
+            - name : no_proxy
+              value: "{{ $no_proxy_envar_list }}"
+            {{- end }}
           volumeMounts:
             - name: sbom-comm
               mountPath: /sbom-comm
@@ -222,7 +225,9 @@ spec:
             secretName: {{ .Values.global.extraCaCertificates.secretName }}
       {{- end }}
         - name: tmp-dir
-          {{- if .Values.kubevuln.tmpDirPersistence.enabled }}
+          {{- if and .Values.kubevuln.tmpDirPersistence.enabled .Values.kubevuln.tmpDirPersistence.ephemeral }}
+          {{- include "kubevuln.ephemeralVolume" .Values.kubevuln.tmpDirPersistence | nindent 10 }}
+          {{- else if .Values.kubevuln.tmpDirPersistence.enabled }}
           persistentVolumeClaim:
             claimName: kubescape-{{ .Values.kubevuln.name }}-tmp
           {{- else }}
@@ -237,7 +242,9 @@ spec:
             - key: "clusterData"
               path: "clusterData.json"
         - name: "grype-db"
-          {{- if .Values.kubevuln.config.grypeDbPersistence }}
+          {{- if .Values.kubevuln.grypeDbEphemeral.enabled }}
+          {{- include "kubevuln.ephemeralVolume" .Values.kubevuln.grypeDbEphemeral | nindent 10 }}
+          {{- else if .Values.kubevuln.config.grypeDbPersistence }}
           persistentVolumeClaim:
             claimName: kubescape-{{ .Values.kubevuln.name }}
           {{- else }}

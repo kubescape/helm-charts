@@ -24,36 +24,36 @@ apiVersion: batch/v1
                 seccompProfile:
                   type: RuntimeDefault
               {{- if .Values.imagePullSecrets }}
-              imagePullSecrets:
-              {{- if kindIs "string" .Values.imagePullSecrets }}
-              - name: {{ .Values.imagePullSecrets }}
-              {{- else }}
-              {{- range .Values.imagePullSecrets }}
-              - name: {{ . }}
-              {{- end }}
-              {{- end }}
+              {{- include "kubescape-operator.imagePullSecrets" . | nindent 14 }}
               {{- end }}
               containers:
               - name: {{ .Values.registryScanScheduler.name }}
-                image: "{{ .Values.registryScanScheduler.image.repository }}:{{ .Values.registryScanScheduler.image.tag }}"
-                imagePullPolicy: {{ .Values.registryScanScheduler.image.pullPolicy }}
+                image: "{{ .Values.kubescapeOpsTool.image.repository }}:{{ .Values.kubescapeOpsTool.image.tag }}"
+                imagePullPolicy: {{ .Values.kubescapeOpsTool.image.pullPolicy }}
                 securityContext:
                   allowPrivilegeEscalation: false
                   readOnlyRootFilesystem: true
                   runAsNonRoot: true
-                  runAsUser: 100
+                  runAsUser: 65532
+                  runAsGroup: 65532
+                  capabilities:
+                    drop:
+                      - ALL
                 resources:
 {{ toYaml .Values.registryScanScheduler.resources | indent 18 }}
+                command: ["/usr/bin/kubescape-ops-tool", "create-operator-command"]
                 args:
-                  - -method=post
-                  - -scheme=http
-                  - -host={{ .Values.operator.name }}:{{ .Values.operator.service.port }}
-                  - -path=v1/triggerAction
-                  - -headers=Content-Type:application/json
-                  - -path-body=/home/ks/request-body.json
-                {{- if .Values.registryScanScheduler.insecureSkipTLSVerify }}
-                  - -skip-ssl-verify=true
-                {{- end}}
+                  - --namespace
+                  - {{ .Values.ksNamespace }}
+                  - --request-body
+                  - /home/ks/request-body.json
+                  - --generate-name
+                  - {{ .Values.registryScanScheduler.name }}-
+                env:
+                  - name: JOB_NAME
+                    valueFrom:
+                      fieldRef:
+                        fieldPath: metadata.labels['batch.kubernetes.io/job-name']
                 volumeMounts:
                   - name: "request-body-volume"
                     mountPath: /home/ks/request-body.json
@@ -67,7 +67,7 @@ apiVersion: batch/v1
 {{- end }}
               restartPolicy: Never
               serviceAccountName: {{ .Values.kubevuln.name }}
-              automountServiceAccountToken: false
+              automountServiceAccountToken: true
               nodeSelector:
               {{- if .Values.registryScanScheduler.nodeSelector }}
               {{- toYaml .Values.registryScanScheduler.nodeSelector | nindent 16 }}
@@ -85,6 +85,9 @@ apiVersion: batch/v1
               {{- toYaml .Values.registryScanScheduler.tolerations | nindent 16 }}
               {{- else if .Values.customScheduling.tolerations }}
               {{- toYaml .Values.customScheduling.tolerations | nindent 16 }}
+              {{- end }}
+              {{- with include "kubescape-operator.priorityClassName" (dict "component" .Values.registryScanScheduler "global" .Values.customScheduling) | trim }}
+              {{- . | nindent 14 }}
               {{- end }}
               volumes:
                 - name: "request-body-volume" # placeholder

@@ -1,3 +1,4 @@
+{{- $filters := fromYaml (include "namespaceFilters.config" .) }}
 {{- $checksums := fromYaml (include "checksums" .) }}
 {{- $components := fromYaml (include "components" .) }}
 {{- if $components.kubescape.enabled }}
@@ -45,14 +46,7 @@ spec:
         kubescape.io/tier: "core"
     spec:
       {{- if .Values.imagePullSecrets }}
-      imagePullSecrets:
-      {{- if kindIs "string" .Values.imagePullSecrets }}
-      - name: {{ .Values.imagePullSecrets }}
-      {{- else }}
-      {{- range .Values.imagePullSecrets }}
-      - name: {{ . }}
-      {{- end }}
-      {{- end }}
+      {{- include "kubescape-operator.imagePullSecrets" . | nindent 6 }}
       {{- end }}
       securityContext:
         seccompProfile:
@@ -88,6 +82,7 @@ spec:
           initialDelaySeconds: 3
           periodSeconds: 3
         env:
+        {{- include "apiauth.serverEnv" . | nindent 8 }}
         {{- if .Values.kubescape.resources.limits.memory }}
         - name: GOMEMLIMIT
           value: {{ include "kubescape-operator.gomemlimit" (dict "memory" .Values.kubescape.resources.limits.memory "percentage" .Values.kubescape.gomemlimitPercentage) | quote }}
@@ -112,8 +107,6 @@ spec:
           value: "{{ .Values.nodeAgent.config.hostSensor.enabled }}"
         - name: KS_SKIP_UPDATE_CHECK
           value: "{{ .Values.kubescape.skipUpdateCheck }}"
-        - name: KS_HOST_SCAN_YAML
-          value: "/home/nonroot/.kubescape/host-scanner.yaml"
         - name: LARGE_CLUSTER_SIZE
           value: "1500"
         {{- if .Values.server }}
@@ -224,7 +217,10 @@ spec:
         - name : no_proxy
           value: "{{ $no_proxy_envar_list }}"
         {{- end }}
-        {{- if ne .Values.includeNamespaces "" }}
+        {{- if $filters.enabled }}
+        - name: KS_NAMESPACE_FILTERS_FILE
+          value: /etc/namespace-filters/namespaceFilters.json
+        {{- else if ne .Values.includeNamespaces "" }}
         - name: KS_INCLUDE_NAMESPACES
           value: "{{ .Values.includeNamespaces }}"
         {{- else if ne .Values.excludeNamespaces "" }}
@@ -240,6 +236,11 @@ spec:
         resources:
 {{ toYaml .Values.kubescape.resources | indent 14 }}
         volumeMounts:
+        {{- if $filters.enabled }}
+        - name: namespace-filters
+          mountPath: /etc/namespace-filters
+          readOnly: true
+        {{- end }}
         - name: {{ $components.cloudSecret.name }}
           mountPath: /etc/credentials
           readOnly: true
@@ -248,9 +249,6 @@ spec:
           mountPath: /home/nonroot/.kubescape
           subPath: config.json
         {{- end }}
-        - name: host-scanner-definition
-          mountPath: /home/nonroot/.kubescape/host-scanner.yaml
-          subPath: host-scanner-yaml
         - name: results
           mountPath: /home/nonroot/results
         - name: failed
@@ -283,6 +281,15 @@ spec:
     {{- end }}
 {{- end }}
       volumes:
+      {{- if $filters.enabled }}
+      - name: namespace-filters
+        configMap:
+          name: {{ $filters.name | quote }}
+          optional: false
+          items:
+          - key: namespaceFilters.json
+            path: namespaceFilters.json
+      {{- end }}
       - name: {{ $components.cloudSecret.name }}
         secret:
           secretName: {{ $components.cloudSecret.name }}
@@ -307,9 +314,6 @@ spec:
           items:
           - key: "clusterData"
             path: "clusterData.json"
-      - name: host-scanner-definition
-        configMap:
-          name: host-scanner-definition
       {{- if and .Values.kubescape.downloadArtifacts (ne .Values.capabilities.kubescapeOffline "enable") }}
       - name: kubescape-volume
         emptyDir: {}

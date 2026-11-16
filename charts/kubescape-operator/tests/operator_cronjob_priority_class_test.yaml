@@ -1,0 +1,95 @@
+suite: Operator CronJob templates priorityClassName
+templates:
+  - operator/ks-recurring-cronjob-configmap.yaml
+  - operator/kv-recurring-cronjob-configmap.yaml
+  - operator/registry-scan-recurring-cronjob-configmap.yaml
+capabilities:
+  apiVersions:
+    - batch/v1
+tests:
+  - it: uses kubescapeScheduler.priorityClassName in operator/ks-recurring-cronjob-configmap.yaml
+    template: operator/ks-recurring-cronjob-configmap.yaml
+    set:
+      kubescapeScheduler.priorityClassName: scan-priority
+      customScheduling.priorityClassName: global-priority
+    asserts:
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: '\n {10}priorityClassName: scan-priority\n {10}volumes:'
+      - notMatchRegex:
+          path: data.cronjobTemplate
+          pattern: global-priority
+
+  - it: falls back to customScheduling.priorityClassName in operator/ks-recurring-cronjob-configmap.yaml
+    template: operator/ks-recurring-cronjob-configmap.yaml
+    set:
+      customScheduling.priorityClassName: global-priority
+    asserts:
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: '\n {10}priorityClassName: global-priority\n'
+
+  - it: sets no priorityClassName by default in operator/ks-recurring-cronjob-configmap.yaml
+    template: operator/ks-recurring-cronjob-configmap.yaml
+    asserts:
+      - notMatchRegex:
+          path: data.cronjobTemplate
+          pattern: priorityClassName
+
+  - it: uses kubevulnScheduler.priorityClassName in operator/kv-recurring-cronjob-configmap.yaml
+    template: operator/kv-recurring-cronjob-configmap.yaml
+    set:
+      kubevulnScheduler.priorityClassName: scan-priority
+      customScheduling.priorityClassName: global-priority
+    asserts:
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: '\n {10}priorityClassName: scan-priority\n {10}volumes:'
+      - notMatchRegex:
+          path: data.cronjobTemplate
+          pattern: global-priority
+
+  - it: falls back to customScheduling.priorityClassName in operator/kv-recurring-cronjob-configmap.yaml
+    template: operator/kv-recurring-cronjob-configmap.yaml
+    set:
+      customScheduling.priorityClassName: global-priority
+    asserts:
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: '\n {10}priorityClassName: global-priority\n'
+
+  - it: sets no priorityClassName by default in operator/kv-recurring-cronjob-configmap.yaml
+    template: operator/kv-recurring-cronjob-configmap.yaml
+    asserts:
+      - notMatchRegex:
+          path: data.cronjobTemplate
+          pattern: priorityClassName
+
+  - it: uses registryScanScheduler.priorityClassName in operator/registry-scan-recurring-cronjob-configmap.yaml
+    template: operator/registry-scan-recurring-cronjob-configmap.yaml
+    set:
+      registryScanScheduler.priorityClassName: scan-priority
+      customScheduling.priorityClassName: global-priority
+    asserts:
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: '\n {10}priorityClassName: scan-priority\n {10}volumes:'
+      - notMatchRegex:
+          path: data.cronjobTemplate
+          pattern: global-priority
+
+  - it: falls back to customScheduling.priorityClassName in operator/registry-scan-recurring-cronjob-configmap.yaml
+    template: operator/registry-scan-recurring-cronjob-configmap.yaml
+    set:
+      customScheduling.priorityClassName: global-priority
+    asserts:
+      - matchRegex:
+          path: data.cronjobTemplate
+          pattern: '\n {10}priorityClassName: global-priority\n'
+
+  - it: sets no priorityClassName by default in operator/registry-scan-recurring-cronjob-configmap.yaml
+    template: operator/registry-scan-recurring-cronjob-configmap.yaml
+    asserts:
+      - notMatchRegex:
+          path: data.cronjobTemplate
+          pattern: priorityClassName

@@ -1,7 +1,9 @@
 {{- $checksums := fromYaml (include "checksums" .) }}
 {{- $components := fromYaml (include "components" .) }}
+{{- $gates := fromYaml (include "capabilities.gates" .) }}
 {{- if $components.operator.enabled }}
 {{- $no_proxy_envar_list := (include "no_proxy_envar_list" .) -}}
+{{- $offline := eq .Values.capabilities.kubescapeOffline "enable" -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -36,23 +38,13 @@ spec:
       {{- if ne .Values.global.proxySecretFile "" }}
         checksum/proxy-config: {{ $checksums.proxySecret }}
       {{- end }}
-      {{- if and (eq .Values.capabilities.admissionController "enable") (eq (include "kubescape.certificates.strategy" .) "initContainer") }}
-        checksum/admission-certgen-scripts: {{ $checksums.admissionCertgenScripts }}
-      {{- end }}
       labels:
         {{- include "kubescape-operator.labels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.operator.name "tier" .Values.global.namespaceTier) | nindent 8 }}
         {{- with .Values.operator.podLabels }}{{- toYaml . | nindent 8 }}{{- end }}
         kubescape.io/tier: "core"
     spec:
       {{- if .Values.imagePullSecrets }}
-      imagePullSecrets:
-      {{- if kindIs "string" .Values.imagePullSecrets }}
-      - name: {{ .Values.imagePullSecrets }}
-      {{- else }}
-      {{- range .Values.imagePullSecrets }}
-      - name: {{ . }}
-      {{- end }}
-      {{- end }}
+      {{- include "kubescape-operator.imagePullSecrets" . | nindent 6 }}
       {{- end }}
       securityContext:
         seccompProfile:
@@ -64,11 +56,11 @@ spec:
       {{- $admissionName := include "kubescape-admission.name" . }}
       {{- $admissionSecret := include "kubescape-admission.secretName" . }}
       {{- $admissionHosts := printf "%s,%s" $admissionName (include "kubescape-admission.svcDomainName" .) }}
-      {{- $certgenImage := printf "%s:%s" .Values.certificates.certgen.image.repository (.Values.certificates.certgen.image.tag | toString) }}
+      {{- $certgenImage := printf "%s:%s" .Values.kubescapeOpsTool.image.repository (.Values.kubescapeOpsTool.image.tag | toString) }}
       initContainers:
         - name: certgen-create
           image: {{ $certgenImage }}
-          imagePullPolicy: {{ .Values.certificates.certgen.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.kubescapeOpsTool.image.pullPolicy }}
           securityContext:
             runAsUser: 65532
             runAsGroup: 65532
@@ -78,7 +70,7 @@ spec:
             capabilities:
               drop:
                 - ALL
-          command: ["/scripts/certgen-create.sh"]
+          command: ["/usr/bin/kubescape-ops-tool", "certgen-create"]
           args:
             - --namespace
             - {{ .Values.ksNamespace }}
@@ -95,16 +87,13 @@ spec:
             - --key-name
             - tls.key
           volumeMounts:
-            - name: admission-certgen-scripts
-              mountPath: /scripts
-              readOnly: true
             - name: tls-certs
               mountPath: /etc/certs
             - name: tmp-dir
               mountPath: /tmp
         - name: certgen-patch
           image: {{ $certgenImage }}
-          imagePullPolicy: {{ .Values.certificates.certgen.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.kubescapeOpsTool.image.pullPolicy }}
           securityContext:
             runAsUser: 65532
             runAsGroup: 65532
@@ -114,7 +103,7 @@ spec:
             capabilities:
               drop:
                 - ALL
-          command: ["/scripts/certgen-patch.sh"]
+          command: ["/usr/bin/kubescape-ops-tool", "certgen-patch"]
           args:
             - --namespace
             - {{ .Values.ksNamespace }}
@@ -130,10 +119,6 @@ spec:
             - {{ .Values.operator.admissionWebhooks.patch.retries | quote }}
             - --retry-interval
             - {{ .Values.operator.admissionWebhooks.patch.retryIntervalSeconds | quote }}
-          volumeMounts:
-            - name: admission-certgen-scripts
-              mountPath: /scripts
-              readOnly: true
       {{- end }}
       containers:
         - name: {{ .Values.operator.name }}
@@ -173,6 +158,9 @@ spec:
           resources:
 {{ toYaml .Values.operator.resources | indent 12 }}
           env:
+            {{- include "apiauth.serverEnv" . | nindent 12 }}
+            - name: KS_API_TOKEN_FILE
+              value: {{ include "apiauth.tokenFile" . | quote }}
             - name: NODE_NAME
               valueFrom:
                 fieldRef:
@@ -187,9 +175,15 @@ spec:
               value: "{{ .Values.logger.level }}"
             - name: KS_LOGGER_NAME
               value: "{{ .Values.logger.name }}"
+            {{- if $offline }}
+            - name: KS_SKIP_UPDATE_CHECK
+              value: "true"
+            {{- end }}
             {{- range .Values.operator.env }}
+            {{- if not (and $offline (eq .name "KS_SKIP_UPDATE_CHECK")) }}
             - name: {{ .name }}
               value: "{{ .value }}"
+            {{- end }}
             {{- end }}
             {{- if ne .Values.global.httpsProxy "" }}
             - name: HTTPS_PROXY
@@ -198,6 +192,7 @@ spec:
               value: "{{ $no_proxy_envar_list }}"
             {{- end }}
           volumeMounts:
+            {{- include "apiauth.callerVolumeMount" . | nindent 12 }}
             - name: {{ $components.cloudSecret.name }}
               mountPath: /etc/credentials
               readOnly: true
@@ -241,6 +236,12 @@ spec:
               mountPath: /etc/certs
               readOnly: true
             {{- end }}
+            {{- if eq $gates.effectiveCapabilities.sbomExport "enable" }}
+            # a directory, not a subPath, so a rotated API key reaches the pod
+            - name: sbom-export-api-key
+              mountPath: /etc/sbom-export
+              readOnly: true
+            {{- end }}
 {{- if .Values.volumeMounts }}
 {{ toYaml .Values.volumeMounts | indent 12 }}
 {{- end }}
@@ -253,6 +254,7 @@ spec:
               subPath: proxy.crt
 {{- end }}
       volumes:
+        {{- include "apiauth.callerVolume" . | nindent 8 }}
         - name: {{ $components.cloudSecret.name }}
           secret:
             secretName: {{ $components.cloudSecret.name }}
@@ -275,10 +277,6 @@ spec:
         {{- if eq (include "kubescape.certificates.strategy" .) "initContainer" }}
         - name: tls-certs
           emptyDir: {}
-        - name: admission-certgen-scripts
-          configMap:
-            name: {{ include "kubescape-admission.name" . }}-certgen-scripts-{{ include "kubescape.certgen.scriptsHash" . }}
-            defaultMode: 0755
         {{- else }}
         - name: tls-certs
           secret:
@@ -315,6 +313,14 @@ spec:
         - name: node-agent-template
           configMap:
             name: node-agent-daemonset-template
+        {{- end }}
+        {{- if eq $gates.effectiveCapabilities.sbomExport "enable" }}
+        - name: sbom-export-api-key
+          secret:
+            secretName: {{ .Values.sbomExport.dependencyTrack.apiKeySecret.name }}
+            items:
+              - key: {{ .Values.sbomExport.dependencyTrack.apiKeySecret.key | quote }}
+                path: api-key
         {{- end }}
 {{- if .Values.volumes }}
 {{ toYaml .Values.volumes | indent 8 }}

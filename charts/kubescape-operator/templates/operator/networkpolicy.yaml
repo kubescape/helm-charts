@@ -1,4 +1,5 @@
 {{- $components := fromYaml (include "components" .) }}
+{{- $gates := fromYaml (include "capabilities.gates" .) }}
 {{- if and .Values.global.networkPolicy.enabled $components.operator.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -38,28 +39,87 @@ spec:
               {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.kubescape.name) | nindent 14 }}
     - ports:
         - protocol: TCP
-          port: 8080
+          port: {{ .Values.kubevuln.service.targetPort }}
       to:
         - podSelector:
             matchLabels:
               {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.kubevuln.name) | nindent 14 }}
 {{ tpl (.Files.Get "assets/api-server-egress-rules.yaml") . | indent 4 }}
 {{ tpl (.Files.Get "assets/common-egress-rules.yaml") . | indent 4 }}
+    {{- if eq $gates.effectiveCapabilities.sbomExport "enable" }}
+    {{- $dtrack := urlParse .Values.sbomExport.dependencyTrack.url }}
+    {{- $dtrackPort := ternary 80 443 (eq $dtrack.scheme "http") }}
+    {{- if regexMatch ":[0-9]+$" $dtrack.host }}
+    {{- $dtrackPort = int (regexFind "[0-9]+$" $dtrack.host) }}
+    {{- end }}
+    {{- $dtrackPorts := list }}
+    {{- range prepend (.Values.sbomExport.dependencyTrack.egressPorts | default list) $dtrackPort }}
+    {{- if and (ne (int .) 443) (not (has (int .) $dtrackPorts)) }}
+    {{- $dtrackPorts = append $dtrackPorts (int .) }}
+    {{- end }}
+    {{- end }}
+    {{- with $dtrackPorts }}
+    # the SBOM export uploads to Dependency-Track; port 443 is already open above.
+    - ports:
+        {{- range . }}
+        - port: {{ . }}
+          protocol: TCP
+        {{- end }}
+      {{- with $.Values.sbomExport.dependencyTrack.egressTo }}
+      to:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- end }}
+    {{- end }}
+    {{- if $components.synchronizer.enabled }}
+    # the operator posts admission alerts and registry-scan statuses to the synchronizer (httpExporterConfig).
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "kubescape-operator.selectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "app" .Values.synchronizer.name) | nindent 14 }}
+      ports:
+        - port: {{ .Values.synchronizer.service.targetPort }}
+          protocol: TCP
+    {{- end }}
   {{- end }}
+  {{- if eq .Values.capabilities.admissionController "enable" }}
+  {{- $ingressFrom := .Values.operator.admissionWebhooks.networkPolicy.ingressFrom | default list }}
   ingress:
-    {{- if eq .Values.capabilities.admissionController "enable" }}
+    # The kube-apiserver source address is not reliably constrainable by a Pod or
+    # namespace selector, so by default this rule is unrestricted (no `from`).
+    # operator.admissionWebhooks.networkPolicy.ingressFrom, when set, narrows it.
     - ports:
       - port: admission-port
         protocol: TCP
-    {{- end }}
-    - from:
-        - podSelector:
-            matchLabels:
-              armo.tier: kubescape-scan
-        - podSelector:
-            matchLabels:
-              armo.tier: vuln-scan
-      ports:
-        - port: trigger-port
-          protocol: TCP
+      {{- with $ingressFrom }}
+      from:
+        {{- /*
+          Validate ipBlock.cidr. IPv4 is validated in full: each octet 0-255 and
+          prefix 0-32. IPv6 (any value containing ":") is validated for charset
+          (hex/colon, plus an optional validated IPv4-mapped dotted tail such as
+          ::ffff:192.0.2.1) and prefix 0-128. A regex cannot reliably parse full
+          IPv6 address structure, so the kube-apiserver remains the final authority
+          on the address itself. Selector-only peers (no ipBlock) are not checked.
+        */ -}}
+        {{- $oct := "(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])" -}}
+        {{- $v4pfx := "(3[0-2]|[12][0-9]|[0-9])" -}}
+        {{- $v6pfx := "(12[0-8]|1[01][0-9]|[1-9]?[0-9])" -}}
+        {{- $ipv4 := printf "^(%s[.]){3}%s/%s$" $oct $oct $v4pfx -}}
+        {{- /* pure hex/colon IPv6 */ -}}
+        {{- $ipv6hex := printf "^[0-9A-Fa-f:]+/%s$" $v6pfx -}}
+        {{- /* IPv6 ending in a validated IPv4 dotted tail (each octet 0-255), e.g. ::ffff:192.0.2.1 */ -}}
+        {{- $ipv6embed := printf "^[0-9A-Fa-f:]*:(%s[.]){3}%s/%s$" $oct $oct $v6pfx -}}
+        {{- range $peer := . }}
+        {{- if hasKey $peer "ipBlock" }}
+        {{- $cidr := $peer.ipBlock.cidr | toString }}
+        {{- $v6ok := or (regexMatch $ipv6hex $cidr) (regexMatch $ipv6embed $cidr) }}
+        {{- $ok := ternary $v6ok (regexMatch $ipv4 $cidr) (contains ":" $cidr) }}
+        {{- if not $ok }}
+        {{- fail (printf "operator.admissionWebhooks.networkPolicy.ingressFrom: invalid ipBlock.cidr %q (want valid CIDR, e.g. 10.0.0.0/24 or 2001:db8::/64)" $cidr) }}
+        {{- end }}
+        {{- end }}
+        {{- end }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  {{- end }}
 {{- end }}

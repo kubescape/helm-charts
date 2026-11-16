@@ -44,12 +44,18 @@ v3.9.0.
 
 ## When the drift gate fails on a release
 
-1. The node-agent's privileged surface changed and needs a **new allowlist version**.
-2. Create it in the `ARMO` allowlist repo (see `build-allowlists.py` / the process runbook), open a
+### If the failure is digest-only (`CLASS: digest-only`)
+`containerImageDigests` is mutable on approved allowlists, so no new allowlist version is required:
+1. Run `scripts/gke-allowlist/refresh-digests.py -t <tag> --apply gke-allowlist/*.yaml` (e.g. `-t v0.3.285`; omit `-t` to discover recent releases, or point `$GKE_ALLOWLIST_REPO` to your allowlist checkout) to append the new digests.
+2. Push the updated allowlist to Gerrit (`refs/for/main`) and update the vendored copy under `gke-allowlist/`.
+
+### If the failure is spec drift (`CLASS: spec-drift`)
+The node-agent's privileged surface changed and needs a **new allowlist version**:
+1. Create it in the `ARMO` allowlist repo (see `build-allowlists.py` / the process runbook), open a
    Gerrit change, and get it approved.
-3. Update the vendored copy under `gke-allowlist/` to match, and bump the chart's
+2. Update the vendored copy under `gke-allowlist/` to match, and bump the chart's
    `nodeAgent.gke.allowlist.name` default.
-4. Re-run the release with the **`BYPASS_ALLOWLIST_DRIFT`** input set to `true` ("set as pass after
+3. Re-run the release with the **`BYPASS_ALLOWLIST_DRIFT`** input set to `true` ("set as pass after
    you opened Gerrit to allowlist") while the new allowlist works through approval + rollout.
 
 ## Limitation

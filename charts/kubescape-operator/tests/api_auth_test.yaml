@@ -1,0 +1,452 @@
+suite: In-cluster API auth (apiAuth)
+capabilities:
+  apiVersions:
+    - batch/v1
+release:
+  name: kubescape
+  namespace: kubescape
+tests:
+  - it: renders auth-delegator bindings for the four servers
+    template: configs/api-auth-rbac.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      server: api.example
+      account: 11111111-1111-1111-1111-111111111111
+      accessKey: secret
+    asserts:
+      - equal:
+          path: roleRef
+          value:
+            apiGroup: rbac.authorization.k8s.io
+            kind: ClusterRole
+            name: system:auth-delegator
+        documentSelector:
+          path: metadata.name
+          value: kubescape:system:auth-delegator
+      - equal:
+          path: subjects
+          value:
+            - kind: ServiceAccount
+              name: kubescape
+              namespace: kubescape
+        documentSelector:
+          path: metadata.name
+          value: kubescape:system:auth-delegator
+      - equal:
+          path: subjects
+          value:
+            - kind: ServiceAccount
+              name: kubevuln
+              namespace: kubescape
+        documentSelector:
+          path: metadata.name
+          value: kubevuln:system:auth-delegator
+      - equal:
+          path: subjects
+          value:
+            - kind: ServiceAccount
+              name: synchronizer
+              namespace: kubescape
+        documentSelector:
+          path: metadata.name
+          value: synchronizer:system:auth-delegator
+      - equal:
+          path: subjects
+          value:
+            - kind: ServiceAccount
+              name: operator
+              namespace: kubescape
+        documentSelector:
+          path: metadata.name
+          value: operator:system:auth-delegator
+      - equal:
+          path: roleRef.name
+          value: system:auth-delegator
+        documentSelector:
+          path: metadata.name
+          value: operator:system:auth-delegator
+
+  - it: operator role grants scans, scanresults, vulnerabilityscans, runtimealerts, registrystatuses
+    template: configs/api-auth-rbac.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - equal:
+          path: rules
+          value:
+            - apiGroups: ["kubescape.io"]
+              resources: ["scans", "scanresults"]
+              verbs: ["create", "get", "delete"]
+            - apiGroups: ["kubescape.io"]
+              resources: ["vulnerabilityscans"]
+              verbs: ["create", "get"]
+            - apiGroups: ["kubescape.io"]
+              resources: ["runtimealerts", "registrystatuses"]
+              verbs: ["create"]
+        documentSelector:
+          path: rules[0].resources[0]
+          value: scans
+      - isKind:
+          of: Role
+        documentSelector:
+          path: rules[0].resources[0]
+          value: scans
+      - equal:
+          path: metadata.namespace
+          value: kubescape
+        documentSelector:
+          path: rules[0].resources[0]
+          value: scans
+      - equal:
+          path: roleRef
+          value:
+            apiGroup: rbac.authorization.k8s.io
+            kind: Role
+            name: operator-api-caller
+        documentSelector:
+          path: roleRef.name
+          value: operator-api-caller
+      - equal:
+          path: subjects
+          value:
+            - kind: ServiceAccount
+              name: operator
+              namespace: kubescape
+        documentSelector:
+          path: roleRef.name
+          value: operator-api-caller
+
+  - it: node-agent role covers every synchronizer httpEndpoint resource
+    template: configs/api-auth-rbac.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      server: api.example
+      account: 11111111-1111-1111-1111-111111111111
+      accessKey: secret
+    asserts:
+      # Keep in sync with the httpEndpoint.resources list in
+      # templates/synchronizer/configmap.yaml: node-agent posts every one of
+      # them, so a resource added there must be added to this Role too.
+      - equal:
+          path: rules
+          value:
+            - apiGroups: ["kubescape.io"]
+              resources: ["networkstreams", "nodeprofiles", "runtimealerts", "registrystatuses", "aisandboxheartbeats"]
+              verbs: ["create"]
+        documentSelector:
+          path: rules[0].resources[0]
+          value: networkstreams
+      - isKind:
+          of: Role
+        documentSelector:
+          path: rules[0].resources[0]
+          value: networkstreams
+      - equal:
+          path: subjects
+          value:
+            - kind: ServiceAccount
+              name: node-agent
+              namespace: kubescape
+        documentSelector:
+          path: roleRef.name
+          value: node-agent-api-caller
+
+  - it: operator and node-agent mount the projected token with audience kubescape.io and expirationSeconds 3600
+    set:
+      unittest: true
+      clusterName: kind-kind
+      server: api.example
+      account: 11111111-1111-1111-1111-111111111111
+      accessKey: secret
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: kubescape-api-token
+            projected:
+              sources:
+                - serviceAccountToken:
+                    audience: kubescape.io
+                    expirationSeconds: 3600
+                    path: token
+        template: operator/deployment.yaml
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "operator")].volumeMounts
+          content:
+            name: kubescape-api-token
+            mountPath: /var/run/secrets/kubescape.io/api-token
+            readOnly: true
+        template: operator/deployment.yaml
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "operator")].env
+          content:
+            name: KS_API_TOKEN_FILE
+            value: /var/run/secrets/kubescape.io/api-token/token
+        template: operator/deployment.yaml
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: kubescape-api-token
+            projected:
+              sources:
+                - serviceAccountToken:
+                    audience: kubescape.io
+                    expirationSeconds: 3600
+                    path: token
+        template: node-agent/daemonset.yaml
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "node-agent")].volumeMounts
+          content:
+            name: kubescape-api-token
+            mountPath: /var/run/secrets/kubescape.io/api-token
+            readOnly: true
+        template: node-agent/daemonset.yaml
+
+  - it: servers get KS_API_AUDIENCE and POD_NAMESPACE
+    set:
+      unittest: true
+      clusterName: kind-kind
+      server: api.example
+      account: 11111111-1111-1111-1111-111111111111
+      accessKey: secret
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "kubescape")].env
+          content:
+            name: KS_API_AUDIENCE
+            value: kubescape.io
+        template: kubescape/deployment.yaml
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "kubescape")].env
+          content:
+            name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+        template: kubescape/deployment.yaml
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "kubevuln")].env
+          content:
+            name: KS_API_AUDIENCE
+            value: kubescape.io
+        template: kubevuln/deployment.yaml
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "kubevuln")].env
+          content:
+            name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+        template: kubevuln/deployment.yaml
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "synchronizer")].env
+          content:
+            name: KS_API_AUDIENCE
+            value: kubescape.io
+        template: synchronizer/deployment.yaml
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "synchronizer")].env
+          content:
+            name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+        template: synchronizer/deployment.yaml
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "operator")].env
+          content:
+            name: KS_API_AUDIENCE
+            value: kubescape.io
+        template: operator/deployment.yaml
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "operator")].env
+          content:
+            name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+        template: operator/deployment.yaml
+      - notContains:
+          path: spec.template.spec.containers[?(@.name == "operator")].env
+          content:
+            name: KS_API_AUTH_DISABLED
+            value: "true"
+        template: operator/deployment.yaml
+
+  - it: apiAuth disabled sets KS_API_AUTH_DISABLED and renders no RBAC
+    set:
+      unittest: true
+      clusterName: kind-kind
+      server: api.example
+      account: 11111111-1111-1111-1111-111111111111
+      accessKey: secret
+      global.apiAuth.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+        template: configs/api-auth-rbac.yaml
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "kubescape")].env
+          content:
+            name: KS_API_AUTH_DISABLED
+            value: "true"
+        template: kubescape/deployment.yaml
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "kubevuln")].env
+          content:
+            name: KS_API_AUTH_DISABLED
+            value: "true"
+        template: kubevuln/deployment.yaml
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "synchronizer")].env
+          content:
+            name: KS_API_AUTH_DISABLED
+            value: "true"
+        template: synchronizer/deployment.yaml
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "operator")].env
+          content:
+            name: KS_API_AUTH_DISABLED
+            value: "true"
+        template: operator/deployment.yaml
+      - notContains:
+          path: spec.template.spec.volumes
+          content:
+            name: kubescape-api-token
+          any: true
+        template: operator/deployment.yaml
+      - notContains:
+          path: spec.template.spec.volumes
+          content:
+            name: kubescape-api-token
+          any: true
+        template: node-agent/daemonset.yaml
+
+  - it: an enabled GKE allowlist without the token mount renders node-agent without it and turns the check off
+    set:
+      unittest: true
+      clusterName: kind-kind
+      server: api.example
+      account: 11111111-1111-1111-1111-111111111111
+      accessKey: secret
+      nodeAgent.gke.allowlist.enabled: true
+      nodeAgent.gke.allowlist.name: armo-kubescape-node-agent-1.40-v2
+      nodeAgent.gke.allowlist.supportsApiToken: false
+    asserts:
+      - notContains:
+          path: spec.template.spec.volumes
+          content:
+            name: kubescape-api-token
+          any: true
+        template: node-agent/daemonset.yaml
+      - notContains:
+          path: spec.template.spec.containers[?(@.name == "node-agent")].volumeMounts
+          content:
+            mountPath: /var/run/secrets/kubescape.io/api-token
+          any: true
+        template: node-agent/daemonset.yaml
+      - notContains:
+          path: spec.template.spec.volumes
+          content:
+            name: kubescape-api-token
+          any: true
+        template: operator/deployment.yaml
+      - hasDocuments:
+          count: 0
+        template: configs/api-auth-rbac.yaml
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "kubescape")].env
+          content:
+            name: KS_API_AUTH_DISABLED
+            value: "true"
+        template: kubescape/deployment.yaml
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "kubevuln")].env
+          content:
+            name: KS_API_AUTH_DISABLED
+            value: "true"
+        template: kubevuln/deployment.yaml
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "synchronizer")].env
+          content:
+            name: KS_API_AUTH_DISABLED
+            value: "true"
+        template: synchronizer/deployment.yaml
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "operator")].env
+          content:
+            name: KS_API_AUTH_DISABLED
+            value: "true"
+        template: operator/deployment.yaml
+
+  - it: a GKE allowlist that supports the token keeps the mount and the check
+    set:
+      unittest: true
+      clusterName: kind-kind
+      server: api.example
+      account: 11111111-1111-1111-1111-111111111111
+      accessKey: secret
+      nodeAgent.gke.allowlist.enabled: true
+      nodeAgent.gke.allowlist.name: armo-kubescape-node-agent-1.43
+      nodeAgent.gke.allowlist.supportsApiToken: true
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: kubescape-api-token
+            projected:
+              sources:
+                - serviceAccountToken:
+                    audience: kubescape.io
+                    expirationSeconds: 3600
+                    path: token
+        template: node-agent/daemonset.yaml
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "node-agent")].volumeMounts
+          content:
+            name: kubescape-api-token
+            mountPath: /var/run/secrets/kubescape.io/api-token
+            readOnly: true
+        template: node-agent/daemonset.yaml
+      - notContains:
+          path: spec.template.spec.containers[?(@.name == "kubescape")].env
+          content:
+            name: KS_API_AUTH_DISABLED
+            value: "true"
+        template: kubescape/deployment.yaml
+      - isKind:
+          of: ClusterRoleBinding
+        documentSelector:
+          path: metadata.name
+          value: kubescape:system:auth-delegator
+        template: configs/api-auth-rbac.yaml
+
+  - it: synchronizer netpol admits operator pods
+    template: synchronizer/networkpolicy.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      server: api.example
+      account: 11111111-1111-1111-1111-111111111111
+      accessKey: secret
+      global.networkPolicy.enabled: true
+    asserts:
+      - contains:
+          path: spec.ingress[0].from
+          content:
+            podSelector:
+              matchLabels:
+                app.kubernetes.io/name: kubescape-operator
+                app.kubernetes.io/instance: kubescape
+                app.kubernetes.io/component: operator
+      - contains:
+          path: spec.ingress[0].from
+          content:
+            podSelector:
+              matchLabels:
+                app.kubernetes.io/name: kubescape-operator
+                app.kubernetes.io/instance: kubescape
+                app.kubernetes.io/component: node-agent

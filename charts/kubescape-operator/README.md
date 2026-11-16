@@ -1,6 +1,6 @@
 # Kubescape Operator
 
-![Version: 1.40.4](https://img.shields.io/badge/Version-1.40.4-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.40.4](https://img.shields.io/badge/AppVersion-v1.40.4-informational?style=flat-square)
+![Version: 1.42.0](https://img.shields.io/badge/Version-1.42.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 1.42.0](https://img.shields.io/badge/AppVersion-1.42.0-informational?style=flat-square)
 
 [Kubescape operator documentation](https://kubescape.io/docs/install-operator/)
 
@@ -29,6 +29,129 @@ kubescape     kubevuln-6779c9d74b-wfgqf                           1/1     Runnin
 kubescape     operator-5d745b5b84-ts7zq                           1/1     Running   0               60m
 kubescape     storage-59567854fd-hg8n8                            1/1     Running   0               60m
 ```
+
+## Live namespace filters
+
+Set `namespaceFilters.enabled: true` to edit scanning and monitoring namespaces
+through one ConfigMap without restarting components after each filter edit.
+Leave `namespaceFilters.existingConfigMap` empty for chart-managed filters, or
+reference a separately named ConfigMap in `ksNamespace` for external ownership.
+See [configuration, recovery, and ownership migration](../../docs/features/live-namespace-filters.md).
+
+## Offline daily reports
+
+Setting `capabilities.kubescapeOffline: enable` forces
+`KS_SKIP_UPDATE_CHECK="true"` on the Operator container, overriding entries with
+that name in `operator.env`. This suppresses the Operator's daily report to
+`version-check.ks-services.co`. Operator v0.2.181 includes
+[kubescape/operator#421](https://github.com/kubescape/operator/pull/421);
+the chart defaults to the newer compatible v0.2.188 release. If overriding the
+image, use v0.2.181 or a later release containing that fix. Older images do not
+honor this setting for daily reports.
+
+Online installations retain their existing reporting behavior. To opt out
+explicitly online, set `KS_SKIP_UPDATE_CHECK=true` through `operator.env`.
+`kubescape.skipUpdateCheck` remains scoped to the Kubescape scanner.
+
+See the [published-image validation](../../docs/features/operator-daily-reports-validation.md)
+for a reproducible check of offline suppression and online reporting.
+
+## SBOM export to Dependency-Track
+
+With `capabilities.sbomExport: enable`, the Operator sends the SBOM of every
+running image, as node-agent generated it (`capabilities.nodeSbomGeneration`),
+to [Dependency-Track](https://dependencytrack.org): one project per image and
+namespace, under collection projects for the cluster and each namespace. It
+needs neither kubevuln nor registry access. Create a Secret with the API key in
+`ksNamespace` first; the chart only mounts it:
+
+```sh
+kubectl -n kubescape create secret generic dependency-track --from-literal=apiKey=<API key>
+helm upgrade --install kubescape kubescape/kubescape-operator -n kubescape \
+  --set capabilities.sbomExport=enable \
+  --set sbomExport.dependencyTrack.url=https://dtrack.example.com \
+  --set sbomExport.dependencyTrack.apiKeySecret.name=dependency-track
+```
+
+By default each image goes to `<cluster>/<namespace>/<repository>:<tag>`. The layout is
+configurable in `sbomExport.dependencyTrack`, and a namespace can send its images under
+projects that already exist with annotations, for example:
+
+```yaml
+metadata:
+  annotations:
+    kubescape.io/dtrack-parent: "Payments Team:current"   # name:version or a project UUID
+    kubescape.io/dtrack-parent-create: "false"            # it exists; never create or change it
+    kubescape.io/dtrack-project-name: "{{ .Repository }}"
+```
+
+The export needs an Operator image with the `sbomExport` capability, added in
+[kubescape/operator#492](https://github.com/kubescape/operator/pull/492); an older Operator
+ignores these settings.
+
+Converting an SBOM takes the Operator about nine times the SBOM's size in memory, one image at a
+time. SBOMs above `sbomExport.maxSBOMSize` (10 MiB) are skipped, and node-agent keeps SBOMs only up
+to `kubevuln.config.maxSBOMSize` (20 MiB). To export bigger SBOMs, raise `sbomExport.maxSBOMSize`,
+above 20 MiB also `kubevuln.config.maxSBOMSize`, and keep `operator.resources.limits.memory` at
+nine times `sbomExport.maxSBOMSize` plus 64Mi or more: the default 300Mi covers 20 MiB, 32 MiB
+needs 352Mi, for example 512Mi. `GOMEMLIMIT` follows the limit. The chart warns in the
+`ks-capabilities` ConfigMap when the limit is lower.
+
+With network policies on, the Operator may reach the port of `sbomExport.dependencyTrack.url`. If
+Dependency-Track runs in the cluster behind a Service whose `targetPort` differs from its port, add
+the `targetPort` to `sbomExport.dependencyTrack.egressPorts`. The rule allows any destination on
+these ports, because a network policy cannot name Dependency-Track's host; to limit it, set
+`sbomExport.dependencyTrack.egressTo` to the policy peers of Dependency-Track, for example:
+
+```yaml
+sbomExport:
+  dependencyTrack:
+    url: http://dtrack-apiserver.dtrack.svc
+    egressPorts: [8080]
+    egressTo:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: dtrack
+        podSelector:
+          matchLabels:
+            app: dtrack-apiserver
+```
+
+The layout rules, the resync and the permissions the API key needs are described in
+[the Operator doc](https://github.com/kubescape/operator/blob/main/docs/features/sbom-export.md).
+
+## MCP endpoint for AI agents
+
+Set `storage.mcp.enabled: true` to let AI agents in the cluster (for example [Kagent](https://kagent.dev)) read Kubescape's results over [MCP](https://modelcontextprotocol.io). Storage serves read-only tools at
+
+```
+POST /apis/spdx.softwarecomposition.kubescape.io/v1beta1/namespaces/<namespace>/mcpservers/default/mcp
+```
+
+The call goes through kube-apiserver with the agent's own token, and storage checks every read against the agent's RBAC, so an agent sees only what it may `get` or `list`. The chart creates two ClusterRoles to bind per namespace:
+
+- `kubescape-mcp-reader`: call the endpoint, read vulnerability manifests and configuration scans
+- `kubescape-mcp-runtime-reader`: read container profiles and SBOMs (what containers run and every package in an image)
+
+The tools depend on the storage version. The chart's default (v0.0.382) serves the vulnerability tools (`list_vulnerability_manifests`, `list_vulnerabilities_in_manifest` and `list_vulnerability_matches_for_cve`) and the SBOM tools (`list_sboms` and `list_sbom_packages`). The configuration-scan and container-profile tools come with later releases. The two roles already cover them, so the RoleBindings stay the same when storage is upgraded.
+
+Image-level vulnerability manifests and SBOMs are stored in the Kubescape namespace, workload scans in the workload's namespace. For an agent with the ServiceAccount `kagent/agent`:
+
+```
+kubectl -n kagent create rolebinding kubescape-mcp --clusterrole=kubescape-mcp-reader --serviceaccount=kagent:agent
+kubectl -n kubescape create rolebinding kubescape-mcp --clusterrole=kubescape-mcp-reader --serviceaccount=kagent:agent
+```
+
+From storage v0.0.395, each tool call runs for at most `storage.mcp.callTimeout` (default 20s) and returns at most `storage.mcp.maxResponseBytes` (default 256 KiB); above that the agent gets a `TIMEOUT` or `RESPONSE_TOO_LARGE` tool error telling it to page or filter. How to call the endpoint, the tools and their arguments, the errors and the audit log: [MCP endpoint](https://github.com/kubescape/storage/blob/main/docs/features/mcp-endpoint.md) in the storage repository.
+
+## Network policies
+
+> **Warning:** NetworkPolicies are now created by default (`global.networkPolicy.enabled: true`). They
+only restrict **ingress** to the Kubescape pods, to the traffic between Kubescape's own components plus
+kube-apiserver and Prometheus. Egress stays open unless `global.networkPolicy.createEgressRules` is set.
+If a tool outside the chart calls a Kubescape pod directly, add your own NetworkPolicy for it or set
+`global.networkPolicy.enabled=false`. See [Network policies](https://github.com/kubescape/helm-charts/blob/main/docs/features/network-policies.md)
+for the exact rules and the opt-in egress rules.
 
 ## Upgrade
 
@@ -205,10 +328,26 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
+| namespaceFilters.enabled | bool | `false` | Reload namespace selection from one shared ConfigMap without restarting components after filter edits. |
+| namespaceFilters.existingConfigMap | string | `""` | External ConfigMap in ksNamespace with namespaceFilters.json; empty creates the chart-managed kubescape-namespace-filters. See the live-filter ownership migration guide above. |
+| excludeControls | list | `[]` | Control IDs or legacy CIS section numbers omitted from every operator-triggered posture scan. Request exclusions are added to this list. |
 | defaultFrameworks | list | `[]` | Install-time posture frameworks when a scan omits `targetNames`. Empty = operator legacy fallbacks. Clear with `--set defaultFrameworks=null`. |
 | capabilities.agentRuntimePosture | string | `"disable"` | Grant the Kubescape scanner read-only access to the supported Agent Runtime resources: Sandbox, SandboxTemplate, and WorkerPool. |
-| global.networkPolicy.enabled | bool | `false` | Create NetworkPolicies for all components |
-| global.networkPolicy.createEgressRules | bool | `false` | Create common Egress rules for NetworkPolicies |
+| capabilities.sbomExport | string | `"disable"` | Send the SBOMs of running images to Dependency-Track from the Operator. Needs `capabilities.nodeSbomGeneration`; see [SBOM export to Dependency-Track](#sbom-export-to-dependency-track) |
+| sbomExport.resyncInterval | string | `"1h"` | How often every running image is compared with Dependency-Track |
+| sbomExport.dependencyTrack.url | string | `""` | Base URL of the Dependency-Track API server; required with `capabilities.sbomExport` |
+| sbomExport.dependencyTrack.apiKeySecret.name | string | `""` | Existing Secret in ksNamespace holding the API key; required with `capabilities.sbomExport` |
+| sbomExport.dependencyTrack.apiKeySecret.key | string | `"apiKey"` | Key of the API key in that Secret |
+| sbomExport.maxSBOMSize | int | `10485760` | Largest SBOM, in bytes, the operator converts; `operator.resources.limits.memory` needs nine times this plus 64Mi, see [SBOM export to Dependency-Track](#sbom-export-to-dependency-track) |
+| sbomExport.dependencyTrack.egressPorts | list | `[]` | More ports the network policy lets the Operator reach, besides the port of the URL, e.g. a Service's `targetPort` |
+| sbomExport.dependencyTrack.egressTo | list | `[]` | NetworkPolicy peers the Dependency-Track egress rule allows; empty allows any destination |
+| sbomExport.dependencyTrack.rootProject | object | `{name: "{{ .Cluster }}", version: current, create: true}` | Root project, where the operator creates the parents it creates; with `create: false` it must exist and is never changed |
+| sbomExport.dependencyTrack.project | object | `{name: "{{ .Cluster }}/{{ .Namespace }}/{{ .Repository }}", version: "{{ .Tag }}", parent: {name: "{{ .Cluster }}/{{ .Namespace }}", version: current, create: true}}` | Where each image goes: Go templates over `.Cluster`, `.Namespace`, `.Repository`, `.Tag` and `.Labels`; namespaces can override them with `kubescape.io/dtrack-*` annotations |
+| capabilities.sandboxSeccomp | string | `"disable"` | Experimental. Enforce the syscall rules of SandboxPolicy `privilege` sections with seccomp. Profiles are injected through NRI (containerd >= 2.2 or CRI-O >= 1.34) and apply when a container starts. Requires the SandboxPolicy CRDs and a node-agent release that includes the seccomp layer; older images ignore it. |
+| global.networkPolicy.enabled | bool | `true` | Create ingress NetworkPolicies for all components. **On by default**, see [Network policies](https://github.com/kubescape/helm-charts/blob/main/docs/features/network-policies.md) |
+| global.networkPolicy.createEgressRules | bool | `false` | Also restrict egress (DNS, kube-apiserver, proxy and the destinations each component needs) |
+| global.networkPolicy.apiServerIP | string | `""` | Pin the kube-apiserver egress rule to this IP |
+| global.networkPolicy.apiServerPort | int | `443` | kube-apiserver port for the egress rules; the `default/kubernetes` endpoint ports are added when they can be looked up |
 | global.kubescapePsp.enabled | bool | `false` | Enable all privileges in Pod Security Policies for Kubescape namespace |
 | global.httpsProxy | string | `""` | Set https egress proxy for all components. Must supply also port.  |
 | global.proxySecretFile | string | `""` | Set proxy certificate / RootCA file content (not the file path) for all components to be used for proxy configured in global.httpsProxy |
@@ -218,10 +357,14 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | global.extraCaCertificates.secretName | bool | `""` | Name of the secret that contents will be mapped to `/etc/ssl/certs` in each workload |
 | certificates.strategy | string | `"template"` | Certificate management mode for the admission webhook and storage mTLS endpoints. Use `template` for standard Helm installs and `initContainer` for ArgoCD/GitOps-safe runtime certificate generation. |
 | operator.admissionService | object | `{}` | **DEPRECATED** — use `operator.admissionWebhooks.service.*` instead. If set, takes precedence over the new path for backward compatibility. Will be removed in a future release. |
+| operator.admissionWebhooks.networkPolicy.ingressFrom | list | `[]` | NetworkPolicyPeer list that narrows the admission webhook ingress; empty keeps it unrestricted (from anywhere). See docs/features/network-policies.md |
 | customScheduling.affinity | yaml |  | Use the `affinity` sub-section to define affinity rules that will apply to all of the workloads managed by the kubescape-operator |
 | customScheduling.nodeSelector | yaml | | Configure `nodeSelector` rules under the nodeSelector sub-section that will apply to all of the workloads managed by the kubescape-operator |
 | customScheduling.tolerations | yaml | | Define `tolerations` in the tolerations sub-section that will apply to all of the workloads managed by the kubescape-operator |
 | global.overrideRuntimePath | string | `""` | Override the runtime path for node-agent |
+| global.apiAuth.enabled | bool | `true` | Require a service-account token (TokenReview) and an RBAC grant (SubjectAccessReview) on the in-cluster HTTP APIs of kubescape, kubevuln, synchronizer and the operator. The chart installs the RBAC, projected tokens for the callers and the env the servers read; the pinned images enforce the check. Set to `false` to turn the check off. On GKE Autopilot clusters that set `nodeAgent.gke.allowlist.enabled=true` with an allowlist that lacks the node-agent's projected token mount (`nodeAgent.gke.allowlist.supportsApiToken=false`, the case for the pinned `armo-kubescape-node-agent-1.40-v2`), the chart turns the check off by itself: the node-agent is rendered without the token mount, so GKE Warden keeps admitting it, and the servers get `KS_API_AUTH_DISABLED=true` |
+| nodeAgent.gke.allowlist.supportsApiToken | bool | `false` | Whether `nodeAgent.gke.allowlist.name` includes the node-agent's projected API token volume (allowlists from 1.43 on). Set to `true` together with a 1.43 `name` to keep `global.apiAuth` effective on GKE Autopilot |
+| global.apiAuth.audience | string | `"kubescape.io"` | Audience of the projected service-account tokens the callers send and the servers accept |
 | credentials.cloudSecret | string | `""` | Leave it blank for the default secret. If you have an existing secret, override with the existing secret name to avoid Helm creating a default one |
 | kubescape.affinity | object | `{}` | Assign custom [affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) rules to the deployment |
 | kubescape.podLabels| object | `{}` | Optional labels to add to the pods |
@@ -235,7 +378,6 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | kubescape.volumeMounts | object | `[]` | Additional volumeMounts for Kubescape |
 | kubescapeScheduler.podLabels| object | `{}` | Optional labels to add to the pods |
 | kubescapeScheduler.podAnnotations| object | `{}` | optional map of annotations to be applied to the Pods |
-| kubescapeScheduler.image.repository | string | `"quay.io/kubescape/http_request"` | [source code](https://github.com/kubescape/http-request) (public repo) |
 | kubescapeScheduler.scanSchedule | string | `"0 0 * * *"` | scan schedule frequency. The scheduled scan CronJob is created when `capabilities.configurationScan` is `enable` |
 | kubescapeScheduler.volumes | object | `[]` | Additional volumes for scan scheduler |
 | kubescapeScheduler.volumeMounts | object | `[]` | Additional volumeMounts for scan scheduler |
@@ -246,13 +388,14 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | kubevuln.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | kubevuln.volumes | object | `[]` | Additional volumes for the image vulnerability scanning |
 | kubevuln.volumeMounts | object | `[]` | Additional volumeMounts for the image vulnerability scanning |
+| kubevuln.tmpDirPersistence.ephemeral | bool | `false` | With `tmpDirPersistence.enabled`, create the `/tmp` claim per pod as a [generic ephemeral volume](https://kubernetes.io/docs/concepts/storage/ephemeral-volumes/#generic-ephemeral-volumes) instead of a standalone PVC: deleted with the pod, not counted against the ephemeral-storage limits |
+| kubevuln.grypeDbEphemeral.enabled | bool | `false` | Put the Grype DB on a generic ephemeral volume (`storageClassName`, `accessModes`, `size` (default `10Gi`), `annotations`) instead of an emptyDir; takes precedence over `config.grypeDbPersistence` |
 | kubevuln.config.grypeDbListingURL | string | `""` | Parameter to override the default Grype vulnerability database URL (listings.json format) |
 | kubevuln.config.proxyRegistryMap | object | `{}` | Map of source registry address to mirror registry address. When set, kubevuln rewrites image pull references accordingly (useful for air-gapped or offline registry mirrors) |
 | kubevuln.config.cveMatchingMode | string | `""` | CVE matching mode: "off" (Grype defaults), "on" (CPE matching everywhere), or "adaptive" (CPE matching everywhere except trusted-vendor images, which rely on the vendor's authoritative feed). Empty derives the mode from useDefaultMatchers for backward compatibility (true -> "off", false -> "adaptive"). |
 | kubevuln.config.trustedVendors | list | `[]` | Distro identifiers treated as trusted vendors in adaptive mode. Empty uses kubevuln's built-in default set (echo, chainguard, wolfi, minimos). |
 | kubevulnScheduler.podLabels| object | `{}` | Optional labels to add to the pods |
 | kubevulnScheduler.podAnnotations| object | `{}` | optional map of annotations to be applied to the Pods |
-| kubevulnScheduler.image.repository | string | `"quay.io/kubescape/http_request"` | [source code](https://github.com/kubescape/http-request) (public repo) |
 | kubevulnScheduler.scanSchedule | string | `"0 0 * * *"` | scan schedule frequency. The scheduled scan CronJob is created when `capabilities.vulnerabilityScan` is `enable` |
 | kubevulnScheduler.volumes | object | `[]` | Additional volumes for scan scheduler |
 | kubevulnScheduler.volumeMounts | object | `[]` | Additional volumeMounts for scan scheduler |
@@ -263,10 +406,26 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | operator.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | operator.volumes | object | `[]` | Additional volumes for the web socket |
 | operator.volumeMounts | object | `[]` | Additional volumeMounts for the web socket |
+| operator.rulesUpdateConfig.excludeClusterObjects | bool | `false` | While `operator.rulesUpdateConfig.enabled` is `true`, the admission controller ignores rule bindings and runs every rule. Set this to `true` to skip cluster-scoped objects (Nodes, ClusterRoles, ...) in that mode. It needs an operator release with kubescape/operator#494, which v0.2.220 and earlier (including the default `operator.image.tag`) don't have; until the default moves, set `operator.image.tag` to such a release |
 | storage.hostNetwork | bool | `false` | Bind the storage APIServer to the host network. Required when using a custom CNI where the control plane cannot reach pod IPs |
+| storage.containerProfileSqliteBackend | bool | `false` | Serve ContainerProfiles from storage's SQLite-native backend (payload and metadata in one transaction). Requires `storage.singleWriterEnabled`. Every storage start migrates existing profiles before serving; run `storage.containerProfileMigrationDryRun` once first. See [the storage doc](https://github.com/kubescape/storage/blob/main/docs/features/containerprofile-sqlite-backend.md) |
+| storage.containerProfileMigrationDryRun | bool | `false` | At storage start, log what the ContainerProfile migration to the SQLite backend would do, without writing anything. Cannot be combined with `storage.containerProfileSqliteBackend` |
+| storage.containerProfileMigrationStartupProbe.periodSeconds | int | `10` | With `storage.containerProfileSqliteBackend` or `storage.containerProfileMigrationDryRun` on, storage runs the migration before it serves `/livez`. A startup probe gives it up to `periodSeconds` x `failureThreshold` seconds (10 minutes by default) before the liveness probe can restart it |
+| storage.containerProfileMigrationStartupProbe.failureThreshold | int | `60` | See `storage.containerProfileMigrationStartupProbe.periodSeconds` |
+| storage.mcp.callTimeout | string | `""` | Longest one MCP tool call may run, as a duration such as `30s`; empty keeps storage's default (20s); needs storage v0.0.395 or later |
+| storage.mcp.enabled | bool | `false` | Serve the read-only [MCP endpoint for AI agents](#mcp-endpoint-for-ai-agents) |
+| storage.mcp.maxResponseBytes | int | `0` | Largest MCP tool result in bytes; 0 keeps storage's default (262144, 256 KiB); needs storage v0.0.395 or later |
+| storage.mcp.readerClusterRoles | bool | `true` | With `storage.mcp.enabled`, create the `kubescape-mcp-reader` and `kubescape-mcp-runtime-reader` ClusterRoles |
 | nodeAgent.autoscaler.bottlerocketAutoDetect | bool | `true` | When the autoscaler is enabled, auto-detect AWS Bottlerocket nodes and set `seLinuxType: super_t` on the node-agent DaemonSet rendered for that node group, so you don't need to `--set nodeAgent.seLinuxType=super_t` manually |
+| nodeAgent.config.httpExporterConfig.tokenFile | string | `"/var/run/secrets/kubescape.io/api-token/token"` | Projected service-account token that node-agent and the operator send to the synchronizer HTTP endpoint (see `global.apiAuth`) |
+| nodeAgent.gVisorStart.enabled | bool | `false` | Experimental start collection on prepared self-managed Linux nodes. Requires an image containing node-agent #1069. See [setup and validation](../../docs/features/gvisor-start-source.md). |
+| nodeAgent.gVisorStart.socketDirectory | string | `/run/kubescape/gvisor` | Pre-created root-owned 0700 host directory. Mounted as `Directory`; the receiver uses `events.sock` inside it. |
+| nodeAgent.gVisorStart.runtimeEndpoint | string | `""` | Absolute local CRI socket path, or empty to reuse node-agent's detected runtime endpoint and existing mounts. |
+| nodeAgent.gVisorStart.runtimeHandler | string | `runsc` | Expected CRI runtime handler. |
+| nodeAgent.gVisorStart.stopObservations | bool | `false` | Also export container stops matched to verified starts. Requires `nodeAgent.gVisorStart.enabled`, an image containing node-agent #1094 and the extra trace points described in [setup and validation](../../docs/features/gvisor-start-source.md#stop-observations). |
 | nodeAgent.sandboxPolicy.enabled | bool | `false` | Prepare node-agent for sandbox policy: sets `mountPropagation: HostToContainer` on the node-agent `/host` and `/run` volumeMounts, which node-agent sandbox policy requires (it fails closed without it). |
 | nodeAgent.config.hostSensor.enabled | bool | `true` | Defines `KS_ENABLE_HOST_SCANNER` in kubescape to enable [host scanner feature](https://kubescape.io/docs/components/host-sensor/)
+| nodeAgent.config.hostSensor.excludedSensors | list | `[]` | Host sensors that node-agent skips, by kind, while the other sensors keep running. For example, set `[KubeProxyInfo]` on clusters without kube-proxy (such as Cilium's kube-proxy replacement), where that sensor fails on every interval. Valid kinds: `OsReleaseFile`, `KernelVersion`, `LinuxSecurityHardeningStatus`, `OpenPortsList`, `LinuxKernelVariables`, `KubeletInfo`, `KubeProxyInfo`, `ControlPlaneInfo`, `CloudProviderInfo`, `CNIInfo`. Existing host-data objects of an excluded kind are not cleared; they are removed only when their Node is deleted. Needs node-agent with kubescape/node-agent#984 (the default image has it) |
 | nodeAgent.config.tracers.capSys | string | `enable` | Allow capSys tracing when required by enabled node-agent features. Set to disable to force-disable the capSys tracer |
 | nodeAgent.config.tracers.dns | string | `enable` | Allow dns tracing when required by enabled node-agent features. Set to disable to force-disable the dns tracer |
 | nodeAgent.config.tracers.exec | string | `enable` | Allow exec tracing when required by enabled node-agent features. Set to disable to force-disable the exec tracer |
@@ -297,6 +456,8 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | cloudProviderMetadata.aksClientID | string or through `cloudProviderMetadata.secretRef.clientIdKey` if `cloudProviderMetadata.secretRef.name` is set | `nil` | AKS client ID |
 | cloudProviderMetadata.aksClientSecret | string or through `cloudProviderMetadata.secretRef.clientSecretKey` if `cloudProviderMetadata.secretRef.name` is set | `nil` | AKS client secret |
 | cloudProviderMetadata.aksTenantID | string or through `cloudProviderMetadata.secretRef.tenantIdKey` if `cloudProviderMetadata.secretRef.name` is set | `nil` | AKS tenant ID |
+| cloudProviderMetadata.aksWorkloadIdentityClientID | string | `nil` | Azure Workload Identity client ID federated with the kubevuln ServiceAccount, used to pull images from private Azure Container Registries without static credentials. Annotates the kubevuln ServiceAccount with `azure.workload.identity/client-id` and labels the kubevuln pod with `azure.workload.identity/use: "true"`. Requires the Azure Workload Identity webhook and `kubevuln.image.tag` v0.3.545 or later (the first kubevuln release with kubevuln#1163). Ignored when `cloudProviderMetadata.awsIamRoleArn` or `cloudProviderMetadata.gkeServiceAccount` is set, since those take precedence on the kubevuln ServiceAccount. Configured inline; not affected by `cloudProviderMetadata.secretRef` |
+| cloudProviderMetadata.aksWorkloadIdentityTenantID | string | `nil` | Azure Workload Identity tenant ID (optional). Annotates the kubevuln ServiceAccount with `azure.workload.identity/tenant-id`. Configured inline; not affected by `cloudProviderMetadata.secretRef` |
 | volumes | object | `[]` | Additional volumes for all containers |
 | volumeMounts | object | `[]` | Additional volumeMounts for all containers |
 | imageScanning.privateRegistries.credentials | object | `[]` | Credentials for scanning images pulled from private container registries. This configuration is not needed when using `imagePullSecrets`|
@@ -718,3 +879,58 @@ The scan results are then sent by each relevant component to the CloudEndpoint.
   ```bash
   --set global.overrideRuntimePath="/host/var/lib/rancher/k3s/data/current/bin/runc"
   ```
+
+### Excluding controls from automatic scans
+
+```yaml
+excludeControls:
+  - C-0069
+  - C-0070
+```
+
+This installation setting applies to explicit, scheduled, and continuous
+operator-triggered scans. Individual `scanV1` requests can add exclusions; an
+empty request list does not clear the installation list. Controls are omitted
+before evaluation and compliance scoring, using the CLI's `--exclude-controls`
+behavior. Exclusions narrow the assessment scope; they do not make checks pass.
+The default empty list changes nothing. Non-list, non-string, and blank values
+are rejected. The chart defaults select operator `v0.2.209` and Kubescape scanner
+`v4.0.20`, which include support for this setting. Keep a compatible pair if
+overriding the image versions.
+
+### Azure Workload Identity for ambient ACR authentication
+
+To configure Kubevuln to scan private Azure Container Registries (ACR) using Azure Workload Identity without static credentials (`imagePullSecrets`):
+
+1. **Enable Azure Workload Identity on AKS**: Ensure the Azure Workload Identity mutating webhook and OIDC issuer are enabled on your AKS cluster.
+2. **Federate the ServiceAccount**: Establish federated identity credentials linking your Azure Managed Identity (or App Registration) with the `kubevuln` ServiceAccount in the release namespace (e.g. `system:serviceaccount:kubescape:kubevuln`). Ensure the identity has the `AcrPull` role on the target ACR.
+3. **Compatible Kubevuln image prerequisite**: Ambient ACR authentication requires the ACR provider introduced in [kubescape/kubevuln#1163](https://github.com/kubescape/kubevuln/pull/1163). The chart defaults to `kubevuln.image.tag: v0.3.578`, which includes ambient ACR authentication.
+
+#### Example `values.yaml`
+
+```yaml
+clusterName: my-aks-cluster
+
+cloudProviderMetadata:
+  aksWorkloadIdentityClientID: "11111111-2222-3333-4444-555555555555"
+  aksWorkloadIdentityTenantID: "66666666-7777-8888-9999-000000000000" # optional
+
+kubevuln:
+  image:
+    tag: v0.3.566 # any release from v0.3.545 on has the ACR provider
+```
+
+Or via Helm CLI:
+
+```bash
+helm upgrade --install kubescape kubescape/kubescape-operator \
+  -n kubescape --create-namespace \
+  --set clusterName=my-aks-cluster \
+  --set cloudProviderMetadata.aksWorkloadIdentityClientID="11111111-2222-3333-4444-555555555555" \
+  --set cloudProviderMetadata.aksWorkloadIdentityTenantID="66666666-7777-8888-9999-000000000000" \
+  --set kubevuln.image.tag=v0.3.566
+```
+
+> **Note:**
+> - `aksWorkloadIdentityClientID` and `aksWorkloadIdentityTenantID` are configured inline and are not read from `cloudProviderMetadata.secretRef`.
+> - If updating an existing installation to enable Workload Identity, restart the Kubevuln pod (`kubectl rollout restart deployment/kubevuln -n kubescape`) to allow the Azure Workload Identity webhook to inject the federated token and environment variables.
