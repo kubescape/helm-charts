@@ -558,6 +558,35 @@ operator:
     patch:
       retries: 60
       retryIntervalSeconds: 5
+    networkPolicy:
+      # NetworkPolicy ingress peers allowed to reach the admission webhook port
+      # (admission-port / 8443). DEFAULT EMPTY = ingress stays UNRESTRICTED (from
+      # anywhere), which preserves current behaviour.
+      #
+      # Unrestricted is the default on purpose: the kube-apiserver reaches the
+      # webhook from a source that is not reliably constrainable by a Pod or
+      # namespace selector — a node tunnel address, a konnectivity agent, or one
+      # of several control-plane ENIs, depending on the cluster — the same reason
+      # the egress rule is pinned by IP (global.networkPolicy.apiServerIP) rather
+      # than a selector. Restrict this ONLY when you know your control plane's
+      # source addresses; an over-tight rule silently stops API-server webhook
+      # calls (admission still succeeds — failurePolicy is Ignore — but admission
+      # telemetry stops). See docs/features/network-policies.md.
+      #
+      # Provide standard NetworkPolicyPeer entries, e.g.:
+      #   ingressFrom:
+      #     - ipBlock:
+      #         cidr: 10.0.0.0/24
+      #     - namespaceSelector:
+      #         matchLabels:
+      #           kubernetes.io/metadata.name: kube-system
+      #
+      # Each ipBlock.cidr is validated at render time: IPv4 fully (octets 0-255,
+      # prefix 0-32) and IPv6 for charset + prefix 0-128, including an
+      # octet-validated IPv4-mapped tail (e.g. ::ffff:192.0.2.1/128). The API
+      # server remains the final authority on IPv6 address structure. Selector
+      # peers are not CIDR-checked.
+      ingressFrom: []
 
   podAnnotations: {}
   podLabels: {}
