@@ -10,8 +10,10 @@
 {{- fail "Runtime detection is enabled, but the Runtime rule alert binding CRD is not configured to be created neither in the cluster scope nor namespace scope (set alertCRD.scopeClustered or alertCRD.scopeNamepaced)" }}
 {{- end }}
 {{- end }}
-{{- $hostSensorExcludedSensors := default (list) .Values.nodeAgent.config.hostSensor.excludedSensors }}
-{{- if not (kindIs "slice" $hostSensorExcludedSensors) }}
+{{- $hostSensorExcludedSensors := .Values.nodeAgent.config.hostSensor.excludedSensors }}
+{{- if kindIs "invalid" $hostSensorExcludedSensors }}
+{{- $hostSensorExcludedSensors = list }}
+{{- else if not (kindIs "slice" $hostSensorExcludedSensors) }}
 {{- fail "nodeAgent.config.hostSensor.excludedSensors must be a list" }}
 {{- end }}
 {{- /* node-agent refuses to start with an unknown name, so reject it here; these are the kinds of the host-data CRDs in templates/node-agent-crds */}}
