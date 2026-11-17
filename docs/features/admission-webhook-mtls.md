@@ -93,7 +93,8 @@ The chart **refuses to render** `clientAuth.enabled: true` unless **both** hold:
 1. `operatorSupportsClientCA: true` — your explicit attestation that the configured image is a
    compatible build.
 2. `operator.image.tag` is **not** a released operator version known not to read
-   `ADMISSION_CLIENT_CA_FILE`. Every released version **up to and including v0.2.224** is verified to
+   `ADMISSION_CLIENT_CA_FILE`. Every released version **up to and including v0.2.240** (the latest release at the time of
+   writing) is verified to
    lack it, so any **SemVer** tag whose `major.minor.patch` core is at or below that boundary is
    rejected **even when `operatorSupportsClientCA` is `true`**.
 
@@ -101,15 +102,29 @@ The chart **refuses to render** `clientAuth.enabled: true` unless **both** hold:
    versions: `v0.2.224-rc1`, `v0.2.224-beta.1` and `v0.2.223-custom` are all rejected (checked at
    their `0.2.224` / `0.2.223` base), because a prerelease of a version that lacks the feature also
    lacks it. (A dotted-decimal detail: Masterminds `semverCompare` excludes prereleases from a
-   non-prerelease constraint such as `<= 0.2.224`, which is why the chart compares the core rather
-   than the raw tag.) A prerelease **above** the boundary, such as `v0.2.225-rc1`, is allowed under
-   attestation — `0.2.225 > 0.2.224`, so it is not *known* incompatible.
+   non-prerelease constraint such as `<= 0.2.240`, which is why the chart compares the core rather
+   than the raw tag.) A prerelease **above** the boundary, such as `v0.2.241-rc1`, is allowed under
+   attestation — `0.2.241 > 0.2.240`, so it is not *known* incompatible.
 
    **Genuine non-SemVer tags** — custom/dev builds from kubescape/operator#522, git SHAs, branch
    names — are not version-checked and are governed by the attestation alone. The chart does not
    claim they are compatible; it only stops asserting they are not.
 
-This boundary (`<= v0.2.224`) must be raised as further incompatible releases ship, and replaced by a
+   **Digest-pinned tags.** The chart renders the image as `<repository>:<tag>`, so pin a digest by
+   writing it into the tag: `operator.image.tag: v0.2.241@sha256:<digest>`. When mTLS is enabled the
+   gate splits off the digest and applies the checks above to the tag before `@`, so
+   `v0.2.224@sha256:…` and `v0.2.224-rc1@sha256:…` are rejected exactly like `v0.2.224` and
+   `v0.2.224-rc1`. A digest pin never makes an image count as compatible: a digest-pinned release
+   above the boundary, or a digest-pinned custom tag, still needs `operatorSupportsClientCA: true`.
+   The digest must be `sha256:` followed by exactly 64 **lowercase** hex characters, and the tag
+   before `@` must be a non-empty, valid image tag (letters, digits, `_`, `.`, `-`; at most 128
+   characters). Anything else is rejected with an explicit error rather than guessed at: a short or
+   uppercase digest, another algorithm, a missing tag (`@sha256:…`), more than one `@`, or SemVer
+   build metadata (`+build`), since `+` is not a legal image-tag character. The image reference is
+   rendered exactly as you set it, never rewritten. With mTLS disabled none of this validation
+   runs, and the image renders as before.
+
+This boundary (`<= v0.2.240`) must be raised as further incompatible releases ship, and replaced by a
 minimum-supported-version check once a release actually reads the variable.
 
 No released operator image supports this at the time of writing (kubescape/operator#522 is not
@@ -144,17 +159,60 @@ plugins:
 ```
 
 ```yaml
-# webhook-kubeconfig.yaml — client cert the API server presents to webhooks
+# webhook-kubeconfig.yaml — client credentials the API server presents to webhooks
 apiVersion: v1
 kind: Config
 users:
-  - name: '*'            # or the exact webhook service DNS name
+  # Exact DNS name of the Kubescape admission webhook Service: <service>.<namespace>.svc.
+  # The chart's default Service is kubescape-admission-webhook on port 443. If you change
+  # operator.admissionWebhooks.service.port to a non-443 port, append it, for example
+  # kubescape-admission-webhook.kubescape.svc:8443.
+  - name: kubescape-admission-webhook.kubescape.svc
     user:
-      client-certificate: /etc/kubernetes/admission/apiserver-client.crt
-      client-key: /etc/kubernetes/admission/apiserver-client.key
+      client-certificate: /etc/kubernetes/admission/kubescape-webhook-client.crt
+      client-key: /etc/kubernetes/admission/kubescape-webhook-client.key
 ```
 
-The `apiserver-client.crt` must be issued by the CA stored in `clientAuth.secretName`.
+The client certificate must be issued by the CA stored in `clientAuth.secretName`.
+
+### Scope the client identity to this webhook. Do not use a `'*'` user.
+
+The kubeconfig `users[].name` decides which webhook endpoints the API server presents a credential
+to. The upstream reference
+([Authenticate API servers](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#authenticate-apiservers))
+documents three forms:
+
+- **The exact Service DNS name, or `host:port` for a URL webhook.** For a Service on a port other
+  than 443, the port must be included on Kubernetes 1.16+.
+- **A leading wildcard such as `*.example.org`.** This matches prefixing segments.
+- **`'*'`, the default match.** It applies to every webhook that has no other matching entry.
+
+Use the exact name shown above. A `'*'` entry, or a broad wildcard such as `*.svc`, makes the API
+server present this certificate to **unrelated** webhooks too. That includes third-party and
+URL-based webhooks that anyone allowed to create webhook configurations can register. Those
+endpoints never receive the private key, but every one of them now sees, and could choose to trust,
+the same "Kubescape webhook caller" identity. That makes the identity useless as a statement about
+which webhook was called. If another webhook also trusts the CA that issued it, both webhooks accept
+each other's caller. A `'*'` entry can also collide with credentials other webhooks already rely on
+in the same kubeconfig. A namespace wildcard (`*.kubescape.svc`) is narrower but still covers every
+Service in that namespace, so prefer the exact name.
+
+### Trust a dedicated CA, not the cluster CA
+
+The webhook accepts **any** client certificate that chains to the configured CA. In
+kubescape/operator#522 it sets `ClientAuth: RequireAndVerifyClientCert` with that CA pool and does
+**not** check the certificate's subject, CN or SANs. That makes the CA itself the only scope, so:
+
+- **Create a dedicated CA used for nothing else** than issuing this one API-server client
+  certificate, and put only that CA in `clientAuth.secretName`.
+- **Never** use the cluster CA (for example `/etc/kubernetes/pki/ca.crt`) or any CA that also
+  signs kubelet, user, controller or other components' client certificates. Every certificate that
+  CA has issued (node kubelets, admin kubeconfigs and so on) would then pass the webhook's mTLS check.
+- Do not reuse a CA or client certificate that is already trusted by unrelated webhooks.
+- Issue the client certificate with `extendedKeyUsage = clientAuth`. Go's TLS server verification
+  (which the operator uses) requires the client-auth usage. It rejects a leaf certificate whose
+  extended key usage lists other purposes (for example only `serverAuth`). Keep its lifetime short
+  enough to rotate routinely (see [Certificate rotation](#certificate-rotation)).
 
 ## Control-plane compatibility limitations
 
@@ -162,7 +220,8 @@ The `apiserver-client.crt` must be issued by the CA stored in `clientAuth.secret
   not expose `--admission-control-config-file`. On those, this feature cannot be used and the webhook
   stays server-TLS-only.
 - Authentication covers only the transport peer (the API server). It does not distinguish *which*
-  API-server identity beyond "signed by the configured CA"; scope the client CA accordingly.
+  identity beyond "signed by the configured CA", so the CA must be dedicated to this purpose (see
+  [Trust a dedicated CA, not the cluster CA](#trust-a-dedicated-ca-not-the-cluster-ca)).
 - It does not alter `failurePolicy: Ignore` or the `Allowed: true` response, so it changes neither
   admission outcomes nor rule evaluation — only who may submit reviews.
 
@@ -181,10 +240,74 @@ either path.
 
 ## Certificate rotation
 
-The trusted CA bundle is re-read per TLS handshake. Replacing the Secret (Kubernetes swaps the
-`..data` symlink) is picked up on the next connection — no operator restart is needed. A
-half-written/invalid CA file keeps the last-good trust pool rather than dropping verification. The
-existing server-certificate rotation is unchanged; client verification is layered on top.
+Rotation needs no operator restart, but it is **not instantaneous**. A new CA takes effect only
+after two independent steps.
+
+### 1. Secret volume projection delay (kubelet)
+
+Updating the Secret does **not** immediately change the file the operator reads. The kubelet
+updates mounted Secret volumes on an eventually-consistent basis. Per the
+[Kubernetes Secret documentation](https://kubernetes.io/docs/concepts/configuration/secret/#using-secrets-as-files-from-a-pod),
+the delay can be as long as the kubelet sync period plus the cache propagation delay of the
+kubelet's `configMapAndSecretChangeDetectionStrategy`:
+
+- `Watch` (the default): the watch propagation delay.
+- `Cache`: the configured cache TTL.
+- `Get`: zero.
+
+The kubelet's default `syncFrequency` is `1m`, so expect a lag of up to roughly a minute plus the
+propagation delay on default settings. Do not assume that
+`kubectl apply`/`create secret` has changed the CA pool. The chart mounts the Secret as a directory
+(not a `subPath`), so it does receive updates. A `subPath` mount would never receive them. When the
+kubelet updates the volume, it atomically swaps the `..data` symlink, so the operator reads either
+the old file or the new one, never a partial write.
+
+### 2. Operator reload (per new TLS handshake)
+
+On every new TLS handshake the operator `stat`s the CA file. If its identity, size or mtime
+changed, it re-reads and re-parses it. The new pool applies to **new** connections only. A
+connection that is already established keeps the pool it was verified with. The API server reuses
+(keep-alive) connections to webhooks, so the old CA can stay in effect on an existing connection
+after the file has changed.
+
+### Last-good-pool behavior: what it does and does not cover
+
+This behavior was verified against the kubescape/operator#522 implementation (`parsePool`, which
+uses Go's `x509.CertPool.AppendCertsFromPEM`, and `reloadIfChanged`):
+
+| CA file state | At startup | On reload |
+|---|---|---|
+| Missing / unreadable | Webhook server does not start; the operator logs `admission server stopped` and stops (fail-closed) | Previous pool **kept**; a warning is logged |
+| Changed while being read (stat mismatch) | Does not start (as above) | Previous pool **kept**; warning logged |
+| **No** valid certificate (empty, garbage, every block malformed) | Does not start (as above) | Previous pool **kept**; warning logged |
+| **At least one** valid certificate plus malformed, truncated or non-certificate PEM blocks | **Starts** with only the valid certificates; nothing is logged | **Replaces** the previous pool with only the valid certificates; nothing is logged |
+| All certificates valid | Starts | Replaces the previous pool |
+
+Client verification stays enforced in every row. The last-good pool protects you **only when the
+new file yields zero certificates**. A **partially malformed** bundle is **not** rejected. The
+malformed blocks are silently dropped and the remaining certificates become the active pool. If
+the dropped block was the CA that signs the API server's current client certificate, the webhook
+starts rejecting the API server. Admission is unaffected because of `failurePolicy: Ignore`, but
+admission telemetry stops. kubescape/operator#522 has no test for partial bundles. A stricter
+operator-side behavior is recommended separately: reject the whole bundle, and keep the last-good
+pool, if any `CERTIFICATE` block fails to parse.
+
+### Safe rotation procedure
+
+1. **Add before you remove.** Update the Secret so `caKey` holds a bundle with **both** the old
+   and the new CA. Validate the bundle before applying it. Every block must parse:
+   `openssl storeutl -noout -certs ca-bundle.pem` must exit `0` and report the expected
+   `Total found:` count. OpenSSL 3 reports a malformed block as an error, a non-zero exit and a
+   lower count.
+   Do not rely on the operator to reject a partially broken bundle.
+2. **Wait for projection.** Wait out the kubelet propagation delay above. To confirm the change,
+   check the mounted file, for example with
+   `kubectl -n kubescape exec deploy/operator -- cat /etc/admission-client-ca/ca.crt`.
+3. **Switch the API server** to a client certificate issued by the new CA, and confirm admission
+   telemetry continues.
+4. **Remove the old CA** from the bundle only after that, and wait for projection again.
+
+The existing server-certificate rotation is unchanged; client verification is layered on top.
 
 ## Verifying that authentication is active
 

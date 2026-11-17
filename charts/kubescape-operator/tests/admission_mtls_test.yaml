@@ -1,10 +1,28 @@
 suite: admission webhook optional mTLS
+# The operator Deployment computes its checksum/* pod annotations with the
+# "checksums" helper (templates/_common.tpl), which `include`s each of the
+# ConfigMap/Secret templates below by path. helm-unittest only loads the
+# templates listed here, so every one of them must be in the render context;
+# otherwise each test errors with `no template ".../components-configmap.yaml"`
+# (or the next missing one) before any assertion runs. Keep this list in sync
+# with the "checksums" helper. Each test scopes its assertions to the Deployment
+# with `template:`, the pattern the chart's other operator suites use.
 templates:
-  - templates/operator/deployment.yaml
+  - operator/deployment.yaml
+  - configs/components-configmap.yaml
+  - configs/cloudapi-configmap.yaml
+  - configs/cloud-secret.yaml
+  - configs/matchingRules-configmap.yaml
+  - node-agent/configmap.yaml
+  - operator/configmap.yaml
+  - proxy-support/proxy-secret.yaml
+  - storage/configmap.yaml
+  - synchronizer/configmap.yaml
 tests:
   # 1. mTLS disabled + default image: succeeds, and the deployment is unchanged —
   #    no CA env var and no CA volume.
   - it: leaves the operator deployment unchanged when mTLS is disabled (default)
+    template: operator/deployment.yaml
     set:
       unittest: true
       clusterName: kind-kind
@@ -24,6 +42,7 @@ tests:
 
   # 2. mTLS enabled + default image + no attestation: fails (on the attestation).
   - it: fails when mTLS is enabled on the default image without attestation
+    template: operator/deployment.yaml
     set:
       unittest: true
       clusterName: kind-kind
@@ -34,9 +53,10 @@ tests:
       - failedTemplate:
           errorMessage: "operator.admissionWebhooks.clientAuth.enabled=true requires an operator image that reads ADMISSION_CLIENT_CA_FILE and enforces client-certificate verification. No released operator image supports this yet (kubescape/operator#522 is not merged), and the chart's default operator.image.tag does not read the variable — enabling mTLS with it would leave the webhook unauthenticated while appearing secure. Build the operator from kubescape/operator#522 (or a later release that includes it), set operator.image.tag to that build, and set operator.admissionWebhooks.clientAuth.operatorSupportsClientCA=true to confirm the deployed image enforces client authentication. See docs/features/admission-webhook-mtls.md."
 
-  # 3. mTLS enabled + default image (v0.2.209) + attestation true: STILL fails
+  # 3. mTLS enabled + default image (v0.2.240) + attestation true: STILL fails
   #    (a released version <= the known-incompatible boundary is rejected even when attested).
   - it: fails when mTLS is enabled on the default image even with attestation
+    template: operator/deployment.yaml
     set:
       unittest: true
       clusterName: kind-kind
@@ -46,11 +66,12 @@ tests:
       operator.admissionWebhooks.clientAuth.operatorSupportsClientCA: true
     asserts:
       - failedTemplate:
-          errorPattern: 'operator\.image\.tag="v0\.2\.209".*every released operator version up to and including v0\.2\.224 is verified NOT to read ADMISSION_CLIENT_CA_FILE'
+          errorPattern: 'operator\.image\.tag="v0\.2\.240".*every released operator version up to and including v0\.2\.240 is verified NOT to read ADMISSION_CLIENT_CA_FILE'
 
-  # 3b. Latest known-incompatible release v0.2.224 + attestation true: also fails
+  # 3b. An older known-incompatible release v0.2.224 + attestation true: also fails
   #     (demonstrates the gate is not limited to the stock default tag).
   - it: fails on the latest known-incompatible release even with attestation
+    template: operator/deployment.yaml
     set:
       unittest: true
       clusterName: kind-kind
@@ -61,12 +82,29 @@ tests:
       operator.admissionWebhooks.clientAuth.operatorSupportsClientCA: true
     asserts:
       - failedTemplate:
-          errorPattern: 'operator\.image\.tag="v0\.2\.224".*every released operator version up to and including v0\.2\.224 is verified NOT to read ADMISSION_CLIENT_CA_FILE'
+          errorPattern: 'operator\.image\.tag="v0\.2\.224".*every released operator version up to and including v0\.2\.240 is verified NOT to read ADMISSION_CLIENT_CA_FILE'
+
+  # 3b'. A tag between the old (v0.2.224) and current (v0.2.240) boundary:
+  #      rejected. Guards against the boundary going stale again as releases ship.
+  - it: rejects a release tag above v0.2.224 but at or below the current boundary
+    template: operator/deployment.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.image.tag: v0.2.225
+      operator.admissionWebhooks.clientAuth.enabled: true
+      operator.admissionWebhooks.clientAuth.secretName: apiserver-webhook-client-ca
+      operator.admissionWebhooks.clientAuth.operatorSupportsClientCA: true
+    asserts:
+      - failedTemplate:
+          errorPattern: 'operator\.image\.tag="v0\.2\.225".*every released operator version up to and including v0\.2\.240 is verified NOT to read ADMISSION_CLIENT_CA_FILE'
 
   # 3c. SemVer PRERELEASE of a known-incompatible release (v0.2.224-rc1): rejected.
   #     Masterminds semverCompare excludes prereleases from a non-prerelease constraint,
   #     so the gate compares the major.minor.patch core — a prerelease is checked at its base.
   - it: rejects a SemVer prerelease of a known-incompatible release even with attestation
+    template: operator/deployment.yaml
     set:
       unittest: true
       clusterName: kind-kind
@@ -81,6 +119,7 @@ tests:
 
   # 3d. A dotted prerelease identifier (v0.2.224-beta.1): also rejected.
   - it: rejects a dotted-identifier prerelease of a known-incompatible release
+    template: operator/deployment.yaml
     set:
       unittest: true
       clusterName: kind-kind
@@ -91,12 +130,13 @@ tests:
       operator.admissionWebhooks.clientAuth.operatorSupportsClientCA: true
     asserts:
       - failedTemplate:
-          errorPattern: 'operator\.image\.tag="v0\.2\.224-beta\.1".*every released operator version up to and including v0\.2\.224'
+          errorPattern: 'operator\.image\.tag="v0\.2\.224-beta\.1".*every released operator version up to and including v0\.2\.240'
 
   # 3e. A prerelease that LOOKS custom but is valid SemVer (v0.2.223-custom): still
   #     version-checked at its base (0.2.223 <= boundary) and rejected — not treated
   #     as an arbitrary custom tag.
   - it: treats a SemVer prerelease with a custom identifier as a version, not a custom tag
+    template: operator/deployment.yaml
     set:
       unittest: true
       clusterName: kind-kind
@@ -109,15 +149,16 @@ tests:
       - failedTemplate:
           errorPattern: 'operator\.image\.tag="v0\.2\.223-custom".*rejected too, at its 0\.2\.223 base version'
 
-  # 3f. A prerelease of a version ABOVE the boundary (v0.2.225-rc1): allowed under
+  # 3f. A prerelease of a version ABOVE the boundary (v0.2.241-rc1): allowed under
   #     attestation — the chart does not claim it is compatible, only stops asserting
-  #     it is incompatible (0.2.225 > 0.2.224).
+  #     it is incompatible (0.2.241 > 0.2.240).
   - it: allows a SemVer prerelease above the known-incompatible boundary under attestation
+    template: operator/deployment.yaml
     set:
       unittest: true
       clusterName: kind-kind
       capabilities.admissionController: enable
-      operator.image.tag: v0.2.225-rc1
+      operator.image.tag: v0.2.241-rc1
       operator.admissionWebhooks.clientAuth.enabled: true
       operator.admissionWebhooks.clientAuth.secretName: apiserver-webhook-client-ca
       operator.admissionWebhooks.clientAuth.operatorSupportsClientCA: true
@@ -131,6 +172,7 @@ tests:
   # 3g. A genuine non-SemVer custom/dev tag (git SHA style): governed by attestation
   #     alone — not version-checked.
   - it: allows a genuine non-SemVer custom build under attestation
+    template: operator/deployment.yaml
     set:
       unittest: true
       clusterName: kind-kind
@@ -148,6 +190,7 @@ tests:
 
   # 4. mTLS enabled + custom (non-default) image tag + no attestation: fails.
   - it: fails when mTLS is enabled on a custom image without attestation
+    template: operator/deployment.yaml
     set:
       unittest: true
       clusterName: kind-kind
@@ -162,6 +205,7 @@ tests:
   # 5. mTLS enabled + custom image tag + attestation + CA Secret: succeeds and
   #    wires the client CA.
   - it: wires the client CA with a custom compatible image tag, attestation and a secret
+    template: operator/deployment.yaml
     set:
       unittest: true
       clusterName: kind-kind
@@ -186,6 +230,7 @@ tests:
 
   # 5b. A custom caKey is honored in the mounted path.
   - it: honors a custom caKey in the CA file path
+    template: operator/deployment.yaml
     set:
       unittest: true
       clusterName: kind-kind
@@ -204,6 +249,7 @@ tests:
 
   # 6. mTLS enabled + custom registry + compatible custom tag + attestation: succeeds.
   - it: supports a custom registry and compatible image under the attestation mechanism
+    template: operator/deployment.yaml
     set:
       unittest: true
       clusterName: kind-kind
@@ -225,6 +271,7 @@ tests:
 
   # 7. Missing CA Secret: fails even with a compatible image and attestation.
   - it: fails when mTLS is enabled without a secretName
+    template: operator/deployment.yaml
     set:
       unittest: true
       clusterName: kind-kind
@@ -235,3 +282,350 @@ tests:
     asserts:
       - failedTemplate:
           errorMessage: "operator.admissionWebhooks.clientAuth.enabled=true requires operator.admissionWebhooks.clientAuth.secretName"
+
+
+  # ---------------------------------------------------------------------------
+  # Digest-pinned image tags. The image renders as "<repository>:<tag>", so a
+  # digest pin is written as tag "<version>@sha256:<digest>". The compatibility
+  # gate must version-check the part before "@" — previously the anchored SemVer
+  # match failed on the suffix and v0.2.224@sha256:... was treated as a custom
+  # tag, passing on attestation alone.
+  # ---------------------------------------------------------------------------
+
+  # 8. Known-incompatible release pinned by digest: rejected even when attested.
+  - it: rejects a digest-pinned known-incompatible release even with attestation
+    template: operator/deployment.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.image.tag: v0.2.224@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      operator.admissionWebhooks.clientAuth.enabled: true
+      operator.admissionWebhooks.clientAuth.secretName: apiserver-webhook-client-ca
+      operator.admissionWebhooks.clientAuth.operatorSupportsClientCA: true
+    asserts:
+      - failedTemplate:
+          errorPattern: 'operator\.image\.tag="v0\.2\.224@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef".*every released operator version up to and including v0\.2\.240 is verified NOT to read ADMISSION_CLIENT_CA_FILE.*digest-pinned \(@sha256:\.\.\.\) form of such a version is rejected too, at its 0\.2\.224 base version'
+
+  # 8b. The chart's default release (v0.2.240) pinned by digest: rejected.
+  - it: rejects the default release pinned by digest even with attestation
+    template: operator/deployment.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.image.tag: v0.2.240@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      operator.admissionWebhooks.clientAuth.enabled: true
+      operator.admissionWebhooks.clientAuth.secretName: apiserver-webhook-client-ca
+      operator.admissionWebhooks.clientAuth.operatorSupportsClientCA: true
+    asserts:
+      - failedTemplate:
+          errorPattern: 'operator\.image\.tag="v0\.2\.240@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef".*at its 0\.2\.240 base version'
+
+  # 8c. SemVer prerelease of a known-incompatible release, pinned by digest: rejected.
+  - it: rejects a digest-pinned prerelease of a known-incompatible release
+    template: operator/deployment.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.image.tag: v0.2.224-rc1@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      operator.admissionWebhooks.clientAuth.enabled: true
+      operator.admissionWebhooks.clientAuth.secretName: apiserver-webhook-client-ca
+      operator.admissionWebhooks.clientAuth.operatorSupportsClientCA: true
+    asserts:
+      - failedTemplate:
+          errorPattern: 'operator\.image\.tag="v0\.2\.224-rc1@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef".*at its 0\.2\.224 base version'
+
+  # 8d. SemVer build metadata ("+") is not a legal image-tag character, so a
+  #     digest-pinned "+build" tag is not a valid image reference: rejected as
+  #     malformed (fail-closed) rather than version-checked.
+  - it: rejects a digest-pinned tag containing SemVer build metadata as malformed
+    template: operator/deployment.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.image.tag: v0.2.224+build.7@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      operator.admissionWebhooks.clientAuth.enabled: true
+      operator.admissionWebhooks.clientAuth.secretName: apiserver-webhook-client-ca
+      operator.admissionWebhooks.clientAuth.operatorSupportsClientCA: true
+    asserts:
+      - failedTemplate:
+          errorPattern: 'operator\.image\.tag="v0\.2\.224\+build\.7@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef": a digest-pinned tag must have the form <tag>@sha256:<64 lowercase hex characters>'
+
+  # 9. Malformed digests are rejected with a clear error, never guessed at.
+  - it: rejects a digest that is too short
+    template: operator/deployment.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.image.tag: v0.2.225@sha256:abc123
+      operator.admissionWebhooks.clientAuth.enabled: true
+      operator.admissionWebhooks.clientAuth.secretName: apiserver-webhook-client-ca
+      operator.admissionWebhooks.clientAuth.operatorSupportsClientCA: true
+    asserts:
+      - failedTemplate:
+          errorPattern: 'operator\.image\.tag="v0\.2\.225@sha256:abc123": a digest-pinned tag must have the form <tag>@sha256:<64 lowercase hex characters>'
+
+  - it: rejects a digest with uppercase hex (non-canonical)
+    template: operator/deployment.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.image.tag: v0.2.224@sha256:0123456789ABCDEF0123456789abcdef0123456789abcdef0123456789abcdef
+      operator.admissionWebhooks.clientAuth.enabled: true
+      operator.admissionWebhooks.clientAuth.secretName: apiserver-webhook-client-ca
+      operator.admissionWebhooks.clientAuth.operatorSupportsClientCA: true
+    asserts:
+      - failedTemplate:
+          errorPattern: 'a digest-pinned tag must have the form <tag>@sha256:<64 lowercase hex characters>'
+
+  - it: rejects a non-sha256 digest algorithm
+    template: operator/deployment.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.image.tag: v0.2.224@sha512:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      operator.admissionWebhooks.clientAuth.enabled: true
+      operator.admissionWebhooks.clientAuth.secretName: apiserver-webhook-client-ca
+      operator.admissionWebhooks.clientAuth.operatorSupportsClientCA: true
+    asserts:
+      - failedTemplate:
+          errorPattern: 'a digest-pinned tag must have the form <tag>@sha256:<64 lowercase hex characters>'
+
+  - it: rejects a digest with no tag before it (version cannot be checked)
+    template: operator/deployment.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.image.tag: "@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      operator.admissionWebhooks.clientAuth.enabled: true
+      operator.admissionWebhooks.clientAuth.secretName: apiserver-webhook-client-ca
+      operator.admissionWebhooks.clientAuth.operatorSupportsClientCA: true
+    asserts:
+      - failedTemplate:
+          errorPattern: 'with a non-empty tag before the "@" so the mTLS compatibility check can read the operator version'
+
+  - it: rejects more than one digest separator
+    template: operator/deployment.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.image.tag: v0.2.241@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      operator.admissionWebhooks.clientAuth.enabled: true
+      operator.admissionWebhooks.clientAuth.secretName: apiserver-webhook-client-ca
+      operator.admissionWebhooks.clientAuth.operatorSupportsClientCA: true
+    asserts:
+      - failedTemplate:
+          errorPattern: 'a digest-pinned tag must have the form <tag>@sha256:<64 lowercase hex characters>'
+
+  - it: rejects an empty digest after the separator
+    template: operator/deployment.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.image.tag: v0.2.224@
+      operator.admissionWebhooks.clientAuth.enabled: true
+      operator.admissionWebhooks.clientAuth.secretName: apiserver-webhook-client-ca
+      operator.admissionWebhooks.clientAuth.operatorSupportsClientCA: true
+    asserts:
+      - failedTemplate:
+          errorPattern: 'a digest-pinned tag must have the form <tag>@sha256:<64 lowercase hex characters>'
+
+  # 10. Above-boundary release pinned by digest: still requires the attestation —
+  #     the chart never claims a release is compatible on its own.
+  - it: still requires attestation for a digest-pinned release above the boundary
+    template: operator/deployment.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.image.tag: v0.2.241@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      operator.admissionWebhooks.clientAuth.enabled: true
+      operator.admissionWebhooks.clientAuth.secretName: apiserver-webhook-client-ca
+    asserts:
+      - failedTemplate:
+          errorPattern: '^operator\.admissionWebhooks\.clientAuth\.enabled=true requires an operator image that reads ADMISSION_CLIENT_CA_FILE'
+
+  # 10b. ...and with attestation it renders, with the image reference unchanged.
+  - it: renders a digest-pinned release above the boundary under attestation without rewriting the image
+    template: operator/deployment.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.image.tag: v0.2.241@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      operator.admissionWebhooks.clientAuth.enabled: true
+      operator.admissionWebhooks.clientAuth.secretName: apiserver-webhook-client-ca
+      operator.admissionWebhooks.clientAuth.operatorSupportsClientCA: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "quay.io/kubescape/operator:v0.2.241@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ADMISSION_CLIENT_CA_FILE
+            value: /etc/admission-client-ca/ca.crt
+
+  # 11. Custom dev tag pinned by digest: attestation is mandatory...
+  - it: requires attestation for a digest-pinned custom development tag
+    template: operator/deployment.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.image.tag: mtls-build-from-pr-522@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      operator.admissionWebhooks.clientAuth.enabled: true
+      operator.admissionWebhooks.clientAuth.secretName: apiserver-webhook-client-ca
+    asserts:
+      - failedTemplate:
+          errorPattern: '^operator\.admissionWebhooks\.clientAuth\.enabled=true requires an operator image that reads ADMISSION_CLIENT_CA_FILE'
+
+  # 11b. ...and, with it, a custom registry + dev tag + digest renders verbatim.
+  - it: renders a custom registry with a digest-pinned custom tag under attestation
+    template: operator/deployment.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.image.repository: registry.example.com/mycorp/operator
+      operator.image.tag: mtls-build-from-pr-522@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      operator.admissionWebhooks.clientAuth.enabled: true
+      operator.admissionWebhooks.clientAuth.secretName: apiserver-webhook-client-ca
+      operator.admissionWebhooks.clientAuth.operatorSupportsClientCA: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "registry.example.com/mycorp/operator:mtls-build-from-pr-522@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ADMISSION_CLIENT_CA_FILE
+            value: /etc/admission-client-ca/ca.crt
+
+  # 12. mTLS disabled: the digest/tag validation does not run, so existing
+  #     image values (even ones the mTLS gate would reject) render exactly as before.
+  - it: does not validate image tags when mTLS is disabled
+    template: operator/deployment.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.image.tag: v0.2.224@sha256:abc123
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "quay.io/kubescape/operator:v0.2.224@sha256:abc123"
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ADMISSION_CLIENT_CA_FILE
+          any: true
+
+  # ---------------------------------------------------------------------------
+  # Deployment rendering with the full checksum render context.
+  # ---------------------------------------------------------------------------
+
+  # 13. Checksum annotations render from the real ConfigMap/Secret templates.
+  - it: renders the checksum annotations from the dependent templates
+    template: operator/deployment.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.image.tag: mtls-build-from-pr-522
+      operator.admissionWebhooks.clientAuth.enabled: true
+      operator.admissionWebhooks.clientAuth.secretName: apiserver-webhook-client-ca
+      operator.admissionWebhooks.clientAuth.operatorSupportsClientCA: true
+    asserts:
+      - matchRegex:
+          path: spec.template.metadata.annotations["checksum/capabilities-config"]
+          pattern: ^[a-f0-9]{64}$
+      - matchRegex:
+          path: spec.template.metadata.annotations["checksum/operator-config"]
+          pattern: ^[a-f0-9]{64}$
+      - matchRegex:
+          path: spec.template.metadata.annotations["checksum/cloud-config"]
+          pattern: ^[a-f0-9]{64}$
+      - matchRegex:
+          path: spec.template.metadata.annotations["checksum/matching-rules-config"]
+          pattern: ^[a-f0-9]{64}$
+
+  # 14. The CA Secret is mounted read-only at the path the env var points to.
+  - it: mounts the client CA read-only where ADMISSION_CLIENT_CA_FILE points
+    template: operator/deployment.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.image.tag: mtls-build-from-pr-522
+      operator.admissionWebhooks.clientAuth.enabled: true
+      operator.admissionWebhooks.clientAuth.secretName: apiserver-webhook-client-ca
+      operator.admissionWebhooks.clientAuth.operatorSupportsClientCA: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: admission-client-ca
+            mountPath: /etc/admission-client-ca
+            readOnly: true
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ADMISSION_CLIENT_CA_FILE
+            value: /etc/admission-client-ca/ca.crt
+
+  # 15. Default values: no CA env var, mount or volume.
+  - it: renders no client-CA env var, mount or volume with default values
+    template: operator/deployment.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ADMISSION_CLIENT_CA_FILE
+          any: true
+      - notContains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: admission-client-ca
+          any: true
+      - notContains:
+          path: spec.template.spec.volumes
+          content:
+            name: admission-client-ca
+          any: true
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "quay.io/kubescape/operator:v0.2.240"
+
+  # 16. clientAuth.enabled has no effect while the admission controller is off.
+  - it: ignores clientAuth when the admission controller capability is disabled
+    template: operator/deployment.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: disable
+      operator.admissionWebhooks.clientAuth.enabled: true
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ADMISSION_CLIENT_CA_FILE
+          any: true
+      - notContains:
+          path: spec.template.spec.volumes
+          content:
+            name: admission-client-ca
+          any: true
