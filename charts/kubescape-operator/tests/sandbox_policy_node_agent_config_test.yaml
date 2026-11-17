@@ -1,0 +1,253 @@
+suite: Sandbox policy node-agent config and RBAC
+tests:
+  - it: writes no sandboxPolicy keys by default
+    template: node-agent/configmap.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - notMatchRegex:
+          path: data["config.json"]
+          pattern: sandboxPolicy
+
+  - it: writes the sandboxPolicy keys when enabled
+    template: node-agent/configmap.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.sandboxPolicy.enabled: true
+      nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"sandboxPolicyEnabled": true,'
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"sandboxPolicyImage": "ghcr.io/example/enforce-exec-owner:v1",'
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"sandboxPolicyContainerdSocket": "/run/containerd/containerd.sock",'
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"sandboxPolicyControlRoot": "/sys/fs/cgroup/kubescape-sandbox-policy",'
+      - notMatchRegex:
+          path: data["config.json"]
+          pattern: sandboxPolicyMaxOwners
+      - notMatchRegex:
+          path: data["config.json"]
+          pattern: sandboxPolicySharedImages|sandboxPolicyEngine
+
+  - it: writes sandboxPolicyMaxOwners and custom paths when set
+    template: node-agent/configmap.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.sandboxPolicy.enabled: true
+      nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+      nodeAgent.sandboxPolicy.maxOwners: 2
+      nodeAgent.sandboxPolicy.containerdSocket: /run/k3s/containerd/containerd.sock
+      nodeAgent.sandboxPolicy.controlRoot: /sys/fs/cgroup/ks-sp
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"sandboxPolicyMaxOwners": 2,'
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"sandboxPolicyContainerdSocket": "/run/k3s/containerd/containerd.sock",'
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"sandboxPolicyControlRoot": "/sys/fs/cgroup/ks-sp",'
+
+  - it: refuses to enable without an image
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.sandboxPolicy.enabled: true
+    asserts:
+      - failedTemplate:
+          errorMessage: "nodeAgent.sandboxPolicy.image is required when nodeAgent.sandboxPolicy.enabled is true (node-agent refuses to start without sandboxPolicyImage)"
+
+  - it: refuses sandboxPolicy keys in config.extra when enabled
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.sandboxPolicy.enabled: true
+      nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+      nodeAgent.config.extra.sandboxPolicyMaxOwners: 2
+    asserts:
+      - failedTemplate:
+          errorMessage: "configure sandboxPolicyMaxOwners through nodeAgent.sandboxPolicy, not nodeAgent.config.extra.sandboxPolicyMaxOwners"
+
+  - it: grants no SandboxPolicy RBAC by default
+    template: node-agent/clusterrole.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["kubescape.io"]
+            resources: ["sandboxpolicies", "clustersandboxpolicies", "sandboxpolicyclasses"]
+            verbs: ["get", "watch", "list"]
+          any: true
+
+  - it: grants the SandboxPolicy RBAC when sandboxPolicy is enabled
+    template: node-agent/clusterrole.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.sandboxPolicy.enabled: true
+      nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["kubescape.io"]
+            resources: ["sandboxpolicies", "clustersandboxpolicies", "sandboxpolicyclasses"]
+            verbs: ["get", "watch", "list"]
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["kubescape.io"]
+            resources: ["sandboxpolicynodestatuses"]
+            verbs: ["get", "create"]
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["kubescape.io"]
+            resources: ["sandboxpolicynodestatuses/status"]
+            verbs: ["update"]
+
+  - it: grants the SandboxPolicy RBAC, classes included, under sandboxSeccomp
+    template: node-agent/clusterrole.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.sandboxSeccomp: enable
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["kubescape.io"]
+            resources: ["sandboxpolicies", "clustersandboxpolicies", "sandboxpolicyclasses"]
+            verbs: ["get", "watch", "list"]
+
+  - it: keeps the sandboxPolicy key valid JSON (followed by the next chart key)
+    template: node-agent/configmap.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.sandboxPolicy.enabled: true
+      nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+      nodeAgent.sandboxPolicy.maxOwners: 2
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"sandboxPolicyMaxOwners": 2,\s*"applicationProfileServiceEnabled"'
+
+  - it: leaves sandboxPolicy keys in config.extra alone when sandboxPolicy is disabled
+    template: node-agent/configmap.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.config.extra.sandboxPolicyImage: ghcr.io/example/enforce-exec-owner:v1
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"sandboxPolicyImage": "ghcr.io/example/enforce-exec-owner:v1"'
+      - notMatchRegex:
+          path: data["config.json"]
+          pattern: '"sandboxPolicyEnabled"'
+
+  - it: refuses a whitespace-only image
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.sandboxPolicy.enabled: true
+      nodeAgent.sandboxPolicy.image: "  "
+    asserts:
+      - failedTemplate:
+          errorMessage: "nodeAgent.sandboxPolicy.image is required when nodeAgent.sandboxPolicy.enabled is true (node-agent refuses to start without sandboxPolicyImage)"
+
+  - it: refuses a relative or root control root
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.sandboxPolicy.enabled: true
+      nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+      nodeAgent.sandboxPolicy.controlRoot: /
+    asserts:
+      - failedTemplate:
+          errorMessage: 'nodeAgent.sandboxPolicy.controlRoot must be an absolute path other than "/", got "/"'
+
+  - it: refuses an empty containerd socket
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.sandboxPolicy.enabled: true
+      nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+      nodeAgent.sandboxPolicy.containerdSocket: ""
+    asserts:
+      - failedTemplate:
+          errorMessage: 'nodeAgent.sandboxPolicy.containerdSocket must be an absolute path other than "/", got ""'
+
+  - it: refuses a negative maxOwners
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.sandboxPolicy.enabled: true
+      nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+      nodeAgent.sandboxPolicy.maxOwners: -1
+    asserts:
+      - failedTemplate:
+          errorMessage: "nodeAgent.sandboxPolicy.maxOwners must be a non-negative integer (0 keeps node-agent's default)"
+
+  - it: grants the SandboxPolicy RBAC with both sandboxSeccomp and sandboxPolicy
+    template: node-agent/clusterrole.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.sandboxSeccomp: enable
+      nodeAgent.sandboxPolicy.enabled: true
+      nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["kubescape.io"]
+            resources: ["sandboxpolicynodestatuses/status"]
+            verbs: ["update"]

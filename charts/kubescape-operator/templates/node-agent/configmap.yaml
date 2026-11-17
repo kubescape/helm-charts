@@ -26,6 +26,30 @@
 {{- if and $hostSensorExcludedSensors (hasKey (default dict .Values.nodeAgent.config.extra) "hostSensorExcludedSensors") }}
 {{- fail "configure hostSensorExcludedSensors through nodeAgent.config.hostSensor.excludedSensors, not nodeAgent.config.extra.hostSensorExcludedSensors" }}
 {{- end }}
+{{- $sandboxPolicy := default dict .Values.nodeAgent.sandboxPolicy }}
+{{- if $sandboxPolicy.enabled }}
+{{- $image := toString (default "" $sandboxPolicy.image) }}
+{{- if or (not (trim $image)) (ne (trim $image) $image) }}
+{{- fail "nodeAgent.sandboxPolicy.image is required when nodeAgent.sandboxPolicy.enabled is true (node-agent refuses to start without sandboxPolicyImage)" }}
+{{- end }}
+{{- range $name := list "containerdSocket" "controlRoot" }}
+{{- $path := toString (default "" (get $sandboxPolicy $name)) }}
+{{- if or (not (hasPrefix "/" $path)) (eq $path "/") (ne (trim $path) $path) }}
+{{- fail (printf "nodeAgent.sandboxPolicy.%s must be an absolute path other than \"/\", got %q" $name $path) }}
+{{- end }}
+{{- end }}
+{{- $maxOwners := default 0 $sandboxPolicy.maxOwners }}
+{{- if not (or (kindIs "int" $maxOwners) (kindIs "int64" $maxOwners) (kindIs "float64" $maxOwners)) }}
+{{- fail "nodeAgent.sandboxPolicy.maxOwners must be a non-negative integer (0 keeps node-agent's default)" }}
+{{- else if or (lt (float64 $maxOwners) 0.0) (ne (float64 $maxOwners) (float64 (int64 $maxOwners))) }}
+{{- fail "nodeAgent.sandboxPolicy.maxOwners must be a non-negative integer (0 keeps node-agent's default)" }}
+{{- end }}
+{{- range $key := list "sandboxPolicyEnabled" "sandboxPolicyImage" "sandboxPolicyContainerdSocket" "sandboxPolicyControlRoot" "sandboxPolicyMaxOwners" }}
+{{- if hasKey (default dict $.Values.nodeAgent.config.extra) $key }}
+{{- fail (printf "configure %s through nodeAgent.sandboxPolicy, not nodeAgent.config.extra.%s" $key $key) }}
+{{- end }}
+{{- end }}
+{{- end }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -53,6 +77,15 @@ data:
           {{- end }}
           "runtimeHandler": {{ .Values.nodeAgent.gVisorStart.runtimeHandler | toJson }}
         },
+        {{- end }}
+        {{- if $sandboxPolicy.enabled }}
+        "sandboxPolicyEnabled": true,
+        "sandboxPolicyImage": {{ $sandboxPolicy.image | toJson }},
+        "sandboxPolicyContainerdSocket": {{ $sandboxPolicy.containerdSocket | toJson }},
+        "sandboxPolicyControlRoot": {{ $sandboxPolicy.controlRoot | toJson }},
+        {{- if $sandboxPolicy.maxOwners }}
+        "sandboxPolicyMaxOwners": {{ $sandboxPolicy.maxOwners | int64 }},
+        {{- end }}
         {{- end }}
         "applicationProfileServiceEnabled": {{ or $configurations.runtimeObservability (eq .Values.capabilities.relevancy "enable") }},
         "prometheusExporterEnabled": {{ eq .Values.nodeAgent.config.prometheusExporter "enable" }},
