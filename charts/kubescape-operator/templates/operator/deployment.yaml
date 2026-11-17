@@ -191,6 +191,62 @@ spec:
             - name : no_proxy
               value: "{{ $no_proxy_envar_list }}"
             {{- end }}
+            {{- if and (eq .Values.capabilities.admissionController "enable") .Values.operator.admissionWebhooks.clientAuth.enabled }}
+            {{- if eq (.Values.operator.admissionWebhooks.clientAuth.secretName | default "") "" }}
+            {{- fail "operator.admissionWebhooks.clientAuth.enabled=true requires operator.admissionWebhooks.clientAuth.secretName" }}
+            {{- end }}
+            {{- /*
+              Compatibility guard. The operator image must read ADMISSION_CLIENT_CA_FILE and
+              enforce client-certificate verification, otherwise this block mounts a CA and sets
+              the env var while the webhook stays unauthenticated — an insecure silent no-op.
+              The chart cannot verify an unreleased feature, so compatibility is ASSERTED by the
+              operator, not checked by Helm. Enabling mTLS therefore requires BOTH:
+                (a) clientAuth.operatorSupportsClientCA=true — an explicit operator attestation; and
+                (b) operator.image.tag must not be a released version known NOT to read the variable.
+              No released version reads it yet (kubescape/operator#522 is unmerged). The highest
+              released version so verified is $maxKnownIncompatible; any SemVer tag whose
+              major.minor.patch core is <= it is rejected even when attested — INCLUDING SemVer
+              prereleases (v0.2.224-rc1, v0.2.223-custom): we compare the core, because
+              Masterminds semverCompare excludes prereleases from a non-prerelease constraint and
+              a prerelease of an incompatible release is itself incompatible. Non-SemVer tags
+              (custom/dev builds from #522, git SHAs) are governed by the attestation alone. Raise
+              $maxKnownIncompatible as further incompatible releases ship; once a release reads the
+              variable, replace this with a minimum-supported-version check.
+            */ -}}
+            {{- if not .Values.operator.admissionWebhooks.clientAuth.operatorSupportsClientCA }}
+            {{- fail "operator.admissionWebhooks.clientAuth.enabled=true requires an operator image that reads ADMISSION_CLIENT_CA_FILE and enforces client-certificate verification. No released operator image supports this yet (kubescape/operator#522 is not merged), and the chart's default operator.image.tag does not read the variable — enabling mTLS with it would leave the webhook unauthenticated while appearing secure. Build the operator from kubescape/operator#522 (or a later release that includes it), set operator.image.tag to that build, and set operator.admissionWebhooks.clientAuth.operatorSupportsClientCA=true to confirm the deployed image enforces client authentication. See docs/features/admission-webhook-mtls.md." }}
+            {{- end }}
+            {{- $maxKnownIncompatible := "0.2.240" }}
+            {{- $tag := .Values.operator.image.tag | toString }}
+            {{- /* The image renders as "<repository>:<tag>", so a digest-pinned image is expressed as
+                   tag "<version>@sha256:<digest>". Split off that optional digest and version-check
+                   only the tag before "@"; otherwise the anchored SemVer match below fails on the
+                   suffix and a known-incompatible release (v0.2.224@sha256:...) is treated as a
+                   custom tag and passes on attestation alone. A digest must be exactly
+                   "sha256:" plus 64 lowercase hex characters (the OCI canonical form), and the
+                   tag before it must be a non-empty valid image tag; anything else is rejected
+                   rather than guessed at. The image reference itself is never rewritten. */ -}}
+            {{- $version := $tag }}
+            {{- if contains "@" $tag }}
+            {{- $parts := splitList "@" $tag }}
+            {{- if or (ne (len $parts) 2) (not (regexMatch "^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$" (index $parts 0))) (not (regexMatch "^sha256:[a-f0-9]{64}$" (index $parts 1))) }}
+            {{- fail (printf "operator.admissionWebhooks.clientAuth.enabled=true cannot be used with operator.image.tag=%q: a digest-pinned tag must have the form <tag>@sha256:<64 lowercase hex characters> (for example v0.2.241@sha256:<digest>), with a non-empty tag before the \"@\" so the mTLS compatibility check can read the operator version. Fix the tag or digest. See docs/features/admission-webhook-mtls.md." $tag) }}
+            {{- end }}
+            {{- $version = index $parts 0 }}
+            {{- end }}
+            {{- /* Match a full SemVer tag (optional v prefix, optional -prerelease and +build), then
+                   compare its major.minor.patch core so prereleases are checked at their base version. */ -}}
+            {{- if regexMatch "^v?[0-9]+[.][0-9]+[.][0-9]+(-[0-9A-Za-z][0-9A-Za-z.-]*)?([+][0-9A-Za-z][0-9A-Za-z.-]*)?$" $version }}
+            {{- $core := regexFind "[0-9]+[.][0-9]+[.][0-9]+" $version }}
+            {{- if semverCompare (printf "<= %s" $maxKnownIncompatible) $core }}
+            {{- fail (printf "operator.admissionWebhooks.clientAuth.enabled=true cannot be used with operator.image.tag=%q: every released operator version up to and including v%s is verified NOT to read ADMISSION_CLIENT_CA_FILE (kubescape/operator#522 is unmerged), so enabling mTLS with it would leave the webhook unauthenticated while appearing secure. A SemVer prerelease (e.g. -rc1) or a digest-pinned (@sha256:...) form of such a version is rejected too, at its %s base version. Set operator.image.tag to an operator build from kubescape/operator#522 (a non-SemVer custom/dev tag, or a release newer than v%s that includes it); operatorSupportsClientCA alone is not enough. See docs/features/admission-webhook-mtls.md." $tag $maxKnownIncompatible $core $maxKnownIncompatible) }}
+            {{- end }}
+            {{- end }}
+            # Opt-in mutual TLS: the webhook verifies the API server's client cert
+            # against this CA. Fail-closed — an unreadable CA stops the webhook.
+            - name: ADMISSION_CLIENT_CA_FILE
+              value: "/etc/admission-client-ca/{{ .Values.operator.admissionWebhooks.clientAuth.caKey }}"
+            {{- end }}
           volumeMounts:
             {{- include "apiauth.callerVolumeMount" . | nindent 12 }}
             - name: {{ $components.cloudSecret.name }}
@@ -235,6 +291,11 @@ spec:
             - name: tls-certs
               mountPath: /etc/certs
               readOnly: true
+            {{- if .Values.operator.admissionWebhooks.clientAuth.enabled }}
+            - name: admission-client-ca
+              mountPath: /etc/admission-client-ca
+              readOnly: true
+            {{- end }}
             {{- end }}
             {{- if eq $gates.effectiveCapabilities.sbomExport "enable" }}
             # a directory, not a subPath, so a rotated API key reaches the pod
@@ -281,6 +342,11 @@ spec:
         - name: tls-certs
           secret:
             secretName: {{ include "kubescape-admission.secretName" . }}
+        {{- end }}
+        {{- if .Values.operator.admissionWebhooks.clientAuth.enabled }}
+        - name: admission-client-ca
+          secret:
+            secretName: {{ .Values.operator.admissionWebhooks.clientAuth.secretName }}
         {{- end }}
         {{- end }}
         - name: tmp-dir
