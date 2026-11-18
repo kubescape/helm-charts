@@ -102,14 +102,22 @@ spec:
                               type: object
                               x-kubernetes-preserve-unknown-fields: true
                               description: "Optional author extras as CEL expressions. Keys may not begin with an underscore."
+                            increment:
+                              type: integer
+                              description: "Makes this write a counter: create the entry with count 1 or add 1 to it. Only 1 is accepted. Exclusive with value and clear."
+                            clear:
+                              type: boolean
+                              description: "Deletes the entry under name/key if present. Exclusive with value and increment."
                             ttl:
                               type: string
-                              description: "Go duration string; clamped to the agent's configured maxTtl at load"
+                              description: "Go duration string; clamped to the agent's configured maxTtl at load. Optional on a clear."
                           required:
                             - eventType
                             - scope
                             - name
-                            - ttl
+                          x-kubernetes-validations:
+                            - rule: "has(self.ttl) || has(self.clear)"
+                              message: "ttl is required unless clear is set"
                       profileDependency:
                         type: integer
                         enum: [0, 1, 2]
