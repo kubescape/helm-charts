@@ -38,6 +38,9 @@ tests:
     set:
       storage.mcp.callTimeout: 45s
       storage.mcp.maxResponseBytes: 524288
+      storage.mcp.maxRunning: 2
+      storage.mcp.maxWaiting: 0
+      storage.mcp.maxWait: 45s
     asserts:
       - notMatchRegex:
           path: data["config.json"]
@@ -74,3 +77,65 @@ tests:
     asserts:
       - failedTemplate:
           errorPattern: "storage.mcp.maxResponseBytes must be a positive number of bytes, got -1$"
+
+  - it: passes the admission limit to storage
+    template: storage/configmap.yaml
+    set:
+      storage.mcp.enabled: true
+      storage.mcp.maxRunning: 2
+      storage.mcp.maxWaiting: 5
+      storage.mcp.maxWait: 45s
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"mcp": \{"enabled":true,"maxRunning":2,"maxWait":"45s","maxWaiting":5\},'
+
+  - it: passes maxWaiting 0, so no call waits for a slot
+    template: storage/configmap.yaml
+    set:
+      storage.mcp.enabled: true
+      storage.mcp.maxWaiting: 0
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"mcp": \{"enabled":true,"maxWaiting":0\},'
+
+  - it: refuses a negative maxRunning
+    set:
+      storage.mcp.enabled: true
+      storage.mcp.maxRunning: -1
+    asserts:
+      - failedTemplate:
+          errorPattern: "storage.mcp.maxRunning must be a whole number of at least 1, got -1$"
+
+  - it: refuses a fractional maxRunning
+    set:
+      storage.mcp.enabled: true
+      storage.mcp.maxRunning: 1.5
+    asserts:
+      - failedTemplate:
+          errorPattern: "storage.mcp.maxRunning must be a whole number of at least 1, got 1.5$"
+
+  - it: refuses a negative maxWaiting
+    set:
+      storage.mcp.enabled: true
+      storage.mcp.maxWaiting: -1
+    asserts:
+      - failedTemplate:
+          errorPattern: "storage.mcp.maxWaiting must be a whole number of 0 or more, got -1$"
+
+  - it: refuses a maxWait without a unit
+    set:
+      storage.mcp.enabled: true
+      storage.mcp.maxWait: 30
+    asserts:
+      - failedTemplate:
+          errorPattern: "storage.mcp.maxWait must be a positive duration such as 30s, got 30$"
+
+  - it: refuses a zero maxWait
+    set:
+      storage.mcp.enabled: true
+      storage.mcp.maxWait: 0
+    asserts:
+      - failedTemplate:
+          errorPattern: "storage.mcp.maxWait must be a positive duration such as 30s, got 0$"
