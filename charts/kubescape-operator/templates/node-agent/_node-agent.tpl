@@ -146,11 +146,16 @@ Parameters:
   mountPath: /etc/namespace-filters
   readOnly: true
 {{- end }}
-{{- if .Values.volumeMounts }}
-{{ toYaml .Values.volumeMounts | trim }}
+{{- $sandboxPolicy := dig "sandboxPolicy" "enabled" false .Values.nodeAgent }}
+{{- range $mounts := list (.Values.volumeMounts | default list) (.Values.nodeAgent.volumeMounts | default list) }}
+{{- range $mounts }}
+{{- $mount := . }}
+{{- if and $sandboxPolicy (has $mount.mountPath (list "/host" "/run")) (not $mount.mountPropagation) }}
+{{- /* merge keeps existing keys: a user-set mountPropagation always wins */ -}}
+{{- $mount = merge (dict "mountPropagation" "HostToContainer") $mount }}
 {{- end }}
-{{- if .Values.nodeAgent.volumeMounts }}
-{{ toYaml .Values.nodeAgent.volumeMounts | trim }}
+{{ list $mount | toYaml | trim }}
+{{- end }}
 {{- end }}
 {{- if .components.sbomScanner.enabled }}
 - name: sbom-comm

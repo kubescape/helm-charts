@@ -888,6 +888,35 @@ storage:
 # +++++++++++++++++++++++++++++ Node-agent ++++++++++++++++++++++++++++++++++++++++++++++++
 
 nodeAgent:
+  # Sandbox policy (node-agent exec enforcement). When enabled, the chart:
+  # - writes the sandboxPolicy* keys below into the node-agent config;
+  # - grants node-agent the SandboxPolicy RBAC (read SandboxPolicy,
+  #   ClusterSandboxPolicy and SandboxPolicyClasses; create SandboxPolicyNodeStatus
+  #   and update its status);
+  # - sets mountPropagation: HostToContainer on the node-agent /host and /run
+  #   volumeMounts, which node-agent sandbox policy requires (it fails closed
+  #   without it).
+  # Requires the SandboxPolicy CRDs (templates/sandbox-policy-crds/) and a
+  # node-agent release with kubescape/node-agent#1054.
+  sandboxPolicy:
+    enabled: false
+    # Image of the per-binding enforce_exec owner gadget (sandboxPolicyImage).
+    # Required when enabled: node-agent refuses to start without it. On the
+    # qualified AL2023 kernels node-agent runs the shared engine from the product
+    # images compiled into node-agent (kubescape/node-agent#1101) and does not
+    # load this image.
+    image: ""
+    # containerd socket and the cgroup control root node-agent uses for the
+    # bindings (sandboxPolicyContainerdSocket, sandboxPolicyControlRoot). The
+    # chart requires absolute paths other than "/"; node-agent also requires them
+    # to be canonical (no "..", "." or repeated "/").
+    containerdSocket: /run/containerd/containerd.sock
+    controlRoot: /sys/fs/cgroup/kubescape-sandbox-policy
+    # Per-node cap on per-binding owners (sandboxPolicyMaxOwners). 0 keeps
+    # node-agent's default (IG's legacy owner hard cap); node-agent refuses a
+    # value above that cap.
+    maxOwners: 0
+
   name: node-agent
   # GOMEMLIMIT as a fraction of resources.limits.memory. 0.8 = 80%.
   # Lower values give the runtime more headroom. Raise toward 1.0 only

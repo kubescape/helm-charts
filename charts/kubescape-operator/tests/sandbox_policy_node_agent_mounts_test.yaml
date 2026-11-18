@@ -1,0 +1,78 @@
+suite: Sandbox policy node-agent mount propagation
+tests:
+  - it: leaves /host and /run without mountPropagation by default
+    template: node-agent/daemonset.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[?(@.name == "node-agent")].volumeMounts[?(@.mountPath == "/host")].mountPropagation
+      - notExists:
+          path: spec.template.spec.containers[?(@.name == "node-agent")].volumeMounts[?(@.mountPath == "/run")].mountPropagation
+
+  - it: sets HostToContainer on /host and /run when sandboxPolicy is enabled
+    template: node-agent/daemonset.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.sandboxPolicy.enabled: true
+      nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "node-agent")].volumeMounts[?(@.mountPath == "/host")].mountPropagation
+          value: HostToContainer
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "node-agent")].volumeMounts[?(@.mountPath == "/run")].mountPropagation
+          value: HostToContainer
+      - notExists:
+          path: spec.template.spec.containers[?(@.name == "node-agent")].volumeMounts[?(@.mountPath == "/var")].mountPropagation
+
+  - it: preserves a user-set mountPropagation on /run when sandboxPolicy is enabled
+    template: node-agent/daemonset.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.sandboxPolicy.enabled: true
+      nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+      nodeAgent.volumeMounts:
+        - name: host
+          mountPath: /host
+          readOnly: true
+        - name: run
+          mountPath: /run
+          mountPropagation: None
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "node-agent")].volumeMounts[?(@.mountPath == "/run")].mountPropagation
+          value: None
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "node-agent")].volumeMounts[?(@.mountPath == "/host")].mountPropagation
+          value: HostToContainer
+
+  - it: sets HostToContainer on a /host mount supplied through nodeAgent.volumeMounts
+    template: node-agent/daemonset.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.sandboxPolicy.enabled: true
+      nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+      nodeAgent.volumeMounts:
+        - name: custom-host
+          mountPath: /host
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "node-agent")].volumeMounts[?(@.name == "custom-host")].mountPropagation
+          value: HostToContainer
