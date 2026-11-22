@@ -45,13 +45,17 @@ No other role in the chart names the resource, and none grants a wildcard on the
 
 ## Checking the exclusivity claim
 
-helm-unittest cannot match free text inside a rendered role, so the unit tests
-cover the gateway objects exactly (two rules, one subject, names follow
-`sandboxGateway.name`) and the claim above is checked on a full render. Render
-with everything that adds roles turned on, then list every `Role` and
-`ClusterRole` rule that names `sandboxgatewaynodestatuses` or grants `*` on
-`kubescape.io`; only `sandbox-gateway` should appear (plus
-`helm-release-upgrader` when the autoupdater is on).
+`tests/sandbox_gateway_rbac_test.yaml` pins the gateway objects exactly (two
+rules, one subject, names follow `sandboxGateway.name`) and renders every other
+`Role` and `ClusterRole` template of the chart, asserting with a JSONPath filter
+that none lists `sandboxgatewaynodestatuses`. Two controls keep that filter
+honest: it must find the resource in the gateway role and a sibling resource in
+node-agent's role. A template that renders nothing under the test values is not
+checked, so a role added later has to be added to the test list.
+
+The test lists resources, not wildcards. A role that grants `*` on the
+`kubescape.io` group, like the autoupdater's, is not caught; scan a full render
+for those.
 
 ## Updating the CRD
 
