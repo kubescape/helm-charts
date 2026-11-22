@@ -1,0 +1,136 @@
+suite: Sandbox gateway node status RBAC tests
+# The sandbox-gateway service account is the only subject that may write
+# SandboxGatewayNodeStatus. That no other role in the chart names the resource is
+# not unit-tested: helm-unittest cannot match free text inside a rendered role.
+# It is checked on a full render instead (see docs/features/sandbox-gateway-node-status.md).
+tests:
+- it: serviceaccount renders nothing by default
+  template: sandbox-gateway/serviceaccount.yaml
+  set:
+    unittest: true
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  - hasDocuments:
+      count: 0
+- it: clusterrole renders nothing by default
+  template: sandbox-gateway/clusterrole.yaml
+  set:
+    unittest: true
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  - hasDocuments:
+      count: 0
+- it: clusterrolebinding renders nothing by default
+  template: sandbox-gateway/clusterrolebinding.yaml
+  set:
+    unittest: true
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  - hasDocuments:
+      count: 0
+- it: renders the service account when the capability is enabled
+  template: sandbox-gateway/serviceaccount.yaml
+  set:
+    unittest: true
+    capabilities.sandboxGateway: enable
+  release:
+    namespace: policy-review-ns
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  - hasDocuments:
+      count: 1
+  - isKind:
+      of: ServiceAccount
+  - equal:
+      path: metadata.name
+      value: sandbox-gateway
+  - equal:
+      path: metadata.namespace
+      value: kubescape
+- it: grants only status writes on SandboxGatewayNodeStatus
+  template: sandbox-gateway/clusterrole.yaml
+  set:
+    unittest: true
+    capabilities.sandboxGateway: enable
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  - hasDocuments:
+      count: 1
+  - isKind:
+      of: ClusterRole
+  - equal:
+      path: metadata.name
+      value: sandbox-gateway
+  - equal:
+      path: rules
+      value:
+      - apiGroups: ["kubescape.io"]
+        resources: ["sandboxgatewaynodestatuses"]
+        verbs: ["get", "create"]
+      - apiGroups: ["kubescape.io"]
+        resources: ["sandboxgatewaynodestatuses/status"]
+        verbs: ["update"]
+- it: binds the role to the service account and nothing else
+  template: sandbox-gateway/clusterrolebinding.yaml
+  set:
+    unittest: true
+    capabilities.sandboxGateway: enable
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  - hasDocuments:
+      count: 1
+  - isKind:
+      of: ClusterRoleBinding
+  - equal:
+      path: subjects
+      value:
+      - kind: ServiceAccount
+        name: sandbox-gateway
+        namespace: kubescape
+  - equal:
+      path: roleRef
+      value:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: sandbox-gateway
+- it: follows sandboxGateway.name in all three objects
+  set:
+    unittest: true
+    capabilities.sandboxGateway: enable
+    sandboxGateway.name: gw
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  - equal:
+      path: metadata.name
+      value: gw
+    template: sandbox-gateway/serviceaccount.yaml
+  - equal:
+      path: metadata.name
+      value: gw
+    template: sandbox-gateway/clusterrole.yaml
+  - equal:
+      path: metadata.name
+      value: gw
+    template: sandbox-gateway/clusterrolebinding.yaml
+  - equal:
+      path: subjects[0].name
+      value: gw
+    template: sandbox-gateway/clusterrolebinding.yaml
+  - equal:
+      path: roleRef.name
+      value: gw
+    template: sandbox-gateway/clusterrolebinding.yaml
