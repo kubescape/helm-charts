@@ -36,12 +36,93 @@ tests:
       - matchRegex:
           path: data["config.json"]
           pattern: '"sandboxPolicyControlRoot": "/sys/fs/cgroup/kubescape-sandbox-policy",'
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"sandboxPolicyPrivilegeImage": "ghcr.io/inspektor-gadget/gadget/enforce_privilege:latest",'
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"sandboxPolicyNetworkImage": "ghcr.io/inspektor-gadget/gadget/enforce_network:latest",'
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"sandboxPolicyFileImage": "ghcr.io/inspektor-gadget/gadget/enforce_file:latest",'
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"sandboxPolicyRuntimeHelperExemption": false,'
       - notMatchRegex:
           path: data["config.json"]
           pattern: sandboxPolicyMaxOwners
       - notMatchRegex:
           path: data["config.json"]
           pattern: sandboxPolicySharedImages|sandboxPolicyEngine
+
+  - it: turns a section off with an empty image and sets the runtime helper exemption
+    template: node-agent/configmap.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.sandboxPolicy.enabled: true
+      nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+      nodeAgent.sandboxPolicy.networkImage: ""
+      nodeAgent.sandboxPolicy.fileImage: ghcr.io/example/enforce_file:v2
+      nodeAgent.sandboxPolicy.runtimeHelperExemption: true
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"sandboxPolicyNetworkImage": "",'
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"sandboxPolicyFileImage": "ghcr.io/example/enforce_file:v2",'
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"sandboxPolicyPrivilegeImage": "ghcr.io/inspektor-gadget/gadget/enforce_privilege:latest",'
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"sandboxPolicyRuntimeHelperExemption": true,'
+
+  - it: refuses a section image with surrounding whitespace
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.sandboxPolicy.enabled: true
+      nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+      nodeAgent.sandboxPolicy.privilegeImage: " ghcr.io/example/enforce_privilege:v1"
+    asserts:
+      - failedTemplate:
+          errorMessage: 'nodeAgent.sandboxPolicy.privilegeImage must not have surrounding whitespace, got " ghcr.io/example/enforce_privilege:v1"'
+
+  - it: refuses a runtime helper exemption that is not a bool
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.sandboxPolicy.enabled: true
+      nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+      nodeAgent.sandboxPolicy.runtimeHelperExemption: "yes"
+    asserts:
+      - failedTemplate:
+          errorMessage: "nodeAgent.sandboxPolicy.runtimeHelperExemption must be true or false"
+
+  - it: refuses section keys in config.extra when enabled
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.sandboxPolicy.enabled: true
+      nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+      nodeAgent.config.extra.sandboxPolicyFileImage: ghcr.io/example/enforce_file:v2
+    asserts:
+      - failedTemplate:
+          errorMessage: "configure sandboxPolicyFileImage through nodeAgent.sandboxPolicy, not nodeAgent.config.extra.sandboxPolicyFileImage"
 
   - it: writes sandboxPolicyMaxOwners and custom paths when set
     template: node-agent/configmap.yaml
