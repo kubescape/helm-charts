@@ -96,6 +96,34 @@ tests:
       - failedTemplate:
           errorMessage: 'nodeAgent.sandboxPolicy.privilegeImage must not have surrounding whitespace, got " ghcr.io/example/enforce_privilege:v1"'
 
+  - it: refuses a section image that is not a string
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.sandboxPolicy.enabled: true
+      nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+      nodeAgent.sandboxPolicy.networkImage: 123
+    asserts:
+      - failedTemplate:
+          errorMessage: "nodeAgent.sandboxPolicy.networkImage must be a string (empty turns the section off)"
+
+  - it: refuses a runtime helper exemption of 0
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      nodeAgent.sandboxPolicy.enabled: true
+      nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+      nodeAgent.sandboxPolicy.runtimeHelperExemption: 0
+    asserts:
+      - failedTemplate:
+          errorMessage: "nodeAgent.sandboxPolicy.runtimeHelperExemption must be true or false"
+
   - it: refuses a runtime helper exemption that is not a bool
     capabilities:
       apiVersions:

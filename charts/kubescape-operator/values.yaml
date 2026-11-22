@@ -898,7 +898,9 @@ nodeAgent:
   #   volumeMounts, which node-agent sandbox policy requires (it fails closed
   #   without it).
   # Requires the SandboxPolicy CRDs (templates/sandbox-policy-crds/) and a
-  # node-agent release with kubescape/node-agent#1054.
+  # node-agent release with kubescape/node-agent#1054 (exec); the privilege,
+  # network and file sections need kubescape/node-agent#1067 (older releases
+  # ignore their keys).
   sandboxPolicy:
     enabled: false
     # Image of the per-binding enforce_exec owner gadget (sandboxPolicyImage).
@@ -916,9 +918,9 @@ nodeAgent:
     privilegeImage: ghcr.io/inspektor-gadget/gadget/enforce_privilege:latest
     networkImage: ghcr.io/inspektor-gadget/gadget/enforce_network:latest
     fileImage: ghcr.io/inspektor-gadget/gadget/enforce_file:latest
-    # Exempt OCI runtime hooks in a pod's cgroup from the privilege and file
-    # sections (sandboxPolicyRuntimeHelperExemption). This is the node
-    # operator's consent; when false, a Strict section judges the hooks too.
+    # Exempt OCI runtime hooks in a pod's cgroup from the privilege section
+    # (sandboxPolicyRuntimeHelperExemption). This is the node operator's
+    # consent; when false, a Strict privilege section judges the hooks too.
     runtimeHelperExemption: false
     # containerd socket and the cgroup control root node-agent uses for the
     # bindings (sandboxPolicyContainerdSocket, sandboxPolicyControlRoot). The
