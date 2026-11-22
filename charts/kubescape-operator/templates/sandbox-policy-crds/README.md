@@ -1,12 +1,12 @@
 # Sandbox policy CRDs
 
-These four native Kubernetes CRDs are served by kube-apiserver and stored in
+These five native Kubernetes CRDs are served by kube-apiserver and stored in
 etcd, not by the storage aggregated API server. They are rendered unconditionally,
 including when storage, node-agent or host sensors are disabled. Installing their
 schemas does not enable enforcement.
 
 They live in `templates/` so Helm upgrades can update their schemas. Unlike
-node-agent sensing CRDs, all four carry `helm.sh/resource-policy: keep`: deleting
+node-agent sensing CRDs, all five carry `helm.sh/resource-policy: keep`: deleting
 policy CRDs also deletes authored policies, classes and node status. The annotation
 asks Helm to retain them when an uninstall, upgrade or rollback would delete them.
 The `argocd.argoproj.io/sync-options: Prune=false` annotation separately prevents
@@ -32,7 +32,7 @@ helm template sandbox-review charts/kubescape-operator \
 ```
 
 No `--include-crds` is needed. Compare parsed YAML, not source bytes: select the
-four rendered CRDs by `metadata.name`, assert exactly one of each, and compare each
+five rendered CRDs by `metadata.name`, assert exactly one of each, and compare each
 entire `.spec` with its corresponding canonical storage manifest for exact
 structural equality. Repeat with storage, all node-agent capabilities and host
 sensors disabled. The unit tests also lock names, scopes, versions, retention and
