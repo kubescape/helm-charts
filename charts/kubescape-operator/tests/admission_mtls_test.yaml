@@ -247,6 +247,26 @@ tests:
             name: ADMISSION_CLIENT_CA_FILE
             value: /etc/admission-client-ca/client-ca.pem
 
+  # 5c. A numeric-looking Secret name stays a string in the volume.
+  - it: renders a numeric-looking client CA secretName as a string
+    template: operator/deployment.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      capabilities.admissionController: enable
+      operator.image.tag: mtls-build-from-pr-522
+      operator.admissionWebhooks.clientAuth.enabled: true
+      operator.admissionWebhooks.clientAuth.secretName: "123"
+      operator.admissionWebhooks.clientAuth.operatorSupportsClientCA: true
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: admission-client-ca
+            secret:
+              secretName: "123"
+          any: true
+
   # 6. mTLS enabled + custom registry + compatible custom tag + attestation: succeeds.
   - it: supports a custom registry and compatible image under the attestation mechanism
     template: operator/deployment.yaml
