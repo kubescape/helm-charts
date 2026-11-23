@@ -100,3 +100,28 @@ tests:
             httpGet:
               path: /v1/liveness
               port: 8080
+
+  - it: drops terminationGracePeriodSeconds from the readiness probe
+    template: kubevuln/deployment.yaml
+    capabilities:
+      apiVersions:
+        - batch/v1
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubevuln.livenessProbe:
+        terminationGracePeriodSeconds: 30
+      kubevuln.readinessProbe:
+        timeoutSeconds: 5
+        terminationGracePeriodSeconds: 30
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.terminationGracePeriodSeconds
+          value: 30
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe
+          value:
+            httpGet:
+              path: /v1/readiness
+              port: 8080
+            timeoutSeconds: 5
