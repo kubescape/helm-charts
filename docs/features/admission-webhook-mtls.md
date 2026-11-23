@@ -333,8 +333,12 @@ The existing server-certificate rotation is unchanged; client verification is la
    # use the "ca" key of the kubescape-admission-webhook-tls-init Secret instead.
    kubectl -n $NS get secret kubescape-admission-webhook-ca \
      -o jsonpath='{.data.tls\.crt}' | base64 -d > webhook-ca.crt
-   kubectl -n $NS port-forward svc/kubescape-admission-webhook 8443:443 &
+   kubectl -n $NS port-forward svc/kubescape-admission-webhook 8443:443 > port-forward.log 2>&1 &
+   PF_PID=$!
+   # wait until the local listener is up, so curl tests the TLS handshake, not a refused connection
+   until grep -q 'Forwarding from' port-forward.log; do sleep 1; done
    curl -sv --cacert webhook-ca.crt --resolve "$HOST:8443:127.0.0.1" "https://$HOST:8443/health"
+   kill $PF_PID
    ```
 
    Expected: the server certificate is verified, then the webhook ends the handshake with a
