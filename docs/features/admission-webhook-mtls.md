@@ -303,9 +303,16 @@ pool, if any `CERTIFICATE` block fails to parse.
 2. **Wait for projection.** Wait out the kubelet propagation delay above. To confirm the change,
    check the mounted file, for example with
    `kubectl -n kubescape exec deploy/operator -- cat /etc/admission-client-ca/ca.crt`.
-3. **Switch the API server** to a client certificate issued by the new CA, and confirm admission
-   telemetry continues.
-4. **Remove the old CA** from the bundle only after that, and wait for projection again.
+3. **Switch the API server** to a client certificate issued by the new CA, on every API-server
+   instance.
+4. **Confirm a fresh handshake with the new certificate from every API-server instance.** Continued
+   admission telemetry is not enough: an API server can keep sending reviews over an existing
+   connection that was authenticated with the old certificate, and only fail on its next new
+   connection after the old CA is gone. Make each instance open new connections (for example by
+   restarting it), then confirm admission telemetry continues for requests that instance serves.
+   You can also check the new certificate directly with the `--cert`/`--key` command in
+   [Verifying that authentication is active](#verifying-that-authentication-is-active).
+5. **Remove the old CA** from the bundle only after that, and wait for projection again.
 
 The existing server-certificate rotation is unchanged; client verification is layered on top.
 
@@ -313,14 +320,29 @@ The existing server-certificate rotation is unchanged; client verification is la
 
 1. With a trusted client certificate, admission telemetry continues for legitimate workloads —
    confirming the API server's certificate is trusted.
-2. From inside the cluster, a request to the webhook **without** a client certificate should be
-   rejected at the TLS handshake:
+2. A request to the webhook **without** a client certificate should be rejected at the TLS
+   handshake. Connect to the webhook Service DNS name, which is the name on its server certificate,
+   and trust the CA that signed that certificate, so that a server name or trust problem is not
+   mistaken for the client-certificate rejection:
 
    ```bash
-   # expect a TLS handshake / certificate-required error, not an AdmissionReview response
-   kubectl -n kubescape exec deploy/operator -- \
-     curl -sv --cacert /etc/certs/tls.crt https://localhost:8443/health
+   NS=kubescape
+   HOST=kubescape-admission-webhook.$NS.svc
+   # CA of the webhook server certificate. With the default certificates.strategy (template) it is
+   # tls.crt in the kubescape-admission-webhook-ca Secret; with the initContainer strategy
+   # use the "ca" key of the kubescape-admission-webhook-tls-init Secret instead.
+   kubectl -n $NS get secret kubescape-admission-webhook-ca \
+     -o jsonpath='{.data.tls\.crt}' | base64 -d > webhook-ca.crt
+   kubectl -n $NS port-forward svc/kubescape-admission-webhook 8443:443 &
+   curl -sv --cacert webhook-ca.crt --resolve "$HOST:8443:127.0.0.1" "https://$HOST:8443/health"
    ```
+
+   Expected: the server certificate is verified, then the webhook ends the handshake with a
+   `certificate required` (TLS 1.3) or `handshake failure` (TLS 1.2) alert, and no
+   HTTP response comes back. If curl instead reports `SSL certificate problem` or
+   `no alternative certificate subject name matches`, the trust or name setup is wrong, not client
+   authentication. Adding `--cert client.crt --key client.key` with a certificate issued by the
+   configured client CA should get an HTTP response.
 
 3. If admission telemetry stops after enabling, the API-server client certificate is not trusted by
    the configured CA — fix the CA/kubeconfig and re-check. The webhook fails closed, so it will not
