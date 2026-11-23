@@ -65,12 +65,16 @@ spec:
             httpGet:
               path: /v1/liveness
               port: {{ .Values.kubevuln.service.port }}
-            initialDelaySeconds: 3
-            periodSeconds: 3
+            {{- with omit (.Values.kubevuln.livenessProbe | default dict) "httpGet" "exec" "tcpSocket" "grpc" }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           readinessProbe:
             httpGet:
               path: /v1/readiness
               port: {{ .Values.kubevuln.service.port }}
+            {{- with omit (.Values.kubevuln.readinessProbe | default dict) "httpGet" "exec" "tcpSocket" "grpc" }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           resources:
 {{ toYaml .Values.kubevuln.resources | indent 12 }}
           env:
