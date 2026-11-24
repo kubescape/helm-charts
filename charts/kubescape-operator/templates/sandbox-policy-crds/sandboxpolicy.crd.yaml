@@ -766,6 +766,254 @@ spec:
                 - message: per-access metadata requires defaultByAccess
                   rule: has(self.defaultByAccess) || (!has(self.defaultModeByAccess)
                     && !has(self.defaultOriginByAccess))
+              http:
+                properties:
+                  decrypt:
+                    properties:
+                      exactHosts:
+                        items:
+                          minLength: 1
+                          type: string
+                        type: array
+                      hostPatterns:
+                        items:
+                          minLength: 1
+                          type: string
+                        type: array
+                      passthrough:
+                        items:
+                          minLength: 1
+                          type: string
+                        type: array
+                    type: object
+                  default:
+                    properties:
+                      llm:
+                        enum:
+                        - allow
+                        - deny
+                        - audit
+                        minLength: 1
+                        type: string
+                      mcp:
+                        enum:
+                        - allow
+                        - deny
+                        - audit
+                        minLength: 1
+                        type: string
+                      other:
+                        enum:
+                        - allow
+                        - deny
+                        - audit
+                        minLength: 1
+                        type: string
+                    required:
+                    - llm
+                    - mcp
+                    - other
+                    type: object
+                  onUnavailable:
+                    enum:
+                    - allow
+                    - deny
+                    minLength: 1
+                    type: string
+                  rules:
+                    items:
+                      anyOf:
+                      - properties:
+                          action:
+                            enum:
+                            - deny
+                      - not:
+                          required:
+                          - except
+                      properties:
+                        action:
+                          enum:
+                          - allow
+                          - deny
+                          minLength: 1
+                          type: string
+                        actor:
+                          not: {}
+                          type: object
+                        except:
+                          items:
+                            properties:
+                              actor:
+                                not: {}
+                                type: object
+                              target:
+                                anyOf:
+                                - required:
+                                  - destClass
+                                - required:
+                                  - host
+                                - properties:
+                                    llm:
+                                      anyOf:
+                                      - required:
+                                        - account
+                                      - required:
+                                        - model
+                                      - required:
+                                        - provider
+                                      - required:
+                                        - region
+                                  required:
+                                  - llm
+                                properties:
+                                  destClass:
+                                    items:
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                  host:
+                                    items:
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                  llm:
+                                    properties:
+                                      account:
+                                        items:
+                                          minLength: 1
+                                          type: string
+                                        minItems: 1
+                                        type: array
+                                      model:
+                                        items:
+                                          minLength: 1
+                                          type: string
+                                        minItems: 1
+                                        type: array
+                                      provider:
+                                        items:
+                                          minLength: 1
+                                          type: string
+                                        minItems: 1
+                                        type: array
+                                      region:
+                                        items:
+                                          minLength: 1
+                                          type: string
+                                        minItems: 1
+                                        type: array
+                                    type: object
+                                  mcp:
+                                    not: {}
+                                    type: object
+                                  method:
+                                    items:
+                                      minLength: 1
+                                      type: string
+                                    minItems: 1
+                                    not: {}
+                                    type: array
+                                type: object
+                            required:
+                            - target
+                            type: object
+                          type: array
+                        mode:
+                          enum:
+                          - audit
+                          - enforce
+                          minLength: 1
+                          type: string
+                        name:
+                          maxLength: 256
+                          minLength: 1
+                          type: string
+                        origin:
+                          type: string
+                        target:
+                          anyOf:
+                          - required:
+                            - destClass
+                          - required:
+                            - host
+                          - properties:
+                              llm:
+                                anyOf:
+                                - required:
+                                  - account
+                                - required:
+                                  - model
+                                - required:
+                                  - provider
+                                - required:
+                                  - region
+                            required:
+                            - llm
+                          properties:
+                            destClass:
+                              items:
+                                minLength: 1
+                                type: string
+                              minItems: 1
+                              type: array
+                            host:
+                              items:
+                                minLength: 1
+                                type: string
+                              minItems: 1
+                              type: array
+                            llm:
+                              properties:
+                                account:
+                                  items:
+                                    minLength: 1
+                                    type: string
+                                  minItems: 1
+                                  type: array
+                                model:
+                                  items:
+                                    minLength: 1
+                                    type: string
+                                  minItems: 1
+                                  type: array
+                                provider:
+                                  items:
+                                    minLength: 1
+                                    type: string
+                                  minItems: 1
+                                  type: array
+                                region:
+                                  items:
+                                    minLength: 1
+                                    type: string
+                                  minItems: 1
+                                  type: array
+                              type: object
+                            mcp:
+                              not: {}
+                              type: object
+                            method:
+                              items:
+                                minLength: 1
+                                type: string
+                              minItems: 1
+                              not: {}
+                              type: array
+                          type: object
+                      required:
+                      - name
+                      - target
+                      - action
+                      type: object
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - name
+                    x-kubernetes-list-type: map
+                required:
+                - default
+                type: object
               identity:
                 properties:
                   default:

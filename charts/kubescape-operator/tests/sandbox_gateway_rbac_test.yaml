@@ -1,0 +1,548 @@
+suite: Sandbox gateway node status RBAC tests
+# The sandbox-gateway service account is the only subject that may write
+# SandboxGatewayNodeStatus. The exclusivity tests at the end render every other
+# Role and ClusterRole template of the chart, each with the values that enable it,
+# and assert that none lists the resource. The
+# opt-in autoupdater role ("*/*/*") is left out by design; see
+# docs/features/sandbox-gateway-node-status.md.
+tests:
+- it: serviceaccount renders nothing by default
+  template: sandbox-gateway/serviceaccount.yaml
+  set:
+    unittest: true
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  - hasDocuments:
+      count: 0
+- it: clusterrole renders nothing by default
+  template: sandbox-gateway/clusterrole.yaml
+  set:
+    unittest: true
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  - hasDocuments:
+      count: 0
+- it: clusterrolebinding renders nothing by default
+  template: sandbox-gateway/clusterrolebinding.yaml
+  set:
+    unittest: true
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  - hasDocuments:
+      count: 0
+- it: renders the service account when the capability is enabled
+  template: sandbox-gateway/serviceaccount.yaml
+  set:
+    unittest: true
+    capabilities.sandboxGateway: enable
+  release:
+    namespace: policy-review-ns
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  - hasDocuments:
+      count: 1
+  - isKind:
+      of: ServiceAccount
+  - equal:
+      path: metadata.name
+      value: sandbox-gateway
+  - equal:
+      path: metadata.namespace
+      value: kubescape
+- it: grants only status writes on SandboxGatewayNodeStatus
+  template: sandbox-gateway/clusterrole.yaml
+  set:
+    unittest: true
+    capabilities.sandboxGateway: enable
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  - hasDocuments:
+      count: 1
+  - isKind:
+      of: ClusterRole
+  - equal:
+      path: metadata.name
+      value: sandbox-gateway
+  - equal:
+      path: rules
+      value:
+      - apiGroups: ["kubescape.io"]
+        resources: ["sandboxgatewaynodestatuses"]
+        verbs: ["get", "create"]
+      - apiGroups: ["kubescape.io"]
+        resources: ["sandboxgatewaynodestatuses/status"]
+        verbs: ["update"]
+- it: binds the role to the service account and nothing else
+  template: sandbox-gateway/clusterrolebinding.yaml
+  set:
+    unittest: true
+    capabilities.sandboxGateway: enable
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  - hasDocuments:
+      count: 1
+  - isKind:
+      of: ClusterRoleBinding
+  - equal:
+      path: subjects
+      value:
+      - kind: ServiceAccount
+        name: sandbox-gateway
+        namespace: kubescape
+  - equal:
+      path: roleRef
+      value:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: sandbox-gateway
+- it: follows sandboxGateway.name in all three objects
+  set:
+    unittest: true
+    capabilities.sandboxGateway: enable
+    sandboxGateway.name: gw
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  - equal:
+      path: metadata.name
+      value: gw
+    template: sandbox-gateway/serviceaccount.yaml
+  - equal:
+      path: metadata.name
+      value: gw
+    template: sandbox-gateway/clusterrole.yaml
+  - equal:
+      path: metadata.name
+      value: gw
+    template: sandbox-gateway/clusterrolebinding.yaml
+  - equal:
+      path: subjects[0].name
+      value: gw
+    template: sandbox-gateway/clusterrolebinding.yaml
+  - equal:
+      path: roleRef.name
+      value: gw
+    template: sandbox-gateway/clusterrolebinding.yaml
+- it: configs/api-auth-rbac.yaml does not list SandboxGatewayNodeStatus
+  template: configs/api-auth-rbac.yaml
+  set:
+    unittest: true
+    clusterName: kind-kind
+    server: api.example
+    account: 11111111-1111-1111-1111-111111111111
+    accessKey: secret
+    capabilities.sandboxGateway: enable
+    capabilities.sandboxSeccomp: enable
+    nodeAgent.sandboxPolicy.enabled: true
+    nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  # The role must render, or the next assertion would pass without reading anything.
+  - exists:
+      path: rules
+    documentSelector:
+      path: kind
+      value: Role
+      matchMany: true
+  - notExists:
+      path: 'rules[*].resources[?(@ =~ /^sandboxgatewaynodestatuses/)]'
+    documentSelector:
+      path: kind
+      value: Role
+      matchMany: true
+- it: grype-offline-db/role.yaml does not list SandboxGatewayNodeStatus
+  template: grype-offline-db/role.yaml
+  set:
+    unittest: true
+    clusterName: kind-kind
+    capabilities.sandboxGateway: enable
+    capabilities.sandboxSeccomp: enable
+    nodeAgent.sandboxPolicy.enabled: true
+    nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+    grypeOfflineDB.enabled: true
+    grypeOfflineDB.image.tag: v6-latest
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  # The role must render, or the next assertion would pass without reading anything.
+  - exists:
+      path: rules
+  - notExists:
+      path: 'rules[*].resources[?(@ =~ /^sandboxgatewaynodestatuses/)]'
+- it: kubescape/clusterrole.yaml does not list SandboxGatewayNodeStatus
+  template: kubescape/clusterrole.yaml
+  set:
+    unittest: true
+    clusterName: kind-kind
+    capabilities.sandboxGateway: enable
+    capabilities.sandboxSeccomp: enable
+    nodeAgent.sandboxPolicy.enabled: true
+    nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  # The role must render, or the next assertion would pass without reading anything.
+  - exists:
+      path: rules
+  - notExists:
+      path: 'rules[*].resources[?(@ =~ /^sandboxgatewaynodestatuses/)]'
+- it: kubescape/role.yaml does not list SandboxGatewayNodeStatus
+  template: kubescape/role.yaml
+  set:
+    unittest: true
+    clusterName: kind-kind
+    capabilities.sandboxGateway: enable
+    capabilities.sandboxSeccomp: enable
+    nodeAgent.sandboxPolicy.enabled: true
+    nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  # The role must render, or the next assertion would pass without reading anything.
+  - exists:
+      path: rules
+  - notExists:
+      path: 'rules[*].resources[?(@ =~ /^sandboxgatewaynodestatuses/)]'
+- it: kubevuln/clusterrole.yaml does not list SandboxGatewayNodeStatus
+  template: kubevuln/clusterrole.yaml
+  set:
+    unittest: true
+    clusterName: kind-kind
+    capabilities.sandboxGateway: enable
+    capabilities.sandboxSeccomp: enable
+    nodeAgent.sandboxPolicy.enabled: true
+    nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  # The role must render, or the next assertion would pass without reading anything.
+  - exists:
+      path: rules
+  - notExists:
+      path: 'rules[*].resources[?(@ =~ /^sandboxgatewaynodestatuses/)]'
+- it: kubevuln/role.yaml does not list SandboxGatewayNodeStatus
+  template: kubevuln/role.yaml
+  set:
+    unittest: true
+    clusterName: kind-kind
+    capabilities.sandboxGateway: enable
+    capabilities.sandboxSeccomp: enable
+    nodeAgent.sandboxPolicy.enabled: true
+    nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  # The role must render, or the next assertion would pass without reading anything.
+  - exists:
+      path: rules
+  - notExists:
+      path: 'rules[*].resources[?(@ =~ /^sandboxgatewaynodestatuses/)]'
+- it: kubevuln/sbom-scanner-role.yaml does not list SandboxGatewayNodeStatus
+  template: kubevuln/sbom-scanner-role.yaml
+  set:
+    unittest: true
+    clusterName: kind-kind
+    capabilities.sandboxGateway: enable
+    capabilities.sandboxSeccomp: enable
+    nodeAgent.sandboxPolicy.enabled: true
+    nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+    kubevuln.sbomScanner.enabled: true
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  # The role must render, or the next assertion would pass without reading anything.
+  - exists:
+      path: rules
+  - notExists:
+      path: 'rules[*].resources[?(@ =~ /^sandboxgatewaynodestatuses/)]'
+- it: node-agent/clusterrole.yaml does not list SandboxGatewayNodeStatus
+  template: node-agent/clusterrole.yaml
+  set:
+    unittest: true
+    clusterName: kind-kind
+    capabilities.sandboxGateway: enable
+    capabilities.sandboxSeccomp: enable
+    nodeAgent.sandboxPolicy.enabled: true
+    nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  # The role must render, or the next assertion would pass without reading anything.
+  - exists:
+      path: rules
+  - notExists:
+      path: 'rules[*].resources[?(@ =~ /^sandboxgatewaynodestatuses/)]'
+- it: node-agent/hostdata-gc-role.yaml does not list SandboxGatewayNodeStatus
+  template: node-agent/hostdata-gc-role.yaml
+  set:
+    unittest: true
+    clusterName: kind-kind
+    capabilities.sandboxGateway: enable
+    capabilities.sandboxSeccomp: enable
+    nodeAgent.sandboxPolicy.enabled: true
+    nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  # The role must render, or the next assertion would pass without reading anything.
+  - exists:
+      path: rules
+  - notExists:
+      path: 'rules[*].resources[?(@ =~ /^sandboxgatewaynodestatuses/)]'
+- it: operator/admission-webhook/clusterrole.yaml does not list SandboxGatewayNodeStatus
+  template: operator/admission-webhook/clusterrole.yaml
+  set:
+    unittest: true
+    clusterName: kind-kind
+    capabilities.sandboxGateway: enable
+    capabilities.sandboxSeccomp: enable
+    nodeAgent.sandboxPolicy.enabled: true
+    nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+    certificates.strategy: initContainer
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  # The role must render, or the next assertion would pass without reading anything.
+  - exists:
+      path: rules
+  - notExists:
+      path: 'rules[*].resources[?(@ =~ /^sandboxgatewaynodestatuses/)]'
+- it: operator/admission-webhook/role.yaml does not list SandboxGatewayNodeStatus
+  template: operator/admission-webhook/role.yaml
+  set:
+    unittest: true
+    clusterName: kind-kind
+    capabilities.sandboxGateway: enable
+    capabilities.sandboxSeccomp: enable
+    nodeAgent.sandboxPolicy.enabled: true
+    nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+    certificates.strategy: initContainer
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  # The role must render, or the next assertion would pass without reading anything.
+  - exists:
+      path: rules
+  - notExists:
+      path: 'rules[*].resources[?(@ =~ /^sandboxgatewaynodestatuses/)]'
+- it: operator/clusterrole.yaml does not list SandboxGatewayNodeStatus
+  template: operator/clusterrole.yaml
+  set:
+    unittest: true
+    clusterName: kind-kind
+    capabilities.sandboxGateway: enable
+    capabilities.sandboxSeccomp: enable
+    nodeAgent.sandboxPolicy.enabled: true
+    nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  # The role must render, or the next assertion would pass without reading anything.
+  - exists:
+      path: rules
+  - notExists:
+      path: 'rules[*].resources[?(@ =~ /^sandboxgatewaynodestatuses/)]'
+- it: operator/role.yaml does not list SandboxGatewayNodeStatus
+  template: operator/role.yaml
+  set:
+    unittest: true
+    clusterName: kind-kind
+    capabilities.sandboxGateway: enable
+    capabilities.sandboxSeccomp: enable
+    nodeAgent.sandboxPolicy.enabled: true
+    nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  # The role must render, or the next assertion would pass without reading anything.
+  - exists:
+      path: rules
+  - notExists:
+      path: 'rules[*].resources[?(@ =~ /^sandboxgatewaynodestatuses/)]'
+- it: prometheus-exporter/clusterrole.yaml does not list SandboxGatewayNodeStatus
+  template: prometheus-exporter/clusterrole.yaml
+  set:
+    unittest: true
+    clusterName: kind-kind
+    capabilities.sandboxGateway: enable
+    capabilities.sandboxSeccomp: enable
+    nodeAgent.sandboxPolicy.enabled: true
+    nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+    capabilities.prometheusExporter: enable
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  # The role must render, or the next assertion would pass without reading anything.
+  - exists:
+      path: rules
+  - notExists:
+      path: 'rules[*].resources[?(@ =~ /^sandboxgatewaynodestatuses/)]'
+- it: storage/certgen/clusterrole.yaml does not list SandboxGatewayNodeStatus
+  template: storage/certgen/clusterrole.yaml
+  set:
+    unittest: true
+    clusterName: kind-kind
+    capabilities.sandboxGateway: enable
+    capabilities.sandboxSeccomp: enable
+    nodeAgent.sandboxPolicy.enabled: true
+    nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+    storage.mtls.enabled: true
+    certificates.strategy: initContainer
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  # The role must render, or the next assertion would pass without reading anything.
+  - exists:
+      path: rules
+  - notExists:
+      path: 'rules[*].resources[?(@ =~ /^sandboxgatewaynodestatuses/)]'
+- it: storage/certgen/role.yaml does not list SandboxGatewayNodeStatus
+  template: storage/certgen/role.yaml
+  set:
+    unittest: true
+    clusterName: kind-kind
+    capabilities.sandboxGateway: enable
+    capabilities.sandboxSeccomp: enable
+    nodeAgent.sandboxPolicy.enabled: true
+    nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+    storage.mtls.enabled: true
+    certificates.strategy: initContainer
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  # The role must render, or the next assertion would pass without reading anything.
+  - exists:
+      path: rules
+  - notExists:
+      path: 'rules[*].resources[?(@ =~ /^sandboxgatewaynodestatuses/)]'
+- it: storage/clusterrole.yaml does not list SandboxGatewayNodeStatus
+  template: storage/clusterrole.yaml
+  set:
+    unittest: true
+    clusterName: kind-kind
+    capabilities.sandboxGateway: enable
+    capabilities.sandboxSeccomp: enable
+    nodeAgent.sandboxPolicy.enabled: true
+    nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  # The role must render, or the next assertion would pass without reading anything.
+  - exists:
+      path: rules
+  - notExists:
+      path: 'rules[*].resources[?(@ =~ /^sandboxgatewaynodestatuses/)]'
+- it: storage/mcp-clusterroles.yaml does not list SandboxGatewayNodeStatus
+  template: storage/mcp-clusterroles.yaml
+  set:
+    unittest: true
+    clusterName: kind-kind
+    capabilities.sandboxGateway: enable
+    capabilities.sandboxSeccomp: enable
+    nodeAgent.sandboxPolicy.enabled: true
+    nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+    storage.mcp.enabled: true
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  # The role must render, or the next assertion would pass without reading anything.
+  - exists:
+      path: rules
+  - notExists:
+      path: 'rules[*].resources[?(@ =~ /^sandboxgatewaynodestatuses/)]'
+- it: synchronizer/clusterrole.yaml does not list SandboxGatewayNodeStatus
+  template: synchronizer/clusterrole.yaml
+  set:
+    unittest: true
+    clusterName: kind-kind
+    capabilities.sandboxGateway: enable
+    capabilities.sandboxSeccomp: enable
+    nodeAgent.sandboxPolicy.enabled: true
+    nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+    server: api.example
+    account: 11111111-1111-1111-1111-111111111111
+    accessKey: secret
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  # The role must render, or the next assertion would pass without reading anything.
+  - exists:
+      path: rules
+  - notExists:
+      path: 'rules[*].resources[?(@ =~ /^sandboxgatewaynodestatuses/)]'
+- it: synchronizer/role.yaml does not list SandboxGatewayNodeStatus
+  template: synchronizer/role.yaml
+  set:
+    unittest: true
+    clusterName: kind-kind
+    capabilities.sandboxGateway: enable
+    capabilities.sandboxSeccomp: enable
+    nodeAgent.sandboxPolicy.enabled: true
+    nodeAgent.sandboxPolicy.image: ghcr.io/example/enforce-exec-owner:v1
+    server: api.example
+    account: 11111111-1111-1111-1111-111111111111
+    accessKey: secret
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  # The role must render, or the next assertion would pass without reading anything.
+  - exists:
+      path: rules
+  - notExists:
+      path: 'rules[*].resources[?(@ =~ /^sandboxgatewaynodestatuses/)]'
+- it: the exclusivity filter does find the resource in the gateway role
+  template: sandbox-gateway/clusterrole.yaml
+  set:
+    unittest: true
+    capabilities.sandboxGateway: enable
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  - exists:
+      path: 'rules[*].resources[?(@ =~ /^sandboxgatewaynodestatuses/)]'
+- it: the exclusivity filter sees a sibling resource in node-agent's role
+  template: node-agent/clusterrole.yaml
+  set:
+    unittest: true
+    capabilities.sandboxSeccomp: enable
+  capabilities:
+    apiVersions:
+    - batch/v1
+  asserts:
+  - exists:
+      path: 'rules[*].resources[?(@ =~ /^sandboxpolicynodestatuses/)]'
