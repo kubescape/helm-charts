@@ -38,13 +38,24 @@
 {{- fail (printf "nodeAgent.sandboxPolicy.%s must be an absolute path other than \"/\", got %q" $name $path) }}
 {{- end }}
 {{- end }}
+{{- range $name := list "privilegeImage" "networkImage" "fileImage" }}
+{{- $sectionImage := get $sandboxPolicy $name }}
+{{- if not (or (kindIs "invalid" $sectionImage) (kindIs "string" $sectionImage)) }}
+{{- fail (printf "nodeAgent.sandboxPolicy.%s must be a string (empty turns the section off)" $name) }}
+{{- else if ne (trim (toString (default "" $sectionImage))) (toString (default "" $sectionImage)) }}
+{{- fail (printf "nodeAgent.sandboxPolicy.%s must not have surrounding whitespace, got %q" $name $sectionImage) }}
+{{- end }}
+{{- end }}
+{{- if not (or (kindIs "invalid" $sandboxPolicy.runtimeHelperExemption) (kindIs "bool" $sandboxPolicy.runtimeHelperExemption)) }}
+{{- fail "nodeAgent.sandboxPolicy.runtimeHelperExemption must be true or false" }}
+{{- end }}
 {{- $maxOwners := default 0 $sandboxPolicy.maxOwners }}
 {{- if not (or (kindIs "int" $maxOwners) (kindIs "int64" $maxOwners) (kindIs "float64" $maxOwners)) }}
 {{- fail "nodeAgent.sandboxPolicy.maxOwners must be a non-negative integer (0 keeps node-agent's default)" }}
 {{- else if or (lt (float64 $maxOwners) 0.0) (ne (float64 $maxOwners) (float64 (int64 $maxOwners))) }}
 {{- fail "nodeAgent.sandboxPolicy.maxOwners must be a non-negative integer (0 keeps node-agent's default)" }}
 {{- end }}
-{{- range $key := list "sandboxPolicyEnabled" "sandboxPolicyImage" "sandboxPolicyContainerdSocket" "sandboxPolicyControlRoot" "sandboxPolicyMaxOwners" }}
+{{- range $key := list "sandboxPolicyEnabled" "sandboxPolicyImage" "sandboxPolicyPrivilegeImage" "sandboxPolicyNetworkImage" "sandboxPolicyFileImage" "sandboxPolicyRuntimeHelperExemption" "sandboxPolicyContainerdSocket" "sandboxPolicyControlRoot" "sandboxPolicyMaxOwners" }}
 {{- if hasKey (default dict $.Values.nodeAgent.config.extra) $key }}
 {{- fail (printf "configure %s through nodeAgent.sandboxPolicy, not nodeAgent.config.extra.%s" $key $key) }}
 {{- end }}
@@ -81,6 +92,10 @@ data:
         {{- if $sandboxPolicy.enabled }}
         "sandboxPolicyEnabled": true,
         "sandboxPolicyImage": {{ $sandboxPolicy.image | toJson }},
+        "sandboxPolicyPrivilegeImage": {{ default "" $sandboxPolicy.privilegeImage | toJson }},
+        "sandboxPolicyNetworkImage": {{ default "" $sandboxPolicy.networkImage | toJson }},
+        "sandboxPolicyFileImage": {{ default "" $sandboxPolicy.fileImage | toJson }},
+        "sandboxPolicyRuntimeHelperExemption": {{ default false $sandboxPolicy.runtimeHelperExemption }},
         "sandboxPolicyContainerdSocket": {{ $sandboxPolicy.containerdSocket | toJson }},
         "sandboxPolicyControlRoot": {{ $sandboxPolicy.controlRoot | toJson }},
         {{- if $sandboxPolicy.maxOwners }}

@@ -906,7 +906,8 @@ sandboxGateway:
   name: sandbox-gateway
 
 nodeAgent:
-  # Sandbox policy (node-agent exec enforcement). When enabled, the chart:
+  # Sandbox policy (node-agent enforcement: exec, and the privilege, network
+  # and file sections). When enabled, the chart:
   # - writes the sandboxPolicy* keys below into the node-agent config;
   # - grants node-agent the SandboxPolicy RBAC (read SandboxPolicy,
   #   ClusterSandboxPolicy and SandboxPolicyClasses; create SandboxPolicyNodeStatus
@@ -915,7 +916,9 @@ nodeAgent:
   #   volumeMounts, which node-agent sandbox policy requires (it fails closed
   #   without it).
   # Requires the SandboxPolicy CRDs (templates/sandbox-policy-crds/) and a
-  # node-agent release with kubescape/node-agent#1054.
+  # node-agent release with kubescape/node-agent#1054 (exec); the privilege,
+  # network and file sections need kubescape/node-agent#1067 (older releases
+  # ignore their keys).
   sandboxPolicy:
     enabled: false
     # Image of the per-binding enforce_exec owner gadget (sandboxPolicyImage).
@@ -924,6 +927,19 @@ nodeAgent:
     # images compiled into node-agent (kubescape/node-agent#1101) and does not
     # load this image.
     image: ""
+    # Gadget images of the privilege, network and file sections
+    # (sandboxPolicyPrivilegeImage, sandboxPolicyNetworkImage,
+    # sandboxPolicyFileImage). node-agent loads them from the tracers.tar in its
+    # own image, not from a registry; the defaults are the names its build gives
+    # them. An empty name turns that section off: node-agent then refuses its
+    # policies (PrivilegeNotConfigured, NetworkNotConfigured, FileNotConfigured).
+    privilegeImage: ghcr.io/inspektor-gadget/gadget/enforce_privilege:latest
+    networkImage: ghcr.io/inspektor-gadget/gadget/enforce_network:latest
+    fileImage: ghcr.io/inspektor-gadget/gadget/enforce_file:latest
+    # Exempt OCI runtime hooks in a pod's cgroup from the privilege section
+    # (sandboxPolicyRuntimeHelperExemption). This is the node operator's
+    # consent; when false, a Strict privilege section judges the hooks too.
+    runtimeHelperExemption: false
     # containerd socket and the cgroup control root node-agent uses for the
     # bindings (sandboxPolicyContainerdSocket, sandboxPolicyControlRoot). The
     # chart requires absolute paths other than "/"; node-agent also requires them
