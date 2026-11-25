@@ -1,0 +1,76 @@
+suite: synchronizer sandbox policy sync (capabilities.sandboxPolicy)
+capabilities:
+  apiVersions:
+    - batch/v1
+tests:
+  - it: has no sandbox policy sync entries by default
+    template: synchronizer/configmap.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      server: fixture.invalid
+      account: synthetic-account
+      accessKey: synthetic-access-key
+    asserts:
+      - hasDocuments:
+          count: 1
+      - notMatchRegex:
+          path: data["config.json"]
+          pattern: '"resource": "sandboxpolic'
+
+  - it: adds copy entries for sandboxpolicies and sandboxpolicyclasses when enabled
+    template: synchronizer/configmap.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      server: fixture.invalid
+      account: synthetic-account
+      accessKey: synthetic-access-key
+      capabilities:
+        sandboxPolicy: enable
+    asserts:
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"group": "kubescape.io",\s*"version": "v1alpha1",\s*"resource": "sandboxpolicies",\s*"strategy": "copy"'
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"group": "kubescape.io",\s*"version": "v1alpha1",\s*"resource": "sandboxpolicyclasses",\s*"strategy": "copy"'
+      - notMatchRegex:
+          path: data["config.json"]
+          pattern: '"resource": "(clustersandboxpolicies|sandboxpolicynodestatuses)"'
+
+  - it: grants the synchronizer no sandbox policy RBAC by default
+    template: synchronizer/clusterrole.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      server: fixture.invalid
+      account: synthetic-account
+      accessKey: synthetic-access-key
+    asserts:
+      - hasDocuments:
+          count: 1
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["kubescape.io"]
+            resources: ["sandboxpolicies", "sandboxpolicyclasses"]
+            verbs: ["get", "watch", "list", "create", "update", "patch", "delete"]
+
+  - it: grants the synchronizer full verbs on sandboxpolicies and sandboxpolicyclasses when enabled
+    template: synchronizer/clusterrole.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      server: fixture.invalid
+      account: synthetic-account
+      accessKey: synthetic-access-key
+      capabilities:
+        sandboxPolicy: enable
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["kubescape.io"]
+            resources: ["sandboxpolicies", "sandboxpolicyclasses"]
+            verbs: ["get", "watch", "list", "create", "update", "patch", "delete"]
