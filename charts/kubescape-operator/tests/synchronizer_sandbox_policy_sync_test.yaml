@@ -18,7 +18,7 @@ tests:
           path: data["config.json"]
           pattern: '"resource": "sandboxpolic'
 
-  - it: adds copy entries for sandboxpolicies and sandboxpolicyclasses when enabled
+  - it: adds copy entries for sandboxpolicies, sandboxpolicyclasses and sandboxpolicynodestatuses when enabled
     template: synchronizer/configmap.yaml
     set:
       unittest: true
@@ -35,9 +35,12 @@ tests:
       - matchRegex:
           path: data["config.json"]
           pattern: '"group": "kubescape.io",\s*"version": "v1alpha1",\s*"resource": "sandboxpolicyclasses",\s*"strategy": "copy"'
+      - matchRegex:
+          path: data["config.json"]
+          pattern: '"group": "kubescape.io",\s*"version": "v1alpha1",\s*"resource": "sandboxpolicynodestatuses",\s*"strategy": "copy"'
       - notMatchRegex:
           path: data["config.json"]
-          pattern: '"resource": "(clustersandboxpolicies|sandboxpolicynodestatuses)"'
+          pattern: '"resource": "clustersandboxpolicies"'
 
   - it: grants the synchronizer no sandbox policy RBAC by default
     template: synchronizer/clusterrole.yaml
@@ -57,7 +60,7 @@ tests:
             resources: ["sandboxpolicies", "sandboxpolicyclasses"]
             verbs: ["get", "watch", "list", "create", "update", "patch", "delete"]
 
-  - it: grants the synchronizer full verbs on sandboxpolicies and sandboxpolicyclasses when enabled
+  - it: grants full verbs on sandboxpolicies and sandboxpolicyclasses and read on sandboxpolicynodestatuses when enabled
     template: synchronizer/clusterrole.yaml
     set:
       unittest: true
@@ -74,3 +77,25 @@ tests:
             apiGroups: ["kubescape.io"]
             resources: ["sandboxpolicies", "sandboxpolicyclasses"]
             verbs: ["get", "watch", "list", "create", "update", "patch", "delete"]
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["kubescape.io"]
+            resources: ["sandboxpolicynodestatuses"]
+            verbs: ["get", "watch", "list"]
+
+  - it: grants the synchronizer no sandboxpolicynodestatuses RBAC by default
+    template: synchronizer/clusterrole.yaml
+    set:
+      unittest: true
+      clusterName: kind-kind
+      server: fixture.invalid
+      account: synthetic-account
+      accessKey: synthetic-access-key
+    asserts:
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["kubescape.io"]
+            resources: ["sandboxpolicynodestatuses"]
+            verbs: ["get", "watch", "list"]
