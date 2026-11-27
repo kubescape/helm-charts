@@ -110,9 +110,9 @@ kubescape:
             kubernetes.io/metadata.name: monitoring
 ```
 
-Leaving it empty (the default) keeps the from-anywhere behaviour. The peers are rendered into the
-policy as given and the Kubernetes API server validates any `ipBlock` CIDR when the policy is
-applied. The `operator` rule that lets Kubescape's own scans reach the metrics port is unaffected.
+Leaving it empty (the default) keeps the from-anywhere behaviour. The chart validates each
+`ipBlock.cidr` at render time (same rules as admission webhook ingress above). The `operator`
+rule that lets Kubescape's own scans reach the metrics port is unaffected.
 
 ## Egress rules (opt-in)
 

@@ -117,3 +117,187 @@ tests:
     asserts:
       - hasDocuments:
           count: 0
+
+  # 8. CIDR validation: accepted values render, invalid values fail the template.
+  - it: accepts a valid IPv4 CIDR
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubescape.serviceMonitor.enabled: true
+      kubescape.networkPolicy.prometheusIngressFrom:
+        - ipBlock:
+            cidr: 10.244.0.0/16
+    asserts:
+      - equal:
+          path: spec.ingress[1].from[0].ipBlock.cidr
+          value: 10.244.0.0/16
+
+  - it: accepts a valid IPv6 CIDR
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubescape.serviceMonitor.enabled: true
+      kubescape.networkPolicy.prometheusIngressFrom:
+        - ipBlock:
+            cidr: "fd00::/64"
+    asserts:
+      - equal:
+          path: spec.ingress[1].from[0].ipBlock.cidr
+          value: "fd00::/64"
+
+  - it: accepts a valid IPv6 network prefix
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubescape.serviceMonitor.enabled: true
+      kubescape.networkPolicy.prometheusIngressFrom:
+        - ipBlock:
+            cidr: "2001:db8::/64"
+    asserts:
+      - equal:
+          path: spec.ingress[1].from[0].ipBlock.cidr
+          value: "2001:db8::/64"
+
+  - it: accepts an IPv4-mapped IPv6 host address
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubescape.serviceMonitor.enabled: true
+      kubescape.networkPolicy.prometheusIngressFrom:
+        - ipBlock:
+            cidr: "::ffff:192.0.2.1/128"
+    asserts:
+      - equal:
+          path: spec.ingress[1].from[0].ipBlock.cidr
+          value: "::ffff:192.0.2.1/128"
+
+  - it: accepts an IPv4-mapped IPv6 subnet
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubescape.serviceMonitor.enabled: true
+      kubescape.networkPolicy.prometheusIngressFrom:
+        - ipBlock:
+            cidr: "::ffff:192.0.2.0/120"
+    asserts:
+      - equal:
+          path: spec.ingress[1].from[0].ipBlock.cidr
+          value: "::ffff:192.0.2.0/120"
+
+  - it: accepts an IPv4-embedded IPv6 address with a non-mapped prefix
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubescape.serviceMonitor.enabled: true
+      kubescape.networkPolicy.prometheusIngressFrom:
+        - ipBlock:
+            cidr: "2001:db8::192.0.2.1/128"
+    asserts:
+      - equal:
+          path: spec.ingress[1].from[0].ipBlock.cidr
+          value: "2001:db8::192.0.2.1/128"
+
+  - it: rejects an out-of-range IPv4 octet
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubescape.serviceMonitor.enabled: true
+      kubescape.networkPolicy.prometheusIngressFrom:
+        - ipBlock:
+            cidr: 999.0.0.0/24
+    asserts:
+      - failedTemplate:
+          errorMessage: 'kubescape.networkPolicy.prometheusIngressFrom: invalid ipBlock.cidr "999.0.0.0/24" (want valid CIDR, e.g. 10.0.0.0/24 or 2001:db8::/64)'
+
+  - it: rejects an all-out-of-range IPv4 address
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubescape.serviceMonitor.enabled: true
+      kubescape.networkPolicy.prometheusIngressFrom:
+        - ipBlock:
+            cidr: 256.256.256.256/24
+    asserts:
+      - failedTemplate: {}
+
+  - it: rejects an IPv4 prefix above 32
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubescape.serviceMonitor.enabled: true
+      kubescape.networkPolicy.prometheusIngressFrom:
+        - ipBlock:
+            cidr: 10.0.0.0/33
+    asserts:
+      - failedTemplate: {}
+
+  - it: rejects a grossly out-of-range IPv4 prefix
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubescape.serviceMonitor.enabled: true
+      kubescape.networkPolicy.prometheusIngressFrom:
+        - ipBlock:
+            cidr: 10.0.0.0/99
+    asserts:
+      - failedTemplate: {}
+
+  - it: rejects an IPv6 prefix above 128
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubescape.serviceMonitor.enabled: true
+      kubescape.networkPolicy.prometheusIngressFrom:
+        - ipBlock:
+            cidr: "::/999"
+    asserts:
+      - failedTemplate: {}
+
+  - it: rejects a CIDR with no prefix
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubescape.serviceMonitor.enabled: true
+      kubescape.networkPolicy.prometheusIngressFrom:
+        - ipBlock:
+            cidr: 10.0.0.0
+    asserts:
+      - failedTemplate: {}
+
+  - it: rejects an IPv4-mapped IPv6 address with an out-of-range octet
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubescape.serviceMonitor.enabled: true
+      kubescape.networkPolicy.prometheusIngressFrom:
+        - ipBlock:
+            cidr: "::ffff:999.0.2.1/128"
+    asserts:
+      - failedTemplate:
+          errorMessage: 'kubescape.networkPolicy.prometheusIngressFrom: invalid ipBlock.cidr "::ffff:999.0.2.1/128" (want valid CIDR, e.g. 10.0.0.0/24 or 2001:db8::/64)'
+
+  - it: rejects an IPv4-mapped IPv6 address with an incomplete dotted tail
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubescape.serviceMonitor.enabled: true
+      kubescape.networkPolicy.prometheusIngressFrom:
+        - ipBlock:
+            cidr: "::ffff:192.0.2/128"
+    asserts:
+      - failedTemplate:
+          errorMessage: 'kubescape.networkPolicy.prometheusIngressFrom: invalid ipBlock.cidr "::ffff:192.0.2/128" (want valid CIDR, e.g. 10.0.0.0/24 or 2001:db8::/64)'
+
+  - it: does not CIDR-check selector-only peers
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubescape.serviceMonitor.enabled: true
+      kubescape.networkPolicy.prometheusIngressFrom:
+        - podSelector:
+            matchLabels:
+              app: prometheus
+    asserts:
+      - equal:
+          path: spec.ingress[1].from[0].podSelector.matchLabels.app
+          value: prometheus
