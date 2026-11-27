@@ -1,0 +1,119 @@
+suite: kubescape metrics scrape ingress restriction
+templates:
+  - kubescape/networkpolicy.yaml
+tests:
+  # 1. Default: the metrics port stays open to every source.
+  - it: leaves the metrics scrape unrestricted by default
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubescape.serviceMonitor.enabled: true
+    asserts:
+      - isKind:
+          of: NetworkPolicy
+      - lengthEqual:
+          path: spec.ingress
+          count: 2
+      - equal:
+          path: spec.ingress[1].ports[0].port
+          value: http
+      - equal:
+          path: spec.ingress[1].ports[0].protocol
+          value: TCP
+      - notExists:
+          path: spec.ingress[1].from
+
+  # 2. The annotation path renders the same rule.
+  - it: renders the scrape rule when prometheus annotations are enabled
+    set:
+      unittest: true
+      clusterName: kind-kind
+      configurations.prometheusAnnotations: enable
+    asserts:
+      - lengthEqual:
+          path: spec.ingress
+          count: 2
+      - notExists:
+          path: spec.ingress[1].from
+
+  # 3. Namespace selector narrows the rule.
+  - it: restricts the metrics ingress to a namespace selector
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubescape.serviceMonitor.enabled: true
+      kubescape.networkPolicy.prometheusIngressFrom:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+    asserts:
+      - lengthEqual:
+          path: spec.ingress[1].from
+          count: 1
+      - equal:
+          path: spec.ingress[1].from[0].namespaceSelector.matchLabels["kubernetes.io/metadata.name"]
+          value: monitoring
+
+  # 4. Namespace and pod selectors together.
+  - it: restricts the metrics ingress to a namespace and pod selector
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubescape.serviceMonitor.enabled: true
+      kubescape.networkPolicy.prometheusIngressFrom:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+    asserts:
+      - equal:
+          path: spec.ingress[1].from[0].podSelector.matchLabels["app.kubernetes.io/name"]
+          value: prometheus
+
+  # 5. CIDR and selector peers render side by side.
+  - it: renders multiple scrape peers
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubescape.serviceMonitor.enabled: true
+      kubescape.networkPolicy.prometheusIngressFrom:
+        - ipBlock:
+            cidr: 10.0.0.0/24
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+    asserts:
+      - lengthEqual:
+          path: spec.ingress[1].from
+          count: 2
+      - equal:
+          path: spec.ingress[1].from[0].ipBlock.cidr
+          value: 10.0.0.0/24
+      - equal:
+          path: spec.ingress[1].ports[0].port
+          value: http
+
+  # 6. No scrape rule without a ServiceMonitor or the annotations.
+  - it: renders no metrics rule when scraping is not enabled
+    set:
+      unittest: true
+      clusterName: kind-kind
+    asserts:
+      - lengthEqual:
+          path: spec.ingress
+          count: 1
+      - notExists:
+          path: spec.ingress[1]
+
+  # 7. NetworkPolicy disabled: no policy document at all.
+  - it: renders no policy when network policies are disabled
+    set:
+      unittest: true
+      clusterName: kind-kind
+      kubescape.serviceMonitor.enabled: true
+      global.networkPolicy.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
