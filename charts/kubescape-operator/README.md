@@ -392,6 +392,7 @@ However, we recommend that you give Kubescape no less than 500m CPU no matter th
 | kubescape.image.repository | string | `"quay.io/kubescape/kubescape"` | [source code](https://github.com/kubescape/kubescape/tree/master/httphandler) (public repo) |
 | kubescape.nodeSelector | object | `{}` | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/) |
 | kubescape.serviceMonitor.enabled | bool | `false` | enable/disable service monitor for prometheus (operator) integration |
+| kubescape.networkPolicy.prometheusIngressFrom | list | `[]` | NetworkPolicyPeer list that narrows the Prometheus scrape ingress on the kubescape metrics port; empty keeps it unrestricted (from anywhere). See docs/features/network-policies.md |
 | kubescape.skipUpdateCheck | bool | `false` | skip check for a newer version |
 | kubescape.volumes | object | `[]` | Additional volumes for Kubescape |
 | kubescape.volumeMounts | object | `[]` | Additional volumeMounts for Kubescape |
