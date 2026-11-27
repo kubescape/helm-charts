@@ -19,7 +19,7 @@ traffic as before.
 
 | Component | Rendered when | Ingress allowed |
 |---|---|---|
-| `kubescape` | `capabilities.configurationScan=enable` | from `operator` on `http` (8080); from anywhere on `http` when `kubescape.serviceMonitor.enabled` or `configurations.prometheusAnnotations=enable` (Prometheus scrape) |
+| `kubescape` | `capabilities.configurationScan=enable` | from `operator` on `http` (8080); on `http` when `kubescape.serviceMonitor.enabled` or `configurations.prometheusAnnotations=enable` (Prometheus scrape, from anywhere unless narrowed with `kubescape.networkPolicy.prometheusIngressFrom`, see below) |
 | `kubevuln` | `capabilities.vulnerabilityScan=enable` | from `operator` on `kubevuln.service.targetPort` (8080) |
 | `operator` | `capabilities.operator=enable` | from anywhere on `admission-port` (8443) when `capabilities.admissionController=enable` (narrow with `operator.admissionWebhooks.networkPolicy.ingressFrom`, see below), nothing otherwise |
 | `storage` | `storage.enabled` | from anywhere on `storage.serverPort` (8443), the aggregated API called by kube-apiserver |
@@ -90,6 +90,30 @@ Because the `ValidatingWebhookConfiguration` uses `failurePolicy: Ignore`, an ov
 admission telemetry still flows (operator logs, `telemetry` admission counters) rather than relying
 on admission being rejected. If telemetry stopped, widen or remove `ingressFrom`.
 
+### Restricting the Prometheus scrape ingress
+
+When `kubescape.serviceMonitor.enabled=true` or `configurations.prometheusAnnotations=enable`,
+the kubescape metrics port accepts scrapes from any namespace. If Prometheus runs in a known
+namespace, narrow that rule with `kubescape.networkPolicy.prometheusIngressFrom`, a list of
+standard
+[NetworkPolicyPeer](https://kubernetes.io/docs/reference/kubernetes-api/policy-resources/network-policy-v1/#NetworkPolicyPeer)
+entries:
+
+```yaml
+kubescape:
+  serviceMonitor:
+    enabled: true
+  networkPolicy:
+    prometheusIngressFrom:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: monitoring
+```
+
+Leaving it empty (the default) keeps the from-anywhere behaviour. The peers are rendered into the
+policy as given and the Kubernetes API server validates any `ipBlock` CIDR when the policy is
+applied. The `operator` rule that lets Kubescape's own scans reach the metrics port is unaffected.
+
 ## Egress rules (opt-in)
 
 `global.networkPolicy.createEgressRules=true` adds `Egress` to every component policy except
@@ -128,6 +152,7 @@ block egress to the API server.
 | `global.networkPolicy.createEgressRules` | `false` | Also restrict egress |
 | `global.networkPolicy.apiServerIP` | `""` | Pin the kube-apiserver egress rule to this IP (it no longer restricts storage ingress) |
 | `operator.admissionWebhooks.networkPolicy.ingressFrom` | `[]` | NetworkPolicyPeer list that narrows the admission webhook ingress; empty keeps it unrestricted (from anywhere) |
+| `kubescape.networkPolicy.prometheusIngressFrom` | `[]` | NetworkPolicyPeer list that narrows the metrics scrape ingress; empty keeps it unrestricted (from anywhere) |
 | `global.networkPolicy.apiServerPort` | `443` | kube-apiserver port for the egress rules, merged with the looked-up endpoint ports |
 | `global.networkPolicy.httpsProxyIP` | `""` | Pin the proxy egress rule to this IP (optional; destination left open if empty) |
 | `global.networkPolicy.httpsProxyPort` | `""` | Proxy port for egress rules; derived from `global.httpsProxy` when unset |
